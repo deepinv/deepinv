@@ -22,6 +22,8 @@ LOSSES = [
     "mcei-homography",
     "r2r",
     "vortex",
+    "ensure",
+    "ensure_mri",
 ]
 
 LIST_SURE = [
@@ -100,7 +102,7 @@ def test_jacobian_spectral_values(toymatrix, reduction):
     assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
-def choose_loss(loss_name, rng=None, device="cpu"):
+def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
     loss = []
     if loss_name == "mcei":
         loss.append(dinv.loss.MCLoss())
@@ -125,6 +127,16 @@ def choose_loss(loss_name, rng=None, device="cpu"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
+    elif loss_name == "ensure":
+        loss.append(
+            dinv.loss.mri.ENSURELoss(
+                0.01,
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
+                rng=rng,
+            )
+        )
+    elif loss_name == "ensure_mri":
+        loss = []  # defer
     elif loss_name == "vortex":
         loss.append(
             dinv.loss.AugmentConsistencyLoss(
@@ -255,19 +267,23 @@ def physics(imsize, device):
 
 @pytest.fixture
 def dataset(physics, tmp_path, imsize, device):
-    # load dummy dataset
+    return _dataset(physics, tmp_path, imsize, device)
+
+
+def _dataset(physics, tmp_path, imsize, device):
     save_dir = tmp_path / "dataset"
-    dinv.datasets.generate_dataset(
+    pth = dinv.datasets.generate_dataset(
         train_dataset=DummyCircles(samples=50, imsize=imsize),
         test_dataset=DummyCircles(samples=10, imsize=imsize),
         physics=physics,
         save_dir=save_dir,
         device=device,
+        dataset_filename=f"temp_dataset_{physics.__class__.__name__}",
     )
 
     return (
-        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=True),
-        dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False),
+        dinv.datasets.HDF5Dataset(pth, train=True),
+        dinv.datasets.HDF5Dataset(pth, train=False),
     )
 
 
@@ -293,7 +309,16 @@ def test_losses(
     non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
 ):
     # choose training losses
-    loss = choose_loss(loss_name, rng, device=device)
+    loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
+
+    if loss_name == "ensure_mri":
+        imsize = (2, *imsize[1:])
+        gen = dinv.physics.generator.GaussianMaskGenerator(
+            imsize, acceleration=2, rng=rng, device=device
+        )
+        physics = dinv.physics.MRI(**gen.step(), device=device)
+        loss = dinv.loss.mri.ENSURELoss(0.01, gen, rng=rng)
+        dataset = _dataset(physics, tmp_path, imsize, device)
 
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
@@ -324,7 +349,7 @@ def test_losses(
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=True,
+        plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )

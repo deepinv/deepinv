@@ -4,6 +4,8 @@ import copy
 from math import sqrt
 from typing import Optional
 import pytest
+import warnings
+
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -760,7 +762,8 @@ def test_operator_cropper(name, device, rng):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device, rng):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_operators_norm(name, verbose, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -780,7 +783,13 @@ def test_operators_norm(name, device, rng):
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        assert len(w) == 1
+
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
