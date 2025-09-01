@@ -85,3 +85,17 @@ For the models that require training, you can do this using the :ref:`trainer <t
         Some algorithms might be better at reconstructing images with good perceptual quality (e.g. diffusion methods)
         whereas other methods are better at reconstructing images with low distortion (close to the ground truth).
 
+Using models in the cloud
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The client model :class:`deepinv.models.Client` allows users to perform inference on models hosted in the cloud directly from DeepInverse.
+
+The client allows contributors to disseminate their reconstruction models, without requiring the user to have high GPU resources
+or to accurately define their physics. As a contributor, all you have to do is:
+
+  * Define your model to take tensors as input and output tensors (like :class:`deepinv.models.Reconstructor`)
+  * Create a simple API (see below for example)
+  * Deploy it to the cloud, and distribute the endpoint URL and API keys to anyone who might want to use it!
+
+The user then only needs to define this client, specify the endpoint URL and API key, and pass in an image as a tensor.
+The client then performs checks and passes the deserialized tensor to the server for processing.
