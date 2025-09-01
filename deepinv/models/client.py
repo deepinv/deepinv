@@ -1,11 +1,12 @@
-import torch
 import requests
 import io
 import base64
 import json
 from warnings import warn
 from typing import Any
+from urllib.request import UnknownHandler, DataHandler, OpenerDirector
 
+import torch
 from deepinv.models import Reconstructor, Denoiser
 
 
@@ -162,6 +163,17 @@ class Client(Reconstructor, Denoiser):
 
     @staticmethod
     def serialize(tensor: torch.Tensor) -> str:
+        """Helper function to serialize client inputs.
+
+        Instances of torch.Tensor are serialized by first `pickling
+        <https://docs.python.org/3/library/pickle.html>`_ them using
+        :func:`torch.save` and then returning a URI pointing to the pickle
+        file. For now, only data URIs are supported, but in the future
+        short-lived URLs may also be supported.
+
+        :param torch.Tensor tensor: input tensor
+        :return: tensor serialized as base64 string
+        """
         buffer = io.BytesIO()
         torch.save(tensor.cpu(), buffer)
         buffer.seek(0)
@@ -171,57 +183,35 @@ class Client(Reconstructor, Denoiser):
     @staticmethod
     def deserialize(data: str) -> torch.Tensor:
         """
-        Helper function to deserialize client inputs and outputs
+        Helper function to deserialize client outputs.
 
-        Instances of torch.Tensor are serialized by first `pickling
-        <https://docs.python.org/3/library/pickle.html>`_ them using
-        :func:`torch.save` and then returning a URI pointing to the pickle
-        file. For now, only data URIs are supported, but in the future
-        short-lived URLs may also be supported. The media type for the pickled
+        The media type for the pickled
         documents is expected to be ``application/octet-stream``.
 
         :param str data: input serialized using :meth:`serialize`
         :return: torch.Tensor deserialized Tensor
         """
-        import urllib
-        from urllib.request import build_opener, UnknownHandler, DataHandler
-        from email.message import EmailMessage
-
-        # A URI reader that only reads data URIs
-        opener = urllib.request.OpenerDirector()
-        handlers = [
-            # Handle data URIs
-            DataHandler(),
-            # Fallback for better error reporting
-            UnknownHandler(),
-        ]
-        for handler in handlers:
+        opener = OpenerDirector()
+        for handler in [
+            DataHandler(),  # Data URIs
+            UnknownHandler(),  # Fallback
+        ]:
             opener.add_handler(handler)
 
-        f: urllib.response.addinfourl
         with opener.open(data) as f:
-            headers: EmailMessage = f.headers
-            ctype: str = headers.get_content_type()
+            ctype = f.headers.get_content_type()
 
             if ctype != "application/octet-stream":
                 raise RuntimeError(
                     f"Unexpected media type: {ctype}, expected 'application/octet-stream'"
                 )
 
-            # The function torch.load can return objects of various types, even
-            # when weights_only=True is set. Here, we expect a torch.Tensor
-            # specifically.
             obj = torch.load(f, map_location="cpu", weights_only=True)
 
             if not isinstance(obj, torch.Tensor):
                 raise RuntimeError(f"Expected a torch.Tensor, got {type(obj).__name__}")
 
             return obj
-        if data.startswith("data:"):
-            _, data = data.split(",", 1)
-
-        buffer = io.BytesIO(base64.b64decode(data))
-        return torch.load(buffer, map_location="cpu", weights_only=True)
 
     @staticmethod
     def _sanitize_value(v: Any):
