@@ -162,7 +162,7 @@ model = ADMM(
     verbose=False,
     stepsize=stepsize,
     g_param=noise_level_img,
-    g_first=True
+    g_first=True,
 )
 
 # Set the model to evaluation mode (no training required)
