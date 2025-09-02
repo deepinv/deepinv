@@ -94,7 +94,7 @@ The client allows contributors to disseminate their reconstruction models, witho
 or to accurately define their physics. As a contributor, all you have to do is:
 
   * Define your model to take tensors as input and output tensors (like :class:`deepinv.models.Reconstructor`)
-  * Create a simple API (see below for example)
+  * Create a simple API
   * Deploy it to the cloud, and distribute the endpoint URL and API keys to anyone who might want to use it!
 
 The user then only needs to define this client, specify the endpoint URL and API key, and pass in an image as a tensor.
