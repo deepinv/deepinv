@@ -195,6 +195,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
