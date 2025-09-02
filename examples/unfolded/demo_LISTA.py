@@ -184,7 +184,7 @@ model = ProximalGradientDescent(
 #
 
 # Training parameters
-epochs = 10 if torch.cuda.is_available() else 3
+epochs = 5 if torch.cuda.is_available() else 1
 learning_rate = 1e-2
 
 # Choose optimizer and scheduler

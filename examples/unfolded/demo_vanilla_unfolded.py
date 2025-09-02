@@ -152,7 +152,7 @@ model = unfolded_builder(
 
 
 # training parameters
-epochs = 0 if torch.cuda.is_available() else 2
+epochs = 5 if torch.cuda.is_available() else 2
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3

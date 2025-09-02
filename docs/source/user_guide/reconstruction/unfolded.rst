@@ -3,8 +3,7 @@
 Unfolded Algorithms
 ===================
 
-This module contains a collection of routines turning the optimization algorithms defined in :ref:`optimization module <optim>`
-into unfolded architectures.
+The :ref:`optimization module <optim>` module also allows to turn the optimization algorithms into unfolded architectures.
 Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
 The resulting fixed-point algorithms for solving these problems are of the form (see :ref:`optimization <optim>`)
@@ -21,21 +20,14 @@ where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradie
 
 Unfolded architectures (sometimes called 'unrolled architectures') are obtained by replacing parts of these algorithms
 by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
-
-Unfolded
---------
-The :class:`deepinv.unfolded.unfolded_builder` class is a generic class for building unfolded architectures. It provides
-a trainable reconstruction network using a either pre-existing optimizer (e.g., "PGD") or
-an iterator defined by the user. The user can choose which parameters (e.g., prior denoiser, step size, regularization
-parameter, etc.) are learnable and which are not.
-
-The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseUnfold`.
-
-
+It suffices to set the argument ``unfold=True`` when creating an optimization algorithm from the :ref:`optimization <optim>` module.
+By default, if a neural network is used in place of a regularization or data-fidelity step, the parameters of the network are learnable by default.
+Moreover, among all the parameters of the algorithm (e.g. step size, regularization parameter, etc.), the use can use which are learnable and which are not via the argument ``trainable_params``.
 
 In the following example, we create an unfolded architecture of 5 proximal gradient steps
 using a DnCNN plug-and-play prior a standard L2 data-fidelity term. The network can be trained end-to-end, and
-evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.).
+evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.). 
+Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, and the prior parameter ``g_param`` of the plug-and-play prior are learnable.
 
 .. doctest::
 
@@ -43,12 +35,16 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>> import deepinv as dinv
     >>>
     >>> # Create a trainable unfolded architecture
-    >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
+    >>> model = ProximalGradientDescent(  # doctest: +IGNORE_RESULT
     ...     iteration="PGD",
+    ...     unfold=True
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
-    ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
-    ...     trainable_params=["stepsize", "g_param"]
+    ...     stepsize=1.0,
+    ...     g_param=0.1,
+    ...     lambda_reg=1
+    ...     max_iter=5,
+    ...     trainable_params=["stepsize", "g_param", "lambda_reg"]
     ... )
     >>> # Forward pass
     >>> x = torch.randn(1, 3, 16, 16)
@@ -74,10 +70,7 @@ where :math:`u` is the incoming gradient from the backward pass,
 and :math:`x^\star` is the equilibrium point of the forward pass.
 See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building Deep Equilibrium (DEQ) architectures.
-
-
-The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseDEQ`.
+For turning an optimization algorithm into a DEQ model, it suffices to set the argument ``DEQ=True`` when creating an optimization algorithm from the :ref:`optimization <optim>` module.
 
 .. _predefined-unfolded:
 
