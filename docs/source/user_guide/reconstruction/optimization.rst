@@ -299,7 +299,7 @@ Some predefined optimizers are provided:
 .. _optim-params:
 
 Parameters
-~~~~~~~~~
+~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
 stepsize, regularization parameter, standard deviation of denoiser prior, etc.
 are stored in a dictionary ``"params_algo"``, whose typical entries are:
