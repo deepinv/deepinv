@@ -843,7 +843,6 @@ def test_zip_strict_behavior(force_polyfill):
     assert next(c, None) == 400, "Iterator c should have one item left."
 
     # Test empty input
-    expected = list(zip(strict=True))  # novermin
     assert (
-        list(zip_strict(force_polyfill=force_polyfill)) == expected
-    ), "Empty input should yield empty output."  # novermin
+        list(zip_strict(force_polyfill=force_polyfill)) == []
+    ), "Empty input should yield empty output."
