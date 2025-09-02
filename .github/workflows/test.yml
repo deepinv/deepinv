@@ -85,6 +85,11 @@ jobs:
 
       - name: Check installed packages
         run: pip list
+      
+      - name: Python 3.9 check import warning
+        if: matrix.version_python == '3.9'
+        run: |
+          python -c "import deepinv"
 
       # ----------------------------
 
