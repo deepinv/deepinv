@@ -16,9 +16,8 @@ import deepinv as dinv
 from pathlib import Path
 import importlib
 import torch
-
+from deepinv.optim import ProximalGradientDescent
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.utils.demo import load_torch_url
 from deepinv.physics import LogPoissonNoise
@@ -113,19 +112,18 @@ plot_convergence_metrics = (
 scaling = 1 / physics.compute_norm(torch.rand_like(test_imgs)).item()
 stepsize = 0.99 * scaling
 lamb = 3.0  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="PGD",
+model = ProximalGradientDescent(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    lambda_reg=lamb,
     custom_init=lambda observation, physics: {
         "est": (physics.A_dagger(observation), physics.A_dagger(observation))
     },  # initialize the optimization with FBP reconstruction
