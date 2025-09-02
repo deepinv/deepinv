@@ -2,6 +2,7 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -18,6 +19,7 @@ import PIL
 import io
 import copy
 import math
+import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -180,7 +182,7 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x, strict=True)
+            for hi, xi in zip_strict(h, x)
         ]
     )
 
@@ -797,3 +799,30 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
 
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
+
+
+def test_zip_strict_behavior():
+    # Test correct pairing
+    a = [1, 2, 3]
+    b = ["x", object(), "z"]
+    c = [True, False, object()]
+
+    result = list(zip_strict(a, b, c))
+
+    # If Python >= 3.10, compare with zip(strict=True)
+    if sys.version_info >= (3, 10):
+        expected = list(zip(a, b, c, strict=True))
+        assert result == expected
+    else:
+        # On older Python, just check the correct number of tuples
+        assert result == [(1, "x", True), (2, "y", False), (3, "z", True)]
+
+    # Test ValueError for different lengths
+    d = [1, 2]
+    with pytest.raises(ValueError):
+        list(zip_strict(a, d))
+
+    # If Python >= 3.10, confirm zip(strict=True) also raises
+    if sys.version_info >= (3, 10):
+        with pytest.raises(ValueError):
+            list(zip(a, d, strict=True))

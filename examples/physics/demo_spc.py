@@ -36,6 +36,7 @@ from deepinv.utils.demo import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift
+from deepinv.utils.compat import zip_strict
 
 # %%
 # General Setup
@@ -110,7 +111,7 @@ title_orderings = [o.replace("_", " ").title() for o in orderings]
 title_orderings[-1] = "XY"  # Special case for 'xy'
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
+    for ordering, psnr in zip_strict(title_orderings, psnr_values)
 ]
 
 # Print information about the SPC setup
@@ -180,7 +181,7 @@ for y, physics in zip(y_list, physics_list, strict=True):
 # Update titles with PSNR values for the reconstructed images
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
+    for ordering, psnr in zip_strict(title_orderings, psnr_values)
 ]
 
 # %%
