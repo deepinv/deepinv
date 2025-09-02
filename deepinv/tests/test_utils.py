@@ -186,7 +186,7 @@ def test_dirac_like(shape, length):
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y, strict=True):
+    for xi, hi, yi in zip_strict(x, h, y):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -218,7 +218,7 @@ def test_plot(
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
-    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
+    img_list = {k: v for k, v in zip_strict(titles, img_list)}
     if not with_titles:
         titles = None
     if not dict_img_list:
@@ -766,7 +766,7 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     # Tests specific to min-max normalization
     if mode == "min_max":
         # Test the edge case of constant signals
-        for inp_s, out_s in zip(inp, out, strict=True):
+        for inp_s, out_s in zip_strict(inp, out):
             inp_unique = torch.unique(inp_s)
             is_inp_constant = inp_unique.numel() == 1
             if is_inp_constant:
@@ -811,7 +811,7 @@ def test_zip_strict_behavior():
 
     # If Python >= 3.10, compare with zip(strict=True)
     if sys.version_info >= (3, 10):
-        expected = list(zip(a, b, c, strict=True))
+        expected = list(zip(a, b, c, strict=True)) # novermin
         assert result == expected
     else:
         # On older Python, just check the correct number of tuples
@@ -825,4 +825,4 @@ def test_zip_strict_behavior():
     # If Python >= 3.10, confirm zip(strict=True) also raises
     if sys.version_info >= (3, 10):
         with pytest.raises(ValueError):
-            list(zip(a, d, strict=True))
+            list(zip(a, d, strict=True)) # novermin

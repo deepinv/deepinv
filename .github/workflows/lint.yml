@@ -1,4 +1,4 @@
-name: Black
+name: Lint
 
 on:
   push:
@@ -21,3 +21,8 @@ jobs:
         run: |
           pip install ruff
           ruff check
+      - name: Install and run vermin
+        run: |
+          pip install vermin
+          # Run vermin and fail if any Python <3.10 features are detected
+          vermin --eval-annotations -vvv --feature union-types deepinv examples | grep "3.10" && exit 1 || true
