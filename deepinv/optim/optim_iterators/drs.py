@@ -45,10 +45,10 @@ class DRSIteration(OptimIterator):
         :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x, z = X["est"]
-        if z.shape != x.shape:
+        x, z = X["est"] if len(X["est"]) == 2 else (None, X["est"])
+        if x is not None and z.shape != x.shape:
             # In DRS, the "dual" variable z is a fake dual variable as it lives in the primal, hence this line to prevent from usual initialisation
-            z = torch.zeros_like(x)
+            z = x
         if self.g_first:
             u = self.g_step(x, z, cur_prior, cur_params)
             x = self.f_step(u, z, cur_data_fidelity, cur_params, y, physics)

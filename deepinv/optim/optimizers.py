@@ -83,7 +83,7 @@ class BaseOptim(Reconstructor):
     where :math:`u` is the incoming gradient from the backward pass,
     and :math:`x^\star` is the equilibrium point of the forward pass. See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are tranable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are tranable by default.
 
     .. note::
 
@@ -167,7 +167,7 @@ class BaseOptim(Reconstructor):
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
     :param list trainable_params: list of the algorithmic parameters among the keys of the dictionery params_algo to be made trainable. Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
     :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
-    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. See https://ojs.aaai.org/index.php/AAAI/article/view/20619. Default: ``False``.
+    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. See :footcite:t:`fung2022jfb`. Default: ``False``.
     :param bool DEQ_anderson_acceleration_backward: whether to use Anderson acceleration for the backward pass in the Deep Equilibrium model. Default: ``False``.
     :param int DEQ_history_size_backward: size of the history of iterates used for Anderson acceleration in the backward pass in the Deep Equilibrium model. Default: ``5``.
     :param float DEQ_beta_anderson_acc_backward: momentum of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1.0``.
@@ -828,6 +828,7 @@ class ADMM(BaseOptim):
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters (stepsize, regularization parameter, etc.) of the algorithm are trainable. 
     By default (if the attribute ``unfold`` is set to ``True``) all the algorithm parameters are trainable: the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
@@ -846,6 +847,15 @@ class ADMM(BaseOptim):
     :param float beta: ADMM relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` ADMM iterates. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -863,6 +873,14 @@ class ADMM(BaseOptim):
         beta=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         unfold=False,
         trainable_params=None,
         g_first=False,
@@ -870,7 +888,6 @@ class ADMM(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-        # add an unfolded mode for DEQ
     ):
         if params_algo is None:
             params_algo = {
@@ -885,6 +902,14 @@ class ADMM(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
@@ -917,6 +942,7 @@ class DRS(BaseOptim):
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
@@ -935,6 +961,15 @@ class DRS(BaseOptim):
     :param float beta: DRS relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (z_0)}`` where ``z_0``is the initial DRS iterate. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -952,6 +987,14 @@ class DRS(BaseOptim):
         beta=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         g_first=False,
         unfold=False,
         trainable_params=None,
@@ -973,6 +1016,14 @@ class DRS(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
@@ -1001,11 +1052,12 @@ class GradientDescent(BaseOptim):
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default.
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1018,8 +1070,24 @@ class GradientDescent(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+        :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
+    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. Default: ``False``.
+    :param bool DEQ_anderson_acceleration_backward: whether to use Anderson acceleration for the backward pass in the Deep Equilibrium model. Default: ``False``.
+    :param int DEQ_history_size_backward: size of the history of iterates used for Anderson acceleration in the backward pass in the Deep Equilibrium model. Default: ``5``.
+    :param float DEQ_beta_anderson_acc_backward: momentum of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1.0``.
+    :param float DEQ_eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1e-4``.
+    :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1033,6 +1101,14 @@ class GradientDescent(BaseOptim):
         stepsize=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         unfold=False,
         trainable_params=None,
         DEQ=False,
@@ -1059,6 +1135,14 @@ class GradientDescent(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
@@ -1097,7 +1181,8 @@ class HQS(BaseOptim):
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
-   
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
+
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
@@ -1114,9 +1199,25 @@ class HQS(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
+    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. Default: ``False``.
+    :param bool DEQ_anderson_acceleration_backward: whether to use Anderson acceleration for the backward pass in the Deep Equilibrium model. Default: ``False``.
+    :param int DEQ_history_size_backward: size of the history of iterates used for Anderson acceleration in the backward pass in the Deep Equilibrium model. Default: ``5``.
+    :param float DEQ_beta_anderson_acc_backward: momentum of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1.0``.
+    :param float DEQ_eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1e-4``.
+    :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the HQS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1130,6 +1231,14 @@ class HQS(BaseOptim):
         stepsize=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         g_first=False,
         unfold=False,
         trainable_params=None,
@@ -1157,6 +1266,14 @@ class HQS(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
@@ -1192,11 +1309,12 @@ class ProximalGradientDescent(BaseOptim):
 
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default.
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1209,9 +1327,25 @@ class ProximalGradientDescent(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
+    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. Default: ``False``.
+    :param bool DEQ_anderson_acceleration_backward: whether to use Anderson acceleration for the backward pass in the Deep Equilibrium model. Default: ``False``.
+    :param int DEQ_history_size_backward: size of the history of iterates used for Anderson acceleration in the backward pass in the Deep Equilibrium model. Default: ``5``.
+    :param float DEQ_beta_anderson_acc_backward: momentum of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1.0``.
+    :param float DEQ_eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1e-4``.
+    :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1225,6 +1359,14 @@ class ProximalGradientDescent(BaseOptim):
         stepsize=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         g_first=False,
         unfold=False,
         trainable_params=None,
@@ -1252,6 +1394,14 @@ class ProximalGradientDescent(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
@@ -1285,6 +1435,7 @@ class FISTA(BaseOptim):
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The FISTA iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.FISTAIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
@@ -1303,6 +1454,15 @@ class FISTA(BaseOptim):
     :param int a: parameter of the FISTA algorithm, should be strictly greater than 2. Default: ``3``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` iterates. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1320,6 +1480,14 @@ class FISTA(BaseOptim):
         a=3,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         g_first=False,
         unfold=False,
         trainable_params=None,
@@ -1341,6 +1509,14 @@ class FISTA(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
@@ -1362,6 +1538,7 @@ class MirrorDescent(BaseOptim):
     
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1380,6 +1557,15 @@ class MirrorDescent(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1396,6 +1582,14 @@ class MirrorDescent(BaseOptim):
         stepsize=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         unfold=False,
         trainable_params=None,
         F_fn=None,
@@ -1415,6 +1609,14 @@ class MirrorDescent(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
@@ -1437,6 +1639,7 @@ class ProximalMirrorDescent(BaseOptim):
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
     :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
     The Proximal Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PMDIteration`.
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1455,6 +1658,16 @@ class ProximalMirrorDescent(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1471,6 +1684,14 @@ class ProximalMirrorDescent(BaseOptim):
         stepsize=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         unfold=False,
         trainable_params=None,
         F_fn=None,
@@ -1490,6 +1711,14 @@ class ProximalMirrorDescent(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
@@ -1529,6 +1758,8 @@ class PrimalDualCP(BaseOptim):
 
     Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
 
+    For using early stopping or stepsize backtracking, see the documentation of the :class:`deepinv.optim.BaseOptim` class.
+
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, the trainable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
@@ -1551,6 +1782,15 @@ class PrimalDualCP(BaseOptim):
     :param float beta: PD relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
+    :param bool backtracking: whether to perform stepsize backtracking or not. Default: ``False``.
+    :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
+    :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
+    :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
+    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}`` where ``x_0``, ``z_0`` and ``u_0`` are the initial ``x``, ``z`` and ``u`` iterates. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
@@ -1571,6 +1811,14 @@ class PrimalDualCP(BaseOptim):
         beta=1.0,
         g_param=None,
         max_iter=100,
+        crit_conv="residual",
+        thres_conv=1e-5,
+        early_stop=False,
+        backtracking=False,
+        gamma_backtracking=0.1,
+        eta_backtracking=0.9,
+        custom_metrics=None,
+        custom_init=None,
         unfold=False,
         trainable_params=["lambda", "stepsize", "stepsize_dual", "g_param", "beta"],
         g_first=False,
@@ -1595,6 +1843,14 @@ class PrimalDualCP(BaseOptim):
             prior=prior,
             params_algo=params_algo,
             max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            backtracking=backtracking,
+            gamma_backtracking=gamma_backtracking,
+            eta_backtracking=eta_backtracking,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
