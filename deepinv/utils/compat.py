@@ -17,7 +17,7 @@ def zip_strict(*iterables, force_polyfill=False):
     :raises ValueError: If the input iterables have different lengths.
     """
     if sys.version_info >= (3, 10) and not force_polyfill:
-        for values in zip(*iterables, strict=True):
+        for values in zip(*iterables, strict=True):  # novermin
             yield values
     else:
         if not force_polyfill:
