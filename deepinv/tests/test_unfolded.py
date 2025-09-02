@@ -126,7 +126,7 @@ def test_DEQ(
     default_params_algo,
     default_data_fidelity,
 ):
-   
+
     pytest.importorskip("ptwt")
     torch.set_grad_enabled(
         True
@@ -179,19 +179,19 @@ def test_DEQ(
     # Define the unfolded trainable model.
     # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
     model = getattr(optim, unfolded_algo)(
-            stepsize=stepsize,
-            g_param=sigma_denoiser,
-            lambda_reg=lamb,
-            DEQ=True,
-            trainable_params=trainable_params,
-            data_fidelity=data_fidelity,
-            max_iter=max_iter,
-            prior=prior,
-            anderson_acceleration=and_acc,
-            DEQ_anderson_acceleration_backward=and_acc,
-            DEQ_jacobian_free=jac_free,
-            **kwargs,
-            )
+        stepsize=stepsize,
+        g_param=sigma_denoiser,
+        lambda_reg=lamb,
+        DEQ=True,
+        trainable_params=trainable_params,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        prior=prior,
+        anderson_acceleration=and_acc,
+        DEQ_anderson_acceleration_backward=and_acc,
+        DEQ_jacobian_free=jac_free,
+        **kwargs,
+    )
     model.to(device)
 
     for idx, (name, param) in enumerate(model.named_parameters()):
