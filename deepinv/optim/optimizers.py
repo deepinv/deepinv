@@ -83,10 +83,12 @@ class BaseOptim(Reconstructor):
     where :math:`u` is the incoming gradient from the backward pass,
     and :math:`x^\star` is the equilibrium point of the forward pass. See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are tranable by default. 
+
     .. note::
 
         For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
-
+        If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     .. doctest::
 
@@ -813,7 +815,7 @@ class ADMM(BaseOptim):
         \end{equation}
 
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
-    If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_)
+    If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (see :footcite:t:`boyd2011distributed` for more details):
 
     .. math::
         \begin{equation*}
@@ -828,8 +830,10 @@ class ADMM(BaseOptim):
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters (stepsize, regularization parameter, etc.) of the algorithm are trainable. 
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    By default (if the attribute ``unfold`` is set to ``True``) all the algorithm parameters are trainable: the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -915,8 +919,10 @@ class DRS(BaseOptim):
     The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -997,8 +1003,10 @@ class GradientDescent(BaseOptim):
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -1091,8 +1099,10 @@ class HQS(BaseOptim):
     The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
    
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -1184,8 +1194,10 @@ class ProximalGradientDescent(BaseOptim):
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -1275,8 +1287,10 @@ class FISTA(BaseOptim):
     The FISTA iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.FISTAIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -1350,8 +1364,10 @@ class MirrorDescent(BaseOptim):
     The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``BregmanL2()``.
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1423,8 +1439,10 @@ class ProximalMirrorDescent(BaseOptim):
     The Proximal Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PMDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
     
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Proximal Mirror Descent. Default: ``BregmanL2()``.
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1512,8 +1530,10 @@ class PrimalDualCP(BaseOptim):
     Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
-    By default, the trainiable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    By default, the trainable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     The Proximal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
 
