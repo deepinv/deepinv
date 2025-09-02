@@ -1,6 +1,3 @@
-import deepinv as dinv
-from .signal import normalize_signal
-
 import os
 import shutil
 from pathlib import Path
@@ -22,6 +19,8 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from PIL import Image
+
+from deepinv.utils.signal import normalize_signal, complex_abs
 
 _DEFAULT_PLOT_FONTSIZE = 17
 
@@ -159,7 +158,7 @@ def preprocess_img(im, rescale_mode="min_max"):
     """
     # Apply the modulus function if the image is inferred to be complex
     if torch.is_complex(im) or im.shape[1] == 2:
-        im = dinv.loss.metric.functional.complex_abs(im, dim=1, keepdim=True)
+        im = complex_abs(im, dim=1, keepdim=True)
 
     # Cast image values to float32 numbers
     # NOTE: Why is it needed?

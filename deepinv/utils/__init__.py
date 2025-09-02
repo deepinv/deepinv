@@ -39,6 +39,6 @@ from .tensorlist import (
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
 from .parameters import get_GSPnP_params
-from .signal import normalize_signal
+from .signal import normalize_signal, complex_abs
 from .mixins import TimeMixin, MRIMixin
 from .compat import zip_strict

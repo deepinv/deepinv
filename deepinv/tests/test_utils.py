@@ -521,9 +521,7 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize(
-    "fn_name", ["norm", "cal_angle", "cal_mse", "complex_abs", "norm_psnr"]
-)
+@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
 def test_deprecated_metric_functions(fn_name):
     f = getattr(deepinv.utils.metric, fn_name)
     with pytest.raises(NotImplementedError, match="deprecated"):
