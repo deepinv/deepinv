@@ -63,3 +63,18 @@ from deepinv.training import train, test, Trainer
 
 # GLOBAL PROPERTY
 dtype = torch.float
+
+import sys
+import warnings
+
+# Check Python version
+if sys.version_info < (3, 10):  # pragma: no cover
+    warnings.warn(
+        "You are using a Python version lower than 3.10. "
+        "deepinv officially supports Python >= 3.10. "
+        "Running on < 3.10 may work, but it is unsupported, unstable, "
+        "and may lead to unexpected bugs.",
+        "For more information on updating to Python 3.10, see https://www.python.org/downloads",
+        UserWarning,
+        stacklevel=2,
+    )

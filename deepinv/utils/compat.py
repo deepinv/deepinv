@@ -1,5 +1,6 @@
 from itertools import zip_longest
 
+
 def zip_strict(*iterables):
     """
     Strict version of :func:`zip` for Python < 3.10.
