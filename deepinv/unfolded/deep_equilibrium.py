@@ -181,7 +181,7 @@ def DEQ_builder(
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
     if params_algo is None:
-        params_algo = {"lambda": 1.0, "stepsize": 1.0}
+        params_algo = {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.03}
     if data_fidelity is None:
         data_fidelity = L2()
     iterator = create_iterator(
