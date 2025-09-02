@@ -21,8 +21,7 @@ jobs:
         run: |
           pip install ruff
           ruff check
-      - name: Install and run vermin
+      - name: Check Python 3.9 backward compatibility
         run: |
           pip install vermin
-          # Run vermin and fail if any Python <3.10 features are detected
           vermin --eval-annotations -vvv --feature union-types deepinv examples | grep "3.10" && exit 1 || true

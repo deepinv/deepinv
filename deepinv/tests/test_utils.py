@@ -811,7 +811,7 @@ def test_zip_strict_behavior():
 
     # If Python >= 3.10, compare with zip(strict=True)
     if sys.version_info >= (3, 10):
-        expected = list(zip(a, b, c, strict=True)) # novermin
+        expected = list(zip(a, b, c, strict=True))  # novermin
         assert result == expected
     else:
         # On older Python, just check the correct number of tuples
@@ -825,4 +825,4 @@ def test_zip_strict_behavior():
     # If Python >= 3.10, confirm zip(strict=True) also raises
     if sys.version_info >= (3, 10):
         with pytest.raises(ValueError):
-            list(zip(a, d, strict=True)) # novermin
+            list(zip(a, d, strict=True))  # novermin
