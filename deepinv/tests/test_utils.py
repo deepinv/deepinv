@@ -799,13 +799,14 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
 
 
-def test_zip_strict_behavior():
+@pytest.mark.parametrize("force_polyfill", [False, True])
+def test_zip_strict_behavior(force_polyfill):
     # Test correct pairing
     a = [1, 2, 3]
     b = ["x", object(), "z"]
     c = [True, False, object()]
 
-    result = list(zip_strict(a, b, c))
+    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
 
     # If Python >= 3.10, compare with zip(strict=True)
     if sys.version_info >= (3, 10):
@@ -815,9 +816,33 @@ def test_zip_strict_behavior():
     # Test ValueError for different lengths
     d = [1, 2]
     with pytest.raises(ValueError):
-        list(zip_strict(a, d))
+        list(zip_strict(a, d, force_polyfill=force_polyfill))
 
     # If Python >= 3.10, confirm zip(strict=True) also raises
     if sys.version_info >= (3, 10):
         with pytest.raises(ValueError):
             list(zip(a, d, strict=True))  # novermin
+
+    # Test consumption behavior
+    def spy(iterable):
+        it = iter(iterable)
+        for x in it:
+            yield x
+
+    a = spy([1, 2, 3])
+    b = spy([10, 20, 30, 40])
+    c = spy([100, 200, 300, 400])
+
+    try:
+        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
+    except ValueError:
+        pass
+
+    assert next(a, None) is None, "Iterator a should be fully consumed."
+    assert next(b, None) is None, "Iterator b should be fully consumed."
+    assert next(c, None) == 400, "Iterator c should have one item left."
+
+    # Test empty input
+    assert list(zip_strict(force_polyfill=force_polyfill)) == list(
+        zip(strict=True)
+    ), "Empty input should yield empty output."
