@@ -12,6 +12,7 @@ New Features
 - Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
+- Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
