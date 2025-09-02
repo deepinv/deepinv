@@ -246,65 +246,60 @@ Some predefined optimizers are provided:
      - Iteration
      - Parameters
 
-   * - :class:`Gradient Descent (GD) <deepinv.optim.optim_iterators.GDIteration>`
+   * - :class:`Gradient Descent (GD) <deepinv.optim.GradientDescent>`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = x_k-\gamma v_{k}`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Proximal Gradient Descent (PGD) <deepinv.optim.optim_iterators.PGDIteration>`
+   * - :class:`Proximal Gradient Descent (PGD) <deepinv.optim.ProximalGradientDescent>`
      - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.optim_iterators.FISTAIteration>`
+   * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.FISTA>`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
        | :math:`z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.optim_iterators.HQSIteration>`
+   * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.HQS>`
      - | :math:`u_{k} = \operatorname{prox}_{\gamma f}(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda \regname}(u_k)`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.optim_iterators.ADMMIteration>`
+   * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.ADMM>`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k)`
        | :math:`z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.optim_iterators.DRSIteration>`
+   * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.DRS>`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)`
        | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Chambolle-Pock (CP) <deepinv.optim.optim_iterators.CPIteration>`
+   * - :class:`Chambolle-Pock (CP) <deepinv.optim.PrimalDualCP>`
      - | :math:`u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})`
        | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``, ``"stepsize_dual"``
 
-   * - :class:`Mirror Descent (MD) <deepinv.optim.optim_iterators.MDIteration>`
+   * - :class:`Mirror Descent (MD) <deepinv.optim.MirrorDescent>`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Proximal Mirror Descent (MD) <deepinv.optim.optim_iterators.PMDIteration>`
+   * - :class:`Proximal Mirror Descent (MD) <deepinv.optim.ProximalMirrorDescent>`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
        | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
-     - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
-     - (phase-retrieval only)
-
-
 .. _optim-params:
 
 Parameters
-~~~~~~~~~~
+~~~~~~~~~
 The parameters of generic optimization algorithms, such as
 stepsize, regularization parameter, standard deviation of denoiser prior, etc.
 are stored in a dictionary ``"params_algo"``, whose typical entries are:
