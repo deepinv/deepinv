@@ -184,7 +184,6 @@ def test_DEQ(
         lambda_reg=lamb,
         DEQ=True,
         trainable_params=trainable_params,
-        data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
         anderson_acceleration=and_acc,
