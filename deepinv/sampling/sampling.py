@@ -1,6 +1,7 @@
 import sys
 from collections import deque
 from typing import Union, Callable
+from types import MappingProxyType
 
 import torch
 from tqdm import tqdm
@@ -141,7 +142,7 @@ class BaseSampling(Reconstructor):
         physics: Physics,
         x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, list[Callable]] = [lambda d: d["x"]],
+        g_statistics: Union[Callable, list[Callable]] = (lambda d: d["x"],),
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -217,6 +218,9 @@ class BaseSampling(Reconstructor):
 
             self.mean_convergence = False
             self.var_convergence = False
+
+            if isinstance(g_statistics, tuple):
+                g_statistics = list(g_statistics)
 
             if not isinstance(g_statistics, list):
                 g_statistics = [g_statistics]
@@ -362,7 +366,7 @@ def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo: dict = {},
+    params_algo: dict = MappingProxyType({}),
     max_iter: int = 100,
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,

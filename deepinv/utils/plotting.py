@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
+from types import MappingProxyType
 from functools import partial
 from warnings import warn
 
@@ -598,7 +599,7 @@ def plot_inset(
     dpi: int = 1200,
     fig=None,
     axs=None,
-    labels: list[str] = [],
+    labels: list[str] = (),
     label_loc: Union[tuple, list] = (0.03, 0.03),
     extract_loc: Union[tuple, list] = (0.0, 0.0),
     extract_size: float = 0.2,
@@ -779,7 +780,7 @@ def plot_videos(
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
-    anim_kwargs: dict = {},
+    anim_kwargs: dict = MappingProxyType({}),
     **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
