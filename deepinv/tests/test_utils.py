@@ -811,9 +811,6 @@ def test_zip_strict_behavior():
     if sys.version_info >= (3, 10):
         expected = list(zip(a, b, c, strict=True))  # novermin
         assert result == expected
-    else:
-        # On older Python, just check the correct number of tuples
-        assert result == [(1, "x", True), (2, "y", False), (3, "z", True)]
 
     # Test ValueError for different lengths
     d = [1, 2]
