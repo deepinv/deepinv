@@ -101,8 +101,8 @@ class RandomPhaseError(Transform):
     def _transform(
         self,
         y,
-        se: Union[torch.Tensor, Iterable, TransformParam] = [],
-        so: Union[torch.Tensor, Iterable, TransformParam] = [],
+        se: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        so: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
         **kwargs,
     ) -> Tensor:
         out = []

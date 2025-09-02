@@ -2188,3 +2188,24 @@ def test_automatic_A_adjoint(device):
     assert (
         physics.adjointness_test(x) < 1e-4
     ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
+
+
+def test_separate_noise_models():
+    physics1 = dinv.physics.Denoising()
+    physics2 = dinv.physics.Denoising()
+    assert id(physics1.noise_model) != id(
+        physics2.noise_model
+    ), "Expected distinct noise models for the distinct physics"
+    assert isinstance(
+        physics1.noise_model, dinv.physics.GaussianNoise
+    ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
+    sigma1 = physics1.noise_model.sigma
+    sigma2 = physics2.noise_model.sigma
+    sigma1_new = sigma2 + 1
+    assert (
+        sigma1_new != sigma2
+    ), "Expected a standard deviation different from that of physics2"
+    physics1.update(sigma=sigma1_new)
+    assert (
+        physics2.noise_model.sigma == sigma2
+    ), "Expected physics2 to be unchanged after updating physics1"

@@ -1,6 +1,6 @@
 import numbers
 import os
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
 import torch.nn as nn
@@ -26,11 +26,11 @@ class Restormer(Denoiser):
     :param int out_channels: number of channels of the output.
     :param int dim: number of channels after the first conv operation (``in_channel``, H, W) -> (``dim``, H, W).
         ``dim`` corresponds to ``C`` in the figure.
-    :param list num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales.
+    :param Sequence num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales.
         ``num_blocks = [L1, L2, L3, L4]`` with L1 ≤ L2 ≤ L3 ≤ L4.
     :param int num_refinement_blocks: number of ``TransformerBlock`` in the refinement stage after the decoder stage.
         Corresponds to ``Lr`` in the figure.
-    :param list heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage.
+    :param Sequence heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage.
         At same scale, all `TransformerBlock` have the same number of heads. The number of heads for the refinement block is ``heads[0]``.
     :param float ffn_expansion_factor: corresponds to :math:`\eta` in GDFN.
     :param bool bias: Add bias or not in each of the Attention and Feedforward layers inside of the ``TransformerBlock``.
@@ -55,9 +55,9 @@ class Restormer(Denoiser):
         in_channels: int = 3,
         out_channels: int = 3,
         dim: int = 48,
-        num_blocks: list[int] = [4, 6, 6, 8],
+        num_blocks: Sequence[int] = (4, 6, 6, 8),
         num_refinement_blocks: int = 4,
-        heads: list[int] = [1, 2, 4, 8],
+        heads: Sequence[int] = (1, 2, 4, 8),
         ffn_expansion_factor: float = 2.66,
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",
@@ -499,7 +499,7 @@ class Restormer(Denoiser):
         assert (
             dim == 48
         ), f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
-        assert num_blocks == [
+        assert list(num_blocks) == [
             4,
             6,
             6,
@@ -508,7 +508,7 @@ class Restormer(Denoiser):
         assert (
             num_refinement_blocks == 4
         ), f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
-        assert heads == [
+        assert list(heads) == [
             1,
             2,
             4,

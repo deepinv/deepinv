@@ -93,7 +93,7 @@ class SplittingLoss(Loss):
 
     def __init__(
         self,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         split_ratio: float = 0.9,
         mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
         eval_n_samples: int = 5,
@@ -102,6 +102,8 @@ class SplittingLoss(Loss):
         pixelwise: bool = True,
         normalize_loss: bool = True,
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "ms"
         self.metric = metric
@@ -379,9 +381,9 @@ class Neighbor2Neighbor(Loss):
 
     """
 
-    def __init__(
-        self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(), gamma=2.0
-    ):
+    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None, gamma=2.0):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "neigh2neigh"
         self.metric = metric
