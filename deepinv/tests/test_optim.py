@@ -1,5 +1,4 @@
 import pytest
-import sys
 import torch
 from torch.utils.data import DataLoader
 import deepinv as dinv

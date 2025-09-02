@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from deepinv.optim.optimizers import BaseOptim, create_iterator
 from deepinv.optim.optim_iterators import *
-from deepinv.optim.bregman import BregmanL2
 
 
 class BaseUnfold(BaseOptim):
