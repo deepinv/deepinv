@@ -131,7 +131,12 @@ skip_covered = true
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905"]
+select = [
+    "UP006", "F401", "B905",
+    "SLF001", "BLE001", "N805", "PLE0101", "PLW0120", "F404", "PLW0603", "S102", "E721", # "PLR6301" # From Python anti-patterns
+    "E4", "E7", "E9", # Pycodestyle
+    "F" # Pyflake
+]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
