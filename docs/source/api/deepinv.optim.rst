@@ -30,6 +30,7 @@ Base Class
    deepinv.optim.HQS
    deepinv.optim.MirrorDescent
    deepinv.optim.ProximalMirrorDescent
+   deepinv.optim.PrimalDualCP
 
 
 Potentials
