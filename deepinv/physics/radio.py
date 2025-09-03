@@ -34,11 +34,7 @@ class RadioInterferometry(LinearPhysics):
         self,
         img_size,
         samples_loc,
-        dataWeight=torch.tensor(
-            [
-                1.0,
-            ]
-        ),
+        dataWeight=None,
         k_oversampling=2,
         interp_points=7,
         real_projection=True,
@@ -47,6 +43,8 @@ class RadioInterferometry(LinearPhysics):
     ):
         import torchkbnufft as tkbn
 
+        if dataWeight is None:
+            dataWeight = torch.tensor([1.0])
         super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device

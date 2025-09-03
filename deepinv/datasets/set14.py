@@ -1,4 +1,5 @@
 from typing import Callable
+from types import MappingProxyType
 import os
 
 from deepinv.datasets.utils import (
@@ -53,16 +54,20 @@ class Set14HR(ImageFolder):
 
     """
 
-    archive_urls = {
-        "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
-        "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
-        "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
-    }
+    _checksums = MappingProxyType(
+        {
+            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
+            "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
+            "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
+        }
+    )
 
     def __init__(
         self,
@@ -83,7 +88,7 @@ class Set14HR(ImageFolder):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.archive_urls.items():
+                for filename, url in self._archive_urls.items():
                     # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
@@ -125,5 +130,5 @@ class Set14HR(ImageFolder):
         return all(
             calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
             == checksum
-            for folder_name, checksum in self.checksums.items()
+            for folder_name, checksum in self._checksums.items()
         )

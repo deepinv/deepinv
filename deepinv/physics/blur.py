@@ -69,9 +69,6 @@ class Downsampling(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if not isinstance(factor, (int, float)):
-            raise ValueError("Downsampling factor must be an integer")
-
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding

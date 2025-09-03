@@ -4,6 +4,8 @@ import copy
 from math import sqrt
 from typing import Optional
 import pytest
+import warnings
+
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -60,6 +62,7 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -190,6 +193,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (
@@ -760,7 +773,8 @@ def test_operator_cropper(name, device, rng):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device, rng):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_operators_norm(name, verbose, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -780,7 +794,13 @@ def test_operators_norm(name, device, rng):
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        assert len(w) == 1
+
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -2179,3 +2199,24 @@ def test_automatic_A_adjoint(device):
     assert (
         physics.adjointness_test(x) < 1e-4
     ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
+
+
+def test_separate_noise_models():
+    physics1 = dinv.physics.Denoising()
+    physics2 = dinv.physics.Denoising()
+    assert id(physics1.noise_model) != id(
+        physics2.noise_model
+    ), "Expected distinct noise models for the distinct physics"
+    assert isinstance(
+        physics1.noise_model, dinv.physics.GaussianNoise
+    ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
+    sigma1 = physics1.noise_model.sigma
+    sigma2 = physics2.noise_model.sigma
+    sigma1_new = sigma2 + 1
+    assert (
+        sigma1_new != sigma2
+    ), "Expected a standard deviation different from that of physics2"
+    physics1.update(sigma=sigma1_new)
+    assert (
+        physics2.noise_model.sigma == sigma2
+    ), "Expected physics2 to be unchanged after updating physics1"

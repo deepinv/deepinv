@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 from .utils import get_weights_url
 from .base import Denoiser
+from typing import Sequence  # noqa: F401
 
 
 class WMSA(nn.Module):
@@ -275,7 +276,7 @@ class SCUNet(Denoiser):
     The Swin-Conv-UNet (SCUNet) denoising was introduced by :footcite:t:`zhang2023practical`.
 
     :param int in_nc: number of input channels. Default: 3.
-    :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
+    :param Sequence config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
     :param int dim: number of channels in each layer. Default: 64.
     :param float drop_path_rate: drop path per sample rate (stochastic depth) for each layer. Default: 0.0.
     :param int input_resolution: input resolution. Default: 256.
@@ -291,7 +292,7 @@ class SCUNet(Denoiser):
     def __init__(
         self,
         in_nc=3,
-        config=[4, 4, 4, 4, 4, 4, 4],
+        config=(4, 4, 4, 4, 4, 4, 4),
         dim=64,
         drop_path_rate=0.0,
         input_resolution=256,
