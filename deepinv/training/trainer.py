@@ -864,8 +864,6 @@ class Trainer:
         :param torch.Tensor x_net: Network reconstruction.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
-        import wandb
-
         post_str = "Training" if train else "Eval"
 
         plot_images = self.plot_images and ((epoch + 1) % self.plot_interval == 0)
