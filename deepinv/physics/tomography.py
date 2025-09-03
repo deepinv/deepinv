@@ -106,6 +106,9 @@ class Tomography(LinearPhysics):
                   [ 0.0000, -0.0452,  0.0989]]]])
 
 
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(

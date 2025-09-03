@@ -43,6 +43,10 @@ class CBSD68(ImageDataset):
         68
         >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
 
+    .. note::
+
+        This class requires the ``datasets`` package to be installed. Install with ``pip install datasets``.
+
     """
 
     # for integrity of downloaded data

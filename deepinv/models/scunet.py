@@ -287,6 +287,10 @@ class SCUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
+
+    .. note::
+
+        This class requires the ``timm`` package to be installed. Install with ``pip install timm``.
     """
 
     def __init__(

@@ -38,6 +38,10 @@ class WaveletDenoiser(Denoiser):
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param str device: cpu or gpu
 
+    .. note::
+
+        This class requires the ``ptwt`` package to be installed. Install with ``pip install ptwt``.
+
     """
 
     def __init__(

@@ -20,6 +20,10 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float ty: y rotation in degrees
     :param float tz: z rotation in degrees
     :return np.ndarray: 3D rotation matrix.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
     tx, ty, tz = np.radians((tx, ty, tz))
 

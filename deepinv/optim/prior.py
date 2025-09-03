@@ -553,6 +553,10 @@ class PatchNR(Prior):
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
+
+    .. note::
+
+        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.
     """
 
     def __init__(

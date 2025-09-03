@@ -934,6 +934,7 @@ class Trainer:
         :param dict state: custom objects to save with model
         """
         import wandb
+
         if state is None:
             state = {}
 

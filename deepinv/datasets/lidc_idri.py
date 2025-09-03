@@ -67,6 +67,9 @@ class LidcIdriSliceDataset(ImageDataset):
             print(batch.shape)
 
 
+    .. note::
+
+        This class requires the ``pandas`` package to be installed. Install with ``pip install pandas``.
 
     """
 

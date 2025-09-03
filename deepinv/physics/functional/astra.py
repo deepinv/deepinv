@@ -23,6 +23,10 @@ class XrayTransform:
     :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
     :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
     :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(

@@ -28,6 +28,10 @@ class RadioInterferometry(LinearPhysics):
     .. warning::
         If the ``real_projection`` parameter is set to ``False``, the output of the adjoint will have a complex type rather than a real typed.
 
+    .. note::
+
+        This class requires the ``torchkbnufft`` package to be installed. Install with ``pip install torchkbnufft``.
+
     """
 
     def __init__(
