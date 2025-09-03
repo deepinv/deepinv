@@ -423,8 +423,6 @@ class Trainer:
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
-        import wandb
-
         if step is None:
             raise ValueError("wandb logging step must be specified.")
 
