@@ -11,6 +11,7 @@ For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb
 import deepinv as dinv
 from pathlib import Path
 import torch
+from deepinv.models.utils import get_weights_url
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
@@ -152,14 +153,23 @@ model = unfolded_builder(
 
 
 # training parameters
-epochs = 5 if torch.cuda.is_available() else 2
+epochs = 5 if torch.cuda.is_available() else 1
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+
+# If working on CPU, start with a pretrained model to reduce training time
+if not torch.cuda.is_available():
+    file_name = "demo_vanilla_unfolded.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
@@ -182,7 +192,6 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     epochs=epochs,
-    scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
     device=device,
@@ -227,7 +236,7 @@ dinv.utils.plot(
 # We now plot the weights of the network that were learned and check that they are different from their initialization
 # values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
 #
-
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
-)
+if torch.cuda.is_available():
+    dinv.utils.plotting.plot_parameters(
+        model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    )
