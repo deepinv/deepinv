@@ -9,13 +9,6 @@ from PIL import Image
 from deepinv.transform.base import Transform, TransformParam
 from deepinv.utils.compat import zip_strict
 
-try:
-    from kornia.geometry.transform import warp_perspective
-except ImportError:  # pragma: no cover
-
-    def warp_perspective(*args, **kwargs):
-        raise ImportError("The kornia package is not installed.")
-
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
@@ -28,6 +21,10 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float ty: y rotation in degrees
     :param float tz: z rotation in degrees
     :return np.ndarray: 3D rotation matrix.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
     tx, ty, tz = np.radians((tx, ty, tz))
 
@@ -99,6 +96,7 @@ def apply_homography(
 
 
     """
+    from kornia.geometry.transform import warp_perspective
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
 
