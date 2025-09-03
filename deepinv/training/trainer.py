@@ -929,8 +929,6 @@ class Trainer:
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
-        import wandb
-
         if state is None:
             state = {}
 
@@ -1064,8 +1062,6 @@ class Trainer:
 
         :returns: The trained model.
         """
-        import wandb
-
         self.setup_train()
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
