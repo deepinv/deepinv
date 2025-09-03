@@ -1827,7 +1827,7 @@ class PrimalDualCP(BaseOptim):
         custom_metrics=None,
         custom_init=None,
         unfold=False,
-        trainable_params=["lambda", "stepsize", "stepsize_dual", "g_param", "beta"],
+        trainable_params=None,
         g_first=False,
         F_fn=None,
         params_algo=None,
