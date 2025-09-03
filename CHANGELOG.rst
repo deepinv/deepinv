@@ -26,7 +26,7 @@ Fixed
 - Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
-
+- Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
 
 v0.3.3
 ------
