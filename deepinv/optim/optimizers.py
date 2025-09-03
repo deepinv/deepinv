@@ -1844,6 +1844,14 @@ class PrimalDualCP(BaseOptim):
                 "K": K,
                 "K_adjoint": K_adjoint,
             }
+        if trainable_params is None:
+            trainable_params = [
+                "lambda",
+                "stepsize",
+                "stepsize_dual",
+                "g_param",
+                "beta",
+            ]
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
