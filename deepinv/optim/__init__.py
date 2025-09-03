@@ -17,10 +17,10 @@ from .optimizers import (
     GradientDescent,
     MirrorDescent,
     HQS,
+    PrimalDualCP,
     ProximalGradientDescent,
     FISTA,
-    ProximalMirrorDescent,
-    PrimalDualCP,
+    ProximalMirrorDescent
 )
 from .fixed_point import FixedPoint
 from .prior import (
