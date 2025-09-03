@@ -844,6 +844,16 @@ def test_FastMRISliceDataset(download_fastmri):
     assert params["coil_maps"].shape == (n_coils, *kspace_shape)
     assert dataset.transform.get_acs() == 17  # ACS via mask generator
 
+    physics_estim = MultiCoilMRI(**params)
+    x0 = torch.randn(1, 2, *kspace_shape)
+    assert physics_estim.adjointness_test(x0) < 1e-3
+    assert (
+        torch.abs(
+            physics.compute_norm(x0, max_iter=1000, tol=1e-6, verbose=False) - 1.0
+        )
+        < 1e-3
+    )
+
     # Test prewhitening and normalising
     dataset = FastMRISliceDataset(
         root=data_dir,

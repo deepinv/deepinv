@@ -62,6 +62,7 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -192,6 +193,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (
