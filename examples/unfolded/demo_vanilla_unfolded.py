@@ -238,5 +238,7 @@ dinv.utils.plot(
 #
 if torch.cuda.is_available():
     dinv.utils.plotting.plot_parameters(
-        model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+        model,
+        init_params=params_algo,
+        save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
     )
