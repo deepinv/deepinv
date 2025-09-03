@@ -20,7 +20,7 @@ from .optimizers import (
     PrimalDualCP,
     ProximalGradientDescent,
     FISTA,
-    ProximalMirrorDescent
+    ProximalMirrorDescent,
 )
 from .fixed_point import FixedPoint
 from .prior import (
