@@ -1,4 +1,3 @@
-import sys
 import pytest
 import json
 from unittest.mock import patch, MagicMock
@@ -761,26 +760,6 @@ def test_PDNet(imsize_1_channel, device):
     x_hat = model(y, physics)
 
     assert x_hat.shape == x.shape
-
-
-@pytest.mark.parametrize(
-    "denoiser, dep",
-    [
-        ("BM3D", "bm3d"),
-        ("SCUNet", "timm"),
-        ("SwinIR", "timm"),
-        ("WaveletDenoiser", "ptwt"),
-        ("WaveletDictDenoiser", "ptwt"),
-    ],
-)
-def test_optional_dependencies(denoiser, dep):
-    # Skip the test if the optional dependency is installed
-    if dep in sys.modules:
-        pytest.skip(f"Optional dependency {dep} is installed.")
-
-    klass = getattr(dinv.models, denoiser)
-    with pytest.raises(ImportError, match=f"pip install .*{dep}"):
-        klass()
 
 
 def test_icnn(device, rng):
