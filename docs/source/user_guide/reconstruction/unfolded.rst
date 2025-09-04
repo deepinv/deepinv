@@ -42,7 +42,7 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
     ...     stepsize=1.0,
     ...     g_param=0.1,
-    ...     lambda_reg=1
+    ...     lambda_reg=1,
     ...     max_iter=5,
     ...     trainable_params=["stepsize", "g_param", "lambda_reg"]
     ... )
