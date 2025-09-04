@@ -20,16 +20,6 @@ from deepinv.physics.functional.astra import (
     create_object_geometry,
 )
 
-try:
-    import astra
-
-    # NOTE: This import is used by its side effects.
-    from astra import experimental  # noqa: F401
-except ImportError:  # pragma: no cover
-    astra = ImportError(
-        "The astra-toolbox package is not installed."
-    )  # pragma: no cover
-
 
 class Tomography(LinearPhysics):
     r"""
@@ -116,6 +106,9 @@ class Tomography(LinearPhysics):
                   [ 0.0000, -0.0452,  0.0989]]]])
 
 
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(
@@ -553,6 +546,11 @@ class TomographyWithAstra(LinearPhysics):
         :param torch.Tensor sinogram: Sinogram of shape [B,C,...,A,N].
         :return: Weighted sinogram.
         """
+        import astra
+
+        # NOTE: This import is used by its side effects.
+        from astra import experimental  # noqa: F401
+
         sinogram_scaled = torch.clone(sinogram)
         is_3d = len(sinogram.shape) == 5
 

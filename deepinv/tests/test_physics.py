@@ -14,7 +14,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
-
+from deepinv.utils.compat import zip_strict
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -62,6 +62,7 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -192,6 +193,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (
@@ -1441,7 +1452,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        for s, d in zip(shift, dim, strict=True):
+        for s, d in zip_strict(shift, dim):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1597,7 +1608,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1625,7 +1636,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics.A(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                    for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1712,7 +1723,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip(y1, y2, strict=True):
+                    for y11, y22 in zip_strict(y1, y2):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5

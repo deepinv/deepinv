@@ -2,28 +2,15 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from einops import rearrange
-from einops.layers.torch import Rearrange
 from .utils import get_weights_url
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
-
-# Compatibility with optional dependency on timm
-try:
-    import timm
-    from timm.layers import trunc_normal_, DropPath
-except ImportError as e:  # pragma: no cover
-    timm = e  # pragma: no cover
 
 
 class WMSA(nn.Module):
     """Self-attention module in Swin Transformer"""
 
     def __init__(self, input_dim, output_dim, head_dim, window_size, type):
-        if isinstance(timm, ImportError):
-            raise ImportError(
-                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
-            ) from timm
         super(WMSA, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -41,6 +28,8 @@ class WMSA(nn.Module):
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 
+        from timm.layers import trunc_normal_
+
         trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
             self.relative_position_params.view(
@@ -57,6 +46,8 @@ class WMSA(nn.Module):
         Returns:
             attn_mask: should be (1 1 w p p),
         """
+        from einops import rearrange
+
         # supporting sqaure.
         attn_mask = torch.zeros(
             h,
@@ -89,6 +80,8 @@ class WMSA(nn.Module):
         Returns:
             output: tensor shape [b h w c]
         """
+        from einops import rearrange
+
         if self.type != "W":
             x = torch.roll(
                 x,
@@ -187,6 +180,8 @@ class Block(nn.Module):
         # )
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
+        from timm.layers import DropPath
+
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)
         self.mlp = nn.Sequential(
@@ -259,6 +254,8 @@ class ConvTransBlock(nn.Module):
         )
 
     def forward(self, x):
+        from einops.layers.torch import Rearrange
+
         conv_x, trans_x = torch.split(
             self.conv1_1(x), (self.conv_dim, self.trans_dim), dim=1
         )
@@ -290,6 +287,10 @@ class SCUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
+
+    .. note::
+
+        This class requires the ``timm`` package to be installed. Install with ``pip install timm``.
     """
 
     def __init__(
@@ -468,6 +469,8 @@ class SCUNet(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
+            from timm.layers import trunc_normal_
+
             trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
