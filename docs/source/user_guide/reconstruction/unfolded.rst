@@ -37,7 +37,7 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
     >>> # Create a trainable unfolded architecture
     >>> model = ProximalGradientDescent(  # doctest: +IGNORE_RESULT
     ...     iteration="PGD",
-    ...     unfold=True
+    ...     unfold=True,
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
     ...     stepsize=1.0,
