@@ -196,7 +196,9 @@ class FixedPoint(nn.Module):
         x = x.view(x_prev.shape)
         F = (
             self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.iterator.has_cost
+            if self.iterator.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         est = list(TX_prev["est"])
