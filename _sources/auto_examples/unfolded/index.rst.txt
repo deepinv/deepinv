@@ -1,0 +1,135 @@
+
+
+.. _sphx_glr_auto_examples_unfolded:
+
+Unfolded
+-------------------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem. Note that this is a small dataset for training. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True.">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_DEQ_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_DEQ.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement the LISTA algorithm :footcitegregor2010learning, for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters.">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_LISTA_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_LISTA.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="where both the data fidelity and the prior are learned modules, distinct for each iterations.">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_learned_primal_dual_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_learned_primal_dual.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Learned Primal-Dual algorithm for CT scan.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function. The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_custom_prior_unfolded_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_custom_prior_unfolded.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Learned iterative custom prior</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use vanilla unfolded Plug-and-Play. The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly. For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset. For visualizing the training, you can use Weight&amp;Bias (wandb) by setting wandb_vis=True.">
+
+.. only:: html
+
+  .. image:: /auto_examples/unfolded/images/thumb/sphx_glr_demo_vanilla_unfolded_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_unfolded_demo_vanilla_unfolded.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Vanilla Unfolded algorithm for super-resolution</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/unfolded/demo_DEQ
+   /auto_examples/unfolded/demo_LISTA
+   /auto_examples/unfolded/demo_learned_primal_dual
+   /auto_examples/unfolded/demo_custom_prior_unfolded
+   /auto_examples/unfolded/demo_unfolded_constrained_LISTA
+   /auto_examples/unfolded/demo_vanilla_unfolded
+
