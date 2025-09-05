@@ -19,9 +19,13 @@ def get_DPIR_params(noise_level_img):
     max_iter = 8
     s1 = 49.0 / 255.0
     s2 = noise_level_img
-    sigma_denoiser = np.logspace(np.log10(s1), np.log10(s2), max_iter).astype(
-        np.float32
+    sigma_denoiser = torch.logspace(
+        torch.log10(torch.tensor(s1, dtype=torch.float32)),
+        torch.log10(torch.tensor(s2, dtype=torch.float32)),
+        steps=max_iter,
+        dtype=torch.float32,
     )
+
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
     lamb = 1 / 0.23
 
