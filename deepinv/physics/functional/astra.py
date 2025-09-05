@@ -227,7 +227,7 @@ class XrayTransform:
         return _Adjoint()
 
     def _forward_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
-        import astra
+        import astra.experimental
 
         assert (
             x.shape == self.domain_shape
@@ -248,7 +248,7 @@ class XrayTransform:
         )
 
     def _backprojection(self, y: torch.Tensor, out: torch.Tensor) -> None:
-        import astra
+        import astra.experimental
 
         assert (
             y.shape == self.range_shape
