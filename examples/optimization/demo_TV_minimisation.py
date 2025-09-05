@@ -107,11 +107,7 @@ cost_tv_prox = prior(x_tv).item()
 # Plot the input and the output of the TV proximal operator
 imgs = [y, x_tv]
 plot(
-    imgs,
-    titles=[
-        f"Input",
-        f"Output",
-    ],
+    {"Input": y, "Output": x_tv},
     subtitles=[
         f"TV cost: {int(cost_tv)}",
         f"TV cost: {int(cost_tv_prox)}",
@@ -190,8 +186,7 @@ psnr_model = dinv.metric.PSNR()(x, x_model)
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [x, y, x_lin, x_model]
 plot(
-    imgs,
-    titles=["GT", "Input", "Linear", "Recons."],
+    {"Ground Truth": x, "Input": y, "Linear Recon": x_lin, "Recons": x_model},
     subtitles=[
         "PSNR:",
         f"{psnr_input.item():.2f} dB",

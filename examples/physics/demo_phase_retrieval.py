@@ -255,7 +255,6 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
 # In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
-imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
 subtitles = [
     "PSNR",
     f"{dinv.metric.PSNR()(x, x_gd_rand).item():.2f} dB",
@@ -264,10 +263,17 @@ subtitles = [
     f"{dinv.metric.PSNR()(x, x_pnp).item():.2f} dB",
 ]
 plot(
-    imgs,
-    titles=["Original", "GD random", "Spectral", "GD spectral", "PnP"],
+    {
+        "Original": x,
+        "GD random": x_gd_rand,
+        "Spectral": x_spec,
+        "GD spectral": x_gd_spec,
+        "PnP": x_pnp,
+    },
     subtitles=subtitles,
     save_dir=RESULTS_DIR / "images",
     show=True,
     rescale_mode="clip",
 )
+
+# %%

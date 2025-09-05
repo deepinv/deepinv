@@ -108,13 +108,11 @@ cost_wv_prox = prior(x_wv)
 #
 
 # Plot the input and the output of the wavelet proximal operator
-imgs = [y, x_wv]
 plot(
-    imgs,
-    titles=[
-        f"Input",
-        f"Output",
-    ],
+    {
+        "Input": y,
+        "Output": x_wv,
+    },
     subtitles=[
         f"Wavelet cost:\n{int(cost_wv.item())}",
         f"Wavelet cost:\n{int(cost_wv_prox.item())}",
@@ -192,10 +190,13 @@ x_model = x_model.clamp(0, 1)
 
 # compute PSNR
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [x, y, x_lin, x_model]
 plot(
-    imgs,
-    titles=["GT", "Input", "Linear", "Recons."],
+    {
+        "GT": x,
+        "Input": y,
+        "Linear": x_lin,
+        "Recons.": x_model,
+    },
     subtitles=[
         "PSNR:",
         f"{dinv.metric.PSNR()(x, y).item():.2f} dB",
@@ -207,3 +208,5 @@ plot(
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%

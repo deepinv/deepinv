@@ -49,10 +49,11 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 
-imgs = [y, x_true]
 plot(
-    imgs,
-    titles=["Measurement", "Ground Truth"],
+    {
+        "Measurement": y,
+        "Ground Truth": x_true,
+    }
 )
 # %%
 # The DiffPIR algorithm
@@ -147,10 +148,12 @@ x_noisy = x_true + torch.randn_like(x_true) * sigmas[t]
 
 den = model(x_noisy, sigmas[t])
 
-imgs = [x_noisy, den, den - x_true]
 plot(
-    imgs,
-    titles=["Noisy Input", "Denoised Image", "Error"],
+    {
+        "Noisy Input": x_noisy,
+        "Denoised Image": den,
+        "Error": den - x_true,
+    }
 )
 
 # %%
@@ -172,10 +175,12 @@ y_denoised = model(y, sigmas[t_temp] / 2.0)
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
 x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(device))
 
-imgs = [y, y_denoised, x_prox]
 plot(
-    imgs,
-    titles=["Measurement", "Denoised Measurement", "Data Fidelity Step"],
+    {
+        "Measurement": y,
+        "Denoised Measurement": y_denoised,
+        "Data Fidelity Step": x_prox,
+    },
     tight=False,
 )
 
@@ -214,9 +219,13 @@ x_sampled_scaled = alphas_cumprod[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
 
 x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
 
-imgs = [y, y_denoised, x_prox, x_sampled]
-titles = ["Measurement", "Denoised Measurement", "Data Fidelity Step", "Sampling Step"]
-plot(imgs, titles=titles, tight=False)
+imgs = {
+    "Measurement": y,
+    "Denoised Measurement": y_denoised,
+    "Data Fidelity Step": x_prox,
+    "Sampling Step": x_sampled,
+}
+plot(imgs, tight=False)
 
 # %%
 # (notice that noise has been added everywhere in the image, including in the masked region)
@@ -364,10 +373,12 @@ with torch.no_grad():
 x = (x + 1) / 2
 
 # Plotting the results
-imgs = [y, x, x_true]
 plot(
-    imgs,
-    titles=["Measurement", "Model Output", "Ground Truth"],
+    {
+        "Measurement": y,
+        "Model Output": x,
+        "Ground Truth": x_true,
+    }
 )
 
 # %%

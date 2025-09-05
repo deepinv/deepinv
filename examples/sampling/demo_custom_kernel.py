@@ -212,10 +212,13 @@ print(f"ULA posterior mean PSNR: {psnr_ula:.2f} dB")
 print(f"PreconULA posterior mean PSNR: {psnr_preconula:.2f} dB")
 
 # plot results
-imgs = [x_lin, x, ula_mean, preconula_mean]
 plot(
-    imgs,
-    titles=["Ground Truth", "Measurement", "ULA", "PreconULA"],
+    {
+        "Ground Truth": x,
+        "Measurement": y,
+        "ULA": ula_mean,
+        "PreconULA": preconula_mean,
+    },
     subtitles=[
         f"PSNR:",
         f"{psnr_lin:.2f} dB",

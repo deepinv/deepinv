@@ -167,8 +167,11 @@ psnr_y = metric(y, x).item()
 psnr_x_hat = metric(x_hat, x).item()
 
 dinv.utils.plot(
-    [x, y, x_hat],
-    titles=["Ground Truth", "Measurement", "Reconstruction"],
+    {
+        "Ground Truth": x,
+        "Measurement": y,
+        "Reconstruction": x_hat,
+    },
     subtitles=["PSNR:", f"{psnr_y:.2f} dB", f"{psnr_x_hat:.2f} dB"],
 )
 
@@ -187,8 +190,12 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
 x_hat = model(y, physics)
 
 dinv.utils.plot(
-    [x, y, x_denoised, x_hat],
-    titles=["Ground Truth", "Measurement", "Denoised", "Reconstruction"],
+    {
+        "Ground Truth": x,
+        "Measurement": y,
+        "Denoised": x_denoised,
+        "Reconstruction": x_hat,
+    },
     subtitles=[
         "PSNR:",
         f"{dinv.metric.PSNR()(y, x).item():.2f} dB",

@@ -708,6 +708,10 @@ def plot_inset(
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
 
+    if isinstance(img_list, dict):
+        assert titles is None, "titles should be None when img_list is a dictionary"
+        titles, img_list = list(img_list.keys()), list(img_list.values())
+
     fig, axs = plot(
         img_list=img_list,
         titles=titles,

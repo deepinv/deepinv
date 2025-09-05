@@ -292,7 +292,7 @@ dinv.utils.plot(
     },
     subtitles=[
         "PSNR:",
-        f"{psnr(x, y).item():.2f} dB",
+        f"{psnr(y, x).item():.2f} dB",
         f"{psnr(x, x_hat).item():.2f} dB",
         f"{psnr(x, x_hat_ft).item():.2f} dB",
     ],

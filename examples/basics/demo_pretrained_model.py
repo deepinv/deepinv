@@ -80,14 +80,13 @@ x_hat3 = model(y, physics)
 # %%
 # Plot results
 dinv.utils.plot(
-    [x, y, x_hat1, x_hat2, x_hat3],
-    titles=[
-        "Ground Truth",
-        "Blurred \nMeasurement",
-        "Pretrained \nRAM",
-        "Pretrained \nPnP",
-        "Pretrained \nDiffusion",
-    ],
+    {
+        "Ground Truth": x,
+        "Measurement": y,
+        "Pretrained \nRAM": x_hat1,
+        "Pretrained \nPnP": x_hat2,
+        "Pretrained \nDiffusion": x_hat3,
+    },
     subtitles=[
         "PSNR:",
         f"{dinv.metric.PSNR()(y, x).item():.2f} dB",
