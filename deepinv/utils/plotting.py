@@ -289,7 +289,8 @@ def plot(
     if isinstance(img_list, torch.Tensor):
         img_list = [img_list]
     elif isinstance(img_list, dict):
-        assert titles is None, "titles should be None when img_list is a dictionary"
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
         titles, img_list = list(img_list.keys()), list(img_list.values())
 
     for i, img in enumerate(img_list):
@@ -683,7 +684,9 @@ def plot_inset(
         save_dir.mkdir(parents=True, exist_ok=True)
 
     if isinstance(img_list, dict):
-        assert titles is None, "titles should be None when img_list is a dictionary"
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
+
         titles, img_list = list(img_list.keys()), list(img_list.values())
 
     fig, axs = plot(
