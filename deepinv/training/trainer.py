@@ -879,7 +879,7 @@ class Trainer:
             else:
                 x_nl = None
 
-            imgs, titles, grid_image, caption, subtitles = prepare_images(
+            imgs, titles, grid_image, caption = prepare_images(
                 x, y=y, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
 
@@ -890,7 +890,6 @@ class Trainer:
                 show=self.plot_images,
                 return_fig=True,
                 rescale_mode=self.rescale_mode,
-                subtitles=subtitles,
             )
 
             if self.wandb_vis:

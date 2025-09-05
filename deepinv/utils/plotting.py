@@ -104,52 +104,26 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         imgs = []
         titles = []
         caption = "From left to right: "
-        subtitles = []
 
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
-            subtitles = [["PSNR:"] for _ in range(x.shape[0])]
 
         if y is not None and x is not None and y.shape == x.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
-            if subtitles == []:
-                subtitles = [[] for _ in range(y.shape[0])]
-
-            psnr = dinv.metric.PSNR()(x, y)
-            if torch.isnan(psnr).any():
-                psnr = torch.full_like(y[:, 0, 0, 0], float("nan"))
-            for i in range(y.shape[0]):
-                subtitles[i].append(f"{psnr[i].item():.2f} dB")
 
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
-            if subtitles == []:
-                subtitles = [[] for _ in range(x_nl.shape[0])]
-
-            psnr = dinv.metric.PSNR()(x, x_nl)
-            if torch.isnan(psnr).any():
-                psnr = torch.full_like(x_nl[:, 0, 0, 0], float("nan"))
-            for i in range(x_nl.shape[0]):
-                subtitles[i].append(f"{psnr[i].item():.2f} dB")
 
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
-            if subtitles == []:
-                subtitles = [[] for _ in range(x_net.shape[0])]
-
-            psnr = dinv.metric.PSNR()(x, x_net)
-            if torch.isnan(psnr).any():
-                psnr = torch.full_like(x_net[:, 0, 0, 0], float("nan"))
-            for i in range(x_net.shape[0]):
-                subtitles[i].append(f"{psnr[i].item():.2f} dB")
 
         vis_array = []
         for img in imgs:
@@ -164,7 +138,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
 
-    return imgs, titles, grid_image, caption, subtitles
+    return imgs, titles, grid_image, caption
 
 
 @torch.no_grad
