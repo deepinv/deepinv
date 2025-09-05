@@ -33,6 +33,7 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
 
     >>> import torch
     >>> import deepinv as dinv
+    >>> from deepinv.optim import ProximalGradientDescent
     >>>
     >>> # Create a trainable unfolded architecture
     >>> model = ProximalGradientDescent(  # doctest: +IGNORE_RESULT
