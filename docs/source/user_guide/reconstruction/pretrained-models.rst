@@ -23,7 +23,7 @@ These models can be set-up in one line and perform inference in another line:
   >>> model = dinv.models.RAM(pretrained=True) # or any of the models listed below
   >>> x_hat = model(y, physics) # Model inference
   >>> dinv.metric.PSNR()(x_hat, x)
-  tensor([22.9831])
+  tensor([31.9825])
 
 .. list-table:: Pretrained reconstructors
    :header-rows: 1
