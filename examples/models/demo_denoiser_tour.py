@@ -16,6 +16,7 @@ This example will show how to use the different denoisers in DeepInverse, compar
 and highlights the different tradeoffs they offer.
 """
 
+# %%
 import time
 
 import torch
@@ -50,43 +51,6 @@ sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
 
 # %%
-# For this tour, we define an helper function to display comparison of various
-# restored images, with their PSNR values and zoom-in on a region of interest.
-
-
-def show_image_comparison(images, suptitle=None, ref=None):
-    """Display various images restoration with PSNR and zoom-in"""
-
-    titles = list(images.keys())
-    if "Original" in images or ref is not None:
-        # If the original image is in the dict, add PSNR in the titles.
-        image = images["Original"] if "Original" in images else ref
-        psnr = [dinv.metric.cal_psnr(image, im).item() for im in images.values()]
-        titles = [
-            f"{name} \n (PSNR: {psnr:.2f})" if name != "Original" else name
-            for name, psnr in zip_strict(images.keys(), psnr)
-        ]
-    # Plot the images with zoom-in
-    fig = plot_inset(
-        list(images.values()),
-        titles=titles,
-        extract_size=0.2,
-        extract_loc=(0.5, 0.0),
-        inset_size=0.5,
-        return_fig=True,
-        show=False,
-        figsize=(len(images) * 1.5, 2.5),
-    )
-
-    # Add a suptitle if it is provided
-    if suptitle:
-        plt.suptitle(suptitle, size=12)
-        plt.tight_layout()
-        fig.subplots_adjust(top=0.85, bottom=0.02, left=0.02, right=0.95)
-        plt.show()
-
-
-# %%
 # We are now ready to explore the different denoisers.
 #
 # Classical Denoisers
@@ -102,15 +66,27 @@ bm3d = dinv.models.BM3D()
 tgv = dinv.models.TGVDenoiser()
 wavelet = dinv.models.WaveletDictDenoiser()
 
-denoiser_results = {
-    "Original": image,
-    "Noisy": noisy_image,
-    "BM3D": bm3d(noisy_image, sigma),
-    "TGV": tgv(noisy_image, sigma),
-    "Wavelet": wavelet(noisy_image, sigma),
-}
-show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
+imgs = [
+    image,
+    noisy_image,
+    bm3d(noisy_image, sigma),
+    tgv(noisy_image, sigma),
+    wavelet(noisy_image, sigma),
+]
+psnr = [dinv.metric.cal_psnr(image, im).item() for im in imgs[1:]]
+titles = ["Original", "Noisy", "BM3D", "TGV", "Wavelet"]
+subtitles = ["PSNR:"] + [f"{p:.2f} dB" for p in psnr]
 
+plot_inset(
+    img_list=imgs,
+    titles=titles,
+    subtitles=subtitles,
+    suptitle=rf"Noise level $\sigma={sigma:.2f}$",
+    extract_size=0.2,
+    extract_loc=(0.5, 0.0),
+    inset_size=0.5,
+    figsize=(len(imgs) * 1.5, 2.5),
+)
 # %%
 # Deep Denoisers
 # --------------
@@ -125,16 +101,35 @@ drunet = dinv.models.DRUNet()
 swinir = dinv.models.SwinIR()
 scunet = dinv.models.SCUNet()
 
-denoiser_results = {
-    "Original": image,
-    "Noisy": noisy_image,
-    "DnCNN": dncnn(noisy_image, sigma),
-    "DRUNet": drunet(noisy_image, sigma),
-    "SCUNet": scunet(noisy_image, sigma),
-    "SwinIR": swinir(noisy_image, sigma),
-}
-show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
+imgs = [
+    image,
+    noisy_image,
+    dncnn(noisy_image, sigma),
+    drunet(noisy_image, sigma),
+    scunet(noisy_image, sigma),
+    swinir(noisy_image, sigma),
+]
+titles = [
+    "Original",
+    "Noisy",
+    "DnCNN",
+    "DRUNet",
+    "SCUNet",
+    "SwinIR",
+]
+psnr = [dinv.metric.cal_psnr(image, im).item() for im in imgs[1:]]
+subtitles = ["PSNR:"] + [f"{p:.2f} dB" for p in psnr]
 
+plot_inset(
+    img_list=imgs,
+    titles=titles,
+    subtitles=subtitles,
+    suptitle=rf"Noise level $\sigma={sigma:.2f}$",
+    extract_size=0.2,
+    extract_loc=(0.5, 0.0),
+    inset_size=0.5,
+    figsize=(len(imgs) * 1.5, 2.5),
+)
 # %%
 # Comparing denoisers
 # -------------------
@@ -352,23 +347,42 @@ adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 # adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
 
 # sphinx_gallery_multi_image = "single"
-denoiser_results = {
-    f"Original": image,
-    f"Noisy": noisy_image,
-    f"DnCNN": dncnn(noisy_image, sigma),
-    f"DnCNN (adapted)": adapted_dncnn(noisy_image, sigma),
-}
-show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
+imgs = [
+    image,
+    noisy_image,
+    dncnn(noisy_image, sigma),
+    adapted_dncnn(noisy_image, sigma),
+]
+titles = ["Original", "Noisy", "DnCNN", "DnCNN \n(adapted)"]
+psnr_list = [dinv.metric.cal_psnr(image, im).item() for im in imgs[1:]]
+subtitles = ["PSNR:"] + [f"{p:.2f} dB" for p in psnr_list]
 
-denoiser_results = {
-    # Skipping SwinIR on CI due to high memory usage
-    # f"SwinIR": swinir(noisy_image, sigma),
-    # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
-    f"DRUNet": drunet(noisy_image, sigma),
-    f"SCUNet": scunet(noisy_image, sigma),
-}
-show_image_comparison(
-    denoiser_results, ref=image, suptitle=rf"Noise level $\sigma={sigma:.2f}$"
+plot_inset(
+    img_list=imgs,
+    titles=titles,
+    subtitles=subtitles,
+    suptitle=rf"Noise level $\sigma={sigma:.2f}$",
+    extract_size=0.2,
+    extract_loc=(0.5, 0.0),
+    inset_size=0.5,
+    figsize=(len(imgs) * 1.5, 2.5),
+)
+
+imgs = [drunet(noisy_image, sigma), scunet(noisy_image, sigma)]
+titles = ["DRUNet", "SCUNet"]
+psnr_list = [dinv.metric.cal_psnr(image, im).item() for im in imgs]
+subtitles = [f"{p:.2f} dB" for p in psnr_list]
+
+plot_inset(
+    img_list=imgs,
+    titles=titles,
+    subtitles=subtitles,
+    suptitle=rf"Noise level $\sigma={sigma:.2f}$",
+    extract_size=0.2,
+    extract_loc=(0.5, 0.0),
+    inset_size=0.5,
+    tight=False,
+    figsize=(len(imgs) * 1.75, 2.5),
 )
 # %%
 # We can finally update our comparison with the adapted denoisers for DnCNN and SwinIR.

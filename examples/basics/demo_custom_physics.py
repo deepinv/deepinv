@@ -27,6 +27,7 @@ We also show you how to exploit the singular value decomposition of the operator
 the pseudo-inverse and proximal operators.
 """
 
+# %%
 import deepinv as dinv
 import torch
 
