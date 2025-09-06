@@ -2220,3 +2220,11 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
+
+
+def test_downsampling_default_filter_depreciation():
+    with pytest.warns(
+        UserWarning,
+        match="deprecated",
+    ):
+        _ = dinv.physics.Downsampling()

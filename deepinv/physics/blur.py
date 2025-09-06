@@ -31,7 +31,7 @@ class Downsampling(LinearPhysics):
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
     :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
@@ -62,12 +62,18 @@ class Downsampling(LinearPhysics):
     def __init__(
         self,
         img_size=None,
-        filter=None,
+        filter="warn",
         factor=2,
         device="cpu",
         padding="circular",
         **kwargs,
     ):
+        if filter == "warn":
+            warn(
+                "Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter=\"bicubic\" as a sensible anti-aliasing filter if you are not sure which one to use.",
+                stacklevel=2,
+            )
+            filter = None
         super().__init__(**kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
