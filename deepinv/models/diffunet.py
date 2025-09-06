@@ -8,6 +8,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from .base import Denoiser
+from deepinv.utils.compat import zip_strict
 
 
 class DiffUNet(Denoiser):
@@ -936,7 +937,7 @@ def update_ema(target_params, source_params, rate=0.99):
     :param source_params: the source parameter sequence.
     :param rate: the EMA rate (closer to 1 means slower).
     """
-    for targ, src in zip(target_params, source_params, strict=True):
+    for targ, src in zip_strict(target_params, source_params):
         targ.detach().mul_(rate).add_(src, alpha=1 - rate)
 
 

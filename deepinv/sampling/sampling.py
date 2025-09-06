@@ -1,6 +1,7 @@
 import sys
 from collections import deque
 from typing import Union, Callable
+from types import MappingProxyType
 
 import torch
 from tqdm import tqdm
@@ -12,6 +13,7 @@ from deepinv.optim.utils import check_conv
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.sampling.sampling_iterators import *
 from deepinv.sampling.utils import Welford
+from deepinv.utils.compat import zip_strict
 
 
 class BaseSampling(Reconstructor):
@@ -141,7 +143,7 @@ class BaseSampling(Reconstructor):
         physics: Physics,
         x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, list[Callable]] = [lambda d: d["x"]],
+        g_statistics: Union[Callable, list[Callable]] = (lambda d: d["x"],),
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -218,6 +220,9 @@ class BaseSampling(Reconstructor):
             self.mean_convergence = False
             self.var_convergence = False
 
+            if isinstance(g_statistics, tuple):
+                g_statistics = list(g_statistics)
+
             if not isinstance(g_statistics, list):
                 g_statistics = [g_statistics]
 
@@ -255,9 +260,7 @@ class BaseSampling(Reconstructor):
                     if self.history_size:
                         self.history.append(X)
 
-                    for _, (g, stat) in enumerate(
-                        zip(g_statistics, statistics, strict=True)
-                    ):
+                    for _, (g, stat) in enumerate(zip_strict(g_statistics, statistics)):
                         stat.update(g(X))
 
             # Check convergence for all statistics
@@ -362,7 +365,7 @@ def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo: dict = {},
+    params_algo: dict = MappingProxyType({}),
     max_iter: int = 100,
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,

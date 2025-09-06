@@ -1,14 +1,7 @@
 import torch
 import torch.nn as nn
 from .base import Denoiser
-from typing import Union
-
-try:
-    import ptwt
-    import pywt
-except:  # pragma: no cover
-    ptwt = ImportError("The ptwt package is not installed.")  # pragma: no cover
-    # No need to pywt, which is a dependency of ptwt
+from typing import Union, Sequence  # noqa: F401
 
 
 class WaveletDenoiser(Denoiser):
@@ -45,6 +38,10 @@ class WaveletDenoiser(Denoiser):
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param str device: cpu or gpu
 
+    .. note::
+
+        This class requires the ``ptwt`` package to be installed. Install with ``pip install ptwt``.
+
     """
 
     def __init__(
@@ -56,11 +53,6 @@ class WaveletDenoiser(Denoiser):
         mode: str = "zero",
         wvdim: int = 2,
     ):
-        if isinstance(ptwt, ImportError):
-            raise ImportError(
-                "pytorch_wavelets is needed to use the WaveletDenoiser class. "
-                "It should be installed with `pip install ptwt`."
-            ) from ptwt
         super().__init__()
         self.level = level
         self.wv = wv
@@ -73,6 +65,9 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet decomposition.
         """
+        import pywt
+        import ptwt
+
         if self.dimension == 2:
             dec = ptwt.wavedec2(
                 x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
@@ -110,6 +105,9 @@ class WaveletDenoiser(Denoiser):
         :param int level: decomposition level.
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
+        import pywt
+        import ptwt
+
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
@@ -126,6 +124,8 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet recomposition.
         """
+        import pywt
+        import ptwt
 
         coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:
@@ -430,7 +430,7 @@ class WaveletDictDenoiser(Denoiser):
         ``pip install ptwt``.
 
     :param int level: decomposition level of the wavelet transform.
-    :param list[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
+    :param Sequence[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
         <https://wavelets.pybytes.com/>`_. (default: ["db8", "db4"]).
     :param str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
@@ -440,7 +440,7 @@ class WaveletDictDenoiser(Denoiser):
     def __init__(
         self,
         level=3,
-        list_wv=["db8", "db4"],
+        list_wv=("db8", "db4"),
         max_iter=10,
         non_linearity="soft",
         wvdim=2,

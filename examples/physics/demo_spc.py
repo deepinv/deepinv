@@ -37,6 +37,7 @@ from deepinv.utils.demo import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift
+from deepinv.utils.compat import zip_strict
 
 # %%
 # General Setup
@@ -97,7 +98,7 @@ physics_list = [
 # -----------------------------------------
 # Generate measurements using the physics models and reconstruct images using the adjoint operator.
 y_list = [physics(x) for physics in physics_list]
-x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)]
+x_list = [physics.A_adjoint(y) for physics, y in zip_strict(physics_list, y_list)]
 
 # %%
 # Calculate PSNR
@@ -178,7 +179,7 @@ model.eval()
 x_recon = []
 psnr_values = []
 
-for y, physics in zip(y_list, physics_list, strict=True):
+for y, physics in zip_strict(y_list, physics_list):
     x_recon.append(model(y, physics))
     psnr_values.append(psnr_metric(x_recon[-1], x).item())
 
