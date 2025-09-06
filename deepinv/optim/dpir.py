@@ -6,7 +6,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim import BaseOptim
-
+import torch
 
 
 def get_DPIR_params(noise_level_img):
