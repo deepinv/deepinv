@@ -249,7 +249,7 @@ plot([x, y], titles=["signal", "measurement"])
 
 
 physics = dinv.physics.Downsampling(
-    img_size=img_size, factor=2, device=device, filter=None
+    img_size=img_size, factor=2, device=device, filter="bicubic"
 )
 
 

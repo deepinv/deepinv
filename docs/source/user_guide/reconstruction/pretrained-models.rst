@@ -18,7 +18,7 @@ These models can be set-up in one line and perform inference in another line:
 
   >>> import deepinv as dinv
   >>> x = dinv.utils.load_example("butterfly.png")
-  >>> physics = dinv.physics.Downsampling(filter=None)
+  >>> physics = dinv.physics.Downsampling(filter="bicubic")
   >>> y = physics(x)
   >>> model = dinv.models.RAM(pretrained=True) # or any of the models listed below
   >>> x_hat = model(y, physics) # Model inference
