@@ -36,7 +36,9 @@ class _SoftThreshold2d(nn.Module):
         return self._soft_threshold(x, threshold=threshold)
 
     @staticmethod
-    def _soft_threshold(x: torch.Tensor, *, threshold: Union[float, torch.Tensor]) -> torch.Tensor:
+    def _soft_threshold(
+        x: torch.Tensor, *, threshold: Union[float, torch.Tensor]
+    ) -> torch.Tensor:
         """Soft-thresholding operation
 
         1. Beck, A., & Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences, 2(1), 183–202. https://doi.org/10.1137/080716542
@@ -113,15 +115,15 @@ class ConvLista(nn.Module):
         self.apply_B.weight.data = B
         self.apply_C.weight.data = C
         self.soft_threshold = _SoftThreshold2d(
-            params.num_filters,
-            init_threshold=threshold
+            params.num_filters, init_threshold=threshold
         )
         self.params = params
         self.num_iter = params.unfoldings
 
-
     @staticmethod
-    def _calc_pad_sizes(x: torch.Tensor, *, kernel_size: int, stride: int) -> tuple[int, int, int, int]:
+    def _calc_pad_sizes(
+        x: torch.Tensor, *, kernel_size: int, stride: int
+    ) -> tuple[int, int, int, int]:
         return (
             stride,
             (
@@ -134,9 +136,8 @@ class ConvLista(nn.Module):
                 stride
                 if (x.shape[2] + stride - kernel_size) % stride == 0
                 else 2 * stride - ((x.shape[2] + stride - kernel_size) % stride)
-            )
+            ),
         )
-
 
     @classmethod
     def _augment_images(cls, y: torch.Tensor, *, stride: int, kernel_size: int):
@@ -146,17 +147,21 @@ class ConvLista(nn.Module):
             left_pad, right_pad, top_pad, bot_pad = cls._calc_pad_sizes(
                 y, kernel_size=kernel_size, stride=stride
             )
-            augmented_y = torch.empty((
-                y.shape[0],
-                stride**2,
-                y.shape[1],
-                y.shape[2] + top_pad + bot_pad,
-                y.shape[3] + left_pad + right_pad,
-            ), dtype=y.dtype, device=y.device)
+            augmented_y = torch.empty(
+                (
+                    y.shape[0],
+                    stride**2,
+                    y.shape[1],
+                    y.shape[2] + top_pad + bot_pad,
+                    y.shape[3] + left_pad + right_pad,
+                ),
+                dtype=y.dtype,
+                device=y.device,
+            )
             mask = torch.zeros_like(augmented_y)
             for num, (augmented_y_part, mask_part) in enumerate(
-                    zip_strict(augmented_y.unbind(dim=1), mask.unbind(dim=1))
-                ):
+                zip_strict(augmented_y.unbind(dim=1), mask.unbind(dim=1))
+            ):
                 row_shift = num // stride
                 col_shift = num % stride
                 augmented_y_part.copy_(
@@ -182,7 +187,6 @@ class ConvLista(nn.Module):
             raise ValueError("Stride must be a positive integer.")
         return y, mask
 
-
     def forward(self, y: torch.Tensor) -> torch.Tensor:
         stride = self.params.stride
         shape = y.shape
@@ -190,7 +194,9 @@ class ConvLista(nn.Module):
         # depending on the stride in order to have a result that does not
         # depend on the alignment of the input image. If the stride is 1, y is
         # not modified.
-        y, mask = self._augment_images(y, stride=stride, kernel_size=self.params.kernel_size)
+        y, mask = self._augment_images(
+            y, stride=stride, kernel_size=self.params.kernel_size
+        )
 
         # NOTE: \Gamma is initialized as \Gamma_0 = 0 and for efficiency we start at
         # \Gamma_1 = S_\tau(BY) by applying \Gamma_{k+1} = S_\tau(\Gamma_k + B(Y - A\Gamma_k))
@@ -206,9 +212,7 @@ class ConvLista(nn.Module):
 
         # Deal with the shifted copies
         x = torch.masked_select(x, mask.bool())
-        x = x.reshape(
-            shape[0], stride**2, *shape[1:]
-        )
+        x = x.reshape(shape[0], stride**2, *shape[1:])
         # Average over all the shifts
         x = x.mean(dim=1, keepdim=False)
 
@@ -300,7 +304,14 @@ def _pad_fn_even(func: Callable, *, value: float = 0.0):
 
 class Poisson2Sparse(Denoiser):
     def __init__(
-            self, *, backbone: torch.nn.Module, lr: float, weight_n2n: float, weight_l1_regularization: float, num_iter: int, verbose: bool
+        self,
+        *,
+        backbone: torch.nn.Module,
+        lr: float,
+        weight_n2n: float,
+        weight_l1_regularization: float,
+        num_iter: int,
+        verbose: bool,
     ):
         super().__init__()
         self.backbone = backbone
