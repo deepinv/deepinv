@@ -11,10 +11,8 @@ This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sp
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-import torchvision.transforms as transforms
 import deepinv as dinv
 import torch
-import torchvision.transforms as transforms
 import deepinv as dinv
 import numpy as np
 import random
@@ -28,11 +26,11 @@ import random
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-physics = dinv.physics.Denoising(
-    dinv.physics.PoissonNoise(gain=0.01, normalize=True)
-)
+physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=0.01, normalize=True))
 
-x = dinv.utils.demo.load_example("FMD_TwoPhoton_MICE_R_gt_12_avg50.png", img_size=(256, 256)).to(device)
+x = dinv.utils.demo.load_example(
+    "FMD_TwoPhoton_MICE_R_gt_12_avg50.png", img_size=(256, 256)
+).to(device)
 x = x[:, 0:1, :64, :64]
 y = physics(x)
 
