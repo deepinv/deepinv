@@ -28,16 +28,13 @@ import random
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-transform = transforms.Compose([transforms.CenterCrop(64), transforms.ToTensor()])
-dataset = dinv.datasets.FMD(
-    "datasets/FMD",
-    ["TwoPhoton_BPAE_R"],
-    download=False,
-    transform=transform,
-    target_transform=transform,
+physics = dinv.physics.Denoising(
+    dinv.physics.PoissonNoise(gain=0.01, normalize=True)
 )
-x, y = next(iter(dataset))
-x, y = x.unsqueeze(0).to(device), y.unsqueeze(0).to(device)
+
+x = dinv.utils.demo.load_example("FMD_TwoPhoton_MICE_R_gt_12_avg50.png", img_size=(256, 256)).to(device)
+x = x[:, 0:1, :64, :64]
+y = physics(x)
 
 # Seed the RNGs for reproducibility
 torch.manual_seed(0)
