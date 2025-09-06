@@ -8,7 +8,8 @@ from tqdm import trange
 from deepinv.loss import Neighbor2Neighbor as N2N
 from collections import namedtuple
 from functools import wraps
-from typing import Callable
+from typing import Callable, Union
+from deepinv.utils.compat import zip_strict
 
 
 _ListaParams = namedtuple(
@@ -16,35 +17,35 @@ _ListaParams = namedtuple(
 )
 
 
-def _calc_pad_sizes(I: torch.Tensor, kernel_size: int, stride: int):
-    left_pad = stride
-    right_pad = (
-        0
-        if (I.shape[3] + left_pad - kernel_size) % stride == 0
-        else stride - ((I.shape[3] + left_pad - kernel_size) % stride)
-    )
-    top_pad = stride
-    bot_pad = (
-        0
-        if (I.shape[2] + top_pad - kernel_size) % stride == 0
-        else stride - ((I.shape[2] + top_pad - kernel_size) % stride)
-    )
-    right_pad += stride
-    bot_pad += stride
-    return left_pad, right_pad, top_pad, bot_pad
+class _SoftThreshold2d(nn.Module):
+    """Learnable 2d channel-wise soft-thresholding layer
 
+    :param int num_features: Number of channels in the input tensor
+    :param float init_threshold: Initial value for the learned thresholds (default: 1e-2)
+    """
 
-class _SoftThreshold(nn.Module):
-    def __init__(self, size, init_threshold=1e-3):
+    def __init__(self, num_features: int, *, init_threshold: float = 1e-2):
         super().__init__()
-        self.threshold = nn.Parameter(init_threshold * torch.ones(1, size, 1, 1))
+        self.thresholds = nn.Parameter(
+            torch.full(size=(num_features,), fill_value=init_threshold),
+        )
 
     def forward(self, x):
-        mask1 = (x > self.threshold).float()
-        mask2 = (x < -self.threshold).float()
-        out = mask1.float() * (x - self.threshold)
-        out += mask2.float() * (x + self.threshold)
-        return out
+        # Channel-wise soft-thresholding with learned thresholds
+        threshold = self.thresholds.view(1, -1, 1, 1)
+        return self._soft_threshold(x, threshold=threshold)
+
+    @staticmethod
+    def _soft_threshold(x: torch.Tensor, *, threshold: Union[float, torch.Tensor]) -> torch.Tensor:
+        """Soft-thresholding operation
+
+        1. Beck, A., & Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences, 2(1), 183–202. https://doi.org/10.1137/080716542
+
+        :param torch.Tensor x: Input tensor
+        :param Union[float, torch.Tensor] threshold: Threshold value (constant or per entry). If a tensor, it must be broadcastable to the shape of ``x``.
+        :return: (:class:`torch.Tensor`) Soft-thresholded tensor
+        """
+        return (x.abs() - threshold).clamp(min=0.0) * x.sign()
 
 
 # Credit goes to https://github.com/drorsimon/CSCNet
@@ -111,85 +112,108 @@ class ConvLista(nn.Module):
         self.apply_A.weight.data = A
         self.apply_B.weight.data = B
         self.apply_C.weight.data = C
-        self.soft_threshold = _SoftThreshold(params.num_filters, threshold)
+        self.soft_threshold = _SoftThreshold2d(
+            params.num_filters,
+            init_threshold=threshold
+        )
         self.params = params
         self.num_iter = params.unfoldings
 
-    def _split_image(self, I):
-        if self.params.stride == 1:
-            return I, torch.ones_like(I)
-        left_pad, right_pad, top_pad, bot_pad = _calc_pad_sizes(
-            I, self.params.kernel_size, self.params.stride
-        )
-        I_batched_padded = torch.zeros(
-            I.shape[0],
-            self.params.stride**2,
-            I.shape[1],
-            top_pad + I.shape[2] + bot_pad,
-            left_pad + I.shape[3] + right_pad,
-        ).type_as(I)
-        valids_batched = torch.zeros_like(I_batched_padded)
-        for num, (row_shift, col_shift) in enumerate(
-            [
-                (i, j)
-                for i in range(self.params.stride)
-                for j in range(self.params.stride)
-            ]
-        ):
-            I_padded = F.pad(
-                I,
-                pad=(
-                    left_pad - col_shift,
-                    right_pad + col_shift,
-                    top_pad - row_shift,
-                    bot_pad + row_shift,
-                ),
-                mode="reflect",
+
+    @staticmethod
+    def _calc_pad_sizes(x: torch.Tensor, *, kernel_size: int, stride: int) -> tuple[int, int, int, int]:
+        return (
+            stride,
+            (
+                stride
+                if (x.shape[3] + stride - kernel_size) % stride == 0
+                else 2 * stride - ((x.shape[3] + stride - kernel_size) % stride)
+            ),
+            stride,
+            (
+                stride
+                if (x.shape[2] + stride - kernel_size) % stride == 0
+                else 2 * stride - ((x.shape[2] + stride - kernel_size) % stride)
             )
-            valids = F.pad(
-                torch.ones_like(I),
-                pad=(
-                    left_pad - col_shift,
-                    right_pad + col_shift,
-                    top_pad - row_shift,
-                    bot_pad + row_shift,
-                ),
-                mode="constant",
-            )
-            I_batched_padded[:, num, :, :, :] = I_padded
-            valids_batched[:, num, :, :, :] = valids
-        I_batched_padded = I_batched_padded.reshape(-1, *I_batched_padded.shape[2:])
-        valids_batched = valids_batched.reshape(-1, *valids_batched.shape[2:])
-        return I_batched_padded, valids_batched
-
-    def disable_warmup(self):
-        self.num_iter = self.params.unfoldings
-
-    def enable_warmup(self):
-        self.num_iter = 1
-
-    def forward(self, I):
-        I_batched_padded, valids_batched = self._split_image(I)
-        conv_input = self.apply_B(I_batched_padded)  # encode
-        gamma_k = self.soft_threshold(conv_input)
-        # ic(gamma_k.shape)
-        for k in range(self.num_iter - 1):
-            x_k = self.apply_A(gamma_k)  # decode
-            # r_k = self.apply_B(x_k-I_batched_padded) #encode
-            r_k = self.apply_B(x_k - I_batched_padded)  # encode
-            # if self.norm:
-            # r_k = self.norm_layer(r_k)
-            # bug? try adding
-            gamma_k = self.soft_threshold(gamma_k - r_k)
-        output_all = self.apply_C(gamma_k)
-        output_cropped = torch.masked_select(output_all, valids_batched.bool()).reshape(
-            I.shape[0], self.params.stride**2, *I.shape[1:]
         )
-        # if self.return_all:
-        #     return output_cropped
-        output = output_cropped.mean(dim=1, keepdim=False)
-        # output = F.relu(output)
-        return torch.clamp(output, 0.0, 1.0)
+
+
+    @classmethod
+    def _augment_images(cls, y: torch.Tensor, *, stride: int, kernel_size: int):
+        if stride == 1:
+            mask = torch.ones_like(y)
+        elif stride > 1:
+            left_pad, right_pad, top_pad, bot_pad = cls._calc_pad_sizes(
+                y, kernel_size=kernel_size, stride=stride
+            )
+            augmented_y = torch.empty((
+                y.shape[0],
+                stride**2,
+                y.shape[1],
+                y.shape[2] + top_pad + bot_pad,
+                y.shape[3] + left_pad + right_pad,
+            ), dtype=y.dtype, device=y.device)
+            mask = torch.zeros_like(augmented_y)
+            for num, (augmented_y_part, mask_part) in enumerate(
+                    zip_strict(augmented_y.unbind(dim=1), mask.unbind(dim=1))
+                ):
+                row_shift = num // stride
+                col_shift = num % stride
+                augmented_y_part.copy_(
+                    F.pad(
+                        y,
+                        pad=(
+                            left_pad - col_shift,
+                            right_pad + col_shift,
+                            top_pad - row_shift,
+                            bot_pad + row_shift,
+                        ),
+                        mode="reflect",
+                    )
+                )
+                mask_part[
+                    ...,
+                    top_pad - row_shift : y.shape[2] + top_pad - row_shift,
+                    left_pad - col_shift : y.shape[3] + left_pad - col_shift,
+                ].fill_(1.0)
+            y = augmented_y.flatten(start_dim=0, end_dim=1)
+            mask = mask.flatten(start_dim=0, end_dim=1)
+        else:
+            raise ValueError("Stride must be a positive integer.")
+        return y, mask
+
+
+    def forward(self, y: torch.Tensor) -> torch.Tensor:
+        stride = self.params.stride
+        shape = y.shape
+        # We apply the algorithm to every possible shift of the input image
+        # depending on the stride in order to have a result that does not
+        # depend on the alignment of the input image. If the stride is 1, y is
+        # not modified.
+        y, mask = self._augment_images(y, stride=stride, kernel_size=self.params.kernel_size)
+
+        # NOTE: \Gamma is initialized as \Gamma_0 = 0 and for efficiency we start at
+        # \Gamma_1 = S_\tau(BY) by applying \Gamma_{k+1} = S_\tau(\Gamma_k + B(Y - A\Gamma_k))
+        # and only compute T - 1 iterations instead of starting at \Gamma_0 and doing T iterations.
+        # For more details, see Section 4.2 in https://doi.org/10.48550/arXiv.1909.05742
+        gamma = self.soft_threshold(self.apply_B(y))
+        for _ in range(self.num_iter - 1):
+            # Eq. (15) in https://doi.org/10.48550/arXiv.1909.05742
+            # \Gamma_{k+1} = S_\tau(\Gamma_k + B(Y - A\Gamma_k))
+            gamma = self.soft_threshold(gamma + self.apply_B(y - self.apply_A(gamma)))
+        # \hat X = C\Gamma_T
+        x = self.apply_C(gamma)
+
+        # Deal with the shifted copies
+        x = torch.masked_select(x, mask.bool())
+        x = x.reshape(
+            shape[0], stride**2, *shape[1:]
+        )
+        # Average over all the shifts
+        x = x.mean(dim=1, keepdim=False)
+
+        # Post-processing
+        return torch.clamp(x, min=0.0, max=1.0)
 
 
 def conv_power_method(D, image_size, num_iters=100, stride=1):
@@ -276,7 +300,7 @@ def _pad_fn_even(func: Callable, *, value: float = 0.0):
 
 class Poisson2Sparse(Denoiser):
     def __init__(
-        self, *, backbone, lr, weight_n2n, weight_l1_regularization, num_iter, verbose
+            self, *, backbone: torch.nn.Module, lr: float, weight_n2n: float, weight_l1_regularization: float, num_iter: int, verbose: bool
     ):
         super().__init__()
         self.backbone = backbone
@@ -285,6 +309,10 @@ class Poisson2Sparse(Denoiser):
         self.weight_l1_regularization = weight_l1_regularization
         self.num_iter = num_iter
         self.verbose = verbose
+        self._loss_fn = _Poisson2SparseLoss(
+            weight_n2n=self.weight_n2n,
+            weight_l1_regularization=self.weight_l1_regularization,
+        )
 
     @_pad_fn_even
     def forward(self, y, physics=None):
@@ -293,11 +321,7 @@ class Poisson2Sparse(Denoiser):
 
         x_hat_avg = None
         for _ in trange(self.num_iter, disable=not self.verbose):
-            loss_fn = _Poisson2SparseLoss(
-                weight_n2n=self.weight_n2n,
-                weight_l1_regularization=self.weight_l1_regularization,
-            )
-            loss, x_hat = loss_fn(y=y, model=backbone)
+            loss, x_hat = self._loss_fn(y=y, model=backbone)
 
             loss.backward()
 

@@ -24,6 +24,12 @@ import random
 #
 # This example uses an image from the microscopy dataset FMD :footcite:t:`zhang2018poisson`.
 
+# Seed the RNGs for reproducibility
+torch.manual_seed(0)
+torch.cuda.manual_seed(0)
+random.seed(0)
+np.random.seed(0)
+
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=0.01, normalize=True))
@@ -32,13 +38,8 @@ x = dinv.utils.demo.load_example(
     "FMD_TwoPhoton_MICE_R_gt_12_avg50.png", img_size=(256, 256)
 ).to(device)
 x = x[:, 0:1, :64, :64]
+x = x.clamp(0, 1)
 y = physics(x)
-
-# Seed the RNGs for reproducibility
-torch.manual_seed(0)
-torch.cuda.manual_seed(0)
-random.seed(0)
-np.random.seed(0)
 
 # %%
 # Define the Poisson2Sparse model
@@ -49,7 +50,7 @@ backbone = dinv.models.ConvLista(
     norm=False,
     num_filters=512,
     num_iter=10,
-    stride=1,
+    stride=2,
     threshold=0.01,
 )
 
