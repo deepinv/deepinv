@@ -69,9 +69,6 @@ class Downsampling(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if not isinstance(factor, (int, float)):
-            raise ValueError("Downsampling factor must be an integer")
-
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
@@ -526,8 +523,8 @@ class SpaceVaryingBlur(LinearPhysics):
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
 
-    :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
+    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+    :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -577,8 +574,8 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters  :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
@@ -596,8 +593,8 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
@@ -620,8 +617,8 @@ class SpaceVaryingBlur(LinearPhysics):
         r"""
         Updates the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if filters is not None and isinstance(filters, Tensor):

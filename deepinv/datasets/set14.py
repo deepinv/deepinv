@@ -1,17 +1,16 @@
-from typing import Any, Callable
+from typing import Callable
+from types import MappingProxyType
 import os
-
-from PIL import Image
-import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import ImageFolder
 
 
-class Set14HR(torch.utils.data.Dataset):
+class Set14HR(ImageFolder):
     """Dataset for `Set14 <https://paperswithcode.com/dataset/set14>`_.
 
     The Set14 dataset :footcite:p:`huang2015single` is a dataset consisting of 14 images commonly used for testing performance of image reconstruction algorithms.
@@ -55,16 +54,20 @@ class Set14HR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = {
-        "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
-        "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
-        "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
-    }
+    _checksums = MappingProxyType(
+        {
+            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
+            "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
+            "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
+        }
+    )
 
     def __init__(
         self,
@@ -73,7 +76,6 @@ class Set14HR(torch.utils.data.Dataset):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.transform = transform
         self.img_dir = os.path.join(self.root, "Set14", "image_SRF_4")
 
         # download dataset, we check first that dataset isn't already downloaded
@@ -86,7 +88,7 @@ class Set14HR(torch.utils.data.Dataset):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.archive_urls.items():
+                for filename, url in self._archive_urls.items():
                     # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
@@ -105,21 +107,8 @@ class Set14HR(torch.utils.data.Dataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(
-            [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
-        )
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialize ImageFolder
+        super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
@@ -141,5 +130,5 @@ class Set14HR(torch.utils.data.Dataset):
         return all(
             calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
             == checksum
-            for folder_name, checksum in self.checksums.items()
+            for folder_name, checksum in self._checksums.items()
         )

@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.compat import zip_strict
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -172,7 +173,7 @@ def least_squares(
 def dot(a, b, dim):
     if isinstance(a, TensorList):
         aux = 0
-        for ai, bi in zip(a.x, b.x, strict=True):
+        for ai, bi in zip_strict(a.x, b.x):
             aux += (ai.conj() * bi).sum(
                 dim=dim, keepdim=True
             )  # performs batched dot product
@@ -447,7 +448,7 @@ def lsqr(
                 return TensorList(
                     [
                         vi * alpha.view(bi_shape)
-                        for vi, bi_shape in zip(v, b_shape, strict=True)
+                        for vi, bi_shape in zip_strict(v, b_shape)
                     ]
                 )
             else:
@@ -962,7 +963,13 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            first_data = next(iter(dataloader))[0][: self.n_components].to(self.mu)
+            first_data = next(iter(dataloader))
+
+            if isinstance(first_data, (tuple, list)):
+                first_data = first_data[0]
+
+            first_data = first_data[: self.n_components].to(self.mu)
+
             if first_data.shape[0] == self.n_components:
                 self.mu.copy_(first_data)
             else:
@@ -1007,7 +1014,7 @@ class GaussianMixtureModel(nn.Module):
         C_new = torch.zeros_like(self._cov)
         n = 0
         objective = 0
-        for x, _ in tqdm(dataloader, disable=not verbose):
+        for x in tqdm(dataloader, disable=not verbose):
             x = x.to(self.mu)
             n += x.shape[0]
             component_log_likelihoods = self.component_log_likelihoods(x)

@@ -2,6 +2,7 @@ from typing import Union
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+from deepinv.utils.compat import zip_strict
 
 
 class DownsamplingGenerator(PhysicsGenerator):
@@ -21,10 +22,13 @@ class DownsamplingGenerator(PhysicsGenerator):
     >>> factor = ds['factor']
 
     .. note::
-        Each batch element has the same downsampling factor and filter, but these can vary from batch to batch.
+        If batch size = 1, a random filter and factor is sampled in (filters, factors) at each step.
+        If batch size > 1, a unique factor needs to be sampled for the whole batch, but filters can vary. In this case,
+        it is recommended to set the `psf_size` argument to ensure that all filters in the batch have the same shape.
 
     :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
     :param list[int] factors: list of factors to use for downsampling. Default is [2, 4].
+    :param tuple[int, int] psf_size: size of the point spread function (PSF) to use for the filters, necessary to stack different filters. If None, the default size of the filter from the filter functions will be used. Default is None.
     :param rng: random number generator. Default is None.
     :param device: device to use. Default is "cpu".
     :param dtype: data type to use. Default is torch.float32.
@@ -32,8 +36,9 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        filters: Union[str, list[str]] = ["gaussian", "bilinear", "bicubic"],
-        factors: Union[int, list[int]] = [2, 4],
+        filters: Union[str, list[str]] = ("gaussian", "bilinear", "bicubic"),
+        factors: Union[int, list[int]] = (2, 4),
+        psf_size: tuple[int, int] = None,
         rng: torch.Generator = None,
         device: str = "cpu",
         dtype: type = torch.float32,
@@ -45,6 +50,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         kwargs = {
             "list_filters": filters,
             "list_factors": factors,
+            "psf_size": psf_size,
         }
         super().__init__(device=device, dtype=dtype, rng=rng, **kwargs)
 
@@ -64,6 +70,18 @@ class DownsamplingGenerator(PhysicsGenerator):
             filter = torch.nn.Parameter(bicubic_filter(factor), requires_grad=False).to(
                 self.device
             )
+
+        if self.psf_size is not None:
+            dH = self.psf_size[0] - filter.shape[-2]
+            dW = self.psf_size[1] - filter.shape[-1]
+
+            pad_top, pad_bottom = dH // 2, dH - dH // 2
+            pad_left, pad_right = dW // 2, dW - dW // 2
+
+            filter = torch.nn.functional.pad(
+                filter, (pad_left, pad_right, pad_top, pad_bottom)
+            )
+
         return filter
 
     def get_kernel(self, filter_str: str = None, factor=None):
@@ -107,12 +125,12 @@ class DownsamplingGenerator(PhysicsGenerator):
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
-            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
+            self.get_kernel(f_str, f) for f_str, f in zip_strict(filters, factors)
         ]
 
         if not all([f.shape == filters[0].shape for f in filters]):
             raise ValueError(
-                "Generated filters have different shapes in batch. Consider limiting factors/filters to one type per batch, or limiting batch size = 1."
+                "Generated filters have different shapes in batch. Consider limiting factors/filters to one type per batch or limiting batch size = 1. If using a single factor, set the psf_size argument to ensure that all filters in the batch have the same shape."
             )
 
         return {

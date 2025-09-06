@@ -18,24 +18,21 @@ optimizer.
 
 """
 
+# %%
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils import load_url_image
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet
 # ----------------------------
 #
-# This example uses an image of Lionel Messi from Wikipedia.
+# This example uses an image of Messi.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-)
-x = load_url_image(url=url, img_size=32).to(device)
+x = load_example("messi.jpg", img_size=32).to(device)
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -110,3 +107,8 @@ print(f"DIP PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
 
 # plot results
 plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])
+
+# %%
+# :References:
+#
+# .. footbibliography::

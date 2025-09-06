@@ -172,7 +172,7 @@ def to_logimage(im, rescale=False, dr=5000):
 imgs = [image_gdth, to_logimage(image_gdth)]
 plot(
     imgs,
-    titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"],
+    titles=[f"Groundtruth", f"Groundtruth \nin logarithmic scale"],
     cmap="inferno",
     cbar=True,
 )
@@ -267,7 +267,7 @@ back = physics.A_adjoint(y)
 imgs = [to_logimage(image_gdth), to_logimage(back, rescale=True)]
 plot(
     imgs,
-    titles=[f"Groundtruth (logscale)", f"Backprojection (logscale)"],
+    titles=[f"Groundtruth \n(logscale)", f"Backprojection \n(logscale)"],
     cmap="inferno",
 )
 
@@ -354,6 +354,7 @@ imgs = [
     to_logimage(back, rescale=True),
     to_logimage(x_model, rescale=True),
 ]
+# %%
 plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno", cbar=True)
 
 # plot convergence curves
@@ -369,3 +370,8 @@ if plot_convergence_metrics:
 # `AIRI <https://basp-group.github.io/BASPLib/AIRI.html>`_,
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
+
+# %%
+# :References:
+#
+# .. footbibliography::

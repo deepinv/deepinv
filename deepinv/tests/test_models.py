@@ -1,10 +1,13 @@
-import sys
 import pytest
+import json
+from unittest.mock import patch, MagicMock
+
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.loss import PSNR
+from deepinv.loss.metric.distortion import PSNR
+from deepinv.datasets.base import ImageDataset
 
 from dummy import DummyCircles, DummyModel
 
@@ -505,6 +508,12 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
 def test_wavelet_denoiser_ths(
     level, channels, dimension, non_linearity, batch_size, device
 ):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(
         level=level, wvdim=dimension, non_linearity=non_linearity
     ).to(device)
@@ -535,6 +544,12 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
 def test_wavelet_decomposition(channels, dimension, batch_size, device):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
@@ -747,26 +762,6 @@ def test_PDNet(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
-@pytest.mark.parametrize(
-    "denoiser, dep",
-    [
-        ("BM3D", "bm3d"),
-        ("SCUNet", "timm"),
-        ("SwinIR", "timm"),
-        ("WaveletDenoiser", "ptwt"),
-        ("WaveletDictDenoiser", "ptwt"),
-    ],
-)
-def test_optional_dependencies(denoiser, dep):
-    # Skip the test if the optional dependency is installed
-    if dep in sys.modules:
-        pytest.skip(f"Optional dependency {dep} is installed.")
-
-    klass = getattr(dinv.models, denoiser)
-    with pytest.raises(ImportError, match=f"pip install .*{dep}"):
-        klass()
-
-
 def test_icnn(device, rng):
     from deepinv.models import ICNN
 
@@ -845,7 +840,7 @@ def test_varnet(varnet_type, device):
     )
     y = physics(x)
 
-    class DummyMRIDataset(Dataset):
+    class DummyMRIDataset(ImageDataset):
         def __getitem__(self, i):
             return x[0], y[0]
 
@@ -1038,6 +1033,11 @@ def test_dsccp_net(device, n_channels):
 
 
 def test_denoiser_perf(device):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",
@@ -1131,3 +1131,86 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+
+@pytest.mark.parametrize("return_metadata", [False, True])
+def test_client_mocked(return_metadata):
+    model = dinv.models.Client(
+        endpoint="http://example.com",
+        api_key="test_key",
+        return_metadata=return_metadata,
+    )
+
+    y = torch.ones(1, 3, 16, 16)
+
+    # First test just serialize/deserialize
+    assert isinstance(dinv.models.Client.serialize(y), str)
+    assert torch.allclose(
+        dinv.models.Client.deserialize(dinv.models.Client.serialize(y)), y
+    )
+
+    # Test mocked API
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {
+        "output": {"file": dinv.models.Client.serialize(y), "metadata": {"time": 0.1}}
+    }
+
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        out = model(
+            y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3, another=[1, 2]
+        )
+
+        if return_metadata:
+            x_hat, metadata = out
+            assert metadata["time"] == 0.1
+        else:
+            x_hat = out
+
+        assert torch.allclose(x_hat, y)
+
+        # Verify request payload structure
+        called_args, called_kwargs = post.call_args
+        assert called_args[0] == "http://example.com"
+        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+
+        sent_payload = json.loads(called_kwargs["data"])
+        assert "input" in sent_payload
+        assert "file" in sent_payload["input"]
+        assert "metadata" in sent_payload["input"]
+        assert sent_payload["input"]["metadata"]["physics"] == "denoising"
+
+        input_file = sent_payload["input"]["file"]
+        assert isinstance(input_file, str)
+        assert torch.allclose(dinv.models.Client.deserialize(input_file), y)
+
+        assert sent_payload["input"]["metadata"]["sigma"] == 0.3
+        assert torch.allclose(
+            dinv.models.Client.deserialize(sent_payload["input"]["metadata"]["mask"]),
+            torch.tensor([1, 2]),
+        )
+
+        with pytest.raises(TypeError):
+            _ = model(y, a={"a": 3})
+
+        with pytest.raises(TypeError):
+            _ = model(y, a=[{"a": 3}, 3])
+
+        with pytest.raises(ValueError):
+            model.train()
+
+    resp.status_code = 404
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(RuntimeError, match="404"):
+            _ = model(y)
+
+    resp.status_code = 200
+    resp.json.return_value = {"output": {"xxx": 0.0}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="file"):
+            _ = model(y)
+
+    resp.json.return_value = {"other": {"xxx": 0.1}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="output"):
+            _ = model(y)

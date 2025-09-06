@@ -6,14 +6,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.mixins import MRIMixin
+from deepinv.utils.compat import zip_strict
 
-try:
-    from natsort import natsorted
-except ImportError:  # pragma: no cover
-    natsorted = ImportError(
-        "natsort is not available. In order to use SKMTEASliceDataset, please install the natsort package with `pip install natsort`."
-    )  # pragma: no cover
+from natsort import natsorted
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
@@ -134,7 +130,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip(x_shape, shape, strict=True)
+            for current, desired in zip_strict(x_shape, shape)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.

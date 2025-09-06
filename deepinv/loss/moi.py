@@ -1,13 +1,16 @@
-from typing import Union, Optional
+from __future__ import annotations
+from typing import Union, Optional, TYPE_CHECKING
 
 import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.ei import EILoss
-from deepinv.loss.metric.metric import Metric
-from deepinv.physics import Physics
-from deepinv.physics.generator import PhysicsGenerator
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.physics import Physics
+    from deepinv.physics.generator import PhysicsGenerator
+    from deepinv.transform.base import Transform
 
 
 class MOILoss(Loss):
@@ -51,13 +54,15 @@ class MOILoss(Loss):
         self,
         physics: Optional[Union[list[Physics], Physics]] = None,
         physics_generator: Optional[PhysicsGenerator] = None,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         apply_noise: bool = True,
         weight: float = 1.0,
         rng: Optional[torch.Generator] = None,
         *args,
         **kwargs,
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super(MOILoss, self).__init__(*args, **kwargs)
         self.name = "moi"
         self.physics = physics
@@ -164,12 +169,14 @@ class MOEILoss(EILoss, MOILoss):
         transform: Transform,
         physics: Optional[Union[list[Physics], Physics]] = None,
         physics_generator: PhysicsGenerator = None,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         apply_noise: bool = True,
         weight: float = 1.0,
         no_grad: bool = False,
         rng: Optional[torch.Generator] = None,
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(
             transform=transform,
             metric=metric,

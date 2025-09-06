@@ -24,7 +24,7 @@ transforms, and chain them together for data augmentation. Our
 transforms are customisable and offer some group-theoretic properties.
 
 We demonstrate a random roto-scale combined with a random masking, and a
-constrained pixel-shift with a random colour jitter.
+constrained pixel-shift with a random color jitter.
 Note that all our transforms can easily be inverted using the method ``transform.inverse()``.
 
 First, load a sample image.
@@ -44,7 +44,7 @@ transform = Compose(
     ]
 )
 
-# Constrained pixel-shift with a random colour jitter
+# Constrained pixel-shift with a random color jitter
 transform2 = Compose(
     [
         dinv.transform.Shift(shift_max=0.2),
@@ -93,7 +93,7 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 #
 
 sigma = 0.1
-physics = dinv.physics.GaussianNoise(sigma=sigma)
+physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
 y = physics(Resize(128)(x))
 
 model = dinv.models.MedianFilter()
@@ -137,3 +137,8 @@ dinv.utils.plot(
 loss = dinv.loss.EILoss(
     transform=dinv.transform.projective.Affine() | dinv.transform.projective.Euclidean()
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

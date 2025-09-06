@@ -4,14 +4,17 @@ import copy
 from math import sqrt
 from typing import Optional
 import pytest
+import warnings
+
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
-
+from deepinv.utils.compat import zip_strict
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -59,6 +62,7 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -189,6 +193,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (
@@ -759,7 +773,8 @@ def test_operator_cropper(name, device, rng):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device, rng):
+@pytest.mark.parametrize("verbose", [True, False])
+def test_operators_norm(name, verbose, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -779,7 +794,13 @@ def test_operators_norm(name, device, rng):
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        assert len(w) == 1
+
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -874,6 +895,13 @@ def test_MRI(mri, mri_img_size, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :param rng: (torch.Generator)
     """
+    if mri is MultiCoilMRI:
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
 
     B, C, T, H, W = mri_img_size
     if rng.device != device:
@@ -962,6 +990,13 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :param rng: (torch.Generator)
     """
+    if mri is MultiCoilMRI:
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
 
     B, C, T, H, W = mri_img_size
     if rng.device != device:
@@ -1417,7 +1452,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        for s, d in zip(shift, dim, strict=True):
+        for s, d in zip_strict(shift, dim):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1573,7 +1608,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1601,7 +1636,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics.A(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                    for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1688,7 +1723,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip(y1, y2, strict=True):
+                    for y11, y22 in zip_strict(y1, y2):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
@@ -2164,3 +2199,24 @@ def test_automatic_A_adjoint(device):
     assert (
         physics.adjointness_test(x) < 1e-4
     ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
+
+
+def test_separate_noise_models():
+    physics1 = dinv.physics.Denoising()
+    physics2 = dinv.physics.Denoising()
+    assert id(physics1.noise_model) != id(
+        physics2.noise_model
+    ), "Expected distinct noise models for the distinct physics"
+    assert isinstance(
+        physics1.noise_model, dinv.physics.GaussianNoise
+    ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
+    sigma1 = physics1.noise_model.sigma
+    sigma2 = physics2.noise_model.sigma
+    sigma1_new = sigma2 + 1
+    assert (
+        sigma1_new != sigma2
+    ), "Expected a standard deviation different from that of physics2"
+    physics1.update(sigma=sigma1_new)
+    assert (
+        physics2.noise_model.sigma == sigma2
+    ), "Expected physics2 to be unchanged after updating physics1"

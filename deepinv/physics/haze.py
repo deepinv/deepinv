@@ -58,7 +58,7 @@ class Haze(Physics):
 
 
         :param torch.Tensor y: Hazy image.
-        :return: (deepinv.utils.ListTensor) trivial inverse.
+        :return: (deepinv.utils.TensorList) trivial inverse.
 
         """
         b, c, h, w = y.shape

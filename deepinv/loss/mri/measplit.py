@@ -11,7 +11,7 @@ from deepinv.physics.generator import (
     Artifact2ArtifactSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.utils.decorators import _deprecated_alias
@@ -97,9 +97,10 @@ class WeightedSplittingLoss(SplittingLoss):
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
         eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
     ):
-
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(eval_split_input=False, pixelwise=True)
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
@@ -178,11 +179,15 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
-        noise_model: GaussianNoise = GaussianNoise(sigma=0.1),
+        noise_model: Optional[GaussianNoise] = None,
         alpha: float = 0.75,
         eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
     ):
+        if noise_model is None:
+            noise_model = GaussianNoise(sigma=0.1)
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(mask_generator, physics_generator, eps=eps, metric=metric)
         self.alpha = alpha
         self.noise_model = noise_model
@@ -309,9 +314,11 @@ class Phase2PhaseLoss(SplittingLoss):
         self,
         img_size: tuple[int],
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         device="cpu",
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "phase2phase"
         self.img_size = img_size
@@ -496,9 +503,11 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         img_size: tuple[int],
         split_size: Union[int, tuple[int]] = 2,
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         device="cpu",
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(
             img_size=img_size,
             dynamic_model=dynamic_model,

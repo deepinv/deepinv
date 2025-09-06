@@ -3,7 +3,7 @@
 Training Losses
 ===============
 
-This package contains popular training losses for supervised and self-supervised learning,
+This module contains popular training losses for supervised and self-supervised learning,
 which are especially designed for inverse problems.
 
 Introduction
@@ -74,6 +74,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.ScoreLoss`
      - Poisson, Gaussian or Gamma noise
      - No
+   * - :class:`deepinv.loss.SureGaussianLoss`
+     - Gaussian noise and multiple forward operators
+     - No
 
 In order to learn from incomplete data, you can either:
 
@@ -107,7 +110,6 @@ In order to learn from incomplete data, you can either:
        Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
-
 .. _mri-losses:
 
 Specialized self-supervised losses for MRI
@@ -132,6 +134,8 @@ Several specialized losses are available for MRI reconstruction, particularly se
      - Splitting loss across time dimension for dynamic MRI
    * - :class:`deepinv.loss.mri.Artifact2ArtifactLoss`
      - Splitting loss across time dimension for sequential MRI
+   * - :class:`deepinv.loss.mri.ENSURELoss`
+     - Gaussian SURE but for rank-deficient multiple operators.
 
 
 .. _adversarial-losses:
@@ -199,3 +203,5 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
+
+

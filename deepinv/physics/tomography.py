@@ -1,28 +1,24 @@
 from typing import Any, Union, Optional
+from types import MappingProxyType
+from warnings import warn
 import math
+
+from numpy import ndarray
 import torch
-from deepinv.physics.forward import LinearPhysics
 
-from deepinv.physics.functional import Radon, IRadon, RampFilter, ApplyRadon
-from deepinv.physics import adjoint_function
-
-from deepinv.physics.functional import XrayTransform
+from deepinv.physics.forward import LinearPhysics, adjoint_function
+from deepinv.physics.functional import (
+    Radon,
+    IRadon,
+    RampFilter,
+    ApplyRadon,
+    XrayTransform,
+)
 from deepinv.physics.functional.astra import (
     AutogradTransform,
     create_projection_geometry,
     create_object_geometry,
 )
-from warnings import warn
-
-try:
-    import astra
-
-    # NOTE: This import is used by its side effects.
-    from astra import experimental  # noqa: F401
-except ImportError:  # pragma: no cover
-    astra = ImportError(
-        "The astra-toolbox package is not installed."
-    )  # pragma: no cover
 
 
 class Tomography(LinearPhysics):
@@ -110,6 +106,9 @@ class Tomography(LinearPhysics):
                   [ 0.0000, -0.0452,  0.0989]]]])
 
 
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(
@@ -133,8 +132,14 @@ class Tomography(LinearPhysics):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
                 device
             )
-        else:
+        elif isinstance(angles, (list, tuple, ndarray)):
             theta = torch.tensor(angles).to(device)
+        elif isinstance(angles, torch.Tensor):
+            theta = angles
+        else:
+            raise ValueError(
+                f"angles must be int, float, iterable or Tensor, but got {type(angles)}"
+            )
 
         self.register_buffer("theta", theta)
 
@@ -443,16 +448,21 @@ class TomographyWithAstra(LinearPhysics):
         bounding_box: Optional[tuple[float, ...]] = None,
         angles: Optional[torch.Tensor] = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] = {
-            "source_radius": 80.0,
-            "detector_radius": 20.0,
-        },
+        geometry_parameters: dict[str, Any] = MappingProxyType(
+            {
+                "source_radius": 80.0,
+                "detector_radius": 20.0,
+            }
+        ),
         geometry_vectors: Optional[torch.Tensor] = None,
         normalize: bool = False,
         device: Union[torch.device, str] = torch.device("cuda"),
         **kwargs,
     ):
         super().__init__(**kwargs)
+
+        if isinstance(geometry_parameters, MappingProxyType):
+            geometry_parameters = geometry_parameters.copy()
 
         assert len(img_size) in (
             2,
@@ -536,6 +546,11 @@ class TomographyWithAstra(LinearPhysics):
         :param torch.Tensor sinogram: Sinogram of shape [B,C,...,A,N].
         :return: Weighted sinogram.
         """
+        import astra
+
+        # NOTE: This import is used by its side effects.
+        from astra import experimental  # noqa: F401
+
         sinogram_scaled = torch.clone(sinogram)
         is_3d = len(sinogram.shape) == 5
 

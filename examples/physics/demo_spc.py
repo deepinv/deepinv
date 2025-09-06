@@ -36,6 +36,7 @@ from deepinv.utils.demo import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift
+from deepinv.utils.compat import zip_strict
 
 # %%
 # General Setup
@@ -96,7 +97,7 @@ physics_list = [
 # -----------------------------------------
 # Generate measurements using the physics models and reconstruct images using the adjoint operator.
 y_list = [physics(x) for physics in physics_list]
-x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)]
+x_list = [physics.A_adjoint(y) for physics, y in zip_strict(physics_list, y_list)]
 
 # %%
 # Calculate PSNR
@@ -110,7 +111,7 @@ title_orderings = [o.replace("_", " ").title() for o in orderings]
 title_orderings[-1] = "XY"  # Special case for 'xy'
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
+    for ordering, psnr in zip_strict(title_orderings, psnr_values)
 ]
 
 # Print information about the SPC setup
@@ -123,7 +124,7 @@ print(f"SPC Undersampling Rate: {undersampling_rate:.2f}")
 # Plot Reconstructions
 # --------------------
 # Visualize the ground truth and reconstructed images with PSNR values.
-plot([x] + x_list, titles=titles, show=True, figsize=(15, 5))
+plot([x] + x_list, titles=titles, show=True, figsize=(15, 5), fontsize=24)
 
 # Recovery Algorithm
 # ------------------
@@ -173,14 +174,14 @@ model.eval()
 x_recon = []
 psnr_values = []
 
-for y, physics in zip(y_list, physics_list, strict=True):
+for y, physics in zip_strict(y_list, physics_list):
     x_recon.append(model(y, physics))
     psnr_values.append(psnr_metric(x_recon[-1], x).item())
 
 # Update titles with PSNR values for the reconstructed images
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
+    for ordering, psnr in zip_strict(title_orderings, psnr_values)
 ]
 
 # %%
@@ -192,6 +193,7 @@ plot(
     titles=titles,
     show=True,
     figsize=(15, 5),
+    fontsize=24,
 )
 
 # %%
@@ -219,4 +221,7 @@ plot(
     show=True,
     figsize=(15, 5),
     cmap="jet",
+    fontsize=24,
 )
+
+# %%
