@@ -248,7 +248,9 @@ plot([x, y], titles=["signal", "measurement"])
 # The downsampling class :class:`deepinv.physics.Downsampling` is associated with a downsampling operator.
 
 
-physics = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device, filter=None)
+physics = dinv.physics.Downsampling(
+    img_size=img_size, factor=2, device=device, filter=None
+)
 
 
 y = physics(x)
