@@ -1,6 +1,6 @@
 r"""
 Poissong denoising using Poisson2Sparse
-===================================================
+=======================================
 
 This code shows how to restore an image corrupted by Poisson noise using Poisson2Sparse
 
@@ -20,7 +20,7 @@ import random
 
 # %%
 # Load a Poisson corrupted image
-# ----------------------------
+# ------------------------------
 #
 # This example uses an image from the microscopy dataset FMD :footcite:t:`zhang2018poisson`.
 
@@ -64,7 +64,7 @@ model = dinv.models.Poisson2Sparse(
 
 # %%
 # Run the model
-# ----------------------------------
+# -------------
 
 x_hat = model(y)
 
