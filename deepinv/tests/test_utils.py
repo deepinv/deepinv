@@ -228,7 +228,7 @@ def test_plot(
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
-    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
+    img_list = {k: v for k, v in zip_strict(titles, img_list)}
     if not with_titles:
         titles = None
     if not with_subtitles:
