@@ -792,7 +792,7 @@ def test_dip_like(model_kind, imsize, device):
             dinv.physics.PoissonNoise(gain=0.05, normalize=True)
         )
         backbone = dinv.models.ConvLista(
-            channels=imsize[0],
+            in_channels=imsize[0],
             kernel_size=3,
             norm=False,
             num_filters=512,

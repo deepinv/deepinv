@@ -45,9 +45,9 @@ y = physics(x)
 # Define the Poisson2Sparse model
 
 backbone = dinv.models.ConvLista(
-    channels=1,
+    in_channels=1,
+    out_channels=1,
     kernel_size=3,
-    norm=False,
     num_filters=512,
     num_iter=10,
     stride=2,
