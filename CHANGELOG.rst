@@ -12,6 +12,7 @@ New Features
 - Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
+- Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -25,7 +26,7 @@ Fixed
 - Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
-
+- Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
 
 v0.3.3
 ------
@@ -94,6 +95,7 @@ New Features
 - MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
 - Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
 - Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
+- Add ENSURE loss (:gh:`454` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
