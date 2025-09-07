@@ -234,8 +234,9 @@ def test_plot(
     if not with_subtitles:
         subtitles = None
     if not dict_img_list:
-        titles = None
         img_list = list(img_list.values())
+    else:
+        titles = None
     save_dir = tmp_path if save_plot else None
     with (
         pytest.raises(AssertionError)
