@@ -226,6 +226,21 @@ class ConvLista(nn.Module):
             return (x.abs() - threshold).clamp(min=0.0) * x.sign()
 
 
+def _pad_fn_even(func: Callable, *, value: float = 0.0):
+    def _decorate(fn: Callable):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            y = args[1]
+            H, W = y.shape[-2:]
+            x_pad = F.pad(y, (0, H % 2, 0, H % 2), value=value)
+            x_hat = fn(args[0], x_pad, *args[2:], **kwargs)
+            return x_hat[..., :H, :W]
+
+        return wrapper
+
+    return _decorate(func)
+
+
 class Poisson2Sparse(Denoiser):
     def __init__(
         self,
@@ -248,21 +263,6 @@ class Poisson2Sparse(Denoiser):
             weight_n2n=self.weight_n2n,
             weight_l1_regularization=self.weight_l1_regularization,
         )
-
-    @staticmethod
-    def _pad_fn_even(func: Callable, *, value: float = 0.0):
-        def _decorate(fn: Callable):
-            @wraps(fn)
-            def wrapper(*args, **kwargs):
-                y = args[1]
-                H, W = y.shape[-2:]
-                x_pad = F.pad(y, (0, H % 2, 0, H % 2), value=value)
-                x_hat = fn(args[0], x_pad, *args[2:], **kwargs)
-                return x_hat[..., :H, :W]
-
-            return wrapper
-
-        return _decorate(func)
 
     @_pad_fn_even
     def forward(self, y, physics=None):
