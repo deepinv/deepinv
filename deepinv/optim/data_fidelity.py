@@ -1,3 +1,4 @@
+import torch
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
