@@ -210,7 +210,7 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
 
     The mask is repeated across channels and randomly varies across batch dimension.
 
-    Algorithm taken from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    Algorithm taken from :footcite:t:`millard2023theoretical`.
 
     :Examples:
 

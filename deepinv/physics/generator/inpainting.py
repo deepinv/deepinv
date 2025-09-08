@@ -223,7 +223,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     .. seealso::
 
         :class:`deepinv.loss.mri.WeightedSplittingLoss`
-            K-weighted splitting loss proposed in `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_,
+            K-weighted splitting loss proposed in :footcite:t:`millard2023theoretical`,
             where this splitting mask generator is used for self-supervised learning.
 
     |sep|
