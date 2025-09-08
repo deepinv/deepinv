@@ -148,10 +148,10 @@ and rely on hand-crafted priors.
      - Learned patch-prior
      - C=1 or C=3, any H, W
 
-.. _denoiser-utils:
+.. _model-utils:
 
-Denoisers Utilities
-~~~~~~~~~~~~~~~~~~~
+Model Utilities
+~~~~~~~~~~~~~~~
 
 Equivariant denoisers
 ^^^^^^^^^^^^^^^^^^^^^
@@ -176,4 +176,3 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
-

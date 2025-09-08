@@ -8,6 +8,8 @@ from deepinv.datasets.utils import (
 )
 from deepinv.datasets.base import ImageFolder
 
+from types import MappingProxyType
+
 
 class DIV2K(ImageFolder):
     """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
@@ -55,16 +57,20 @@ class DIV2K(ImageFolder):
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
-    archive_urls = {
-        "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
-        "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
+            "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "DIV2K_train_HR": "f9de9c251af455c1021017e61713a48b",
-        "DIV2K_valid_HR": "542325e500b0a474c7ad18bae922da72",
-    }
+    _checksums = MappingProxyType(
+        {
+            "DIV2K_train_HR": "f9de9c251af455c1021017e61713a48b",
+            "DIV2K_valid_HR": "542325e500b0a474c7ad18bae922da72",
+        }
+    )
 
     def __init__(
         self,
@@ -102,7 +108,7 @@ class DIV2K(ImageFolder):
                 )
                 # download zip file from the Internet and save it locally
                 download_archive(
-                    url=self.archive_urls[zip_filename],
+                    url=self._archive_urls[zip_filename],
                     save_path=os.path.join(self.root, zip_filename),
                 )
                 # extract local zip file
@@ -145,10 +151,10 @@ class DIV2K(ImageFolder):
         if self.mode == "train":
             return (
                 calculate_md5_for_folder(self.img_dir)
-                == self.checksums["DIV2K_train_HR"]
+                == self._checksums["DIV2K_train_HR"]
             )
         else:
             return (
                 calculate_md5_for_folder(self.img_dir)
-                == self.checksums["DIV2K_valid_HR"]
+                == self._checksums["DIV2K_valid_HR"]
             )

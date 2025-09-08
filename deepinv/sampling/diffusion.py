@@ -7,6 +7,7 @@ from deepinv.models import Reconstructor
 import deepinv.physics
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
+from deepinv.utils.compat import zip_strict
 
 
 class DiffusionSampler(BaseSampling):
@@ -85,7 +86,7 @@ class DDRM(Reconstructor):
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
     :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
-        order from 1 to 0.
+        order from 1 to 0. Defaults to ``np.linspace(1, 0, 100)``, i.e., 100 equally spaced noise levels from 1 to 0.
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
@@ -120,12 +121,14 @@ class DDRM(Reconstructor):
     def __init__(
         self,
         denoiser,
-        sigmas=np.linspace(1, 0, 100),
+        sigmas=None,
         eta=0.85,
         etab=1.0,
         verbose=False,
         eps=1e-6,
     ):
+        if sigmas is None:
+            sigmas = np.linspace(1, 0, 100)
         super(DDRM, self).__init__()
         self.denoiser = denoiser
         self.sigmas = sigmas
@@ -617,7 +620,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip(reversed(seq), reversed(seq_next), strict=True))
+        time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
 
         # Initial sample from x_T
         x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
