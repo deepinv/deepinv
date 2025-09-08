@@ -1238,10 +1238,12 @@ class Trainer:
 
         if self.wandb_vis:
             import wandb
+
             wandb.finish()
 
         if self.mlflow_vis:
             import mlflow
+
             mlflow.end_run()
 
         return self.model
