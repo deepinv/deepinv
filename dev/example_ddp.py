@@ -108,14 +108,15 @@ def print_gpu_info():
 
 # Data loading setup
 
-save_dir = Path(__file__).parent / "data/urban100"
+# save_dir = Path(__file__).parent / "data/urban100"
+save_dir = "/lustre/fswork/projects/rech/fio/ulx23va/projects/deepinv_PR/data/urban100"
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
 # Define base train dataset
 dataset = dinv.datasets.Urban100HR(
-    save_dir, download=True, transform=Compose([ToTensor()])
+    save_dir, download=False, transform=Compose([ToTensor()])
 )
 
 image = dataset[0]
