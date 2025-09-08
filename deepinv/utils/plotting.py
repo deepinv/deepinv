@@ -82,6 +82,7 @@ def config_matplotlib(fontsize=17):
         try:
             original_backend = matplotlib.get_backend()
             matplotlib.use("Agg")  # switch to non-GUI synchronous backend
+            plt.close("all")
             importlib.reload(plt)
             set_checked_tex(True)  # temporary to prevent recursion
             _ = plot({r"$\mathbf{x}$": torch.rand(1, 1, 2, 2)}, show=True, close=True)
@@ -93,6 +94,7 @@ def config_matplotlib(fontsize=17):
         finally:
             set_checked_tex(False)  # revert
             matplotlib.use(original_backend)
+            plt.close("all")
             importlib.reload(plt)
 
         # If successfully finished checking, don't check again
