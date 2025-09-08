@@ -41,4 +41,3 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-
