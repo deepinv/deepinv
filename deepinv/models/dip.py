@@ -149,7 +149,7 @@ class DeepImagePrior(Reconstructor):
 
         self.loss = MCLoss()
 
-    def forward(self, y, physics, **kwargs):
+    def forward(self, y, physics, z_train=None, z_eval=None, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -161,21 +161,27 @@ class DeepImagePrior(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
+        :param torch.Tensor z_train: Input latent variable during training. If ``None``, a random vector is generated.
+        :param torch.Tensor z_eval: Input latent variable during evaluation. If ``None``, the training latent variable is used.
         """
+        if z_train is None:
+            z_train = torch.randn(self.img_size, device=y.device).unsqueeze(0)
+        if z_eval is None:
+            z_eval = z_train
+
         if self.re_init:
             for layer in self.generator.children():
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
         self.generator.requires_grad_(True)
-        z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            x = self.generator(z)
+            x = self.generator(z_train)
             error = self.loss(y=y, x_net=x, physics=physics)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
 
-        return self.generator(z)
+        return self.generator(z_eval)
