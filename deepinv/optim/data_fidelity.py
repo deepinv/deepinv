@@ -278,6 +278,32 @@ class L2(DataFidelity):
         return physics.prox_l2(x, y, self.norm * gamma)
 
 
+class ItohFidelity(L2):
+    def __init__(self, sigma=1.0):
+        super().__init__()
+
+        self.d = L2Distance(sigma=sigma)
+        self.norm = 1 / (sigma**2)
+
+    def fn(self, x, y, physics, *args, **kwargs):
+
+        Dx  = physics.D(x)
+        WDy = physics.WD(y)
+        return super().fn(Dx, WDy, physics, *args, **kwargs)
+    
+    def grad(self, x, y, physics, *args, **kwargs):
+        WDy = physics.WD(y)
+        return physics.A_vjp(x, self.d.grad(physics.D(x), WDy, *args, **kwargs))
+    
+    def grad_d(self, u, y, *args, **kwargs):
+        WDy = physics.WD(y)
+        return self.d.grad(u, WDy, *args, **kwargs)
+
+    def prox_d(self, u, y, *args, **kwargs):
+        WDy = physics.WD(y)
+        return self.d.prox(u, WDy, *args, **kwargs)
+
+        
 class IndicatorL2(DataFidelity):
     r"""
     Data-fidelity as the indicator of :math:`\ell_2` ball with radius :math:`r`.

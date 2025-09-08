@@ -52,5 +52,7 @@ from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
 
+from .spatial_unwrapping import SpatialUnwrapping
+
 from . import generator
 from . import functional
