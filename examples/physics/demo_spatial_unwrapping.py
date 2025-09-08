@@ -7,7 +7,6 @@ np.random.seed(0)
 torch.manual_seed(0)
 
 
-import matplotlib.pyplot as plt
 from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
 
 import deepinv as dinv
