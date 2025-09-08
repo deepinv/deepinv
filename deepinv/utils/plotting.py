@@ -1,6 +1,5 @@
 import os
 import shutil
-import importlib
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
@@ -78,7 +77,8 @@ def config_matplotlib(fontsize=17):
     plt.rcParams["lines.linewidth"] = 2
 
     # If plot gives TeX errors, force disable TeX globally
-    if not get_checked_tex():
+    # If no latex, then skip check
+    if not get_checked_tex() and shutil.which("latex"):
         try:
             TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
         except RuntimeError as e:
@@ -87,8 +87,8 @@ def config_matplotlib(fontsize=17):
             else:
                 raise
 
-        # If successfully finished checking, don't check again
-        set_checked_tex(True)
+    # If no errors, don't check again
+    set_checked_tex(True)
 
     if shutil.which("latex") and get_enable_tex():
         plt.rcParams["text.usetex"] = True
