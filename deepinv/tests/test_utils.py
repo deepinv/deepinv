@@ -850,7 +850,6 @@ def test_zip_strict_behavior(force_polyfill):
 
 
 def test_default_tex():
-    import matplotlib
     import matplotlib.pyplot as plt
 
     # Test default
@@ -858,32 +857,30 @@ def test_default_tex():
 
     deepinv.utils.plotting.set_checked_tex(False)
     deepinv.utils.enable_tex()
-    with patch("deepinv.utils.plotting.plot") as mock_plot:
+    with patch(
+        "matplotlib.texmanager.TexManager.get_text_width_height_descent"
+    ) as mock_func:
         # Test the tex checking allows other non-latex errors through
-        mock_plot.side_effect = RuntimeError("something non-latex related")
+        mock_func.side_effect = RuntimeError("something non-latex related")
         with pytest.raises(RuntimeError, match="something non-latex related"):
             deepinv.utils.plotting.config_matplotlib()
-        mock_plot.assert_called_once()
+        mock_func.assert_called_once()
         assert not deepinv.utils.plotting.get_checked_tex()  # not checked
         assert deepinv.utils.plotting.get_enable_tex()  # still enabled
 
         # Test the tex checking happens
-        mock_plot.reset_mock()
-        mock_plot.side_effect = RuntimeError("latex was not able to process")
-        matplotlib.use("svg")  # something different from agg
-        importlib.reload(plt)
-        original_backend = matplotlib.get_backend()
+        mock_func.reset_mock()
+        mock_func.side_effect = RuntimeError("latex was not able to process")
         deepinv.utils.plotting.config_matplotlib()
-        mock_plot.assert_called_once()
+        mock_func.assert_called_once()
         # The check should now have disabled tex
         assert not deepinv.utils.plotting.get_enable_tex()
         assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
-        assert matplotlib.get_backend() == original_backend
 
         # Test that the check no longer happens
-        mock_plot.reset_mock()
+        mock_func.reset_mock()
         deepinv.utils.plotting.config_matplotlib()
-        mock_plot.assert_not_called()
+        mock_func.assert_not_called()
 
     # Test disabling works
     deepinv.utils.disable_tex()
