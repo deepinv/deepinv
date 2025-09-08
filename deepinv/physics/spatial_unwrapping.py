@@ -95,36 +95,49 @@ class SpatialUnwrapping(Physics):
         _, vjpfunc = torch.func.vjp(self.D, x)
         return vjpfunc(v)[0]
 
-    def prox_l2(self, x, y, norm):
+    def prox_l2(self, z, y, rho):
+        r"""
+        Compute the proximal operator of the :class:`deepinv.optim.ItohFidelity` term 
+        using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
 
-        rho = self.A_adjoint(y)
+        .. math::
+            \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
+            \frac{\texttt{DCT}(D^{\top}W_t(Dy) + \frac{\rho}{2} z)_{i,j}}
+            { \frac{\rho}{2} + 4 - (2\cos(\pi i / M) + 2\cos(\pi j / N))}
+            \right)
 
-        if x is not None:
-            rho = rho + (norm / 2) * x
+        where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
+        """
 
-        NX, MX = rho.shape[-1], rho.shape[-2]
+
+        psi = self.A_adjoint(y)
+
+        if z is not None:
+            psi = psi + (rho / 2) * z
+
+        NX, MX = psi.shape[-1], psi.shape[-2]
         I, J = torch.meshgrid(torch.arange(0, MX), torch.arange(0, NX), indexing="ij")
-        I, J = I.to(rho.device), J.to(rho.device)
+        I, J = I.to(psi.device), J.to(psi.device)
 
         I, J = I.unsqueeze(0).unsqueeze(0), J.unsqueeze(0).unsqueeze(0)
 
-        if x is None:
+        if z is None:
             denom = 2 * (
                 2 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
             )
         else:
             denom = 2 * (
-                (norm / 4)
+                (rho / 4)
                 + 2
                 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
             )
 
-        dct_rho = dct.dct_2d(rho, norm="ortho")
+        dct_psi = dct.dct_2d(psi, norm="ortho")
 
-        denom = denom.to(rho.device)
+        denom = denom.to(psi.device)
         denom[..., 0, 0] = 1  # avoid division by zero
 
-        dct_phi = dct_rho / denom
+        dct_phi = dct_psi / denom
 
         phi = dct.idct_2d(dct_phi, norm="ortho")
 
