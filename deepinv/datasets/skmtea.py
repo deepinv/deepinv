@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 import torch
 import torch.nn.functional as F
-from deepinv.datasets.fastmri import FastMRISliceDataset
+from deepinv.datasets.mri.fastmri import FastMRISliceDataset
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils.compat import zip_strict
 
