@@ -5,13 +5,6 @@ import numpy as np
 from tqdm import tqdm
 import torch
 
-try:
-    import wandb
-except ImportError:  # pragma: no cover
-    wandb = ImportError(
-        "The wandb package is not installed. Please install it with `pip install wandb`."
-    )  # pragma: no cover
-
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
@@ -260,7 +253,6 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
@@ -310,6 +302,8 @@ class Trainer:
         self.conv_metrics = None
         # wandb initialization
         if self.wandb_vis:
+            import wandb
+
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
@@ -439,6 +433,8 @@ class Trainer:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
+            import wandb
+
             wandb.log(logs, step=step)
 
     def check_clip_grad(self):
@@ -899,6 +895,8 @@ class Trainer:
             )
 
             if self.wandb_vis:
+                import wandb
+
                 log_dict_post_epoch = {}
                 images = wandb.Image(
                     grid_image,
@@ -953,6 +951,8 @@ class Trainer:
         }
         state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
+            import wandb
+
             state["wandb_id"] = wandb.run.id
 
         torch.save(
@@ -1068,7 +1068,6 @@ class Trainer:
 
         :returns: The trained model.
         """
-
         self.setup_train()
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
@@ -1189,6 +1188,8 @@ class Trainer:
                 break
 
         if self.wandb_vis:
+            import wandb
+
             wandb.save("model.h5")
             wandb.finish()
 
