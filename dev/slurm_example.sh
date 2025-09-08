@@ -15,8 +15,10 @@ LOGDIR="$WORK/logs"
 mkdir -p "$LOGDIR"
 
 # Redirect output to log files
-exec >"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
-     2>"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err"
+# exec >"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
+#      2>"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err"
+
+python -c "print('hello')"
 
 echo "SLURM Job Information:"
 echo "  Job ID: $SLURM_JOB_ID"
