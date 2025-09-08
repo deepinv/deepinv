@@ -277,6 +277,7 @@ def _create_astra_link(data: torch.Tensor) -> object:
     """
     import astra
 
+    assert data.device.type == "cuda", "Data must be on a CUDA device"
     assert data.is_contiguous(), "Data must be contiguous"
     assert data.dtype == torch.float32, "Data must be of type float32"
     assert len(data.shape) == 3, "Data must be 3D"
