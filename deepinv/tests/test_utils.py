@@ -847,6 +847,7 @@ def test_zip_strict_behavior(force_polyfill):
         list(zip_strict(force_polyfill=force_polyfill)) == []
     ), "Empty input should yield empty output."
 
+
 def test_default_tex():
     assert deepinv.utils.plotting.get_enable_tex()
 
