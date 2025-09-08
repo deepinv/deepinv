@@ -20,8 +20,6 @@ import io
 import copy
 import math
 import sys
-import matplotlib
-import matplotlib.pyplot as plt
 import importlib
 
 # NOTE: It's used as a fixture.
@@ -852,6 +850,9 @@ def test_zip_strict_behavior(force_polyfill):
 
 
 def test_default_tex():
+    import matplotlib
+    import matplotlib.pyplot as plt
+
     # Test default
     assert deepinv.utils.plotting.get_enable_tex()
 
