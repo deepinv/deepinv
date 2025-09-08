@@ -92,8 +92,8 @@ class SpatialUnwrapping(Physics):
         return rho
 
     def A_vjp(self, x, v):
-        _, vjpfunc = torch.func.vjp(self.D, x)
-        return vjpfunc(v)[0]
+        _, vjpfunc = torch.func.vjp(self.D, v)
+        return vjpfunc
 
     def prox_l2(self, z, y, rho):
         r"""
