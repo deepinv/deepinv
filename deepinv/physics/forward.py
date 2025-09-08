@@ -10,7 +10,7 @@ from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
-from deepinv.optim.utils import least_squares, lsqr
+from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
 
 
@@ -355,6 +355,7 @@ class LinearPhysics(Physics):
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the least squares solver using :func:`deepinv.optim.utils.least_squares_implicit_backward`. This can reduce memory consumption significantly, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory intensive. Default is `True`.
 
     |sep|
 
@@ -417,6 +418,7 @@ class LinearPhysics(Physics):
         max_iter=50,
         tol=1e-4,
         solver="lsqr",
+        implicit_backward_solver: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -430,6 +432,7 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
         self.img_size = img_size
+        self.implicit_backward_solver = implicit_backward_solver
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -643,22 +646,37 @@ class LinearPhysics(Physics):
         if solver is not None:
             self.solver = solver
 
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            solver=solver,
-            gamma=gamma,
-            verbose=verbose,
-            init=z,
-            z=z,
-            parallel_dim=[0],
-            ATA=self.A_adjoint_A,
-            AAT=self.A_A_adjoint,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                init=z,
+                z=z,
+                parallel_dim=[0],
+                ATA=self.A_adjoint_A,
+                AAT=self.A_A_adjoint,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z,
+                init=z,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                parallel_dim=[0],
+                **kwargs,
+            )
 
     def A_dagger(
         self, y, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
@@ -680,19 +698,32 @@ class LinearPhysics(Physics):
         if solver is not None:
             self.solver = solver
 
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            parallel_dim=[0],
-            AAT=self.A_A_adjoint,
-            verbose=verbose,
-            ATA=self.A_adjoint_A,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            solver=self.solver,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                parallel_dim=[0],
+                AAT=self.A_A_adjoint,
+                verbose=verbose,
+                ATA=self.A_adjoint_A,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                init=None,
+                parallel_dim=[0],
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
 
 
 class ComposedPhysics(Physics):

@@ -1,10 +1,17 @@
 from deepinv.utils import zeros_like
 import torch
+from torch import Tensor
+from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -71,6 +78,7 @@ def least_squares(
     :param Callable AT: Adjoint operator :math:`A^{\top}` as a callable function.
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
+    :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
     :param None, float gamma: (Optional) inverse regularization parameter.
     :param str solver: solver to be used.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
@@ -87,7 +95,7 @@ def least_squares(
 
     if solver == "lsqr":  # rectangular solver
 
-        if gamma is not None:
+        if gamma is not None and gamma > 0:  # prevent division by zero
             eta = 1 / gamma
         else:
             eta = 0
@@ -118,7 +126,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if gamma is not None:
+            if gamma is not None and gamma > 0:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -767,6 +775,193 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
         if check_conv(x_prev, x, i, thres_conv=tol):
             break
     return x
+
+
+class LeastSquaresSolver(torch.autograd.Function):
+    r"""
+    Custom autograd function for the least squares solver to enable O(1) memory backward propagation using implicit differentiation.
+
+    The forward pass solves the following problem using :func:`deepinv.optim.utils.least_squares`:
+    .. math::
+
+        \min_x \|A_\theta x - y \|^2 + \frac{1}{\gamma} \|x - z\|^2
+
+    where :math:`A_\theta` is a linear operator :class:`deepinv.physics.LinearPhysics` parameterized by :math:`\theta`.
+
+    .. note::
+        This function uses a `least_squares` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.utils.least_squares` for more details).
+
+    The backward pass computes the gradients with respect to the inputs using implicit differentiation.
+    """
+
+    # NOTE: the physics parameters are handled as side-effects (not inputs/outputs of the autograd function)
+    # we add a dummy input tensor `trigger` to trigger backward when needed (i.e. when physics parameters require grad)
+    @staticmethod
+    def forward(
+        ctx,
+        physics: "LinearPhysics",
+        y: Tensor,
+        z: Tensor,
+        init: Tensor,
+        gamma: float,
+        trigger: Tensor = None,
+        extra_kwargs: dict = None,
+    ):
+
+        kwargs = extra_kwargs if extra_kwargs is not None else {}
+        with torch.no_grad():
+            solution = least_squares(
+                A=physics.A,
+                AT=physics.A_adjoint,
+                y=y,
+                z=z,
+                init=init,
+                gamma=gamma,
+                AAT=physics.A_A_adjoint,
+                ATA=physics.A_adjoint_A,
+                **kwargs,
+            )
+        # Save tensors only
+        gamma = torch.as_tensor(gamma, dtype=y.dtype, device=y.device)
+        ctx.save_for_backward(solution, y, z, gamma)
+        # Save other non-tensor contexts
+        ctx.physics = physics
+        ctx.kwargs = kwargs
+        return solution
+
+    @staticmethod
+    @once_differentiable
+    def backward(ctx, grad_output: Tensor) -> tuple[Tensor, ...]:
+        h, y, z, gamma = ctx.saved_tensors
+        physics = ctx.physics
+
+        # Solve (A^T A + I/gamma) mv = grad_output
+        with torch.no_grad():
+            mv = least_squares(
+                A=physics.A,
+                AT=physics.A_adjoint,
+                y=torch.zeros_like(y),
+                z=grad_output * gamma,
+                gamma=gamma,
+                AAT=physics.A_A_adjoint,
+                ATA=physics.A_adjoint_A,
+                **ctx.kwargs,
+            )
+
+        # Build grads aligned with inputs: (physics, y, z, gamma, solver, max_iter, tol, ..., **kwargs)
+        needs = ctx.needs_input_grad
+        grads = [None] * len(needs)
+
+        # dL/dy = A mv
+        if needs[1]:
+            grads[1] = physics.A(mv)
+
+        # dL/dz = (1/gamma) mv
+        if needs[2]:
+            grads[2] = mv / gamma
+
+        # dL/dgamma = <mv, h - z> / gamma^2
+        if needs[4]:
+            diff = h - z
+            # vdot gives correct conjugation for complex; .real keeps real scalar
+            grads[4] = torch.vdot(mv.flatten(), diff.flatten()).real / (gamma**2)
+
+        # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
+        params = [
+            p for p in getattr(physics, "buffers", lambda: [])() if p.requires_grad
+        ]
+        if params:
+            # pseudo-loss = - <mv, A^T (A h - y)>
+            h_det = h.detach()
+            y_det = y.detach()
+            with torch.enable_grad():
+                pseudo = -torch.vdot(
+                    mv.flatten(), physics.A_adjoint(physics.A(h_det) - y_det).flatten()
+                ).real
+            g_params = torch.autograd.grad(
+                pseudo, params, retain_graph=False, allow_unused=True
+            )
+            for p, g in zip(params, g_params):
+                if g is not None:
+                    if p.grad is None:
+                        p.grad = g.detach()
+                    else:
+                        p.grad = p.grad + g.detach()
+
+        return tuple(grads)
+
+
+# wrapper of the autograd function for easier use
+def least_squares_implicit_backward(
+    physics: "LinearPhysics",
+    y: Tensor,
+    z: Tensor = None,
+    init: Tensor = None,
+    gamma: float = None,
+    **kwargs,
+) -> Tensor:
+    r"""
+    Least squares solver with O(1) memory backward propagation using implicit differentiation.
+    The functions is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. See :func:`deepinv.optim.utils.least_squares` for more details about the problem solved in the forward pass.
+
+    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See the notes below for more details.
+
+    .. note::
+
+        This function only supports first-order gradients. Higher-order gradients are not supported. If you need higher-order gradients, please use :func:`deepinv.optim.utils.least_squares` instead but be aware that it requires storing all intermediate iterates, which can be memory-intensive.
+
+    .. note::
+
+        This function also supports implicit gradients with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. This is useful for learning the physics parameters in an end-to-end fashion. The gradients are accumulated in-place in the `.grad` attribute of the parameters of the physics operator. To make this work, the function takes as input the physics operator itself (not just its matmul functions) and checks if any of its parameters require gradients. If so, it triggers the backward pass accordingly.
+
+    .. warning::
+
+        Implicit gradients can be incorrect if the least squares solver does not converge sufficiently. Make sure to set the `max_iter` and `tol` parameters of the least squares solver appropriately to ensure convergence. You can monitor the convergence by setting `verbose=True` in the least squares solver via `kwargs`. If the solver does not converge, the implicit gradients can be very inaccurate and lead to divergence of the training.
+
+    .. tip::
+
+        If you do not need gradients with respect to the physics parameters, you can set `requires_grad=False` for all parameters of the physics operator to avoid the additional backward pass. This can save some computation time.
+
+    .. tip::
+
+        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations.
+        TODO: link to example notebook when available.
+
+    :param deepinv.physics.LinearPhysics: physics operator :class:`deepinv.physics.LinearPhysics`.
+    :param torch.Tensor y: input tensor of shape (B, ...)
+    :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
+    :param Optional[torch.Tensor] init: Optional initial guess. Default is `None`, which corresponds to a zero initialization.
+    :param Optional[float, torch.Tensor] gamma: regularization parameter :math:`\gamma > 0`. Default is `None`.
+    :param kwargs: additional arguments to be passed to the least squares solver.
+
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
+    """
+
+    if z is None:
+        # To get correct shape
+        z = torch.zeros_like(physics.A_adjoint(y))
+    if init is None:
+        init = torch.zeros_like(z)
+
+    physics_requires_grad_params = any(
+        p.requires_grad for p in getattr(physics, "buffers", lambda: [])()
+    )
+    trigger_backward = (
+        y.requires_grad
+        or z.requires_grad
+        or (isinstance(gamma, Tensor) and gamma.requires_grad)
+        or physics_requires_grad_params
+    )
+    if trigger_backward:
+        trigger = torch.ones(1, device=y.device, dtype=y.dtype).requires_grad_(
+            True
+        )  # Dummy tensor to trigger backward
+    else:
+        trigger = torch.ones(1, device=y.device, dtype=y.dtype)
+    extra_kwargs = kwargs if kwargs else None
+    return LeastSquaresSolver.apply(
+        physics, y, z, init, gamma, trigger, extra_kwargs
+    )
 
 
 class GaussianMixtureModel(nn.Module):
