@@ -67,7 +67,7 @@ class SpatialUnwrapping(Physics):
     def D(self, x):
         Dh_x, Dv_x = self.finite_differences(x)
         out = torch.stack((Dh_x, Dv_x), dim=-1)
-        return - out
+        return -out
 
     def WD(self, x):
         Dx = self.D(x)
@@ -79,7 +79,6 @@ class SpatialUnwrapping(Physics):
         return phi
 
     def A_adjoint(self, y):
-        
 
         out = self.WD(y)
         out = self.A_transpose(out)
@@ -90,7 +89,6 @@ class SpatialUnwrapping(Physics):
 
         tmp = torch.zeros_like(y)[..., 0]
         return self.A_vjp(tmp, y)
-
 
     def A_vjp(self, x, v):
         _, vjpfunc = torch.func.vjp(self.D, x)
