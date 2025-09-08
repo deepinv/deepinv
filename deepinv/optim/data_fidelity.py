@@ -10,6 +10,7 @@ from deepinv.optim.distance import (
 )
 from deepinv.optim.potential import Potential
 
+
 class DataFidelity(Potential):
     r"""
     Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
@@ -276,7 +277,6 @@ class L2(DataFidelity):
         return physics.prox_l2(x, y, self.norm * gamma)
 
 
-
 class ItohFidelity(L2):
     r"""
     Itoh data-fidelity term for spatial unwrapping problems.
@@ -309,6 +309,7 @@ class ItohFidelity(L2):
         >>> print(f)
 
     """
+
     def __init__(self, sigma=1.0):
         super().__init__()
 
@@ -318,16 +319,18 @@ class ItohFidelity(L2):
     def fn(self, x, y, physics, *args, **kwargs):
         # add warning for spatial unwrapping
         if physics.__class__.__name__ != "SpatialUnwrapping":
-            print("Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics.")
+            print(
+                "Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics."
+            )
 
-        Dx  = physics.D(x)
+        Dx = physics.D(x)
         WDy = physics.WD(y)
         return super().fn(Dx, WDy, physics, *args, **kwargs)
-    
+
     def grad(self, x, y, physics, *args, **kwargs):
         WDy = physics.WD(y)
         return physics.A_vjp(x, self.d.grad(physics.D(x), WDy, *args, **kwargs))
-    
+
     def grad_d(self, u, y, *args, **kwargs):
         WDy = physics.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
@@ -336,7 +339,7 @@ class ItohFidelity(L2):
         WDy = physics.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
 
-        
+
 class IndicatorL2(DataFidelity):
     r"""
     Data-fidelity as the indicator of :math:`\ell_2` ball with radius :math:`r`.
