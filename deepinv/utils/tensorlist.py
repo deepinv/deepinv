@@ -1,5 +1,6 @@
 import torch
 import warnings
+from deepinv.utils.compat import zip_strict
 
 
 class TensorList:
@@ -136,9 +137,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi + other for xi in self.x])
         else:
-            return TensorList(
-                [xi + otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi + otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __mul__(self, other):
         r"""
@@ -149,9 +148,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList(
-                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __rmul__(self, other):
         r"""
@@ -162,9 +159,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList(
-                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __truediv__(self, other):
         r"""
@@ -175,9 +170,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi / other for xi in self.x])
         else:
-            return TensorList(
-                [xi / otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi / otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __neg__(self):
         r"""
@@ -195,9 +188,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi - other for xi in self.x])
         else:
-            return TensorList(
-                [xi - otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi - otheri for xi, otheri in zip_strict(self.x, other)])
 
     def conj(self):
         r"""

@@ -6,12 +6,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import einops
-
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
+from typing import Sequence  # noqa: F401
 
 
 class RAM(Reconstructor, Denoiser):
@@ -34,7 +33,7 @@ class RAM(Reconstructor, Denoiser):
         The physics operator should be normalized (i.e. have unit norm) for best results.
         Use :func:`physics.compute_norm() <deepinv.physics.LinearPhysics.compute_norm>` to check this.
 
-    :param list in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
+    :param Sequence in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
     :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
@@ -42,7 +41,7 @@ class RAM(Reconstructor, Denoiser):
 
     def __init__(
         self,
-        in_channels=[1, 2, 3],
+        in_channels=(1, 2, 3),
         device=None,
         pretrained=True,
     ):
@@ -53,6 +52,9 @@ class RAM(Reconstructor, Denoiser):
         self.fact_realign = torch.nn.Parameter(torch.tensor([1.0], device=device))
 
         self.separate_head = isinstance(in_channels, list)
+
+        if isinstance(in_channels, tuple):
+            in_channels = list(in_channels)
 
         if isinstance(in_channels, list):
             in_channels_first = []
@@ -120,6 +122,7 @@ class RAM(Reconstructor, Denoiser):
         :param torch.Tensor x: input tensor
         :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value in the batch.
         """
+        import einops
 
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:

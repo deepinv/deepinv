@@ -66,7 +66,20 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 
 @pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
-def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
+@pytest.mark.parametrize("and_acc", [False, True])
+@pytest.mark.parametrize("jac_free", [False, True])
+@pytest.mark.parametrize("default_params_algo", [False, True])
+@pytest.mark.parametrize("default_data_fidelity", [False, True])
+def test_DEQ(
+    unfolded_algo,
+    imsize,
+    dummy_dataset,
+    device,
+    and_acc,
+    jac_free,
+    default_params_algo,
+    default_data_fidelity,
+):
     pytest.importorskip("ptwt")
     torch.set_grad_enabled(
         True
@@ -109,53 +122,56 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     ]  # define which parameters from 'params_algo' are trainable
 
     # Define the unfolded trainable model.
-    for and_acc in [False, True]:
-        for jac_free in [False, True]:
-            # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
+    # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
-            model = DEQ_builder(
-                unfolded_algo,
-                params_algo=params_algo,
-                trainable_params=trainable_params,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                prior=prior,
-                anderson_acceleration=and_acc,
-                anderson_acceleration_backward=and_acc,
-                jacobian_free=jac_free,
-            )
-            model.to(device)
+    kwargs = {}
 
-            for idx, (name, param) in enumerate(model.named_parameters()):
-                assert param.requires_grad
-                assert (trainable_params[0] in name) or (trainable_params[1] in name)
+    if not default_params_algo:
+        kwargs["params_algo"] = params_algo
 
-            # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
-            batch_size = 5
-            n_channels, img_size_w, img_size_h = imsize
-            noise_level = 0.01
+    if not default_data_fidelity:
+        kwargs["data_fidelity"] = data_fidelity
 
-            torch.manual_seed(0)
-            test_sample = torch.randn(
-                batch_size, n_channels, img_size_w, img_size_h
-            ).to(device)
-            groundtruth_sample = torch.randn(
-                batch_size, n_channels, img_size_w, img_size_h
-            ).to(device)
+    model = DEQ_builder(
+        unfolded_algo,
+        trainable_params=trainable_params,
+        max_iter=max_iter,
+        prior=prior,
+        anderson_acceleration=and_acc,
+        anderson_acceleration_backward=and_acc,
+        jacobian_free=jac_free,
+        **kwargs,
+    )
+    model.to(device)
 
-            physics = dinv.physics.BlurFFT(
-                img_size=(n_channels, img_size_w, img_size_h),
-                filter=dinv.physics.blur.gaussian_blur(),
-                device=device,
-                noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
-            )
+    for idx, (name, param) in enumerate(model.named_parameters()):
+        assert param.requires_grad
+        assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
-            y = physics(test_sample).type(test_sample.dtype).to(device)
+    # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+    batch_size = 5
+    n_channels, img_size_w, img_size_h = imsize
+    noise_level = 0.01
 
-            out = model(y, physics=physics)
+    torch.manual_seed(0)
+    test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
+    groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
+        device
+    )
 
-            assert out.shape == test_sample.shape
+    physics = dinv.physics.BlurFFT(
+        img_size=(n_channels, img_size_w, img_size_h),
+        filter=dinv.physics.blur.gaussian_blur(),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+    )
 
-            loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
-            loss = loss_fn(groundtruth_sample, out)
-            loss.backward()
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    out = model(y, physics=physics)
+
+    assert out.shape == test_sample.shape
+
+    loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
+    loss = loss_fn(groundtruth_sample, out)
+    loss.backward()

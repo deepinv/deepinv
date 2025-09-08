@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.utils.mixins import MRIMixin
+from deepinv.utils.compat import zip_strict
 
 from natsort import natsorted
 
@@ -129,7 +130,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip(x_shape, shape, strict=True)
+            for current, desired in zip_strict(x_shape, shape)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.

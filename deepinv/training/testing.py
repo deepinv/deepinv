@@ -6,7 +6,7 @@ def test(
     model,
     test_dataloader,
     physics,
-    metrics=PSNR(),
+    metrics=None,
     online_measurements=False,
     physics_generator=None,
     device="cpu",
@@ -33,7 +33,7 @@ def test(
         See :ref:`datasets <datasets>` for more details.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at test time.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model. Defaults to :class:`deepinv.loss.metric.PSNR`.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``.
@@ -55,6 +55,8 @@ def test(
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
+    if metrics is None:
+        metrics = PSNR()
     trainer = Trainer(
         model,
         physics=physics,

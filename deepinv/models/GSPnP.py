@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from typing import Union
+from typing import Union, Sequence  # noqa: F401
 from .utils import get_weights_url
 from .base import Denoiser
 
@@ -85,7 +85,7 @@ def GSDRUNet(
     in_channels=3,
     out_channels=3,
     nb=2,
-    nc=[64, 128, 256, 512],
+    nc=(64, 128, 256, 512),
     act_mode="E",
     pretrained=None,
     device=torch.device("cpu"),
@@ -99,7 +99,7 @@ def GSDRUNet(
     :param int in_channels: Number of input channels
     :param int out_channels: Number of output channels
     :param int nb: Number of blocks in the DRUNet
-    :param list[int,int,int,int] nc: number of channels per convolutional layer in the DRUNet. The network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
+    :param Sequence[int,int,int,int] nc: number of channels per convolutional layer in the DRUNet. The network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
     :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.

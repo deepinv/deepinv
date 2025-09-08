@@ -1,4 +1,5 @@
 from typing import Union, Callable
+from types import MappingProxyType
 from pathlib import Path
 import os
 
@@ -16,6 +17,7 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.compat import zip_strict
 from deepinv.datasets.base import ImageDataset
 
 
@@ -71,14 +73,16 @@ class NBUDataset(ImageDataset):
 
     """
 
-    satellites = {
-        "ikonos": "cf6fdb64ca5fbbf7050b8e27b2f9399d",
-        "gaofen-1": "ea1525b7bd5342f0177d898e3c44bb51",
-        "quickbird": "47163aec0a0be2c98ee267166d8aa5d3",
-        "worldview-2": "11310cee5a8dd5ee0dc3b79b6b3c3203",
-        "worldview-3": "85e5f7027fb7bde8592284b060fe145e",
-        "worldview-4": "3a3ade874e0095978648132501edfc01",
-    }
+    _satellites = MappingProxyType(
+        {
+            "ikonos": "cf6fdb64ca5fbbf7050b8e27b2f9399d",
+            "gaofen-1": "ea1525b7bd5342f0177d898e3c44bb51",
+            "quickbird": "47163aec0a0be2c98ee267166d8aa5d3",
+            "worldview-2": "11310cee5a8dd5ee0dc3b79b6b3c3203",
+            "worldview-3": "85e5f7027fb7bde8592284b060fe145e",
+            "worldview-4": "3a3ade874e0095978648132501edfc01",
+        }
+    )
 
     def __init__(
         self,
@@ -89,7 +93,7 @@ class NBUDataset(ImageDataset):
         transform_pan: Callable = None,
         download: bool = False,
     ):
-        if satellite not in self.satellites:
+        if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
@@ -121,7 +125,7 @@ class NBUDataset(ImageDataset):
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
+        self.image_paths = list(zip_strict(self.ms_paths, self.pan_paths))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
@@ -140,7 +144,7 @@ class NBUDataset(ImageDataset):
             os.path.isdir(self.data_dir)
             and len(list(self.data_dir.glob("MS_256/*.mat"))) > 0
             and calculate_md5_for_folder(str(self.data_dir / "MS_256"))
-            == self.satellites[self.data_dir.stem]
+            == self._satellites[self.data_dir.stem]
         )
 
     def __len__(self):
