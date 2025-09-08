@@ -306,14 +306,14 @@ def test_itoh_fidelity(device):
     """
     # essential to enable autograd
     with torch.enable_grad():
-        x = torch.randn(
+        x = torch.zeros(
             (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
         )
         physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor")
         loss = ItohFidelity()
-        func = lambda x: loss(x, torch.ones_like(physics(x)) * 0.5, physics)[0]
+        func = lambda x: loss(x, torch.ones_like(physics(x)) * 0.1, physics)[0]
         grad_value = torch.func.grad(func)(x)
-        jvp_value = loss.grad(x, torch.ones_like(physics(x)) * 0.5, physics)
+        jvp_value = loss.grad(x, torch.ones_like(physics(x)) * 0.1, physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 

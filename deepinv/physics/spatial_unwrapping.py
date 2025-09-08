@@ -60,14 +60,14 @@ class SpatialUnwrapping(Physics):
 
     def finite_differences(self, x):
         # apply spatial finite differences
-        Dh_x = F.pad(torch.diff(x, 1, dim=-1), (1, 0))
-        Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 1, 0))
+        Dh_x = F.pad(torch.diff(x, 1, dim=-1), (0, 1))
+        Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
         return Dh_x, Dv_x
 
     def D(self, x):
         Dh_x, Dv_x = self.finite_differences(x)
         out = torch.stack((Dh_x, Dv_x), dim=-1)
-        return out
+        return - out
 
     def WD(self, x):
         Dx = self.D(x)
@@ -79,21 +79,22 @@ class SpatialUnwrapping(Physics):
         return phi
 
     def A_adjoint(self, y):
+        
 
-        Dh_y, Dv_y = self.finite_differences(y)
-        Dh_y = modulo_round(Dh_y, self.threshold)
-        Dv_y = modulo_round(Dv_y, self.threshold)
+        out = self.WD(y)
+        out = self.A_transpose(out)
 
-        rho = -(
-            torch.diff(F.pad(Dh_y, (0, 1)), 1, dim=-1)
-            + torch.diff(F.pad(Dv_y, (0, 0, 0, 1)), 1, dim=-2)
-        )
+        return out
 
-        return rho
+    def A_transpose(self, y):
+
+        tmp = torch.zeros_like(y)[..., 0]
+        return self.A_vjp(tmp, y)
+
 
     def A_vjp(self, x, v):
-        _, vjpfunc = torch.func.vjp(self.D, v)
-        return vjpfunc
+        _, vjpfunc = torch.func.vjp(self.D, x)
+        return vjpfunc(v)[0]
 
     def prox_l2(self, z, y, rho):
         r"""
