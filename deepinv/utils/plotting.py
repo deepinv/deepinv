@@ -24,6 +24,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PIL import Image
 
 _DEFAULT_PLOT_FONTSIZE = 17
+_ENABLE_TEX = True
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -37,6 +38,23 @@ def get_default_plot_fontsize() -> int:
     return _DEFAULT_PLOT_FONTSIZE
 
 
+def disable_tex():
+    """Globally disable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = False
+
+
+def enable_tex():
+    """Globally enable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = True
+
+
+def get_enable_tex() -> bool:
+    """Get whether LaTeX is globally enabled"""
+    return _ENABLE_TEX
+
+
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     if fontsize is None:
@@ -46,10 +64,14 @@ def config_matplotlib(fontsize=17):
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
-    plt.rcParams["text.latex.preamble"] = (
-        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
-    )
+
+    if shutil.which("latex") and get_enable_tex():
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["text.latex.preamble"] = (
+            r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
+        )
+    else:
+        plt.rcParams["text.usetex"] = False
 
 
 def resize_pad_square_tensor(tensor, size):

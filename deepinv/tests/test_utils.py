@@ -797,3 +797,23 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
 
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
+
+
+def test_default_tex():
+    assert deepinv.utils.plotting.get_enable_tex()
+
+    deepinv.utils.disable_tex()
+
+    assert not deepinv.utils.plotting.get_enable_tex()
+
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+
+    assert not deepinv.utils.plotting.get_enable_tex()
+
+    deepinv.utils.enable_tex()
+
+    assert deepinv.utils.plotting.get_enable_tex()
+
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+
+    assert deepinv.utils.plotting.get_enable_tex()
