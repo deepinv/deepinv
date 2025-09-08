@@ -78,13 +78,17 @@ def config_matplotlib(fontsize=17):
     # If plot gives TeX errors, force disable TeX globally
     if not get_checked_tex():
         try:
+            set_checked_tex(True)  # temporary to prevent recursion
             _ = plot({r"$\mathbf{x}$": torch.rand(1, 1, 2, 2)}, show=True, close=True)
         except RuntimeError as e:
             if "latex was not able to process" in str(e).lower():
                 disable_tex()
             else:
                 raise
+        finally:
+            set_checked_tex(False)  # revert
 
+        # If successfully finished checking, don't check again
         set_checked_tex(True)
 
     if shutil.which("latex") and get_enable_tex():
