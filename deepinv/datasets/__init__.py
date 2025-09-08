@@ -19,4 +19,4 @@ from .kohler import Kohler
 from .utils import download_archive
 from .satellite import NBUDataset
 from .base import ImageDataset, check_dataset, TensorDataset, ImageFolder
-from .skmtea import SKMTEASliceDataset
+from .mri.skmtea import SKMTEASliceDataset
