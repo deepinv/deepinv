@@ -1233,10 +1233,9 @@ class Trainer:
                 break
 
         if self.wandb_vis:
-            wandb.save("model.h5")
             wandb.finish()
+
         if self.mlflow_vis:
-            mlflow.log_artifact("model.h5")
             mlflow.end_run()
 
         return self.model
