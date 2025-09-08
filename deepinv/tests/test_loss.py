@@ -678,19 +678,33 @@ def test_stacked_loss(device, imsize):
 
     assert loss_value > 0
 
-
-def test_reducedresolution_shapes(device):
+@pytest.mark.parametrize("physics_name", ["downsampling", "downsamplingmatlab", "blur", "blurfft"])
+def test_reducedresolution_shapes(physics_name, device):
+    metric = dinv.metric.PSNR()
     loss = dinv.loss.ReducedResolutionLoss()
     model = dinv.models.ArtifactRemoval(DummyModel(), device=device)
     model = loss.adapt_model(model)
-    x = torch.rand(1, 1, 8, 8, device=device)
-    physics = dinv.physics.Downsampling(filter=None, factor=2, device=device)
-    y = physics(x)
+    x = torch.rand(1, 1, 16, 16, device=device)
+    
+    if physics_name == "downsampling":
+        physics = dinv.physics.Downsampling(filter=None, factor=2, device=device)
+    elif physics_name == "downsamplingmatlab":
+        physics = dinv.physics.DownsamplingMatlab(factor=2, device=device)
+    elif physics_name == "blur":
+        physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(0.4), device=device)
+    elif physics_name == "blurfft":
+        physics = dinv.physics.BlurFFT(x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device)
+    else:
+        raise ValueError()
+
+    y = physics(x)    
 
     model.eval()
-    x_hat_eval = model(y, physics)
+    x_hat_eval = model(y, physics) # just asjoint
     assert x_hat_eval.shape == x.shape
+    assert metric(x_hat_eval, x) < 50
 
     model.train()
     x_hat_train = model(y, physics)
     assert x_hat_train.shape == y.shape
+    assert metric(x_hat_train, y) < 50
