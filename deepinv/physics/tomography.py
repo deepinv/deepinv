@@ -548,9 +548,6 @@ class TomographyWithAstra(LinearPhysics):
         """
         import astra
 
-        # NOTE: This import is used by its side effects.
-        from astra import experimental  # noqa: F401
-
         sinogram_scaled = torch.clone(sinogram)
         is_3d = len(sinogram.shape) == 5
 
