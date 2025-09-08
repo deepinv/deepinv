@@ -8,14 +8,15 @@ It shows how to generate a wrapped phase image, apply blur and noise, and recons
 Sections:
     1. Imports and setup
     2. Load image and preprocess
-    3. Apply blur based on low bandwidth assumption of phase map
-    4. Wrap phase and add noise using SpatialUnwrapping
+    3. Apply blur
+    4. Wrap phase and add noise
     5. Invert with DCT and ADMM (ItohFidelity)
     6. Visualize results
 """
 
 # %%
-# 1. Imports and setup
+# Imports and setup
+# ------------------------------------
 import numpy as np
 import torch
 from deepinv.utils.plotting import plot
@@ -35,7 +36,9 @@ def channel_norm(x):
 
 
 # %%
-# 2. Load image and preprocess
+# Load image and preprocess
+# ------------------------------------
+# Load example image from deepinv and preprocess
 size = 256
 dr = 2  # dynamic range
 dtype = torch.float32
@@ -57,21 +60,29 @@ if mode == "round":
     x_rgb = x_rgb - dr / 2
 
 # %%
-# 3. Apply blur based on low bandwidth assumption of phase map
+# Apply blur
+# ------------------------------------
+# We apply a slight Gaussian blur to the image to simulate the low bandwidth assumption of the phase map.
 filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 
 
 # %%
-# 4. Add Gaussian noise and wrap phase
+# Add Gaussian noise and wrap phase
+# ------------------------------------
+# Include Gaussian noise and wrap phase using SpatialUnwrapping physics
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 physics = SpatialUnwrapping(threshold=1.0, mode=mode, noise_model=noise_model)
 phase_map = x_rgb
 wrapped_phase = physics(phase_map)
 
 # %%
-# 5. Invert with DCT and ADMM (ItohFidelity)
+# Invert with DCT and ADMM (ItohFidelity)
+# ------------------------------------
+# We provide two inversion methods: a simple DCT-based inversion and an ADMM-based inversion using the Itoh fidelity term and TV prior.
+
+
 # DCT-based inversion
 x_est = physics.A_dagger(wrapped_phase)
 
@@ -93,7 +104,8 @@ x_model = model(wrapped_phase, physics, compute_metrics=False)
 
 
 # %%
-# 6. Visualize results
+# Visualize results
+# ------------------------------------
 psnr_fn = dinv.metric.PSNR()
 ssim_fn = dinv.metric.SSIM()
 
