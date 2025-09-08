@@ -5,7 +5,14 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity, ItohFidelity
+from deepinv.optim.data_fidelity import (
+    L2,
+    IndicatorL2,
+    L1,
+    AmplitudeLoss,
+    ZeroFidelity,
+    ItohFidelity,
+)
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -308,6 +315,7 @@ def test_itoh_fidelity(device):
         grad_value = torch.func.grad(func)(x)
         jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
+
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
