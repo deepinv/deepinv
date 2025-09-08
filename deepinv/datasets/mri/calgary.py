@@ -11,6 +11,7 @@ from deepinv.datasets.utils import torch_shuffle
 def _load_calgary_volume(
     filename, img_size=(256, 218, 170), partial_fourier_factor=0.85
 ):
+    """Load a Calgary brain MRI volume from a .h5 file."""
     with h5py.File(filename, "r") as h5obj:
         kspace_hybrid = h5obj["kspace"][:]
     # Explicit zero-filling after 85% in the slice-encoded direction
@@ -34,8 +35,9 @@ def _load_calgary_volume(
     return images
 
 
-
 class Calgary3DBrainMRIDataset(ImageDataset):
+    """Dataset for Calgary 3D Brain MRI"""
+
     def __init__(
         self,
         root: Union[str, Path],
@@ -91,7 +93,8 @@ class Calgary3DBrainMRIDataset(ImageDataset):
                             if "reconstruction" in f.keys()
                             else "reconstruction_rss"
                         )
-                    ]).unsqueeze(0)
+                    ]
+                ).unsqueeze(0)
         else:
             target = None
         if self.transform is not None:
@@ -114,8 +117,10 @@ class CalgaryDataTransformer:
         if self.noise_level > 0:
             torch.manual_seed(self.seed)
             noise = (
-                torch.randn_like(data) + 1j * torch.randn_like(data)
-            ) / np.sqrt(2) * self.noise_level
+                (torch.randn_like(data) + 1j * torch.randn_like(data))
+                / np.sqrt(2)
+                * self.noise_level
+            )
             data = data + noise
         return data, target
 

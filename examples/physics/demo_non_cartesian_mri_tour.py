@@ -29,7 +29,7 @@ Contents:
 
 # %%
 import deepinv as dinv
-import torch, torchvision
+import torch
 from torch.utils.data import DataLoader
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -37,8 +37,8 @@ rng = torch.Generator(device=device).manual_seed(0)
 
 
 # %%
-# 1. Get started with FastMRI
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 1. Get started with Calgary 3D Brain MRI
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # You can get started with our simple
 # `FastMRI <https://fastmri.med.nyu.edu>`__ mini slice subsets which provide
@@ -59,7 +59,6 @@ rng = torch.Generator(device=device).manual_seed(0)
 # 128 for speed):
 #
 
-transform = torchvision.transforms.Resize(128)
 knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
     dinv.utils.get_data_home(),
     anatomy="knee",
