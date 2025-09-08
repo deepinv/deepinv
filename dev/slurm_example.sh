@@ -27,7 +27,7 @@ echo "  Node list: $SLURM_NODELIST"
 
 # Load required modules
 module purge
-module load pytorch-gpu/py3/2.4.0
+module load pytorch-gpu/py3/2.7.0
 
 # Set up distributed training environment variables
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_NODELIST" | head -n1)
@@ -78,7 +78,7 @@ srun \
     fi
     
     # Execute the Python script
-    exec python -u "$WORK/workspace/deepinv/dev/example_ddp.py"
+    exec python -u "/lustre/fswork/projects/rech/fio/ulx23va/projects/deepinv_PR/repos/deepinv/dev/example_ddp.py"
   '
 
 echo "Distributed processing completed."
