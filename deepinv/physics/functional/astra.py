@@ -359,7 +359,7 @@ class AutogradTransform(torch.autograd.Function):
 
 def create_projection_geometry(
     geometry_type: str,
-    detector_spacing: Union[int, tuple[int, int]],
+    detector_spacing: Union[float, tuple[float, float]],
     n_detector_pixels: Union[int, tuple[int, int]],
     angles: torch.Tensor,
     is_2d: bool = False,
