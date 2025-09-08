@@ -11,8 +11,10 @@ import deepinv as dinv
 from torchvision.transforms import ToTensor, Compose, CenterCrop
 import torch.nn.functional as F
 
+from pathlib import Path
+
 save_dir = (
-    "/Users/tl255879/Documents/research/repos/deepinv-PRs/hackaton_v2/data/urban100"
+    Path(__file__).parent / "data/urban100"
 )
 
 torch.manual_seed(0)
@@ -22,9 +24,6 @@ torch.cuda.manual_seed(0)
 dataset = dinv.datasets.Urban100HR(
     save_dir, download=True, transform=Compose([ToTensor()])
 )
-
-# %%
-
 
 # %%
 print(dataset[0].shape)
@@ -41,8 +40,6 @@ image = dataset[0]
 sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
 
-# %%
-
 
 # %%
 plt.figure()
@@ -53,16 +50,6 @@ plt.imshow(noisy_image.cpu().permute(1, 2, 0))
 # dncnn = dinv.models.DnCNN(pretrained='download')
 
 drunet = dinv.models.DRUNet()
-
-# %%
-
-# denoised_image = dncnn(noisy_image.unsqueeze(0))
-
-# plt.figure()
-# plt.imshow(denoised_image[0].permute(1,2,0).cpu().detach().numpy())
-# plt.title("DnCNN Denoised Image")
-# plt.show()
-
 
 # %%
 
@@ -936,5 +923,163 @@ def create_tiling_concept_diagram(patch_size=128, receptive_field_radius=32):
 
 # Create the conceptual diagram
 create_tiling_concept_diagram(patch_size, receptive_field_radius)
+
+# %%
+
+
+# ddp_windows.py
+import os
+import copy
+from typing import List, Tuple
+
+import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import Dataset, DataLoader, DistributedSampler
+
+
+# ---------- Dataset over a list of windows ----------
+class WindowListDataset(Dataset):
+    """
+    Wraps a Python list of window tensors shaped [C, H, W] (CPU).
+    Yields (index, tensor) so we can restore original order after sharding.
+    """
+    def __init__(self, windows: List[torch.Tensor]):
+        assert len(windows) > 0, "windows list is empty"
+        self.windows = windows
+
+    def __len__(self):
+        return len(self.windows)
+
+    def __getitem__(self, idx: int):
+        return idx, self.windows[idx]
+
+
+# ---------- Collate that pads variable-size windows per batch ----------
+def collate_pad(batch: List[Tuple[int, torch.Tensor]]):
+    """
+    batch: list of (idx, [C,H,W] tensor)
+    Returns:
+      ids: 1D LongTensor of indices
+      x  : [B,C,Hmax,Wmax] tensor (zero-padded)
+      shapes: list of (h, w) for optional cropping of outputs
+    """
+    ids, tiles = zip(*batch)
+    ids = torch.as_tensor(ids, dtype=torch.long)
+
+    C = tiles[0].shape[0]
+    Hmax = max(t.shape[1] for t in tiles)
+    Wmax = max(t.shape[2] for t in tiles)
+
+    x = tiles[0].new_zeros((len(tiles), C, Hmax, Wmax))
+    shapes = []
+    for i, t in enumerate(tiles):
+        _, h, w = t.shape
+        x[i, :, :h, :w] = t
+        shapes.append((h, w))
+    return ids, x, shapes
+
+
+# ---------- DDP setup/teardown ----------
+def setup_ddp():
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    dist.init_process_group(backend="nccl", init_method="env://")
+    return local_rank, dist.get_rank(), dist.get_world_size()
+
+def cleanup_ddp():
+    dist.barrier()
+    dist.destroy_process_group()
+
+
+# ---------- Inference over windows with DDP ----------
+@torch.no_grad()
+def ddp_infer_windows(model: torch.nn.Module,
+                      windows: List[torch.Tensor],
+                      batch_size: int = 8,
+                      num_workers: int = 4,
+                      use_amp: bool = True):
+    """
+    Returns (only on rank 0): list of output tensors aligned to the input windows order.
+    Other ranks return None.
+    """
+    local_rank, rank, world_size = setup_ddp()
+    device = torch.device(f"cuda:{local_rank}")
+
+    # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
+    dataset = WindowListDataset(windows)
+    sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=sampler,
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=(num_workers > 0),
+        collate_fn=collate_pad,
+    )
+
+    # Move model to this GPU and wrap with DDP
+    model = copy.deepcopy(model).to(device).eval()
+    ddp_model = DDP(model, device_ids=[device.index], output_device=device.index)
+
+    local_results: List[Tuple[int, torch.Tensor]] = []
+    autocast = torch.cuda.amp.autocast
+
+    for ids, x, shapes in loader:
+        x = x.pin_memory().to(device, non_blocking=True)
+        with torch.inference_mode(), autocast(enabled=use_amp, dtype=torch.float16):
+            y = ddp_model(x)  # expect [B,C,Hmax,Wmax] here for this example model
+        y = y.float().cpu()
+
+        # Optional: crop back to original (h,w) if your model preserves spatial size
+        # (this block is safe: if shapes match, we crop; otherwise we keep full y)
+        if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
+            for k, (h, w) in enumerate(shapes):
+                y[k] = y[k, :, :h, :w]
+
+        for k, idx in enumerate(ids.tolist()):
+            local_results.append((idx, y[k]))
+
+    # Gather variable-length results to rank 0
+    gather_list = [None] * world_size if rank == 0 else None
+    dist.gather_object(local_results, gather_list, dst=0)
+
+    outputs = None
+    if rank == 0:
+        # Flatten and reorder by original indices
+        flat = [pair for worker in gather_list for pair in worker]
+        n = len(windows)
+        outputs = [None] * n
+        for idx, out in flat:
+            outputs[idx] = out
+        # (optional) sanity check
+        assert all(o is not None for o in outputs), "Missing some outputs after gather."
+
+    cleanup_ddp()
+    return outputs
+
+
+# ---------- Demo entrypoint ----------
+if __name__ == "__main__":
+    # Example windows (CPU): mix of sizes to show padding works
+    torch.manual_seed(0)
+    windows = []
+    for i in range(17):
+        H = 256 + (i % 3) * 64
+        W = 320 + (i % 4) * 32
+        windows.append(torch.rand(3, H, W))  # [C,H,W] on CPU
+
+    # Run with: torchrun --nproc_per_node=<NUM_GPUS> ddp_windows.py
+    outs = ddp_infer_windows(drunet, windows, batch_size=4, num_workers=4, use_amp=True)
+
+    # Only rank 0 receives outputs
+    if outs is not None:
+        print(f"Got {len(outs)} outputs. Example shape[0]: {tuple(outs[0].shape)}")
+
+
+
+
+
 
 # %%
