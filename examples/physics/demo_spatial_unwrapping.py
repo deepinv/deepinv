@@ -16,7 +16,7 @@ Sections:
 
 # %%
 # Imports and setup
-# ------------------------------------
+# -------------------------------------------------------
 import numpy as np
 import torch
 from deepinv.utils.plotting import plot
@@ -37,7 +37,7 @@ def channel_norm(x):
 
 # %%
 # Load image and preprocess
-# ------------------------------------
+# -------------------------------------------------------
 # Load example image from deepinv and preprocess
 size = 256
 dr = 2  # dynamic range
@@ -61,7 +61,7 @@ if mode == "round":
 
 # %%
 # Apply blur
-# ------------------------------------
+# -------------------------------------------------------
 # We apply a slight Gaussian blur to the image to simulate the low bandwidth assumption of the phase map.
 filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
@@ -70,7 +70,7 @@ x_rgb = blur_op(x_rgb)
 
 # %%
 # Add Gaussian noise and wrap phase
-# ------------------------------------
+# -------------------------------------------------------
 # Include Gaussian noise and wrap phase using SpatialUnwrapping physics
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 physics = SpatialUnwrapping(threshold=1.0, mode=mode, noise_model=noise_model)
@@ -79,7 +79,7 @@ wrapped_phase = physics(phase_map)
 
 # %%
 # Invert with DCT and ADMM (ItohFidelity)
-# ------------------------------------
+# -------------------------------------------------------
 # We provide two inversion methods: a simple DCT-based inversion and an ADMM-based inversion using the Itoh fidelity term and TV prior.
 
 
@@ -105,7 +105,7 @@ x_model = model(wrapped_phase, physics, compute_metrics=False)
 
 # %%
 # Visualize results
-# ------------------------------------
+# -------------------------------------------------------
 # Here we visualize the wrapped phase, original phase, and the reconstructions from both methods.
 # We also compute PSNR and SSIM metrics for both reconstructions.
 
