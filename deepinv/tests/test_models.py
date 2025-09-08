@@ -794,7 +794,6 @@ def test_dip_like(model_kind, imsize, device):
         backbone = dinv.models.ConvLista(
             in_channels=imsize[0],
             kernel_size=3,
-            norm=False,
             num_filters=512,
             num_iter=5,
             stride=1,
