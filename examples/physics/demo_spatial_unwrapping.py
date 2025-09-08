@@ -2,7 +2,7 @@ r"""
 Spatial Unwrapping Demo
 ======================
 
-This demo shows the use of the :class:`deepinv.physics.SpatialUnwrapping` forward model and the Itoh data-fidelity for phase unwrapping problems.
+This demo shows the use of the :class:`deepinv.physics.SpatialUnwrapping` forward model and the :class:`deepinv.optim.ItohFidelity` for phase unwrapping problems.
 It shows how to generate a wrapped phase image, apply blur and noise, and reconstruct the original phase using both DCT inversion and ADMM optimization.
 
 Sections:
@@ -106,6 +106,9 @@ x_model = model(wrapped_phase, physics, compute_metrics=False)
 # %%
 # Visualize results
 # ------------------------------------
+# Here we visualize the wrapped phase, original phase, and the reconstructions from both methods.
+# We also compute PSNR and SSIM metrics for both reconstructions.
+
 psnr_fn = dinv.metric.PSNR()
 ssim_fn = dinv.metric.SSIM()
 

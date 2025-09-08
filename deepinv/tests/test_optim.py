@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity, ItohFidelity
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -289,6 +289,25 @@ def test_data_fidelity_amplitude_loss(device):
         jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
+
+def test_itoh_fidelity(device):
+    r"""
+    Tests if the gradient computed with grad_d method of Itoh fidelity is consistent with the autograd gradient.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the two gradients is more than 1e-5
+    """
+    # essential to enable autograd
+    with torch.enable_grad():
+        x = torch.randn(
+            (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
+        )
+        physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor")
+        loss = ItohFidelity()
+        func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+        grad_value = torch.func.grad(func)(x)
+        jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
+    assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])

@@ -292,7 +292,7 @@ class ItohFidelity(L2):
 
         f(x) = \frac{1}{2\sigma^2} \| D x - W_t(D y) \|^2
 
-    where :math:`D` denotes the spatial finite differences operator and :math:`W` denotes the wrapping operator.
+    where :math:`D` denotes the spatial finite differences operator and :math:`W_t` denotes the wrapping operator.
 
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
 
