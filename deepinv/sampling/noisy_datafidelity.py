@@ -152,7 +152,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         )
 
 
-class DPSDataFidelity(NoisyDataFidelity):
+class DPSDataFidelity_old(NoisyDataFidelity):
     r"""
     Diffusion posterior sampling data-fidelity term.
 
