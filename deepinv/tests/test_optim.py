@@ -311,9 +311,9 @@ def test_itoh_fidelity(device):
         )
         physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor")
         loss = ItohFidelity()
-        func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+        func = lambda x: loss(x, torch.ones_like(physics(x)) * 0.5, physics)[0]
         grad_value = torch.func.grad(func)(x)
-        jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
+        jvp_value = loss.grad(x, torch.ones_like(physics(x)) * 0.5, physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
