@@ -849,20 +849,49 @@ def test_zip_strict_behavior(force_polyfill):
 
 
 def test_default_tex():
+    # Test default
     assert deepinv.utils.plotting.get_enable_tex()
 
-    deepinv.utils.disable_tex()
-
-    assert not deepinv.utils.plotting.get_enable_tex()
-
-    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
-
-    assert not deepinv.utils.plotting.get_enable_tex()
-
+    deepinv.utils.plotting.set_checked_tex(False)
     deepinv.utils.enable_tex()
+    with patch("deepinv.utils.plotting.plot") as mock_plot:
+        # Test the tex checking allows other non-latex errors through
+        mock_plot.side_effect = RuntimeError("something non-latex related")
+        with pytest.raises(RuntimeError, match="something non-latex related"):
+            deepinv.utils.plotting.config_matplotlib()
+        mock_plot.assert_called_once()
+        assert not deepinv.utils.plotting.get_checked_tex()  # not checked
+        assert deepinv.utils.plotting.get_enable_tex()  # still enabled
 
-    assert deepinv.utils.plotting.get_enable_tex()
+        # Test the tex checking happens
+        mock_plot.reset_mock()
+        mock_plot.side_effect = RuntimeError("latex was not able to process")
+        deepinv.utils.plotting.config_matplotlib()
+        mock_plot.assert_called_once()
+        # The check should now have disabled tex
+        assert not deepinv.utils.plotting.get_enable_tex()
+        assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
 
+        # Test that the check no longer happens
+        mock_plot.reset_mock()
+        deepinv.utils.plotting.config_matplotlib()
+        mock_plot.assert_not_called()
+
+    # Test disabling works
+    deepinv.utils.disable_tex()
+    assert not deepinv.utils.plotting.get_enable_tex()
+    import matplotlib.pyplot as plt
+
+    assert not plt.rcParams["text.usetex"]
+
+    # Test enabling works, even with plotting
+    deepinv.utils.enable_tex()
     deepinv.utils.plot(torch.randn(1, 1, 4, 4))
-
     assert deepinv.utils.plotting.get_enable_tex()
+    assert plt.rcParams["text.usetex"]
+
+    # Test plot has no side effect
+    deepinv.utils.disable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
