@@ -20,6 +20,9 @@ import io
 import copy
 import math
 import sys
+import matplotlib
+import matplotlib.pyplot as plt
+import importlib
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -866,11 +869,15 @@ def test_default_tex():
         # Test the tex checking happens
         mock_plot.reset_mock()
         mock_plot.side_effect = RuntimeError("latex was not able to process")
+        matplotlib.use("svg")
+        importlib.reload(plt)
+        original_backend = matplotlib.get_backend()
         deepinv.utils.plotting.config_matplotlib()
         mock_plot.assert_called_once()
         # The check should now have disabled tex
         assert not deepinv.utils.plotting.get_enable_tex()
         assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
+        assert matplotlib.get_backend() == original_backend
 
         # Test that the check no longer happens
         mock_plot.reset_mock()
@@ -880,8 +887,6 @@ def test_default_tex():
     # Test disabling works
     deepinv.utils.disable_tex()
     assert not deepinv.utils.plotting.get_enable_tex()
-    import matplotlib.pyplot as plt
-
     assert not plt.rcParams["text.usetex"]
 
     # Test enabling works, even with plotting

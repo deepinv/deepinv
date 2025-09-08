@@ -1,5 +1,6 @@
 import os
 import shutil
+import importlib
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
@@ -81,8 +82,7 @@ def config_matplotlib(fontsize=17):
         try:
             original_backend = matplotlib.get_backend()
             matplotlib.use("Agg")  # switch to non-GUI synchronous backend
-            import matplotlib.pyplot as plt  # reimport
-
+            importlib.reload(plt)
             set_checked_tex(True)  # temporary to prevent recursion
             _ = plot({r"$\mathbf{x}$": torch.rand(1, 1, 2, 2)}, show=True, close=True)
         except RuntimeError as e:
@@ -93,6 +93,7 @@ def config_matplotlib(fontsize=17):
         finally:
             set_checked_tex(False)  # revert
             matplotlib.use(original_backend)
+            importlib.reload(plt)
 
         # If successfully finished checking, don't check again
         set_checked_tex(True)
