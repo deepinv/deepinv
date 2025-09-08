@@ -80,8 +80,8 @@ OPERATORS = [
 ]
 
 NONLINEAR_OPERATORS = [
-    "haze", 
-    "lidar", 
+    "haze",
+    "lidar",
     "spatial_unwrapping_round",
     "spatial_unwrapping_floor",
 ]
