@@ -20,10 +20,11 @@ class SpatialUnwrapping(Physics):
 
     .. math::
 
-        y = x - t \cdot \mathrm{round}(x / t) \quad \text{or} \quad y = x - t \cdot \mathrm{floor}(x / t)
+        y = W_t(x) = x - t \cdot \mathrm{q}(x / t)
+    
+    where :math:`W_t` is the wrapping operator, :math:`t` is the threshold, and :math:`\mathrm{q}` is either the rounding or flooring function depending on the mode.
 
-    where :math:`t` is the threshold and the mode determines the wrapping function.
-
+    
     :param float threshold: The threshold value for the modulo operation (default: 1.0).
     :param str mode: Wrapping mode, either 'round' or 'floor' (default: 'round').
     :param kwargs: Additional arguments passed to the base Physics class.
