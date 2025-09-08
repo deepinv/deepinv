@@ -97,7 +97,7 @@ class SpatialUnwrapping(Physics):
 
     def prox_l2(self, z, y, rho):
         r"""
-        Compute the proximal operator of the :class:`deepinv.optim.ItohFidelity` term 
+        Compute the proximal operator of the :class:`deepinv.optim.ItohFidelity` term
         using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
 
         .. math::
@@ -108,7 +108,6 @@ class SpatialUnwrapping(Physics):
 
         where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
         """
-
 
         psi = self.A_adjoint(y)
 
