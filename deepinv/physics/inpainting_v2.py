@@ -129,7 +129,7 @@ class InpaintingNew(DecomposablePhysics):
         :param torch.Tensor x:  clean measurements
         :return torch.Tensor: noisy measurements
         """
-        print('HEY')
+        print("HEY")
         noise = self.U(
             self.V_adjoint(
                 self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * self.mask)
@@ -165,6 +165,3 @@ class InpaintingNew(DecomposablePhysics):
             )
         else:
             return super().__mul__(other)
-
-
-
