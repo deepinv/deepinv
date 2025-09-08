@@ -15,10 +15,8 @@ LOGDIR="$WORK/logs"
 mkdir -p "$LOGDIR"
 
 # Redirect output to log files
-# exec >"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
-#      2>"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err"
-
-python -c "print('hello')"
+exec >"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
+     2>"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err"
 
 echo "SLURM Job Information:"
 echo "  Job ID: $SLURM_JOB_ID"
@@ -30,6 +28,8 @@ echo "  Node list: $SLURM_NODELIST"
 # Load required modules
 module purge
 module load pytorch-gpu/py3/2.7.0
+
+python -c "print('hello')"
 
 # Set up distributed training environment variables
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_NODELIST" | head -n1)
