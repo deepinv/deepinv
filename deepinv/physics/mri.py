@@ -618,3 +618,25 @@ class SequentialMRI(DynamicMRI):
             return self.to_static().A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )
+
+
+class NonCartesianMRI(LinearPhysics):
+    """
+    We can implement our own custom autograd Functions by subclassing
+    torch.autograd.Function and implementing the forward and backward passes
+    which operate on Tensors.
+    """
+
+    def __init__(
+        self,
+        nufft_op,
+        **kwargs
+    ):
+        super(NonCartesianMRI, self).__init__(**kwargs)
+        self.nufft = nufft_op
+        
+    def A(self, x):
+        return self.nufft.op(x)
+
+    def A_adjoint(self, kspace):
+        return self.nufft.adj_op(kspace)
