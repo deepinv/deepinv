@@ -9,8 +9,6 @@ from deepinv.optim.distance import (
     ZeroDistance,
 )
 from deepinv.optim.potential import Potential
-import torch
-
 
 class DataFidelity(Potential):
     r"""
@@ -278,7 +276,39 @@ class L2(DataFidelity):
         return physics.prox_l2(x, y, self.norm * gamma)
 
 
+
 class ItohFidelity(L2):
+    r"""
+    Itoh data-fidelity term for spatial unwrapping problems.
+
+    This class implements a data-fidelity term based on the normalized :math:`\ell_2` norm, but applied to the spatial finite differences of the variable and the wrapped differences of the data.
+    It is designed to be used in conjunction with the :class:`deepinv.physics.SpatialUnwrapping` class for spatial unwrapping tasks.
+
+    The data-fidelity term is defined as:
+
+    .. math::
+
+        f(x) = \frac{1}{2\sigma^2} \| D x - W(D y) \|^2
+
+    where :math:`D` denotes the spatial finite differences operator and :math:`W` denotes the wrapping operator.
+
+    :param float sigma: Standard deviation of the noise to be used as a normalization factor.
+
+    |sep|
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
+        >>> from deepinv.optim.data_fidelity import ItohFidelity
+        >>> x = torch.ones(1, 1, 3, 3)
+        >>> y = torch.ones(1, 1, 3, 3)
+        >>> physics = SpatialUnwrapping(threshold=1.0, mode="round")
+        >>> fidelity = ItohFidelity(sigma=1.0)
+        >>> f = fidelity(x, y, physics)
+        >>> print(f)
+
+    """
     def __init__(self, sigma=1.0):
         super().__init__()
 
@@ -286,6 +316,9 @@ class ItohFidelity(L2):
         self.norm = 1 / (sigma**2)
 
     def fn(self, x, y, physics, *args, **kwargs):
+        # add warning for spatial unwrapping
+        if physics.__class__.__name__ != "SpatialUnwrapping":
+            print("Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics.")
 
         Dx  = physics.D(x)
         WDy = physics.WD(y)

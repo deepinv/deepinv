@@ -21,7 +21,7 @@ def channel_norm(x):
     return x
 
 size = 256
-dr    = 4 # dynamic range
+dr    = 2 # dynamic range
 dtype = torch.float32
 device = "cpu"
 img_size = (size, size)
@@ -47,7 +47,7 @@ if mode == "round":
     x_rgb = x_rgb - dr / 2 
 
 # apply blur filter
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(10, 10), angle=0.0)
+filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 

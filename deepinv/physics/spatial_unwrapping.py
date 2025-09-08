@@ -9,6 +9,38 @@ modulo_round = lambda x, t: x - t * torch.round(x / t)
 
 
 class SpatialUnwrapping(Physics):
+    r"""
+    Spatial unwrapping forward operator.
+
+    This class implements a forward operator for spatial unwrapping, where the input is wrapped modulo a threshold value.
+    The operator can use either floor or round mode for the wrapping operation. It is useful for problems where the observed data is wrapped, 
+    such as in phase imaging, modulo imaging, or interferometry.
+
+    The forward operator is defined as:
+
+    .. math::
+
+        y = x - t \cdot \mathrm{round}(x / t) \quad \text{or} \quad y = x - t \cdot \mathrm{floor}(x / t)
+
+    where :math:`t` is the threshold and the mode determines the wrapping function.
+
+    :param float threshold: The threshold value for the modulo operation (default: 1.0).
+    :param str mode: Wrapping mode, either 'round' or 'floor' (default: 'round').
+    :param kwargs: Additional arguments passed to the base Physics class.
+
+    |sep|
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
+        >>> x = torch.tensor([[0.5, 1.2, 2.7]])
+        >>> physics = SpatialUnwrapping(threshold=1.0, mode="round")
+        >>> y = physics(x)
+        >>> print(y)
+        tensor([[ 0.5,  0.2, -0.3]])
+
+    """
     def __init__(self, 
                  threshold = 1.0, 
                  mode = "round",

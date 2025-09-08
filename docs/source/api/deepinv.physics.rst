@@ -59,6 +59,7 @@ Operators
    deepinv.physics.Haze
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
