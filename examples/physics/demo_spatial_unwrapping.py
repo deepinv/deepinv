@@ -1,3 +1,11 @@
+r"""
+Demo of spatial unwrapping
+===================================================
+
+In this example we show how to use the :class:`deepinv.physics.SpatialUnwrapping` forward model.
+
+"""
+
 import numpy as np
 import torch
 from deepinv.utils.plotting import plot
