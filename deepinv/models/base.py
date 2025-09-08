@@ -33,7 +33,7 @@ class Denoiser(torch.nn.Module):
         :param torch.Tensor, float sigma: noise level.
         :returns: (:class:`torch.Tensor`) Denoised tensor.
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     @staticmethod
     def _handle_sigma(
@@ -132,4 +132,5 @@ class Reconstructor(torch.nn.Module):
         :param deepinv.physics.Physics physics: forward model :math:`A`.
         :returns: (:class:`torch.Tensor`) reconstructed tensor.
         """
-        return NotImplementedError
+
+        raise NotImplementedError()

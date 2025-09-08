@@ -609,7 +609,7 @@ class PosteriorDiffusion(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity: NoisyDataFidelity = ZeroFidelity(),
+        data_fidelity: Optional[NoisyDataFidelity] = None,
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
@@ -619,6 +619,8 @@ class PosteriorDiffusion(Reconstructor):
         *args,
         **kwargs,
     ):
+        if data_fidelity is None:
+            data_fidelity = ZeroFidelity()
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
