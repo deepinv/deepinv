@@ -869,7 +869,7 @@ def test_default_tex():
         # Test the tex checking happens
         mock_plot.reset_mock()
         mock_plot.side_effect = RuntimeError("latex was not able to process")
-        matplotlib.use("svg")
+        matplotlib.use("svg")  # something different from agg
         importlib.reload(plt)
         original_backend = matplotlib.get_backend()
         deepinv.utils.plotting.config_matplotlib()
