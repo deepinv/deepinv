@@ -9,7 +9,7 @@ import torch
 import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 import warnings
-
+from typing import Any, Optional, Union
 
 class RunLogger(ABC):
     """
@@ -19,7 +19,7 @@ class RunLogger(ABC):
     training artifacts during model training and evaluation.
     """
     
-    def __init__(self, run_name: Optional[str] = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, run_name: Optional[str] = None, config: Optional[dict[str, Any]] = None):
         """
         Initialize the logger.
         
@@ -32,7 +32,7 @@ class RunLogger(ABC):
         self.current_step = 0
         
     @abstractmethod
-    def start_run(self, hyperparams: Optional[Dict[str, Any]] = None):
+    def start_run(self, hyperparams: Optional[dict[str, Any]] = None):
         """
         Start a new training run.
         
@@ -41,7 +41,7 @@ class RunLogger(ABC):
         pass
 
      @abstractmethod
-    def log_losses(self, losses: Dict[str, float], step: Optional[int] = None,
+    def log_losses(self, losses: dict[str, float], step: Optional[int] = None,
                   epoch: Optional[int] = None, phase: str = 'train'):
         """
         Log loss values for the current step/epoch.
@@ -54,7 +54,7 @@ class RunLogger(ABC):
         pass
     
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None, 
+    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None, 
                    epoch: Optional[int] = None, phase: str = 'train'):
         """
         Log metrics for the current step/epoch.
@@ -67,7 +67,7 @@ class RunLogger(ABC):
         pass
     
     @abstractmethod
-    def log_images(self, images: Dict[str, Union[torch.Tensor, np.ndarray]], 
+    def log_images(self, images: dict[str, Union[torch.Tensor, np.ndarray]], 
                   step: Optional[int] = None, epoch: Optional[int] = None, 
                   phase: str = 'train'):
         """
@@ -81,7 +81,7 @@ class RunLogger(ABC):
         pass
     
     @abstractmethod
-    def log_model_checkpoint(self, checkpoint_path: str, metrics: Optional[Dict[str, float]] = None,
+    def log_model_checkpoint(self, checkpoint_path: str, metrics: Optional[dict[str, float]] = None,
                            epoch: Optional[int] = None):
         """
         Log model checkpoint information.
