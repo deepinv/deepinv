@@ -248,6 +248,9 @@ def create_tiled_windows_and_masks(
 
 
 # %%
+
+
+# %%
 def reassemble_from_patches(processed_windows, masks, patch_positions, original_shape):
     """
     Reassemble processed patches back into a full image.
@@ -301,6 +304,12 @@ def reassemble_from_patches(processed_windows, masks, patch_positions, original_
             output[:, patch_top:patch_bottom, patch_left:patch_right] = cropped_patch
 
     return output
+
+
+# %%
+
+
+# %%
 
 
 # %%
@@ -396,7 +405,7 @@ print("Processing with tiling...")
 tiled_result = process_large_image_with_tiling(
     model=drunet,
     image=noisy_image,
-    patch_size=128,  # Use smaller patches
+    patch_size=64,  # Use smaller patches
     receptive_field_radius=receptive_field_radius,
     overlap_strategy="reflect",
     sigma=sigma,  # Pass sigma to DRUNet
@@ -410,10 +419,40 @@ print("Processing without tiling...")
 direct_result = drunet(noisy_image.unsqueeze(0), sigma=sigma).squeeze(0)
 print(f"Direct result shape: {direct_result.shape}")
 
+
+# %%
 # Calculate difference
 diff = torch.abs(tiled_result - direct_result)
 print(f"Maximum absolute difference: {diff.max():.6f}")
+print(f"Std Dev difference: {diff.std():.6f}")
 print(f"Mean absolute difference: {diff.mean():.6f}")
+
+# %%
+diff.shape
+
+# %%
+
+
+plt.figure()
+plt.imshow(diff.permute(1, 2, 0).cpu().detach().numpy()[:, :, 0])
+plt.colorbar()
+plt.title("Difference between Tiled and Direct Processing")
+plt.show()
+
+
+plt.figure()
+plt.imshow(diff.permute(1, 2, 0).cpu().detach().numpy()[:, :, 1])
+plt.colorbar()
+plt.title("Difference between Tiled and Direct Processing")
+plt.show()
+
+
+plt.figure()
+plt.imshow(diff.permute(1, 2, 0).cpu().detach().numpy()[:, :, 2])
+plt.colorbar()
+plt.title("Difference between Tiled and Direct Processing")
+plt.show()
+
 
 # %%
 # Visualize the results
@@ -925,161 +964,386 @@ def create_tiling_concept_diagram(patch_size=128, receptive_field_radius=32):
 create_tiling_concept_diagram(patch_size, receptive_field_radius)
 
 # %%
-
-
-# ddp_windows.py
-import os
-import copy
-from typing import List, Tuple
-
 import torch
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
+from torch.utils.data import Dataset, DataLoader
 
 
-# ---------- Dataset over a list of windows ----------
-class WindowListDataset(Dataset):
+class TiledWindowDataset(Dataset):
     """
-    Wraps a Python list of window tensors shaped [C, H, W] (CPU).
-    Yields (index, tensor) so we can restore original order after sharding.
+    Dataset for tiled windows with their corresponding masks and patch positions.
     """
-    def __init__(self, windows: List[torch.Tensor]):
-        assert len(windows) > 0, "windows list is empty"
-        self.windows = windows
+
+    def __init__(
+        self, image, patch_size, receptive_field_radius, overlap_strategy="reflect"
+    ):
+        """
+        Initialize the dataset with tiled windows.
+
+        Args:
+            image (torch.Tensor): Input image of shape (B, C, H, W) or (C, H, W)
+            patch_size (int or tuple): Size of the non-overlapping patches
+            receptive_field_radius (int): Radius of the model's receptive field
+            overlap_strategy (str): How to handle boundaries ('reflect', 'constant', 'edge')
+        """
+        self.image = image
+        self.patch_size = patch_size
+        self.receptive_field_radius = receptive_field_radius
+        self.overlap_strategy = overlap_strategy
+        self.original_shape = image.shape
+
+        # Generate all windows, masks, and positions
+        self.windows, self.masks, self.patch_positions = create_tiled_windows_and_masks(
+            image, patch_size, receptive_field_radius, overlap_strategy
+        )
 
     def __len__(self):
         return len(self.windows)
 
-    def __getitem__(self, idx: int):
-        return idx, self.windows[idx]
+    def __getitem__(self, idx):
+        """
+        Return a single window with its corresponding mask and patch position.
+
+        Returns:
+            dict: Contains 'window', 'mask', 'patch_position', and 'index'
+        """
+        return {
+            "window": self.windows[idx],
+            "mask": self.masks[idx],
+            "patch_position": self.patch_positions[idx],
+            "index": idx,
+        }
 
 
-# ---------- Collate that pads variable-size windows per batch ----------
-def collate_pad(batch: List[Tuple[int, torch.Tensor]]):
+def create_tiled_windows_dataloader(
+    image,
+    patch_size,
+    receptive_field_radius,
+    overlap_strategy="reflect",
+    batch_size=1,
+    shuffle=False,
+    num_workers=0,
+    **dataloader_kwargs,
+):
     """
-    batch: list of (idx, [C,H,W] tensor)
+    Create a DataLoader for tiled windows from a large image.
+
+    Args:
+        image (torch.Tensor): Input image of shape (B, C, H, W) or (C, H, W)
+        patch_size (int or tuple): Size of the non-overlapping patches
+        receptive_field_radius (int): Radius of the model's receptive field
+        overlap_strategy (str): How to handle boundaries ('reflect', 'constant', 'edge')
+        batch_size (int): Number of windows per batch
+        shuffle (bool): Whether to shuffle the windows
+        num_workers (int): Number of workers for data loading
+        **dataloader_kwargs: Additional arguments for DataLoader
+
     Returns:
-      ids: 1D LongTensor of indices
-      x  : [B,C,Hmax,Wmax] tensor (zero-padded)
-      shapes: list of (h, w) for optional cropping of outputs
+        DataLoader: DataLoader yielding batches of windows with metadata
+        dict: Additional information about the tiling (original_shape, total_patches, etc.)
     """
-    ids, tiles = zip(*batch)
-    ids = torch.as_tensor(ids, dtype=torch.long)
-
-    C = tiles[0].shape[0]
-    Hmax = max(t.shape[1] for t in tiles)
-    Wmax = max(t.shape[2] for t in tiles)
-
-    x = tiles[0].new_zeros((len(tiles), C, Hmax, Wmax))
-    shapes = []
-    for i, t in enumerate(tiles):
-        _, h, w = t.shape
-        x[i, :, :h, :w] = t
-        shapes.append((h, w))
-    return ids, x, shapes
-
-
-# ---------- DDP setup/teardown ----------
-def setup_ddp():
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(local_rank)
-    dist.init_process_group(backend="nccl", init_method="env://")
-    return local_rank, dist.get_rank(), dist.get_world_size()
-
-def cleanup_ddp():
-    dist.barrier()
-    dist.destroy_process_group()
-
-
-# ---------- Inference over windows with DDP ----------
-@torch.no_grad()
-def ddp_infer_windows(model: torch.nn.Module,
-                      windows: List[torch.Tensor],
-                      batch_size: int = 8,
-                      num_workers: int = 4,
-                      use_amp: bool = True):
-    """
-    Returns (only on rank 0): list of output tensors aligned to the input windows order.
-    Other ranks return None.
-    """
-    local_rank, rank, world_size = setup_ddp()
-    device = torch.device(f"cuda:{local_rank}")
-
-    # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
-    dataset = WindowListDataset(windows)
-    sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        sampler=sampler,
-        num_workers=num_workers,
-        pin_memory=True,
-        persistent_workers=(num_workers > 0),
-        collate_fn=collate_pad,
+    # Create the dataset
+    dataset = TiledWindowDataset(
+        image, patch_size, receptive_field_radius, overlap_strategy
     )
 
-    # Move model to this GPU and wrap with DDP
-    model = copy.deepcopy(model).to(device).eval()
-    ddp_model = DDP(model, device_ids=[device.index], output_device=device.index)
+    # Create the dataloader
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        **dataloader_kwargs,
+    )
 
-    local_results: List[Tuple[int, torch.Tensor]] = []
-    autocast = torch.cuda.amp.autocast
+    # Calculate some useful metadata
+    if image.ndim == 3:
+        C, H, W = image.shape
+    else:
+        B, C, H, W = image.shape
 
-    for ids, x, shapes in loader:
-        x = x.pin_memory().to(device, non_blocking=True)
-        with torch.inference_mode(), autocast(enabled=use_amp, dtype=torch.float16):
-            y = ddp_model(x)  # expect [B,C,Hmax,Wmax] here for this example model
-        y = y.float().cpu()
+    window_size = (
+        patch_size + 2 * receptive_field_radius
+        if isinstance(patch_size, int)
+        else (
+            patch_size[0] + 2 * receptive_field_radius,
+            patch_size[1] + 2 * receptive_field_radius,
+        )
+    )
 
-        # Optional: crop back to original (h,w) if your model preserves spatial size
-        # (this block is safe: if shapes match, we crop; otherwise we keep full y)
-        if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
-            for k, (h, w) in enumerate(shapes):
-                y[k] = y[k, :, :h, :w]
+    metadata = {
+        "original_shape": dataset.original_shape,
+        "total_patches": len(dataset),
+        "patch_size": patch_size,
+        "window_size": window_size,
+        "receptive_field_radius": receptive_field_radius,
+        "overlap_strategy": overlap_strategy,
+        "image_height": H,
+        "image_width": W,
+    }
 
-        for k, idx in enumerate(ids.tolist()):
-            local_results.append((idx, y[k]))
-
-    # Gather variable-length results to rank 0
-    gather_list = [None] * world_size if rank == 0 else None
-    dist.gather_object(local_results, gather_list, dst=0)
-
-    outputs = None
-    if rank == 0:
-        # Flatten and reorder by original indices
-        flat = [pair for worker in gather_list for pair in worker]
-        n = len(windows)
-        outputs = [None] * n
-        for idx, out in flat:
-            outputs[idx] = out
-        # (optional) sanity check
-        assert all(o is not None for o in outputs), "Missing some outputs after gather."
-
-    cleanup_ddp()
-    return outputs
+    return dataloader, metadata
 
 
-# ---------- Demo entrypoint ----------
-if __name__ == "__main__":
-    # Example windows (CPU): mix of sizes to show padding works
-    torch.manual_seed(0)
-    windows = []
-    for i in range(17):
-        H = 256 + (i % 3) * 64
-        W = 320 + (i % 4) * 32
-        windows.append(torch.rand(3, H, W))  # [C,H,W] on CPU
+def process_large_image_with_dataloader(
+    model, dataloader, metadata, device=None, **model_kwargs
+):
+    """
+    Process a large image using a DataLoader of tiled windows.
 
-    # Run with: torchrun --nproc_per_node=<NUM_GPUS> ddp_windows.py
-    outs = ddp_infer_windows(drunet, windows, batch_size=4, num_workers=4, use_amp=True)
+    Args:
+        model: The neural network model to apply
+        dataloader: DataLoader from create_tiled_windows_dataloader
+        metadata: Metadata dict from create_tiled_windows_dataloader
+        device: Device to run the model on
+        **model_kwargs: Additional keyword arguments to pass to the model
 
-    # Only rank 0 receives outputs
-    if outs is not None:
-        print(f"Got {len(outs)} outputs. Example shape[0]: {tuple(outs[0].shape)}")
+    Returns:
+        torch.Tensor: Processed image with the same shape as original
+    """
+    if device is None:
+        device = (
+            next(model.parameters()).device if hasattr(model, "parameters") else "cpu"
+        )
+
+    # Prepare storage for processed windows
+    processed_windows = [None] * metadata["total_patches"]
+    masks = [None] * metadata["total_patches"]
+    patch_positions = [None] * metadata["total_patches"]
+
+    model.eval()
+    with torch.no_grad():
+        for batch in dataloader:
+            # Extract batch data
+            windows = batch["window"]  # Shape: (batch_size, C, H, W)
+            batch_masks = batch["mask"]
+            batch_positions = batch["patch_position"]
+            indices = batch["index"]
+
+            # Move to device
+            windows = windows.to(device)
+
+            # Process through model
+            processed_batch = model(windows, **model_kwargs)
+
+            # Store results
+            for i, idx in enumerate(indices):
+                processed_windows[idx.item()] = processed_batch[
+                    i : i + 1
+                ]  # Keep batch dimension
+                masks[idx.item()] = tuple(
+                    batch_masks[j][i].item() for j in range(len(batch_masks))
+                )
+                patch_positions[idx.item()] = tuple(
+                    batch_positions[j][i].item() for j in range(len(batch_positions))
+                )
+
+    # Reassemble the processed patches
+    result = reassemble_from_patches(
+        processed_windows, masks, patch_positions, metadata["original_shape"]
+    )
+
+    return result
 
 
+# %%
+# Demonstrate the DataLoader-based tiling approach
+print("=" * 60)
+print("DATALOADER-BASED TILING DEMONSTRATION")
+print("=" * 60)
+
+# Create a DataLoader for the tiled windows
+dataloader, metadata = create_tiled_windows_dataloader(
+    image=noisy_image,
+    patch_size=64,  # Use smaller patches for more batches
+    receptive_field_radius=receptive_field_radius,
+    overlap_strategy="reflect",
+    batch_size=4,  # Process 4 windows at a time
+    shuffle=False,  # Keep order for reproducibility
+    num_workers=0,  # Use 0 for notebooks to avoid multiprocessing issues
+)
+
+print(f"DataLoader created successfully!")
+print(f"├─ Total batches: {len(dataloader)}")
+print(f"├─ Batch size: {dataloader.batch_size}")
+print(f"├─ Total patches: {metadata['total_patches']}")
+print(f"├─ Patch size: {metadata['patch_size']}")
+print(f"├─ Window size: {metadata['window_size']}")
+print(f"└─ Original image shape: {metadata['original_shape']}")
+
+# Demonstrate iterating through the DataLoader
+print(f"\nFirst batch contents:")
+first_batch = next(iter(dataloader))
+print(f"├─ Window batch shape: {first_batch['window'].shape}")
+print(f"├─ Number of masks: {len(first_batch['mask'])}")
+print(f"├─ Number of patch positions: {len(first_batch['patch_position'])}")
+print(f"└─ Indices in this batch: {first_batch['index'].tolist()}")
+
+# Process the image using the DataLoader approach
+print(f"\nProcessing image with DataLoader approach...")
+dataloader_result = process_large_image_with_dataloader(
+    model=drunet,
+    dataloader=dataloader,
+    metadata=metadata,
+    device="cpu",  # Ensure we use CPU
+    sigma=sigma,
+)
+
+print(f"├─ Result shape: {dataloader_result.shape}")
+print(f"└─ Processing completed successfully!")
+
+# Compare with the original list-based approach
+print(f"\nComparing DataLoader vs List approach:")
+list_result = process_large_image_with_tiling(
+    model=drunet,
+    image=noisy_image,
+    patch_size=64,
+    receptive_field_radius=receptive_field_radius,
+    overlap_strategy="reflect",
+    sigma=sigma,
+)
+
+# Calculate difference
+comparison_diff = torch.abs(dataloader_result - list_result)
+print(f"├─ Max difference: {comparison_diff.max():.8f}")
+print(f"├─ Mean difference: {comparison_diff.mean():.8f}")
+print(
+    f"└─ Results are {'identical' if comparison_diff.max() < 1e-6 else 'very similar'}!"
+)
+
+print(f"\nAdvantages of DataLoader approach:")
+print(f"├─ Memory efficient: Can process large images with smaller GPU memory")
+print(f"├─ Flexible batching: Adjust batch_size based on available memory")
+print(f"├─ Parallel processing: Can use num_workers > 0 for faster loading")
+print(f"├─ Shuffling support: Can shuffle patches for training scenarios")
+print(f"└─ Standard PyTorch interface: Familiar DataLoader API")
+
+# %%
+# Practical examples with different batch sizes
+print("=" * 60)
+print("BATCH SIZE COMPARISON AND PRACTICAL USAGE")
+print("=" * 60)
+
+batch_sizes = [1, 4, 8, 16]
+patch_size_test = 128
+
+for batch_size in batch_sizes:
+    print(f"\n--- Batch Size: {batch_size} ---")
+
+    # Create dataloader
+    dataloader, metadata = create_tiled_windows_dataloader(
+        image=noisy_image,
+        patch_size=patch_size_test,
+        receptive_field_radius=receptive_field_radius,
+        overlap_strategy="reflect",
+        batch_size=batch_size,
+        shuffle=False,
+    )
+
+    # Analyze memory requirements
+    first_batch = next(iter(dataloader))
+    window_batch = first_batch["window"]
+
+    # Calculate memory usage (approximate)
+    elements_per_window = (
+        window_batch.shape[1] * window_batch.shape[2] * window_batch.shape[3]
+    )  # C * H * W
+    total_elements = elements_per_window * batch_size
+    memory_mb = total_elements * 4 / (1024 * 1024)  # 4 bytes per float32, convert to MB
+
+    print(f"├─ Number of batches: {len(dataloader)}")
+    print(f"├─ Window batch shape: {window_batch.shape}")
+    print(f"├─ Approx. memory per batch: {memory_mb:.1f} MB")
+    print(f"└─ Total patches: {metadata['total_patches']}")
+
+# Example: Processing with different strategies
+print(f"\n" + "=" * 60)
+print("EXAMPLE: MEMORY-CONSTRAINED PROCESSING")
+print("=" * 60)
 
 
+def process_with_memory_constraint(image, max_memory_mb=100):
+    """
+    Example function showing how to choose batch size based on memory constraints.
+    """
+    # Calculate optimal batch size
+    patch_size = 128
+    window_size = patch_size + 2 * receptive_field_radius
+    elements_per_window = 3 * window_size * window_size  # 3 channels
+    memory_per_window_mb = elements_per_window * 4 / (1024 * 1024)
+
+    optimal_batch_size = max(1, int(max_memory_mb / memory_per_window_mb))
+
+    print(f"Memory constraint: {max_memory_mb} MB")
+    print(f"Memory per window: {memory_per_window_mb:.1f} MB")
+    print(f"Optimal batch size: {optimal_batch_size}")
+
+    # Create dataloader with optimal batch size
+    dataloader, metadata = create_tiled_windows_dataloader(
+        image=image,
+        patch_size=patch_size,
+        receptive_field_radius=receptive_field_radius,
+        overlap_strategy="reflect",
+        batch_size=optimal_batch_size,
+        shuffle=False,
+    )
+
+    print(f"Created DataLoader with {len(dataloader)} batches")
+    return dataloader, metadata
+
+
+# Test with different memory constraints
+for memory_limit in [50, 100, 200]:
+    print(f"\n--- Memory Limit: {memory_limit} MB ---")
+    dl, meta = process_with_memory_constraint(noisy_image, memory_limit)
+
+print(f"\n" + "=" * 60)
+print("USAGE PATTERNS")
+print("=" * 60)
+print(
+    """
+# Basic usage:
+dataloader, metadata = create_tiled_windows_dataloader(
+    image=large_image,
+    patch_size=256,
+    receptive_field_radius=32,
+    batch_size=8
+)
+result = process_large_image_with_dataloader(model, dataloader, metadata)
+
+# Memory-constrained usage:
+dataloader, metadata = create_tiled_windows_dataloader(
+    image=huge_image,
+    patch_size=128,
+    receptive_field_radius=32,
+    batch_size=1,  # Process one patch at a time
+    shuffle=False
+)
+
+# Training scenario (with shuffling):
+dataloader, metadata = create_tiled_windows_dataloader(
+    image=training_image,
+    patch_size=64,
+    receptive_field_radius=16,
+    batch_size=32,
+    shuffle=True  # Randomize patch order
+)
+
+# Manual processing for custom logic:
+for batch in dataloader:
+    windows = batch['window']
+    masks = batch['mask']
+    positions = batch['patch_position']
+    # Custom processing logic here...
+"""
+)
+
+# %%
+
+
+# %%
+
+
+# %%
 
 
 # %%
