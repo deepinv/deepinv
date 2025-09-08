@@ -9,6 +9,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.4
+------
+New Features
+^^^^^^^^^^^^
 - Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
@@ -27,6 +39,8 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
+
+
 
 v0.3.3
 ------
