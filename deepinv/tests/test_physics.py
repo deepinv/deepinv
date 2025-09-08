@@ -7,6 +7,7 @@ import pytest
 import warnings
 
 import torch
+
 import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
@@ -78,7 +79,12 @@ OPERATORS = [
     "ptychography_linear",
 ]
 
-NONLINEAR_OPERATORS = ["haze", "lidar"]
+NONLINEAR_OPERATORS = [
+    "haze", 
+    "lidar", 
+    "spatial_unwrapping_round",
+    "spatial_unwrapping_floor",
+]
 
 PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
@@ -516,6 +522,12 @@ def find_nonlinear_operator(name, device):
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
+    elif name == "spatial_unwrapping_round":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="round", device=device)
+    elif name == "spatial_unwrapping_floor":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x

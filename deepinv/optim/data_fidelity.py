@@ -307,6 +307,7 @@ class ItohFidelity(L2):
         >>> fidelity = ItohFidelity(sigma=1.0)
         >>> f = fidelity(x, y, physics)
         >>> print(f)
+        tensor([0.])
 
     """
 
