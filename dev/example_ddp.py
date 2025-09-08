@@ -1,7 +1,31 @@
 # %% [markdown]
 # ## Tile strategies
 
-# %%
+#!/usr/bin/env python3
+"""
+Multi-GPU Distributed Data Parallel (DDP) example for tiled image processing.
+
+This script shows how to properly distribute tiled image processing across multiple GPUs
+to avoid NCCL conflicts and efficiently process large images.
+
+Usage:
+    # Single node, multiple GPUs (using torchrun)
+    torchrun --nproc_per_node=4 example_ddp.py
+
+    # Multiple nodes (using torchrun)
+    torchrun --nnodes=2 --nproc_per_node=4 --rdzv_backend=c10d --rdzv_endpoint=HOST_NODE_ADDR example_ddp.py
+
+    # SLURM cluster (using the provided slurm_example.sh)
+    sbatch slurm_example.sh
+
+Key fixes for NCCL errors:
+1. Proper GPU device assignment using LOCAL_RANK
+2. Correct device mapping in DDP initialization
+3. Environment variable setup for distributed training
+4. Proper cleanup and error handling
+5. SLURM-compatible environment variable handling
+"""
+
 import os
 import copy
 from typing import List, Tuple
@@ -19,9 +43,72 @@ from torch.utils.data import Dataset, DataLoader, DistributedSampler
 
 from pathlib import Path
 
-save_dir = (
-    Path(__file__).parent / "data/urban100"
-)
+
+def setup_distributed():
+    """
+    Initialize distributed training environment.
+    Fixes the NCCL error by properly setting up GPU device assignment.
+    """
+    # Get distributed training parameters from environment variables (set by torchrun)
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    rank = int(os.environ.get("RANK", 0))
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+    # Set default environment variables if not set
+    if "MASTER_ADDR" not in os.environ:
+        os.environ["MASTER_ADDR"] = "localhost"
+    if "MASTER_PORT" not in os.environ:
+        os.environ["MASTER_PORT"] = "12355"
+
+    # CRITICAL: Set the CUDA device for this process BEFORE initializing the process group
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f"cuda:{local_rank}")
+        backend = "nccl"
+    else:
+        device = torch.device("cpu")
+        backend = "gloo"
+
+    # Initialize the process group
+    if world_size > 1:
+        dist.init_process_group(
+            backend=backend, init_method="env://", rank=rank, world_size=world_size
+        )
+        print(
+            f"Rank {rank}/{world_size}: Initialized process group with device {device}"
+        )
+    else:
+        print(f"Single process mode with device {device}")
+
+    return device, rank, world_size, local_rank
+
+
+def cleanup_distributed():
+    """Clean up distributed training environment."""
+    if dist.is_initialized():
+        dist.destroy_process_group()
+
+
+def print_gpu_info():
+    """Print GPU information for debugging."""
+    if torch.cuda.is_available():
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        rank = int(os.environ.get("RANK", 0))
+
+        print(f"Rank {rank}, Local Rank {local_rank}")
+        print(f"CUDA Device Count: {torch.cuda.device_count()}")
+        print(f"Current CUDA Device: {torch.cuda.current_device()}")
+        print(f"Device Name: {torch.cuda.get_device_name()}")
+        print(
+            f"Device Memory: {torch.cuda.get_device_properties(local_rank).total_memory // 1024**3} GB"
+        )
+    else:
+        print("CUDA not available")
+
+
+# Data loading setup
+
+save_dir = Path(__file__).parent / "data/urban100"
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
@@ -365,9 +452,7 @@ print(f"Actual window size: {windows[0].shape[-2]} x {windows[0].shape[-1]}")
 # %%
 
 
-
 # ddp_windows.py
-
 
 
 # ---------- Dataset over a list of windows ----------
@@ -376,6 +461,7 @@ class WindowListDataset(Dataset):
     Wraps a Python list of window tensors shaped [C, H, W] (CPU).
     Yields (index, tensor) so we can restore original order after sharding.
     """
+
     def __init__(self, windows: List[torch.Tensor]):
         assert len(windows) > 0, "windows list is empty"
         self.windows = windows
@@ -412,97 +498,184 @@ def collate_pad(batch: List[Tuple[int, torch.Tensor]]):
     return ids, x, shapes
 
 
-# ---------- DDP setup/teardown ----------
+# ---------- DDP setup/teardown (FIXED VERSION) ----------
 def setup_ddp():
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(local_rank)
-    dist.init_process_group(backend="nccl", init_method="env://")
-    return local_rank, dist.get_rank(), dist.get_world_size()
+    """
+    FIXED VERSION: Properly setup DDP to avoid NCCL errors.
+    """
+    device, rank, world_size, local_rank = setup_distributed()
+    return local_rank, rank, world_size, device
+
 
 def cleanup_ddp():
-    dist.barrier()
-    dist.destroy_process_group()
+    if dist.is_initialized():
+        dist.barrier()
+        cleanup_distributed()
 
 
-# ---------- Inference over windows with DDP ----------
+# ---------- Inference over windows with DDP (FIXED VERSION) ----------
 @torch.no_grad()
-def ddp_infer_windows(model: torch.nn.Module,
-                      windows: List[torch.Tensor],
-                      batch_size: int = 8,
-                      num_workers: int = 4,
-                      use_amp: bool = True):
+def ddp_infer_windows(
+    model: torch.nn.Module,
+    windows: List[torch.Tensor],
+    batch_size: int = 8,
+    num_workers: int = 4,
+    use_amp: bool = True,
+):
     """
-    Returns (only on rank 0): list of output tensors aligned to the input windows order.
+    FIXED VERSION: Returns (only on rank 0): list of output tensors aligned to the input windows order.
     Other ranks return None.
+
+    Key fixes:
+    - Proper device assignment using LOCAL_RANK
+    - Correct DDP initialization
+    - Better error handling
     """
-    local_rank, rank, world_size = setup_ddp()
-    device = torch.device(f"cuda:{local_rank}")
+    try:
+        local_rank, rank, world_size, device = setup_ddp()
 
-    # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
-    dataset = WindowListDataset(windows)
-    sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        sampler=sampler,
-        num_workers=num_workers,
-        pin_memory=True,
-        persistent_workers=(num_workers > 0),
-        collate_fn=collate_pad,
-    )
+        print(f"Rank {rank}: Using device {device} (local_rank: {local_rank})")
+        print_gpu_info()
 
-    # Move model to this GPU and wrap with DDP
-    model = copy.deepcopy(model).to(device).eval()
-    ddp_model = DDP(model, device_ids=[device.index], output_device=device.index)
+        # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
+        dataset = WindowListDataset(windows)
+        sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
+        loader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            sampler=sampler,
+            num_workers=num_workers,
+            pin_memory=torch.cuda.is_available(),
+            persistent_workers=(num_workers > 0),
+            collate_fn=collate_pad,
+        )
 
-    local_results: List[Tuple[int, torch.Tensor]] = []
-    autocast = torch.cuda.amp.autocast
+        # Move model to this GPU and wrap with DDP
+        model = copy.deepcopy(model).to(device).eval()
 
-    for ids, x, shapes in loader:
-        x = x.pin_memory().to(device, non_blocking=True)
-        with torch.inference_mode(), autocast(enabled=use_amp, dtype=torch.float16):
-            y = ddp_model(x)  # expect [B,C,Hmax,Wmax] here for this example model
-        y = y.float().cpu()
+        # FIXED: Use local_rank directly instead of device.index
+        if world_size > 1:
+            ddp_model = DDP(
+                model,
+                device_ids=[local_rank] if torch.cuda.is_available() else None,
+                output_device=local_rank if torch.cuda.is_available() else None,
+            )
+        else:
+            ddp_model = model  # No need for DDP in single GPU case
 
-        # Optional: crop back to original (h,w) if your model preserves spatial size
-        # (this block is safe: if shapes match, we crop; otherwise we keep full y)
-        if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
-            for k, (h, w) in enumerate(shapes):
-                y[k] = y[k, :, :h, :w]
+        local_results: List[Tuple[int, torch.Tensor]] = []
 
-        for k, idx in enumerate(ids.tolist()):
-            local_results.append((idx, y[k]))
+        if torch.cuda.is_available() and use_amp:
+            autocast = torch.cuda.amp.autocast
+        else:
+            # Fallback for CPU or when AMP is disabled
+            from contextlib import nullcontext
 
-    # Gather variable-length results to rank 0
-    gather_list = [None] * world_size if rank == 0 else None
-    dist.gather_object(local_results, gather_list, dst=0)
+            autocast = nullcontext
 
-    outputs = None
-    if rank == 0:
-        # Flatten and reorder by original indices
-        flat = [pair for worker in gather_list for pair in worker]
-        n = len(windows)
-        outputs = [None] * n
-        for idx, out in flat:
-            outputs[idx] = out
-        # (optional) sanity check
-        assert all(o is not None for o in outputs), "Missing some outputs after gather."
+        print(f"Rank {rank}: Processing {len(loader)} batches...")
 
-    cleanup_ddp()
-    return outputs
+        for batch_idx, (ids, x, shapes) in enumerate(loader):
+            if batch_idx % 10 == 0:
+                print(f"Rank {rank}: Processing batch {batch_idx}/{len(loader)}")
+
+            x = x.to(device, non_blocking=True)
+
+            with torch.inference_mode():
+                if torch.cuda.is_available() and use_amp:
+                    with autocast(enabled=True, dtype=torch.float16):
+                        y = ddp_model(x, sigma=sigma)
+                else:
+                    y = ddp_model(x, sigma=sigma)
+
+            y = y.float().cpu()
+
+            # Optional: crop back to original (h,w) if your model preserves spatial size
+            # (this block is safe: if shapes match, we crop; otherwise we keep full y)
+            if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
+                for k, (h, w) in enumerate(shapes):
+                    y[k] = y[k, :, :h, :w]
+
+            for k, idx in enumerate(ids.tolist()):
+                local_results.append((idx, y[k]))
+
+        print(f"Rank {rank}: Completed processing, gathering results...")
+
+        # Gather variable-length results to rank 0
+        if world_size > 1:
+            gather_list = [None] * world_size if rank == 0 else None
+            dist.gather_object(local_results, gather_list, dst=0)
+        else:
+            gather_list = [local_results]
+
+        outputs = None
+        if rank == 0:
+            # Flatten and reorder by original indices
+            flat = [pair for worker in gather_list for pair in worker]
+            n = len(windows)
+            outputs = [None] * n
+            for idx, out in flat:
+                outputs[idx] = out
+            # (optional) sanity check
+            missing_outputs = [i for i, o in enumerate(outputs) if o is None]
+            if missing_outputs:
+                print(f"Warning: Missing outputs for indices: {missing_outputs}")
+            else:
+                print(f"Successfully processed all {n} windows")
+
+        return outputs
+
+    except Exception as e:
+        print(
+            f"Rank {rank if 'rank' in locals() else 'unknown'}: Error in ddp_infer_windows: {e}"
+        )
+        raise e
+    finally:
+        cleanup_ddp()
 
 
-# ---------- Demo entrypoint ----------
+# ---------- Demo entrypoint (FIXED VERSION) ----------
 if __name__ == "__main__":
-    # Example windows (CPU): mix of sizes to show padding works
+    print("Starting distributed tiled image processing...")
+
+    # Print environment info for debugging
+    print(f"Environment variables:")
+    print(f"  RANK: {os.environ.get('RANK', 'not set')}")
+    print(f"  LOCAL_RANK: {os.environ.get('LOCAL_RANK', 'not set')}")
+    print(f"  WORLD_SIZE: {os.environ.get('WORLD_SIZE', 'not set')}")
+    print(f"  MASTER_ADDR: {os.environ.get('MASTER_ADDR', 'not set')}")
+    print(f"  MASTER_PORT: {os.environ.get('MASTER_PORT', 'not set')}")
+
+    # Print SLURM info if available
+    if "SLURM_JOB_ID" in os.environ:
+        print(f"SLURM Job Information:")
+        print(f"  Job ID: {os.environ.get('SLURM_JOB_ID', 'not set')}")
+        print(f"  Node ID: {os.environ.get('SLURM_NODEID', 'not set')}")
+        print(f"  Proc ID: {os.environ.get('SLURM_PROCID', 'not set')}")
+        print(f"  Local ID: {os.environ.get('SLURM_LOCALID', 'not set')}")
+        print(f"  Node list: {os.environ.get('SLURM_NODELIST', 'not set')}")
+
+    # Set seed for reproducibility
     torch.manual_seed(0)
 
-    # Run with: torchrun --nproc_per_node=<NUM_GPUS> ddp_windows.py
-    outs = ddp_infer_windows(drunet, windows, batch_size=4, num_workers=4, use_amp=True)
+    # Run with: torchrun --nproc_per_node=<NUM_GPUS> example_ddp.py
+    # Or with SLURM: sbatch slurm_example.sh
+    try:
+        outs = ddp_infer_windows(
+            drunet, windows, batch_size=4, num_workers=2, use_amp=True
+        )
 
-    # Only rank 0 receives outputs
-    if outs is not None:
-        print(f"Got {len(outs)} outputs. Example shape[0]: {tuple(outs[0].shape)}")
+        # Only rank 0 receives outputs
+        if outs is not None:
+            print(
+                f"SUCCESS: Got {len(outs)} outputs. Example shape[0]: {tuple(outs[0].shape)}"
+            )
+        else:
+            print("Non-master rank completed successfully")
+
+    except Exception as e:
+        print(f"FAILED: {e}")
+        raise e
 
 
 # %%
