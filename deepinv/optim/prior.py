@@ -2,13 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-try:
-    import FrEIA.framework as Ff
-    import FrEIA.modules as Fm
-except ImportError:  # pragma: no cover
-    Ff = ImportError("The FrEIA package is not installed.")  # pragma: no cover
-    Fm = ImportError("The FrEIA package is not installed.")  # pragma: no cover
-
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
@@ -276,9 +269,7 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        return torch.sign(x) * torch.max(
-            torch.abs(x) - ths * gamma, torch.zeros_like(x)
-        )
+        return (x.abs() - ths * gamma).clamp(min=0.0) * x.sign()
 
 
 class WaveletPrior(Prior):
@@ -560,6 +551,10 @@ class PatchNR(Prior):
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
+
+    .. note::
+
+        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.
     """
 
     def __init__(
@@ -572,12 +567,10 @@ class PatchNR(Prior):
         sub_net_size=256,
         device="cpu",
     ):
+        import FrEIA.framework as Ff
+        import FrEIA.modules as Fm
+
         super(PatchNR, self).__init__()
-        if isinstance(Ff, ImportError):
-            raise ImportError(
-                "FrEIA is needed to use the PatchNR class. "
-                "It should be installed with `pip install FrEIA`."
-            ) from Ff
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels

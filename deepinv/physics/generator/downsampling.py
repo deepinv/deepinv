@@ -2,6 +2,7 @@ from typing import Union
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+from deepinv.utils.compat import zip_strict
 
 
 class DownsamplingGenerator(PhysicsGenerator):
@@ -124,7 +125,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
-            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
+            self.get_kernel(f_str, f) for f_str, f in zip_strict(filters, factors)
         ]
 
         if not all([f.shape == filters[0].shape for f in filters]):
