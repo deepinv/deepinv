@@ -5,6 +5,7 @@ from torch import Tensor
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
 from deepinv.utils.mixins import MRIMixin, TimeMixin
+from mrinufft import get_operator
 
 
 class MRI(MRIMixin, DecomposablePhysics):
@@ -700,9 +701,9 @@ class NonCartesianMRI(LinearPhysics):
 
     """
 
-    def __init__(self, E, **kwargs):
+    def __init__(self, samples, shape, backend="cufinufft", grad_wrt_data=True, grad_wrt_traj=False, **kwargs):
         super().__init__()
-        self.E = E
+        self.E = get_operator(backend_name=backend, wrt_data=grad_wrt_data, wrt_traj=grad_wrt_traj)(samples, shape, **kwargs)
 
     def A(self, x: torch.Tensor) -> torch.Tensor:
         return self.E.op(x)

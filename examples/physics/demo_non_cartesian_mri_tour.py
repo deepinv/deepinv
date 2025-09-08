@@ -58,95 +58,40 @@ rng = torch.Generator(device=device).manual_seed(0)
 # Load mini demo knee and brain datasets (original data is 320x320 but we resize to
 # 128 for speed):
 #
+def get_mid_planes(x):
+    """Get mid axial, coronal, sagittal planes."""
+    d, h, w = x.shape[-3:]
+    return [x[..., d // 2, :, :], x[..., :, h // 2, :], x[..., :, :, w // 2]]
 
-knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
-    anatomy="knee",
-    transform=transform,
-    train=True,
-    download=True,
+from mrinufft.trajectories import initialize_3D_cones
+trajectory = initialize_3D_cones(100, 256)
+img_size = (256, 218, 170)
+n_coils = 12
+
+
+foward_model = dinv.physics.mri.NonCartesianMRI(
+    trajectory,
+    img_size,
+    n_coils=12,
 )
-brain_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
-    anatomy="brain",
-    transform=transform,
-    train=True,
-    download=True,
+brain_dataset = dinv.datasets.Calgary3DBrainMRIDataset(
+    #dinv.utils.get_data_home(),
+    "/volatile/",
+    download_example=True,
+    transform=dinv.datasets.CalgaryDataTransformer(foward_model=foward_model),
 )
+kspace_data, recon_image = brain_dataset[0]
 
-img_size = knee_dataset[0].shape[-2:]  # (128, 128)
-dinv.utils.plot({"knee": knee_dataset[0], "brain": brain_dataset[0]})
+dinv.utils.plot(get_mid_planes(recon_image), figsize=(6, 2))
 
-
-# %%
-# Let's start with single-coil MRI. We can define a constant Cartesian 4x
-# undersampling mask by sampling once from a physics generator. The mask,
-# data and measurements will all be of shape ``(B, C, H, W)`` where
-# ``C=2`` is the real and imaginary parts.
-#
-
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-    img_size=img_size, acceleration=4, rng=rng, device=device
-)
-mask = physics_generator.step()["mask"]
-
-physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
-
-dinv.utils.plot(
-    {
-        "x": (x := next(iter(DataLoader(knee_dataset)))),
-        "mask": mask,
-        "y": physics(x.to(device)).clamp(-1, 1),
-    }
-)
-print("Shapes:", x.shape, physics.mask.shape)
-
-
-# %%
-# We can next generate an accelerated single-coil MRI measurement dataset. Let's use knees
-# for training and brains for testing.
-#
-# We can also use the physics generator to randomly sample a new mask per
-# sample, and save the masks alongside the measurements.
-#
-# Note that you could alternatively train using `online_measurements`, where you can generate
-# random measurements on the fly.
-#
-
-dataset_path = dinv.datasets.generate_dataset(
-    train_dataset=knee_dataset,
-    test_dataset=brain_dataset,
-    val_dataset=None,
-    physics=physics,
-    physics_generator=physics_generator,
-    save_physics_generator_params=True,
-    overwrite_existing=False,
-    device=device,
-    save_dir=dinv.utils.get_data_home(),
-    batch_size=1,
-)
-
-train_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="train", load_physics_generator_params=True
-)
-test_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="test", load_physics_generator_params=True
-)
+train_dataset = brain_dataset
+test_dataset = brain_dataset
 
 train_dataloader = DataLoader(train_dataset)
 iterator = iter(train_dataloader)
 
-x0, y0, params0 = next(iterator)
-x1, y1, params1 = next(iterator)
+x0, y0 = next(iterator)
 
-dinv.utils.plot(
-    {
-        "x0": x0,
-        "mask0": params0["mask"],
-        "x1": x1,
-        "mask1": params1["mask"],
-    }
-)
 
 
 # %%
@@ -156,28 +101,29 @@ dinv.utils.plot(
 # the coil-dimension.
 #
 
-mc_physics = dinv.physics.MultiCoilMRI(img_size=img_size, coil_maps=3, device=device)
-
-dinv.utils.plot(
-    {
-        "x": x,
-        "mask": mask,
-        "coil_map_0": mc_physics.coil_maps.abs()[:, 0, ...],
-        "coil_map_1": mc_physics.coil_maps.abs()[:, 1, ...],
-        "coil_map_2": mc_physics.coil_maps.abs()[:, 2, ...],
-        "RSS": mc_physics.A_adjoint_A(x, mask=mask, rss=True),
-    }
+physics = dinv.physics.mri.NonCartesianMRI(
+    trajectory,
+    img_size,
+    n_coils=12,
+    smaps={"name": "low_frequency", "kspace_data": kspace_data},
+    device=device,
 )
 
 
-# %%
-# 2. Train an accelerated MRI problem with neural networks
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# Next, we train a neural network to solve the MRI inverse problem. We provide various
-# models specifically used for MRI reconstruction. These are unrolled
-# networks which require a backbone denoiser, such as UNet or DnCNN:
-#
+
+dinv.utils.plot(
+    {
+        "x": get_mid_planes(x0)[0],
+    }
+)
+
+# Create the wavelet denoiser
+wv = "db4"
+denoiser = dinv.models.wavdict.WaveletDenoiser(
+    wv=wv,
+    wvdim=3,
+    level=3,
+)
 
 denoiser = dinv.models.UNet(
     in_channels=2,

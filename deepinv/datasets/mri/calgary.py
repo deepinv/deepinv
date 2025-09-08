@@ -1,11 +1,17 @@
 from deepinv.datasets.base import ImageDataset
-import h5py
+try:
+    import h5py
+except ImportError:  # pragma: no cover
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )  # pragma: no cover
 import torch
 import numpy as np
 from typing import Union, Optional, Callable
 from pathlib import Path
 import os
-from deepinv.datasets.utils import torch_shuffle
+from deepinv.utils.demo import get_image_url
+from deepinv.datasets.utils import download_archive, torch_shuffle
 
 
 def _load_calgary_volume(
@@ -19,7 +25,6 @@ def _load_calgary_volume(
     Nz_sampled = int(np.ceil(Nz * partial_fourier_factor))
     kspace_hybrid[:, :, Nz_sampled:, :] = 0
     # Move coils dimension to front
-    kspace_hybrid = np.moveaxis(kspace_hybrid, -1, 0)
     kspace_hybrid = torch.tensor(
         kspace_hybrid[:, :, :, ::2] + 1j * kspace_hybrid[:, :, :, 1::2],
         dtype=torch.complex64,
@@ -32,6 +37,7 @@ def _load_calgary_volume(
     if images.shape[-2] != img_size[-1]:
         D = (images.shape[-2] - img_size[-1]) // 2
         images = images[:, :, D:-D, :]
+    images = images.permute(3, 0, 1, 2) 
     return images
 
 
@@ -46,15 +52,22 @@ class Calgary3DBrainMRIDataset(ImageDataset):
         subsample_volumes: Optional[float] = 1.0,
         transform: Optional[Callable] = None,
         filter_id: Optional[Callable] = None,
+        download_example: bool = False,
         rng: Optional[torch.Generator] = None,
     ) -> None:
-        self.root = root
+        self.root = Path(root)
         self.transform = (
             transform if transform is not None else CalgaryDataTransformer()
         )
         self.target_root = Path(target_root) if target_root is not None else None
         self.img_size = img_size
-
+        if download_example:
+            os.makedirs(root, exist_ok=True)
+            file_name = "calgary_brain_12channel.h5"
+            if not os.path.isfile(self.root / file_name):
+                url = get_image_url(str(file_name))
+                download_archive(url, self.root / file_name)
+            
         if isinstance(h5py, ImportError):
             raise h5py
 
@@ -113,7 +126,8 @@ class CalgaryDataTransformer:
         if target is None:
             target = torch.linalg.norm(data, dim=0, keepdim=True)
         if self.forward_model is not None:
-            data = self.forward_model(data)
+            # Sample k-space data
+            data = self.forward_model.A(data)
         if self.noise_level > 0:
             torch.manual_seed(self.seed)
             noise = (
@@ -123,7 +137,3 @@ class CalgaryDataTransformer:
             )
             data = data + noise
         return data, target
-
-
-loader = Calgary3DBrainMRIDataset(root="/volatile/DATA/Calgary")
-data = loader[0]
