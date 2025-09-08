@@ -651,10 +651,10 @@ class NonCartesianMRI(LinearPhysics):
       linear. Ensure ``E.op`` and ``E.adj_op`` do **not** depend on the current
       iterate (e.g., no data-dependent coil re-weighting inside them).
 
-    - Data types & devices. This wrapper **does not** convert between NumPy
+    - Data types & devices. This wrapper does not convert between NumPy
       and PyTorch. If your NUFFT returns NumPy arrays, wrap it so that both
-      ``op`` and ``adj_op`` return **torch tensors** on the **same device** and
-      with a **complex dtype** (e.g., ``torch.complex64``) compatible with the
+      ``op`` and ``adj_op`` return torch tensors on the same device and
+      with a complex dtype (e.g., ``torch.complex64``) compatible with the
       rest of your pipeline.
 
     - Coil sensitivities. This wrapper does not estimate or apply
