@@ -64,6 +64,7 @@ def get_checked_tex() -> bool:
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     import matplotlib.pyplot as plt
+    import matplotlib
 
     global _CHECKED_TEX
     global _ENABLE_TEX
@@ -78,6 +79,10 @@ def config_matplotlib(fontsize=17):
     # If plot gives TeX errors, force disable TeX globally
     if not get_checked_tex():
         try:
+            original_backend = matplotlib.get_backend()
+            matplotlib.use("Agg")  # switch to non-GUI synchronous backend
+            import matplotlib.pyplot as plt  # reimport
+
             set_checked_tex(True)  # temporary to prevent recursion
             _ = plot({r"$\mathbf{x}$": torch.rand(1, 1, 2, 2)}, show=True, close=True)
         except RuntimeError as e:
@@ -87,6 +92,7 @@ def config_matplotlib(fontsize=17):
                 raise
         finally:
             set_checked_tex(False)  # revert
+            matplotlib.use(original_backend)
 
         # If successfully finished checking, don't check again
         set_checked_tex(True)
