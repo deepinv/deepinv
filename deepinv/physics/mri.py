@@ -704,12 +704,9 @@ class NonCartesianMRI(LinearPhysics):
         super().__init__()
         self.E = E
 
-    # ---------------- required by DeepInv data-fidelity ---------------
-    @torch.no_grad()
     def A(self, x: torch.Tensor) -> torch.Tensor:
         return self.E.op(x)
 
-    @torch.no_grad()
     def A_adjoint(self, y: torch.Tensor) -> torch.Tensor:
         """
         Adjoint: y -> x (image domain, coil-combined)
