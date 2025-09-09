@@ -7,9 +7,6 @@ on:
   push:
     branches:
     - main
-  pull_request:
-    branches:
-    - main
 
 
 # Cancel in-progress runs when pushing a new commit on the PR
