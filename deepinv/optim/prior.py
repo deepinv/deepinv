@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
@@ -168,7 +169,7 @@ class ScorePrior(Prior):
         :param float sigma_denoiser: the noise level.
         """
         return self.stable_division(
-            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser ** 2
         )
 
     def score(self, x, sigma_denoiser, *args, **kwargs):
@@ -179,7 +180,7 @@ class ScorePrior(Prior):
         :param float sigma_denoiser: the noise level.
         """
         return self.stable_division(
-            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser ** 2
         )
 
     @staticmethod
@@ -573,7 +574,7 @@ class PatchNR(Prior):
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
-            dimension = patch_size**2 * channels
+            dimension = patch_size ** 2 * channels
 
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
@@ -707,3 +708,141 @@ class L12Prior(Prior):
         # Creating a mask to avoid diving by zero
         # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
         return z4
+
+
+class WCRR(Prior):
+    def __init__(
+        self,
+        in_channels=1,
+        weak_convexity=0.0,
+        nb_channels=[4, 8, 64],
+        filter_sizes=[5, 5, 5],
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        pretrained=None,
+    ):
+        r"""
+        (Weakly) Convex Ridge Regularizer
+
+        Has the form
+
+        .. math::
+            \reg{x}=\sum_{c} \psi_c(W_c x)
+
+        for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a  concatination multiple convolution
+        layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values, see [3] for a precise description.
+
+        References:
+
+        [1] Goujon et al., "A Neural-Network-Based Convex Regularizer for Inverse Problems", IEEE Transactions on Computational Imaging 9, 781-795, 2023.
+
+        [2] Goujon et al., "Learning weakly convex regularizers for convergent image-reconstruction algorithms", SIAM Journal on Imaging Sciences 17 (1), 91-115, 2024.
+
+        The specific implementation was taken from:
+
+        [3]
+
+        :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `1`
+        :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
+            Default: `0.0`
+        :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
+        :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
+        :param str device: Device for the weights. Default: `"cuda" if torch.cuda.is_available() else "cpu"`
+        :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+        """
+        super(WCRR, self).__init__()
+        nb_channels = [in_channels] + nb_channels
+        self.nb_filters = nb_channels[-1]
+        self.filter_size = sum(filter_sizes) - len(filter_sizes) + 1
+        self.filters = nn.Sequential(
+            *[
+                nn.Conv2d(
+                    nb_channels[i],
+                    nb_channels[i + 1],
+                    filter_sizes[i],
+                    padding=filter_sizes[i] // 2,
+                    bias=False,
+                )
+                for i in range(len(filter_sizes))
+            ]
+        )
+
+        class ZeroMean(nn.Module):
+            """Enforces zero mean on the filters"""
+
+            def forward(self, x):
+                return x - torch.mean(x, dim=(1, 2, 3), keepdim=True)
+
+        torch.nn.utils.parametrize.register_parametrization(
+            self.filters[0], "weight", ZeroMean()
+        )
+
+        self.dirac = torch.zeros(
+            1, 1, 2 * self.filter_size - 1, 2 * self.filter_size - 1
+        )
+        self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
+
+        self.scaling = nn.Parameter(
+            torch.log(torch.tensor(2.0) / sigma) * torch.ones(1, self.nb_filters, 1, 1)
+        )
+        self.beta = nn.Parameter(torch.tensor(4.0))
+        self.weak_cvx = weak_convexity
+
+        if pretrained is not None:
+            self.load_state_dict(torch.load(pretrained, map_location=device))
+
+    def smooth_l1(self, x):
+        return torch.clip(x ** 2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
+
+    def grad_smooth_l1(self, x):
+        return torch.clip(x, -1.0, 1.0)
+
+    def get_conv_lip(self):
+        impulse = self.filters(self.dirac)
+        for filt in reversed(self.filters):
+            impulse = F.conv_transpose2d(impulse, filt.weight, padding=filt.padding)
+        return torch.fft.fft2(impulse, s=[256, 256]).abs().max()
+
+    def conv(self, x):
+        x = x / torch.sqrt(self.get_conv_lip())
+        return self.filters(x)
+
+    def conv_transpose(self, x):
+        x = x / torch.sqrt(self.get_conv_lip())
+        for filt in reversed(self.filters):
+            x = F.conv_transpose2d(x, filt.weight, padding=filt.padding)
+        return x
+
+    def grad(self, x, get_energy=False):
+        grad = self.conv(x)
+        grad = grad * torch.exp(self.scaling)
+        if get_energy:
+            reg = (
+                self.smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
+                - self.smooth_l1(grad) * self.weak_cvx
+            )
+            reg = reg * torch.exp(-2 * self.scaling)
+            reg = reg.sum(dim=(1, 2, 3))
+        grad = (
+            self.grad_smooth_l1(torch.exp(self.beta) * grad)
+            - self.grad_smooth_l1(grad) * self.weak_cvx
+        )
+        grad = grad * torch.exp(-self.scaling)
+        grad = self.conv_transpose(grad)
+        if get_energy:
+            return reg, grad
+        return grad
+
+    def fn(self, x):
+        reg = self.conv(x)
+        reg = reg * torch.exp(self.scaling)
+        reg = (
+            self.smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
+            - self.smooth_l1(reg) * self.weak_cvx
+        )
+        reg = reg * torch.exp(-2 * self.scaling)
+        reg = reg.sum(dim=(1, 2, 3))
+        return reg
+
+    def _apply(self, fn):
+        self.dirac = fn(self.dirac)
+        return super()._apply(fn)
