@@ -384,13 +384,17 @@ def create_projection_geometry(
             )
     else:
         if geometry_vectors is None:
+            if isinstance(detector_spacing, (float, int)):
+                detector_spacing = (detector_spacing, detector_spacing)
             if len(detector_spacing) != 2:
                 raise ValueError(
-                    f"For 3D geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
+                    f"For 3D geometry, argument `detector_spacing` should be float or a tuple of size 2 specifying the vertical and horizontal dimensions of a detector cell, got len(detector_spacing)={len(detector_spacing)}"
                 )
+        if isinstance(n_detector_pixels, int):
+            n_detector_pixels = (n_detector_pixels, n_detector_pixels)
         if len(n_detector_pixels) != 2:
             raise ValueError(
-                f"For 3D geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
+                f"For 3D geometry, argument `n_detector_pixels` should be a int or tuple of size 2 specifying the number of (columns,rows) in the detector grid, got len(n_detector_pixels)={len(n_detector_pixels)}"
             )
 
     if geometry_parameters is not None:
@@ -484,7 +488,7 @@ def create_object_geometry(
     n_cols: int,
     n_slices: int = 1,
     is_2d: bool = True,
-    pixel_spacing: tuple[float, ...] = (1.0, 1.0),
+    pixel_spacing: Union[float, tuple[float, ...]] = 1.0,
     bounding_box: Optional[tuple[float, ...]] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
@@ -494,7 +498,7 @@ def create_object_geometry(
     :param int n_cols: Number of columns.
     :param int n_slices: Number of slices. It is automatically set to 1 when ``is_2d=True``.
     :param bool is_2D: Boolean specifying if the parameters define a 2D slice or a 3D volume.
-    :param tuple[float, ...] pixel_spacing: Dimensions of reconstruction cell along the axis [x,y,...].
+    :param float | tuple[float, ...] pixel_spacing: Dimensions of reconstruction cell along the axis [x,y,...].
     :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
     """
     import astra
@@ -506,9 +510,11 @@ def create_object_geometry(
                     f"For 2D geometry, argument `bounding_box` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
+            if isinstance(pixel_spacing, (float, int)):
+                pixel_spacing = (pixel_spacing, pixel_spacing)
             if len(pixel_spacing) != 2:
                 raise ValueError(
-                    f"For 2D geometry, `pixel_spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
+                    f"For 2D geometry, `pixel_spacing` should be a float or tuple of size 2 specifying (length_x,length_y) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
     else:
         if bounding_box is not None:
@@ -517,9 +523,11 @@ def create_object_geometry(
                     f"For 3D geometry, argument `bounding_box` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
+            if isinstance(pixel_spacing, (float, int)):
+                pixel_spacing = (pixel_spacing, pixel_spacing, pixel_spacing)
             if len(pixel_spacing) != 3:
                 raise ValueError(
-                    f"For 23 geometry, `pixel_spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(pixel_spacing)={len(pixel_spacing)}"
+                    f"For 23 geometry, `pixel_spacing` should be float or a tuple of size 3 specifying (length_x,length_y,length_z) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
 
     if is_2d:

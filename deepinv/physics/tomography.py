@@ -333,7 +333,7 @@ class TomographyWithAstra(LinearPhysics):
     :param int | tuple[int, ...], None n_detector_pixels: In 2D, specify an integer for a single line of detector cells. In 3D, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
     :param tuple[float, float] angular_range: Angular range, defaults to ``(0, 180)``.
     :param float | tuple[float, float] detector_spacing: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
-    :param tuple[float, ...] pixel_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
+    :param float | tuple[float, ...] pixel_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. Scalar value is interpreted as the same dimension along all axes (default: 1.0)
     :param tuple[float, ...], None bounding_box: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D. (default: ``'parallel'``)
     :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
@@ -443,7 +443,7 @@ class TomographyWithAstra(LinearPhysics):
         n_detector_pixels: Optional[Union[int, tuple[int, ...]]] = None,
         angular_range: tuple[float, float] = (0, torch.pi),
         detector_spacing: Union[float, tuple[float, float]] = 1.0,
-        pixel_spacing: tuple[float, ...] = (1.0, 1.0),
+        pixel_spacing: Union[float, tuple[float, ...]] = 1.0,
         bounding_box: Optional[tuple[float, ...]] = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, Any] = MappingProxyType(
