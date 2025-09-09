@@ -232,20 +232,27 @@ class WandbRunLogger(RunLogger):
     ):
         """
         TODO
+
+        Wandb expects NumPy array or PIL image.
         """
         step = None
 
         # process images
         for name_img, img in images.items():
             shape = img.shape
-            if len(shape) == 2 or len(shape) == 3:
-                wandb_images = wandb.Image(img)
+            if len(shape) == 2:
+                wandb_images = wandb.Image(img.numpy())
+
+                # log images
+                self.wandb_run.log({f'{phase} samples: {name_img}': wandb_images}, step=epoch)
+            elif len(shape) == 3:
+                wandb_images = wandb.Image(img.permute(1,2,0).numpy())
 
                 # log images
                 self.wandb_run.log({f'{phase} samples: {name_img}': wandb_images}, step=epoch)
             elif len(shape) == 4:
                 for j in range(len(img)):
-                    wandb_images = wandb.Image(img[j])
+                    wandb_images = wandb.Image(img[j].permute(1,2,0).numpy())
 
                     # log images
                     self.wandb_run.log({f'{phase} samples: {name_img}_{j}': wandb_images}, step=epoch)
