@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import tqdm
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.models.siren import TVPrior
 
 
 def add_module(self, module):
@@ -83,7 +84,7 @@ class ConvDecoder(nn.Module):
         self.net.add(nn.BatchNorm2d(channels, affine=True))
         self.net.add(nn.Conv2d(channels, output_channels, 1, 1, padding=0, bias=True))
 
-    def forward(self, x, scale_out=1):
+    def forward(self, x, scale_out=1, **kwargs):
         r"""
         Forward pass through the ConvDecoder network.
 
@@ -136,6 +137,7 @@ class DeepImagePrior(Reconstructor):
         learning_rate=1e-2,
         verbose=False,
         re_init=False,
+        regul_param=None
     ):
         super().__init__()
         self.generator = generator
@@ -148,8 +150,10 @@ class DeepImagePrior(Reconstructor):
         from deepinv.loss.mc import MCLoss
 
         self.loss = MCLoss()
+        self.prior = TVPrior()
+        self.regul_param = regul_param
 
-    def forward(self, y, physics, z_train=None, z_eval=None, **kwargs):
+    def forward(self, y, physics, z_train=None, z_eval=None, shape_train=None, shape_eval=None, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -161,27 +165,35 @@ class DeepImagePrior(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
-        :param torch.Tensor z_train: Input latent variable during training. If ``None``, a random vector is generated.
-        :param torch.Tensor z_eval: Input latent variable during evaluation. If ``None``, the training latent variable is used.
+        :param torch.Tensor z_train: Input latent variable for training. If ``None``, a random noise is generated.
+        :param torch.Tensor z_eval: Input latent variable for evaluation. If ``None``, ``z_train`` is used.
+        :param torch.Tensor shape_train: Shape of the training data.
+        :param torch.Tensor shape_eval: Shape of the evaluation data. If ``None``, ``shape_train`` is used.
         """
-        if z_train is None:
-            z_train = torch.randn(self.img_size, device=y.device).unsqueeze(0)
-        if z_eval is None:
-            z_eval = z_train
-
         if self.re_init:
             for layer in self.generator.children():
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
         self.generator.requires_grad_(True)
+        if z_train is None:
+            z_train = torch.randn(self.img_size, device=y.device).unsqueeze(0)
+        if z_eval is None:
+            z_eval = z_train
+        if shape_train is None:
+            raise ValueError("shape_train must be provided.")
+        if shape_eval is None:
+            shape_eval = shape_train
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
+        z_train.requires_grad_(True)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z_train)
-            error = self.loss(y=y, x_net=x, physics=physics)
+            error = self.loss(y=y, x_net=x.view(shape_train), physics=physics) 
+            if self.regul_param is not None:
+                error += self.regul_param * self.prior(x, z_train)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
 
-        return self.generator(z_eval)
+        return self.generator(z_eval).view(shape_eval)

@@ -3,18 +3,43 @@ import torch
 import torch.nn as nn
 from typing import Optional
 
-def get_mgrid(shape) -> torch.Tensor:
+def get_mgrid(shape):
     """
     Generates a flattened grid of (x,y,...) coordinates in a range of -1 to 1.
 
-    :param tuple shape: The shape of the grid to generate.
-
-    :return: A tensor of shape `(2, shape.prod())` containing the grid coordinates
+    :param tuple shape: The shape of the grid to generate. E.g., (H, W) for a 2D grid.
     """
     tensors = tuple([torch.linspace(-1, 1, steps=steps) for steps in shape])
     mgrid = torch.stack(torch.meshgrid(*tensors), dim=-1)
     mgrid = mgrid.reshape(-1, len(shape))
     return mgrid
+
+def nabla(y:torch.Tensor, x:torch.Tensor, grad_outputs:Optional[torch.Tensor]=None) -> torch.Tensor:
+    r""" Computes the vector-Jacobian-product (VJP) of y w.r.t. x on the direction of grad_outputs.
+
+    Each element of the VJP is computed as :math:`\sum_{i=1}^m \frac{\partial y_i}{\partial x_k} \cdot v_i`, where :math:`x_k` is the k-th element of `x`, :math:`y_i` is the i-th element of `y` and :math:`v_i` is the i-th element of `grad_outputs`.
+
+    By default, `grad_outputs` is a tensor of ones with the same shape as `y`. The default behavior on a scalar `y` thus computes the nabla (gradient) of `y` w.r.t. `x`.
+
+    :param torch.Tensor y: The output tensor.
+    :param torch.Tensor x: The input tensor.
+    :param Optional[torch.Tensor] grad_outputs: The direction of the VJP. If None, a tensor of ones with the same shape as `y` is used.
+    """
+    if grad_outputs is None:
+        grad_outputs = torch.ones_like(y)
+    grad = torch.autograd.grad(y, [x], grad_outputs=grad_outputs, create_graph=True)[0]
+    return grad
+        
+class TVPrior(nn.Module):
+    r"""
+    Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.
+
+    The TV prior is computed using the continuous definition of the gradient, i.e., :math:`D x = \nabla x`.
+    """
+
+    def forward(self, y, x):
+        y = torch.mean(nabla(y,x).abs())
+        return y
 
 class FourierPE(nn.Module):
     r"""
@@ -102,7 +127,7 @@ class SinMLP(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dims: list[int],
-        bias: bool = True,
+        bias: bool = False,
         omega0: float = 1.0,
     ) -> None:
 
@@ -147,7 +172,6 @@ class SIREN(nn.Module):
     :param List[int] siren_dims: Hidden‐layer sizes for the SIREN.
     :param Optional[tuple[int, ...]] output_shape: If provided, the output is reshaped to this shape.
     :param dict omega0: Frequency factors for the positional encoding and SIREN, respectively. Default is {"pe": 20.0, "siren": 1.0}.
-    :param bool bias: If True, the encoding and SinMLP include a bias term for each layer. Default is True.
     :param str device: Device to run the model on. Default is "cpu".
     """
 
@@ -157,34 +181,25 @@ class SIREN(nn.Module):
         encoding_dim: int,
         out_channels: int,
         siren_dims: list[int],
-        output_shape: Optional[tuple[int, ...]] = None,
         omega0: dict = {"encoding": 20.0, "siren": 1.0},
-        bias: bool = True,
         device: str = "cpu"
     ) -> None:
 
-        super().__init__()
-        
-        self.module = nn.ModuleDict()   
-        self.output_shape = output_shape
+        super().__init__() 
 
-        self.module["PE"] = self.pe = FourierPE(
+        self.pe = FourierPE(
             input_dim=input_dim,
             output_dim=encoding_dim,
             omega0=omega0["encoding"],
-            bias=bias,
         ).to(device)
-        self.module["SIREN"] = self.siren = SinMLP(
+        self.siren = SinMLP(
             input_dim=self.pe.output_dim,
             hidden_dims=siren_dims,
             output_dim=out_channels,
             omega0=omega0['siren'],
-            bias=bias,
         ).to(device)
 
-    def forward(self, x: torch.Tensor, output_shape=None) -> torch.Tensor:
-        if output_shape is None:
-            output_shape = self.output_shape
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.pe(x)
         x = self.siren(x)
-        return x.view(output_shape)
+        return x
