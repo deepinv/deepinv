@@ -4,7 +4,10 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
+
+# Optional matplotlib import
 import matplotlib.pyplot as plt
+
 
 import deepinv as dinv
 from torchvision.transforms import ToTensor, Compose, CenterCrop
@@ -19,12 +22,14 @@ from pathlib import Path
 def setup_distributed():
     """
     Initialize distributed training environment.
-    Fixes the NCCL error by properly setting up GPU device assignment.
+    Handles single GPU, multi-GPU single node, and multi-node scenarios.
     """
     # Get distributed training parameters from environment variables (set by torchrun)
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     rank = int(os.environ.get("RANK", 0))
     world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+    print(f"Setup: LOCAL_RANK={local_rank}, RANK={rank}, WORLD_SIZE={world_size}")
 
     # Set default environment variables if not set
     if "MASTER_ADDR" not in os.environ:
@@ -32,23 +37,39 @@ def setup_distributed():
     if "MASTER_PORT" not in os.environ:
         os.environ["MASTER_PORT"] = "12355"
 
-    # CRITICAL: Set the CUDA device for this process BEFORE initializing the process group
+    # Determine device and backend
     if torch.cuda.is_available():
+        # Handle case where LOCAL_RANK might be >= number of available GPUs
+        num_gpus = torch.cuda.device_count()
+        if local_rank >= num_gpus:
+            print(
+                f"Warning: LOCAL_RANK {local_rank} >= available GPUs {num_gpus}, using GPU 0"
+            )
+            local_rank = local_rank % num_gpus
+
         torch.cuda.set_device(local_rank)
         device = torch.device(f"cuda:{local_rank}")
         backend = "nccl"
+        print(f"Using CUDA device: {device}")
     else:
         device = torch.device("cpu")
         backend = "gloo"
+        print(f"Using CPU device: {device}")
 
-    # Initialize the process group
+    # Initialize the process group only if we have multiple processes
     if world_size > 1:
-        dist.init_process_group(
-            backend=backend, init_method="env://", rank=rank, world_size=world_size
-        )
-        print(
-            f"Rank {rank}/{world_size}: Initialized process group with device {device}"
-        )
+        try:
+            dist.init_process_group(
+                backend=backend, init_method="env://", rank=rank, world_size=world_size
+            )
+            print(
+                f"Rank {rank}/{world_size}: Initialized process group with device {device}"
+            )
+        except Exception as e:
+            print(f"Failed to initialize distributed process group: {e}")
+            print("Falling back to single process mode")
+            world_size = 1
+            rank = 0
     else:
         print(f"Single process mode with device {device}")
 
@@ -58,7 +79,11 @@ def setup_distributed():
 def cleanup_distributed():
     """Clean up distributed training environment."""
     if dist.is_initialized():
-        dist.destroy_process_group()
+        try:
+            dist.destroy_process_group()
+            print("Distributed process group cleaned up")
+        except Exception as e:
+            print(f"Warning: Error during cleanup: {e}")
 
 
 def print_gpu_info():
@@ -66,9 +91,14 @@ def print_gpu_info():
     if torch.cuda.is_available():
         local_rank = int(os.environ.get("LOCAL_RANK", 0))
         rank = int(os.environ.get("RANK", 0))
+        num_gpus = torch.cuda.device_count()
+
+        # Handle case where LOCAL_RANK might be >= available GPUs
+        if local_rank >= num_gpus:
+            local_rank = local_rank % num_gpus
 
         print(f"Rank {rank}, Local Rank {local_rank}")
-        print(f"CUDA Device Count: {torch.cuda.device_count()}")
+        print(f"CUDA Device Count: {num_gpus}")
         print(f"Current CUDA Device: {torch.cuda.current_device()}")
         print(f"Device Name: {torch.cuda.get_device_name()}")
         print(
@@ -425,9 +455,20 @@ def setup_ddp():
 
 
 def cleanup_ddp():
-    if dist.is_initialized():
-        dist.barrier()
-        cleanup_distributed()
+    """Clean up DDP resources safely."""
+    try:
+        if dist.is_initialized():
+            dist.barrier()
+            cleanup_distributed()
+        else:
+            print("No distributed process group to clean up")
+    except Exception as e:
+        print(f"Warning: Error during DDP cleanup: {e}")
+        # Force cleanup even if there's an error
+        try:
+            cleanup_distributed()
+        except:
+            pass
 
 
 # ---------- Inference over windows with DDP (FIXED VERSION) ----------
@@ -442,12 +483,13 @@ def ddp_infer_windows(
 ):
     """
     FIXED VERSION: Returns (only on rank 0): list of output tensors aligned to the input windows order.
-    Other ranks return None.
+    Other ranks return None. Handles single GPU, multi-GPU single node, and multi-node scenarios.
 
     Key fixes:
     - Proper device assignment using LOCAL_RANK
     - Correct DDP initialization
     - Better error handling
+    - Support for single GPU scenario
     """
     try:
         local_rank, rank, world_size, device = setup_ddp()
@@ -455,93 +497,158 @@ def ddp_infer_windows(
         print(f"Rank {rank}: Using device {device} (local_rank: {local_rank})")
         print_gpu_info()
 
-        # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
-        dataset = WindowListDataset(windows)
-        sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
-        loader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            sampler=sampler,
-            num_workers=num_workers,
-            pin_memory=torch.cuda.is_available(),
-            persistent_workers=(num_workers > 0),
-            collate_fn=collate_pad,
-        )
+        # For single GPU or non-distributed scenario, handle differently
+        if world_size == 1:
+            # Single process mode - process all windows directly
+            print(f"Single process mode: processing {len(windows)} windows")
 
-        # Move model to this GPU and wrap with DDP
-        model = copy.deepcopy(model).to(device).eval()
+            # Move model to device
+            model = copy.deepcopy(model).to(device).eval()
 
-        # FIXED: Use local_rank directly instead of device.index
-        if world_size > 1:
+            # Create simple DataLoader without DistributedSampler
+            dataset = WindowListDataset(windows)
+            loader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=num_workers,
+                pin_memory=torch.cuda.is_available(),
+                collate_fn=collate_pad,
+            )
+
+            local_results: List[Tuple[int, torch.Tensor]] = []
+
+            if torch.cuda.is_available() and use_amp:
+                autocast = torch.cuda.amp.autocast
+            else:
+                from contextlib import nullcontext
+
+                autocast = nullcontext
+
+            print(f"Processing {len(loader)} batches...")
+
+            for batch_idx, (ids, x, shapes) in enumerate(loader):
+                if batch_idx % 10 == 0:
+                    print(f"Processing batch {batch_idx}/{len(loader)}")
+
+                x = x.to(device, non_blocking=True)
+
+                with torch.inference_mode():
+                    if torch.cuda.is_available() and use_amp:
+                        with autocast(enabled=True, dtype=torch.float16):
+                            y = model(x, **model_kwargs)
+                    else:
+                        y = model(x, **model_kwargs)
+
+                y = y.float().cpu()
+
+                # Optional: crop back to original (h,w) if your model preserves spatial size
+                if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
+                    # Create a new tensor instead of inplace operation
+                    y_cropped = []
+                    for k, (h, w) in enumerate(shapes):
+                        y_cropped.append(y[k, :, :h, :w].clone())
+                    y = torch.stack(y_cropped)
+
+                for k, idx in enumerate(ids.tolist()):
+                    local_results.append((idx, y[k]))
+
+            # Prepare outputs in correct order
+            outputs = [None] * len(windows)
+            for idx, out in local_results:
+                outputs[idx] = out
+
+            print(f"Successfully processed all {len(windows)} windows")
+            return outputs
+
+        else:
+            # Multi-process distributed mode
+            print(f"Distributed mode: rank {rank}/{world_size}")
+
+            # Build dataset/loader with DistributedSampler (no shuffling; we preserve order via indices)
+            dataset = WindowListDataset(windows)
+            sampler = DistributedSampler(dataset, shuffle=False, drop_last=False)
+            loader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                sampler=sampler,
+                num_workers=num_workers,
+                pin_memory=torch.cuda.is_available(),
+                persistent_workers=(num_workers > 0),
+                collate_fn=collate_pad,
+            )
+
+            # Move model to this GPU and wrap with DDP
+            model = copy.deepcopy(model).to(device).eval()
+
+            # FIXED: Use local_rank directly instead of device.index
             ddp_model = DDP(
                 model,
                 device_ids=[local_rank] if torch.cuda.is_available() else None,
                 output_device=local_rank if torch.cuda.is_available() else None,
             )
-        else:
-            ddp_model = model  # No need for DDP in single GPU case
 
-        local_results: List[Tuple[int, torch.Tensor]] = []
+            local_results: List[Tuple[int, torch.Tensor]] = []
 
-        if torch.cuda.is_available() and use_amp:
-            autocast = torch.cuda.amp.autocast
-        else:
-            # Fallback for CPU or when AMP is disabled
-            from contextlib import nullcontext
+            if torch.cuda.is_available() and use_amp:
+                autocast = torch.cuda.amp.autocast
+            else:
+                # Fallback for CPU or when AMP is disabled
+                from contextlib import nullcontext
 
-            autocast = nullcontext
+                autocast = nullcontext
 
-        print(f"Rank {rank}: Processing {len(loader)} batches...")
+            print(f"Rank {rank}: Processing {len(loader)} batches...")
 
-        for batch_idx, (ids, x, shapes) in enumerate(loader):
-            if batch_idx % 10 == 0:
-                print(f"Rank {rank}: Processing batch {batch_idx}/{len(loader)}")
+            for batch_idx, (ids, x, shapes) in enumerate(loader):
+                if batch_idx % 10 == 0:
+                    print(f"Rank {rank}: Processing batch {batch_idx}/{len(loader)}")
 
-            x = x.to(device, non_blocking=True)
+                x = x.to(device, non_blocking=True)
 
-            with torch.inference_mode():
-                if torch.cuda.is_available() and use_amp:
-                    with autocast(enabled=True, dtype=torch.float16):
+                with torch.inference_mode():
+                    if torch.cuda.is_available() and use_amp:
+                        with autocast(enabled=True, dtype=torch.float16):
+                            y = ddp_model(x, **model_kwargs)
+                    else:
                         y = ddp_model(x, **model_kwargs)
-                else:
-                    y = ddp_model(x, **model_kwargs)
 
-            y = y.float().cpu()
+                y = y.float().cpu()
 
-            # Optional: crop back to original (h,w) if your model preserves spatial size
-            # (this block is safe: if shapes match, we crop; otherwise we keep full y)
-            if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
-                for k, (h, w) in enumerate(shapes):
-                    y[k] = y[k, :, :h, :w]
+                # Optional: crop back to original (h,w) if your model preserves spatial size
+                # (this block is safe: if shapes match, we crop; otherwise we keep full y)
+                if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
+                    # Create a new tensor instead of inplace operation
+                    y_cropped = []
+                    for k, (h, w) in enumerate(shapes):
+                        y_cropped.append(y[k, :, :h, :w].clone())
+                    y = torch.stack(y_cropped)
 
-            for k, idx in enumerate(ids.tolist()):
-                local_results.append((idx, y[k]))
+                for k, idx in enumerate(ids.tolist()):
+                    local_results.append((idx, y[k]))
 
-        print(f"Rank {rank}: Completed processing, gathering results...")
+            print(f"Rank {rank}: Completed processing, gathering results...")
 
-        # Gather variable-length results to rank 0
-        if world_size > 1:
+            # Gather variable-length results to rank 0
             gather_list = [None] * world_size if rank == 0 else None
             dist.gather_object(local_results, gather_list, dst=0)
-        else:
-            gather_list = [local_results]
 
-        outputs = None
-        if rank == 0:
-            # Flatten and reorder by original indices
-            flat = [pair for worker in gather_list for pair in worker]
-            n = len(windows)
-            outputs = [None] * n
-            for idx, out in flat:
-                outputs[idx] = out
-            # (optional) sanity check
-            missing_outputs = [i for i, o in enumerate(outputs) if o is None]
-            if missing_outputs:
-                print(f"Warning: Missing outputs for indices: {missing_outputs}")
-            else:
-                print(f"Successfully processed all {n} windows")
+            outputs = None
+            if rank == 0:
+                # Flatten and reorder by original indices
+                flat = [pair for worker in gather_list for pair in worker]
+                n = len(windows)
+                outputs = [None] * n
+                for idx, out in flat:
+                    outputs[idx] = out
+                # (optional) sanity check
+                missing_outputs = [i for i, o in enumerate(outputs) if o is None]
+                if missing_outputs:
+                    print(f"Warning: Missing outputs for indices: {missing_outputs}")
+                else:
+                    print(f"Successfully processed all {n} windows")
 
-        return outputs
+            return outputs
 
     except Exception as e:
         print(
