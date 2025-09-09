@@ -881,7 +881,10 @@ class LeastSquaresSolver(torch.autograd.Function):
             g_params = torch.autograd.grad(
                 pseudo, params, retain_graph=False, allow_unused=True
             )
-            for p, g in zip(params, g_params):
+            for p, g in zip_strict(
+                params,
+                g_params,
+            ):
                 if g is not None:
                     if p.grad is None:
                         p.grad = g.detach()
@@ -940,6 +943,13 @@ def least_squares_implicit_backward(
 
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
     """
+
+    if z is None:
+        # To get correct shape
+        z = zeros_like(physics.A_adjoint(y))
+    if init is None:
+        init = zeros_like(z)
+
     # NOTE: TensorList not supported by autograd function, we fall back to standard least_squares in this case for now
     if isinstance(y, TensorList):
         warnings.warn(
@@ -956,12 +966,6 @@ def least_squares_implicit_backward(
             ATA=physics.A_adjoint_A,
             **kwargs,
         )
-
-    if z is None:
-        # To get correct shape
-        z = torch.zeros_like(physics.A_adjoint(y))
-    if init is None:
-        init = torch.zeros_like(z)
 
     physics_requires_grad_params = any(
         p.requires_grad for p in getattr(physics, "buffers", lambda: [])()

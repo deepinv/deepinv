@@ -864,6 +864,7 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 @pytest.mark.parametrize("model_name", REST_MODEL_LIST)
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
+@pytest.mark.parametrize("device", [torch.device("cpu")])
 def test_restoration_models(
     device, pretrained, model_name, physics_name, channels, rng, whsize
 ):
