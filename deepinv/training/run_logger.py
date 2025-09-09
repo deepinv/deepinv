@@ -89,6 +89,13 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
+    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+        """
+        TODO
+        """
+        pass
+
+    @abstractmethod
     def log_checkpoint(self, epoch: int, state: dict[str, Any]):
         """
         Log training checkpoint.
@@ -104,7 +111,6 @@ class RunLogger(ABC):
         Finalize and close the training run.
         """
         pass
-
 
 class WandbRunLogger(RunLogger):
     """
@@ -256,6 +262,13 @@ class WandbRunLogger(RunLogger):
 
                     # log images
                     self.wandb_run.log({f'{phase} samples: {name_img}_{j}': wandb_images}, step=epoch)
+
+    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+        """
+        TODO
+        """
+        if 'resume_id' in checkpoint:
+            self.resume_id = checkpoint['resume_id']
 
     def log_checkpoint(self, epoch, state=None):
         """
