@@ -132,6 +132,9 @@ def nonmonotone_accelerated_proximal_gradient(
     x_bar_old = x_bar.clone()
     grad_f_old = grad_f.clone()
 
+    iterations = torch.ones((x.shape[0],), dtype=torch.int, device=x.device)
+    line_searches = torch.zeros((x.shape[0],), dtype=torch.int, device=x.device)
+
     # Main loop
     for i in range(max_iter):
         assert not torch.any(
@@ -188,6 +191,7 @@ def nonmonotone_accelerated_proximal_gradient(
             idx_sub = idx_sub[energy_new_ > bound.squeeze()]
             idx_search = idx[idx_sub]
             L[idx_search] = L[idx_search] / rho
+            line_searches[idx_search] += 1
         # If for Eq 153-158
         idx2 = (
             (
@@ -233,6 +237,7 @@ def nonmonotone_accelerated_proximal_gradient(
                     L[idx_idx2],
                     L[idx_idx2] / rho,
                 )
+                line_searches[idx_idx2] += 1
             x[idx] = z[idx]
             idx3 = (energy_new2 <= energy_new[idx2]).nonzero().view(-1)
             tmp = idx_idx2[idx3]
@@ -249,6 +254,7 @@ def nonmonotone_accelerated_proximal_gradient(
         ), "Numerical errors! Some values became NaN!"
         condition = res >= tol
         idx = condition.nonzero().view(-1)  # Update which data to still iterate on
+        iterations[idx] += 1
 
         if torch.max(res) < tol:
             if verbose:
@@ -266,4 +272,4 @@ def nonmonotone_accelerated_proximal_gradient(
     if verbose and (torch.max(res) >= tol):
         warnings.warn(f"max iter reached, tol {torch.max(res).item():.6f}")
     converged = res < tol
-    return x, L, i, converged
+    return x, L, iterations, line_searches, converged

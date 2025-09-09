@@ -700,17 +700,16 @@ class NMAPG(Reconstructor):
         self.verbose = verbose
         self.custom_init = custom_init
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False, x_init=None):
+    def forward(self, y, physics, compute_stats=False, x_init=None):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
-        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
-        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :param bool compute_stats: whether to compute certain statistics (number of steps, approximated Lipschitz of :math:`f`) or not. Default: ``False``.
         :param torch.Tensor x_init: Use `x_init` as initialization instead of :math:`A^{\dagger}y` or the custom init function. Default: `None`
-        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
-                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        :return: If ``compute_stats`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and a dictionary with the stats.
         """
         if self.gradient_for_both:
             f = lambda x, y: self.data_fidelity(
@@ -734,7 +733,13 @@ class NMAPG(Reconstructor):
             x0 = self.custom_init(y, physics)
 
         with torch.no_grad():
-            rec, L, steps, converged = nonmonotone_accelerated_proximal_gradient(
+            (
+                rec,
+                L,
+                steps,
+                line_searches,
+                converged,
+            ) = nonmonotone_accelerated_proximal_gradient(
                 x0,
                 f,
                 y=y,
@@ -751,3 +756,8 @@ class NMAPG(Reconstructor):
                 eta=self.eta,
                 verbose=self.verbose,
             )
+
+        stats = dict(L=L, steps=steps, line_searches=line_searches, converged=converged)
+        if return_stats:
+            return rec, stats
+        return rec
