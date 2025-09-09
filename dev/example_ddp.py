@@ -36,6 +36,7 @@ sys.path.append(str(Path(__file__).parent))
 
 import numpy as np
 import torch
+import gc
 
 import deepinv as dinv
 from torchvision.transforms import ToTensor, Compose, CenterCrop
@@ -104,6 +105,7 @@ if __name__ == "__main__":
     )
 
     image = dataset[0]
+    image = torch.nn.functional.interpolate(image[None], scale_factor=2.0).squeeze()
 
     # Finally, create a noisy version of the image with a fixed noise level sigma.
     sigma = 0.2
@@ -124,7 +126,7 @@ if __name__ == "__main__":
     print(f"Receptive field radius: {receptive_field_radius}")
 
     # Define patch size (smaller than image for demonstration)
-    patch_size = 128
+    patch_size = 1024
 
     # Test creating windows and masks
     windows, masks, patch_positions = create_tiled_windows_and_masks(
@@ -167,11 +169,18 @@ if __name__ == "__main__":
             print(f"Original noisy image shape: {noisy_image.shape}")
 
             # For comparison, also process the image directly (if memory allows)
+            gc.collect()
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            torch.cuda.synchronize()
             print("Processing image directly for comparison...")
             start_time = time.time()
+            drunet = drunet.to("cuda" if torch.cuda.is_available() else "cpu")
+            noisy_image = noisy_image.to("cuda" if torch.cuda.is_available() else "cpu")
             with torch.no_grad():
-                direct_result = drunet(noisy_image.unsqueeze(0), sigma=sigma).squeeze(0)
+                direct_result = drunet(noisy_image.unsqueeze(0), sigma=sigma).squeeze(0).to('cpu')
             direct_time = time.time() - start_time
+            noisy_image = noisy_image.to('cpu')
             print(f"Direct processing time: {direct_time:.2f} seconds")
 
             # Calculate difference between tiled and direct processing

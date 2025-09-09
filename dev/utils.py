@@ -583,6 +583,7 @@ def ddp_infer_windows(
             model = copy.deepcopy(model).to(device).eval()
 
             # FIXED: Use local_rank directly instead of device.index
+            print(f"Rank: {rank}, Local: {local_rank}, device_count {torch.cuda.device_count()}")
             ddp_model = DDP(
                 model,
                 device_ids=[local_rank] if torch.cuda.is_available() else None,
