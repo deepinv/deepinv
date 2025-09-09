@@ -1315,7 +1315,7 @@ def test_tomography(
         parallel_computation=parallel_computation,
     )
 
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    x = torch.randn(imsize, device=device, generator=torch.Generator(device).manual_seed(0)).unsqueeze(0)
 
     if adjoint_via_backprop:
         assert physics.adjointness_test(x).abs() < 1e-3
