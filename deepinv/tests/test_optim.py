@@ -296,6 +296,7 @@ def test_data_fidelity_amplitude_loss(device):
         jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
+
 @pytest.mark.parametrize("mode", ["floor", "round"])
 def test_itoh_fidelity(device, mode):
     r"""
@@ -313,7 +314,7 @@ def test_itoh_fidelity(device, mode):
         loss = ItohFidelity()
         y = torch.ones_like(physics(x)) * 0.1
         _, vjp_func = torch.func.vjp(physics.D, x)
-        vjp_value  = vjp_func(loss.grad_d(physics.D(x), y, physics))[0]
+        vjp_value = vjp_func(loss.grad_d(physics.D(x), y, physics))[0]
         grad_value = loss.grad(x, y, physics)
     assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
 
