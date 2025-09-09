@@ -17,6 +17,7 @@ from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
 from deepinv.training.run_logger import RunLogger, LocalLogger
 import inspect
+from logging import getLogger
 
 
 @dataclass
@@ -118,9 +119,7 @@ class Trainer:
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
-        the model on the evaluation set. Default is ``1``.
-    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
+    :param bool log_every_step: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
         This is useful for visualising train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
 
@@ -175,8 +174,6 @@ class Trainer:
 
     :Plotting:
 
-    :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs. Default is ``False``.
-    :param bool plot_measurements: Plot the measurements y, default is ``True``.
     :param bool plot_convergence_metrics: Plot convergence metrics for model, default is ``False``.
     :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
 
@@ -185,11 +182,8 @@ class Trainer:
     :Verbose:
 
     :param bool verbose: Output training progress information in the console. Default is ``True``.
-    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
-        Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
-    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
 
     |sep|
 
@@ -197,8 +191,6 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
-        If ``1``, plots at each epoch. Default is ``1``.
     """
 
     model: torch.nn.Module
@@ -210,7 +202,7 @@ class Trainer:
     losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
         SupLoss()
     )
-    eval_dataloader: torch.utils.data.DataLoader = None
+    val_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
@@ -227,19 +219,14 @@ class Trainer:
     check_grad: bool = False
     loggers: list[RunLogger] = [LocalLogger(log_dir="./logs")]
     ckp_interval: int = 1
-    eval_interval: int = 1
-    plot_interval: int = 1
-    plot_images: bool = False
-    plot_measurements: bool = True
+    log_images: bool = False
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
-    display_losses_eval: bool = False
-    log_train_batch: bool = False
+    log_every_step: bool = False
     verbose: bool = True
-    verbose_individual_losses: bool = True
     show_progress_bar: bool = True
 
-    def setup_train(self, train=True, **kwargs):
+    def setup(self, train=True, **kwargs):
         r"""
         Set up the training process.
 
@@ -251,11 +238,11 @@ class Trainer:
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
-            self.eval_dataloader = [self.eval_dataloader]
+        if self.val_dataloader is not None and type(self.val_dataloader) is not list:
+            self.val_dataloader = [self.val_dataloader]
 
         for loader in self.train_dataloader + (
-            self.eval_dataloader if self.eval_dataloader is not None else []
+            self.val_dataloader if self.val_dataloader is not None else []
         ):
             if loader is not None:
                 check_dataset(loader.dataset)
@@ -281,13 +268,13 @@ class Trainer:
 
         self.conv_metrics = None
 
-        if not isinstance(self.losses, (list, tuple)):
+        if not isinstance(self.losses, list):
             self.losses = [self.losses]
 
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
-        if not isinstance(self.metrics, (list, tuple)):
+        if not isinstance(self.metrics, list):
             self.metrics = [self.metrics]
 
         # losses
@@ -357,7 +344,7 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
-        _ = self.load_model()
+        self._load_ckpt()
 
         # Init loggers
         for logger in self.loggers:
@@ -365,8 +352,43 @@ class Trainer:
                 raise ValueError("loggers should be a list of RunLogger instances.")
             logger.start_run(hyperparams={})
 
-    def load_model(
-        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
+        # Init trainer logger
+        self.train_logger = getLogger("train_logger")
+        if self.verbose:
+            self.train_logger.setLevel("DEBUG")
+        else:
+            self.train_logger.setLevel("WARNING")
+
+    def save_ckpt(self, epoch, state=None):
+        r"""
+        Save the model.
+
+        It saves the model every ``ckp_interval`` epochs.
+
+        :param int epoch: Current epoch.
+        :param dict state: custom objects to save with model
+        """
+        if state is None:
+            state = {}
+
+        if not self.save_path:
+            return
+
+        os.makedirs(str(self.save_path), exist_ok=True)
+        state = state | {
+            "epoch": epoch,
+            "state_dict": self.model.state_dict(),
+            "loss": self.loss_history,
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "val_metrics": self.val_metrics_history_per_epoch,
+        }
+
+        for logger in self.loggers:
+            logger.log_checkpoint(epoch=epoch, state=state)
+
+    def _load_ckpt(
+        self,
     ) -> dict:
         """Load model from checkpoint.
 
@@ -375,16 +397,15 @@ class Trainer:
         :param bool strict: strict load weights to model.
         :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
-        if ckpt_pretrained is None and self.ckpt_pretrained is not None:
-            ckpt_pretrained = self.ckpt_pretrained
-            # Set to None to prevent it being loaded again
-            self.ckpt_pretrained = None
 
-        if ckpt_pretrained is not None:
+        if self.ckpt_pretrained is not None:
+            # Load model weights from the checkpoint
             checkpoint = torch.load(
-                ckpt_pretrained, map_location=self.device, weights_only=False
+                self.ckpt_pretrained, map_location=self.device, weights_only=False
             )
-            self.model.load_state_dict(checkpoint["state_dict"], strict=strict)
+            self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+            # This is optional, you can always start a training
+            # from pretrained weights without loading the optimizer / scheduler
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             if "scheduler" in checkpoint and self.scheduler is not None:
@@ -394,8 +415,6 @@ class Trainer:
 
             for logger in self.loggers:
                 logger.load_from_checkpoint(checkpoint)
-
-            return checkpoint
 
     def check_clip_grad(self):
         r"""
@@ -599,7 +618,7 @@ class Trainer:
         # Evaluate reconstruction network
         x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
 
-        if train or self.display_losses_eval:
+        if train:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
@@ -612,7 +631,7 @@ class Trainer:
                     epoch=epoch,
                 )
                 loss_total += loss.mean()
-                if len(self.losses) > 1 and self.verbose_individual_losses:
+                if len(self.losses) > 1:
                     meters = (
                         self.meters_losses_train[k]
                         if train
@@ -751,12 +770,12 @@ class Trainer:
         G_perm = np.random.permutation(self.G)
         loss = 0
 
-        if self.log_train_batch and train:
+        if self.log_every_step and train:
             self.reset_metrics()
 
         for g in G_perm:  # for each dataloader
             x, y, physics_cur = self.get_samples(
-                self.current_train_iterators if train else self.current_eval_iterators,
+                self.current_train_iterators if train else self.current_val_iterators,
                 g,
             )
 
@@ -782,7 +801,7 @@ class Trainer:
             # Update the progress bar
             progress_bar.set_postfix(log_metrics)
 
-        if self.log_train_batch and train:
+        if self.log_every_step and train:
             for logger in self.loggers:
                 logger.log_metrics(
                     log_metrics, step=train_ite, epoch=epoch, phase="train"
@@ -795,21 +814,21 @@ class Trainer:
             self.optimizer.step()  # Optimizer step
 
         if last_batch:
-            if self.log_train_batch and train:
+            if self.log_every_step and train:
                 for logger in self.loggers:
                     logger.log_metrics(log_metrics, step=train_ite, phase="train")
                     logger.log_losses(log_losses, step=train_ite, phase="train")
             elif train:
                 for logger in self.loggers:
                     logger.log_metrics(log_metrics, epoch=epoch, phase="train")
-            elif self.log_train_batch:  # train=False
+            elif self.log_every_step:  # train=False
                 for logger in self.loggers:
                     logger.log_metrics(log_metrics, step=train_ite, phase="val")
             else:
                 for logger in self.loggers:
                     logger.log_metrics(log_metrics, epoch=epoch, phase="val")
 
-            self.plot(
+            self.save_images(
                 epoch,
                 physics_cur,
                 x,
@@ -818,9 +837,9 @@ class Trainer:
                 train=train,
             )
 
-    def plot(self, epoch, physics, x, y, x_net, train=True):
+    def save_images(self, epoch, physics, x, y, x_net, train=True):
         r"""
-        Plot and optinally save the reconstructions.
+        Save the reconstructions.
 
         :param int epoch: Current epoch.
         :param deepinv.physics.Physics physics: Current physics operator.
@@ -831,10 +850,7 @@ class Trainer:
         """
         post_str = "Training" if train else "Eval"
 
-        plot_images = self.plot_images and ((epoch + 1) % self.plot_interval == 0)
-        save_images = self.save_folder_im is not None
-
-        if plot_images or save_images:
+        if self.log_images:
             if self.compare_no_learning:
                 x_nl = self.no_learning_inference(y, physics)
             else:
@@ -843,17 +859,8 @@ class Trainer:
             imgs, titles, grid_image, caption = prepare_images(
                 x, y=y, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
-
-        if plot_images:
-            plot(
-                imgs,
-                titles=titles,
-                show=self.plot_images,
-                return_fig=True,
-                rescale_mode=self.rescale_mode,
-            )
-
             dict_imgs = {t: im for t, im in zip(titles, imgs)}
+
             for logger in self.loggers:
                 logger.log_images(
                     dict_imgs, epoch=epoch, phase="train" if train else "val"
@@ -866,35 +873,6 @@ class Trainer:
         #         show=True,
         #     )
         #     self.conv_metrics = None
-
-    def save_model(self, filename, epoch, state=None):
-        r"""
-        Save the model.
-
-        It saves the model every ``ckp_interval`` epochs.
-
-        :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
-        :param dict state: custom objects to save with model
-        """
-        if state is None:
-            state = {}
-
-        if not self.save_path:
-            return
-
-        os.makedirs(str(self.save_path), exist_ok=True)
-        state = state | {
-            "epoch": epoch,
-            "state_dict": self.model.state_dict(),
-            "loss": self.loss_history,
-            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
-            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-        }
-        state["eval_metrics"] = self.val_metrics_history_per_epoch
-
-        for logger in self.loggers:
-            logger.log_checkpoint(epoch=epoch, state=state)
 
     def reset_metrics(self):
         r"""
@@ -920,15 +898,13 @@ class Trainer:
         if hasattr(self, "check_grad_val"):
             self.check_grad_val.reset()
 
-    def save_best_model(self, epoch, train_ite, **kwargs):
+    def save_best_model(self, epoch):
         r"""
         Save the best model using validation metrics.
 
         By default, uses validation based on first metric. Override this method to provide custom criterion.
 
         :param int epoch: Current epoch.
-        :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
-            number of batches) + current batch within epoch
         """
         k = 0  # index of the first metric
         history = self.val_metrics_history_per_epoch[self.metrics[k].__class__.__name__]
@@ -940,27 +916,10 @@ class Trainer:
             not lower_better and curr_metric >= best_metric
         ):
             # Saving the model
-            self.save_model("ckp_best.pth.tar", epoch)
-            if self.verbose:
-                print(f"Best model saved at epoch {epoch + 1}")
-
-    def load_best_model(self):
-        r"""
-        Load the best model.
-
-        It loads the model from the checkpoint saved during training.
-
-        :returns: The model.
-        """
-        if not self.save_path:
-            raise ValueError(
-                "No save path provided. Please provide a save path to load the best model."
+            self.save_ckpt("ckp_best.pth.tar", epoch)
+            self.train_logger.info(
+                f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
-        else:
-            self.load_model(
-                ckpt_pretrained=Path(self.save_path) / Path("ckp_best.pth.tar")
-            )
-        return self.model
 
     def stop_criterion(self, epoch, train_ite, **kwargs):
         r"""
@@ -982,13 +941,13 @@ class Trainer:
         lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
-        best_epoch = history.index(best_metric) * self.eval_interval
+        best_epoch = history.index(best_metric)
 
-        early_stop = epoch > 2 * self.eval_interval + best_epoch
-        if early_stop and self.verbose:
-            print(
+        early_stop = epoch > 2 + best_epoch
+        if early_stop:
+            self.train_logger.info(
                 "Early stopping triggered as validation metrics have not improved in "
-                "the last 3 validation steps, disable it with early_stop=False"
+                "the last 2 epochs, disable it with early_stop=False"
             )
 
         return early_stop
@@ -1004,7 +963,7 @@ class Trainer:
 
         :returns: The trained model.
         """
-        self.setup_train()
+        self.setup()
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
@@ -1031,7 +990,7 @@ class Trainer:
                 progress_bar := tqdm(
                     range(batches),
                     ncols=150,
-                    disable=(not self.verbose or not self.show_progress_bar),
+                    disable=(not self.show_progress_bar),
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}/{self.epochs}")
@@ -1045,80 +1004,60 @@ class Trainer:
                     last_batch=last_batch,
                 )
 
-                perform_eval = self.eval_dataloader and (
-                    (
-                        (epoch % self.eval_interval == 0 or epoch + 1 == self.epochs)
-                        and not self.log_train_batch
-                    )
-                    or (
-                        (i % self.eval_interval == 0 or i + 1 == batches)
-                        and self.log_train_batch
-                    )
-                )
-                if perform_eval and (last_batch or self.log_train_batch):
-                    ## Evaluation
-                    self.current_eval_iterators = [
-                        iter(loader) for loader in self.eval_dataloader
-                    ]
-
-                    eval_batches = min(
-                        [
-                            len(loader) - loader.drop_last
-                            for loader in self.eval_dataloader
-                        ]
-                    )
-
-                    self.model.eval()
-                    # close train progress bar
-                    progress_bar.update(1)
-                    progress_bar.close()
-                    for j in (
-                        eval_progress_bar := tqdm(
-                            range(eval_batches),
-                            ncols=150,
-                            disable=(not self.verbose or not self.show_progress_bar),
-                            colour="green",
-                        )
-                    ):
-                        eval_progress_bar.set_description(
-                            f"Eval epoch {epoch + 1}/{self.epochs}"
-                        )
-                        self.step(
-                            epoch,
-                            eval_progress_bar,
-                            train_ite=train_ite,
-                            train=False,
-                            last_batch=(j == eval_batches - 1),
-                        )
-
-                    for k in range(len(self.metrics)):
-                        metric = self.meters_metrics_val[k].avg
-                        self.val_metrics_history_per_epoch[
-                            self.metrics[k].__class__.__name__
-                        ].append(
-                            metric
-                        )  # store metrics history
-
-                    self.save_best_model(epoch, train_ite)
-
-                    if self.early_stop:
-                        stop_flag = self.stop_criterion(epoch, train_ite)
-
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
-                    progress_bar.update(1)
-                    progress_bar.close()
                     break
+
+            ## Validation
+            if self.val_dataloader is not None:
+                self.model.eval()
+                self.current_val_iterators = [
+                    iter(loader) for loader in self.val_dataloader
+                ]
+
+                val_batches = min(
+                    [len(loader) - loader.drop_last for loader in self.val_dataloader]
+                )
+
+                for j in (
+                    val_progress_bar := tqdm(
+                        range(val_batches),
+                        ncols=150,
+                        disable=(not self.show_progress_bar),
+                        colour="green",
+                    )
+                ):
+                    val_progress_bar.set_description(
+                        f"Eval epoch {epoch + 1}/{self.epochs}"
+                    )
+                    self.step(
+                        epoch,
+                        val_progress_bar,
+                        train_ite=train_ite,
+                        train=False,
+                        last_batch=(j == val_batches - 1),
+                    )
+
+                for k in range(len(self.metrics)):
+                    metric = self.meters_metrics_val[k].avg
+                    self.val_metrics_history_per_epoch[
+                        self.metrics[k].__class__.__name__
+                    ].append(
+                        metric
+                    )  # store metrics history
+
+                self.save_best_model(epoch)
+
+                if self.early_stop:
+                    stop_flag = self.stop_criterion(epoch, train_ite)
 
             self.loss_history.append(self.meter_total_loss_train.avg)
 
             if self.scheduler:
                 self.scheduler.step()
 
-            if (
-                epoch > 0 and epoch % self.ckp_interval == 0
-            ) or epoch + 1 == self.epochs:
-                self.save_model(f"ckp_{epoch}.pth.tar", epoch)
+            if (epoch % self.save_ckp_interval == 0) or epoch + 1 == self.epochs:
+                self.save_ckpt(f"ckp_{epoch}.pth.tar", epoch)
 
             if stop_flag:
                 break
@@ -1146,10 +1085,10 @@ class Trainer:
         :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
-        self.setup_train(train=False)
+        self.setup(train=False)
 
         self.save_folder_im = save_path
-        self.log_train_batch = False
+        self.log_every_step = False
 
         self.reset_metrics()
 
@@ -1159,7 +1098,7 @@ class Trainer:
         for loader in test_dataloader:
             check_dataset(loader.dataset)
 
-        self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
+        self.current_val_iterators = [iter(loader) for loader in test_dataloader]
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
@@ -1168,14 +1107,13 @@ class Trainer:
             progress_bar := tqdm(
                 range(batches),
                 ncols=150,
-                disable=(not self.verbose or not self.show_progress_bar),
+                disable=(not self.show_progress_bar),
             )
         ):
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        if self.verbose:
-            print("Test results:")
+        self.train_logger.info("Test results:")
 
         out = {}
         for k, l in enumerate(self.meters_metrics_val):
@@ -1185,18 +1123,16 @@ class Trainer:
                 out[name + "_std"] = self.meters_metrics_no_learning[k].std
                 if log_raw_metrics:
                     out[name + "_vals"] = self.meters_metrics_no_learning[k].vals
-                if self.verbose:
-                    print(
-                        f"{name}: {self.meters_metrics_no_learning[k].avg:.3f} +- {self.meters_metrics_no_learning[k].std:.3f}"
-                    )
+                self.train_logger.info(
+                    f"{name}: {self.meters_metrics_no_learning[k].avg:.3f} +- {self.meters_metrics_no_learning[k].std:.3f}"
+                )
 
             name = self.metrics[k].__class__.__name__
             out[name] = l.avg
             out[name + "_std"] = l.std
             if log_raw_metrics:
                 out[name + "_vals"] = l.vals
-            if self.verbose:
-                print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+            self.train_logger.info(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
         return out
 
@@ -1245,7 +1181,7 @@ def train(
         epochs=epochs,
         losses=losses,
         train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
+        val_dataloader=eval_dataloader,
         *args,
         **kwargs,
     )
