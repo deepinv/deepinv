@@ -5,7 +5,11 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
+from deepinv.loss.adversarial.base import (
+    GeneratorLoss,
+    DiscriminatorLoss,
+    DiscriminatorMetric,
+)
 from deepinv.loss.adversarial.mo import MultiOperatorMixin
 
 if TYPE_CHECKING:
@@ -23,6 +27,8 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
     (and maximised by discriminator, to be used in conjunction with :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`):
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
+
+    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
@@ -43,13 +49,22 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.01 (from original paper)
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
+    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
+        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param str device: torch device, defaults to "cpu"
     """
 
     def __init__(
-        self, weight_adv: float = 0.01, D: nn.Module = None, device="cpu", **kwargs
+        self,
+        weight_adv: float = 0.01,
+        D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
+        device="cpu",
+        **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
+        super().__init__(
+            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
+        )
         self.name = "SupAdversarialGenerator"
 
     def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
@@ -69,13 +84,22 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
+    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
+        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param str device: torch device, defaults to "cpu"
     """
 
     def __init__(
-        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+        self,
+        weight_adv: float = 1.0,
+        D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
+        device="cpu",
+        **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
+        super().__init__(
+            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
+        )
         self.name = "SupAdversarialDiscriminator"
 
     def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
@@ -98,6 +122,8 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     (and maximised by discriminator, to be used in conjunction with :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
+
+    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
@@ -122,22 +148,27 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
-    :param str metric: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
+    :param str domain: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
+    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
+        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     """
 
     def __init__(
         self,
         weight_adv: float = 1.0,
         D: nn.Module = None,
-        metric: str = None,
+        domain: str = None,
+        metric_gan: DiscriminatorMetric = None,
         device="cpu",
         **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, D=D, device=device)
+        super().__init__(
+            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device
+        )
         self.name = "UnsupAdversarialGenerator"
-        self.metric = metric
-        if metric is not None and metric not in ("A_adjoint", "A_dagger"):
-            raise ValueError("metric must be either None, A_adjoint or A_dagger.")
+        self.domain = domain
+        if domain is not None and domain not in ("A_adjoint", "A_dagger"):
+            raise ValueError("domain must be either None, A_adjoint or A_dagger.")
 
     def forward(
         self,
@@ -155,9 +186,9 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         :param deepinv.physics.Physics physics: measurement operator.
         """
-        if self.metric is not None:
-            x_tilde = getattr(physics, self.metric)(y)
-            x_hat = getattr(physics, self.metric)(y_hat)
+        if self.domain is not None:
+            x_tilde = getattr(physics, self.domain)(y)
+            x_hat = getattr(physics, self.domain)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y, y_hat, D)
@@ -173,15 +204,18 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         self,
         weight_adv: float = 1.0,
         D: nn.Module = None,
-        metric: str = None,
+        domain: str = None,
+        metric_gan: DiscriminatorMetric = None,
         device="cpu",
         **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, D=D, device=device)
+        super().__init__(
+            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device
+        )
         self.name = "UnsupAdversarialDiscriminator"
-        self.metric = metric
-        if metric is not None and metric not in ("A_adjoint", "A_dagger"):
-            raise ValueError("metric must be either None, A_adjoint or A_dagger.")
+        self.domain = domain
+        if domain is not None and domain not in ("A_adjoint", "A_dagger"):
+            raise ValueError("domain must be either None, A_adjoint or A_dagger.")
 
     def forward(
         self,
@@ -199,9 +233,9 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         :param deepinv.physics.Physics physics: measurement operator.
         """
-        if self.metric is not None:
-            x_tilde = getattr(physics, self.metric)(y)
-            x_hat = getattr(physics, self.metric)(y_hat)
+        if self.domain is not None:
+            x_tilde = getattr(physics, self.domain)(y)
+            x_hat = getattr(physics, self.domain)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y, y_hat, D)
@@ -219,7 +253,8 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
 
     :math:`\mathcal{L}_\text{adv}(\tilde{y},\hat y;D)=\mathbb{E}_{\tilde{y}\sim p_{\tilde{y}}}\left[q(D(\tilde{y}))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    where :math:`\hat y=A_2\hat x` is the re-measured reconstruction via a random operator :math:`A_2\sim\mathcal{A}`,
+    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
+    :math:`\hat y=A_2\hat x` is the re-measured reconstruction via a random operator :math:`A_2\sim\mathcal{A}`,
     and :math:`\tilde y` is a random measurement drawn from a dataset of measurements.
 
     We also provide the option to perform the loss calculation in the image domain using
@@ -227,7 +262,7 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
 
     .. warning::
 
-        When using generator loss in parallel with discriminator loss, the physics generators cannot share the same random number generator,
+        When using a generator loss in parallel with a discriminator loss, the physics generators cannot share the same random number generator,
         and likewise with the dataloaders, otherwise both losses will step the same random number generators, meaning that the
         data seen by each loss will be different. A simple solution uses factories:
 
@@ -294,7 +329,9 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
     :param str device: torch device, defaults to "cpu"
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
     :param torch.utils.data.DataLoader dataloader: dataloader that returns new samples
-    :param str metric: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
+    :param str domain: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
+    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
+        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     """
 
     def forward(
@@ -320,10 +357,10 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
                 "Randomly sampled physics should have different mask from orignal physics."
             )
 
-        if self.metric is not None:
+        if self.domain is not None:
             physics_full = self.physics_like(physics)
-            x_tilde = getattr(physics_full, self.metric)(y_tilde)
-            x_hat = getattr(physics_new, self.metric)(y_hat)
+            x_tilde = getattr(physics_full, self.domain)(y_tilde)
+            x_hat = getattr(physics_new, self.domain)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y_tilde, y_hat, D)
@@ -352,10 +389,10 @@ class MultiOperatorUnsupAdversarialDiscriminatorLoss(
         physics_new = self.next_physics(physics, batch_size=len(x_net))
         y_hat = physics_new.A(x_net)
 
-        if self.metric is not None:
+        if self.domain is not None:
             physics_full = self.physics_like(physics)
-            x_tilde = getattr(physics_full, self.metric)(y_tilde)
-            x_hat = getattr(physics_new, self.metric)(y_hat)
+            x_tilde = getattr(physics_full, self.domain)(y_tilde)
+            x_hat = getattr(physics_new, self.domain)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y_tilde, y_hat, D)

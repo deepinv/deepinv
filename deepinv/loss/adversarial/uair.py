@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING
 import torch
 import torch.nn as nn
 from torch import Tensor
-from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
+from deepinv.loss.adversarial.base import (
+    GeneratorLoss,
+    DiscriminatorLoss,
+    DiscriminatorMetric,
+)
 from deepinv.loss.adversarial.mo import MultiOperatorMixin
 
 if TYPE_CHECKING:
@@ -23,6 +27,8 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
     where :math:`\lambda` is a hyperparameter, and the standard adversarial loss is
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
+
+    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
 
     In the multi-operator case, :math:`\forw{\cdot}` can be modified in the loss by passing a `physics_generator`.
 
@@ -54,6 +60,8 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
     :param str metric_adv: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
+    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
+        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
         If `None`, uses same physics every forward pass.
 
@@ -83,10 +91,13 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         metric: nn.Module = nn.MSELoss(),
         metric_adv: str = None,
         D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
         device="cpu",
         **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, device=device, **kwargs)
+        super().__init__(
+            weight_adv=weight_adv, device=device, metric_gan=metric_gan, **kwargs
+        )
         self.name = "UAIRGenerator"
         self.metric = metric
         self.metric_adv = metric_adv
@@ -116,7 +127,7 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         D = self.D if D is None else D
 
         physics_new = self.next_physics(physics, batch_size=len(y))
-        y_hat = physics_new.A(x_net)
+        y_hat = physics_new(x_net)
         x_tilde = model(y_hat, physics_new)
         y_tilde = physics_new.A(x_tilde)  # use same operator as y_hat
 
@@ -142,10 +153,13 @@ class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
         weight_adv: float = 1.0,
         metric_adv: str = None,
         D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
         device="cpu",
         **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
+        super().__init__(
+            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
+        )
         self.name = "UAIRDiscriminator"
         self.metric_adv = metric_adv
 
@@ -162,7 +176,7 @@ class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
         **kwargs,
     ):
         physics_new = self.next_physics(physics, batch_size=len(y))
-        y_hat = physics_new.A(x_net)
+        y_hat = physics_new(x_net)
 
         if self.metric_adv is not None:
             y = getattr(physics, self.metric_adv)(y)

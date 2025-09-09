@@ -66,14 +66,22 @@ class GeneratorLoss(Loss):
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
+
     :param str device: torch device, defaults to `"cpu"`
     """
 
     def __init__(
-        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+        self,
+        weight_adv: float = 1.0,
+        D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
+        device="cpu",
+        **kwargs,
     ):
         super().__init__(**kwargs)
-        self.metric_gan = DiscriminatorMetric(device=device)
+        self.metric_gan = (
+            DiscriminatorMetric(device=device) if metric_gan is None else metric_gan
+        )
         self.weight_adv = weight_adv
         self.D = D
 
@@ -116,10 +124,17 @@ class DiscriminatorLoss(Loss):
     """
 
     def __init__(
-        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+        self,
+        weight_adv: float = 1.0,
+        D: nn.Module = None,
+        metric_gan: DiscriminatorMetric = None,
+        device="cpu",
+        **kwargs,
     ):
         super().__init__(**kwargs)
-        self.metric_gan = DiscriminatorMetric(device=device)
+        self.metric_gan = (
+            DiscriminatorMetric(device=device) if metric_gan is None else metric_gan
+        )
         self.weight_adv = weight_adv
         self.D = D
 
