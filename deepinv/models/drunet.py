@@ -9,7 +9,7 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class DRUNet(nn.Module):
+class DRUNet(torch.nn.Module):
     r"""
     DRUNet denoiser network.
 
@@ -153,9 +153,7 @@ class DRUNet(nn.Module):
                     pretrained, map_location=lambda storage, loc: storage
                 )
 
-                ckpt_new = update_keyvals(ckpt_drunet, self.state_dict())
-
-            self.load_state_dict(ckpt_new, strict=True)
+            self.load_state_dict(ckpt_drunet, strict=True)
         else:
             self.apply(weights_init_drunet)
 
@@ -675,56 +673,6 @@ def downsample_avgpool(
     )
     return sequential(pool, pool_tail)
 
-
-def update_keyvals(old_ckpt, new_ckpt):
-    """
-    Converting old DRUNet keys to new UNExt style keys.
-
-    KEYS do not change but weight need to be 0 padded.
-
-    Args:
-        old_key (str): The old key from the state dictionary.
-    """
-    # Loop through old state dict and update keys
-    # new_ckpt = {}
-    for old_key, old_value in old_ckpt.items():
-        new_value = new_ckpt[old_key]
-        if "head" not in old_key and "tail" not in old_key:
-            for _ in range(new_value.shape[-1]):
-                new_value[..., _] = old_value / new_value.shape[-1]
-            new_ckpt[old_key] = new_value
-        else:
-            if "head" in old_key:
-                c_in = new_value.shape[1]
-                c_in_old = old_value.shape[1]
-                if c_in == c_in_old:
-                    new_value = old_value.detach()
-                elif c_in < c_in_old:
-                    new_value = torch.zeros_like(new_value.detach())
-                    for _ in range(new_value.shape[-1]):
-                        new_value[:, -1:, ..., _] = (
-                            old_value[:, -1:, ...] / new_value.shape[-1]
-                        )
-                    for _ in range(new_value.shape[-1]):
-                        new_value[:, : c_in - 1, ..., _] = (
-                            old_value[:, : c_in - 1, ...] / new_value.shape[-1]
-                        )
-            elif "tail" in old_key:
-                c_in = new_value.shape[0]
-                c_in_old = old_value.shape[0]
-                new_value = torch.zeros_like(new_value.detach())
-                if c_in == c_in_old:
-                    new_value = old_value.detach()
-                elif c_in < c_in_old:
-                    new_value = torch.zeros_like(new_value.detach())
-                    for _ in range(new_value.shape[-1]):
-                        new_value[:1, ..., _] = old_value[:1, ...] / new_value.shape[-1]
-                    for _ in range(new_value.shape[-1]):
-                        new_value[1:, ..., _] = (
-                            old_value[1:c_in, ...] / new_value.shape[-1]
-                        )
-            new_ckpt[old_key] = new_value
-    return new_ckpt
 
 
 def test_pad(model, L, modulo=16, sigma: float = 0.0):
