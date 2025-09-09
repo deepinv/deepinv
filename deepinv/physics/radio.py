@@ -1,11 +1,6 @@
 import torch
 from deepinv.physics import LinearPhysics
 
-try:
-    import torchkbnufft as tkbn
-except:
-    tkbn = ImportError("The torchkbnufft package is not installed.")
-
 
 class RadioInterferometry(LinearPhysics):
     r"""
@@ -33,23 +28,27 @@ class RadioInterferometry(LinearPhysics):
     .. warning::
         If the ``real_projection`` parameter is set to ``False``, the output of the adjoint will have a complex type rather than a real typed.
 
+    .. note::
+
+        This class requires the ``torchkbnufft`` package to be installed. Install with ``pip install torchkbnufft``.
+
     """
 
     def __init__(
         self,
         img_size,
         samples_loc,
-        dataWeight=torch.tensor(
-            [
-                1.0,
-            ]
-        ),
+        dataWeight=None,
         k_oversampling=2,
         interp_points=7,
         real_projection=True,
         device="cpu",
         **kwargs,
     ):
+        import torchkbnufft as tkbn
+
+        if dataWeight is None:
+            dataWeight = torch.tensor([1.0])
         super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device

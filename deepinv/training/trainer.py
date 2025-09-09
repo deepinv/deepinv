@@ -4,15 +4,16 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-import wandb
+
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
 import inspect
 
@@ -25,6 +26,8 @@ class Trainer:
     .. seealso::
 
         See the :ref:`User Guide <trainer>` for more details and for how to adapt the trainer to your needs.
+
+        See :ref:`sphx_glr_auto_examples_models_demo_training.py` for a simple example of how to use the trainer.
 
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
@@ -39,12 +42,18 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
-    the **dataloaders** should return one of the following options:
+    The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets user guide <datasets>` for
+    how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
 
-    1. `(x, y)` or `(x, y, params)`, which requires `online_measurements=False` (default) otherwise `y` will be ignored and new measurements will be generated online.
-    2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner (optionally with parameters) as `y=physics(x)` or `y=physics(x, **params)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
-    3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`. Set `online_measurements=False`.
+    If the dataloaders do not return
+    measurements `y`, then you should use the `online_measurements=True` option which generates measurements in an online manner (optionally with parameters), running
+    under the hood `y=physics(x)` or `y=physics(x, **params)`. Otherwise if dataloaders do return measurements `y`, set `online_measurements=False` (default) otherwise
+    `y` will be ignored and new measurements will be generated online.
+
+    .. tip::
+
+        If your dataloaders do not return `y` but you do not want online measurements, use :func:`deepinv.datasets.generate_dataset` to generate a dataset
+        of offline measurements from a dataset of `x` and a `physics`.
 
     .. note::
 
@@ -73,8 +82,8 @@ class Trainer:
     :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
-        above for how we expect data to be provided.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
+        for how we expect data to be provided.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
@@ -104,7 +113,7 @@ class Trainer:
     :Evaluation:
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
-        see options 1 to 3 above for how we expect data to be provided.
+        see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
@@ -159,15 +168,15 @@ class Trainer:
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
-        :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_dagger'``.
+        :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
     |sep|
 
     :Plotting:
 
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs. Default is ``False``.
-    :param bool plot_measurements: Plot the measurements y, default=`True`.
-    :param bool plot_convergence_metrics: Plot convergence metrics for model, default=`False`.
+    :param bool plot_measurements: Plot the measurements y, default is ``True``.
+    :param bool plot_convergence_metrics: Plot convergence metrics for model, default is ``False``.
     :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
 
     |sep|
@@ -190,26 +199,25 @@ class Trainer:
     :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
-
     """
 
     model: torch.nn.Module
-    physics: Union[Physics, List[Physics]]
+    physics: Union[Physics, list[Physics]]
     optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]] = (
+    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
         SupLoss()
     )
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
+    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, List[Metric]] = PSNR()
+    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path] = "."
@@ -242,12 +250,17 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
         if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
+
+        for loader in self.train_dataloader + (
+            self.eval_dataloader if self.eval_dataloader is not None else []
+        ):
+            if loader is not None:
+                check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -286,6 +299,8 @@ class Trainer:
         self.conv_metrics = None
         # wandb initialization
         if self.wandb_vis:
+            import wandb
+
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
@@ -335,9 +350,16 @@ class Trainer:
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = (
-            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
-        )
+        if self.save_path:
+            # NOTE: Two separate training should not write to the same
+            # directory. For this reason, we make sure the directory does not
+            # already exist.
+            dir_path = f"{self.save_path}/{get_timestamp()}"
+            # Acquire the output directory (might fail with an exception)
+            os.makedirs(dir_path, exist_ok=False)
+            self.save_path = dir_path
+        else:
+            self.save_path = None
 
         # count the overall training parameters
         if self.verbose and train:
@@ -360,11 +382,14 @@ class Trainer:
 
         _ = self.load_model()
 
-    def load_model(self, ckpt_pretrained: Union[str, Path] = None) -> dict:
+    def load_model(
+        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
+    ) -> dict:
         """Load model from checkpoint.
 
         :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
             If not `None`, override checkpoint passed to class.
+        :param bool strict: strict load weights to model.
         :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
@@ -376,7 +401,7 @@ class Trainer:
             checkpoint = torch.load(
                 ckpt_pretrained, map_location=self.device, weights_only=False
             )
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self.model.load_state_dict(checkpoint["state_dict"], strict=strict)
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             if "scheduler" in checkpoint and self.scheduler is not None:
@@ -405,6 +430,8 @@ class Trainer:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
+            import wandb
+
             wandb.log(logs, step=step)
 
     def check_clip_grad(self):
@@ -524,7 +551,10 @@ class Trainer:
         physics = self.physics[g]
 
         if params is not None:
-            params = {k: p.to(self.device) for k, p in params.items()}
+            params = {
+                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                for k, p in params.items()
+            }
             physics.update(**params)
 
         return x, y, physics
@@ -570,14 +600,14 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
-        if self.plot_convergence_metrics and not train:
+        if not train:
             with torch.no_grad():
-                x_net, self.conv_metrics = self.model(
-                    y, physics, x_gt=x, compute_metrics=True, **kwargs
-                )
-            x_net, self.conv_metrics = self.model(
-                y, physics, x_gt=x, compute_metrics=True, **kwargs
-            )
+                if self.plot_convergence_metrics:
+                    x_net, self.conv_metrics = self.model(
+                        y, physics, x_gt=x, compute_metrics=True, **kwargs
+                    )
+                else:
+                    x_net = self.model(y, physics, **kwargs)
         else:
             x_net = self.model(y, physics, **kwargs)
 
@@ -626,11 +656,9 @@ class Trainer:
                     meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
-                meters = (
-                    self.logs_total_loss_train if train else self.logs_total_loss_eval
-                )
-                meters.update(loss_total.item())
-                logs[f"TotalLoss"] = meters.avg
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters.update(loss_total.item())
+            logs[f"TotalLoss"] = meters.avg
         else:  # TODO question: what do we want to do at test time?
             loss_total = 0
 
@@ -861,6 +889,8 @@ class Trainer:
             )
 
             if self.wandb_vis:
+                import wandb
+
                 log_dict_post_epoch = {}
                 images = wandb.Image(
                     grid_image,
@@ -889,7 +919,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, filename, epoch, state={}):
+    def save_model(self, filename, epoch, state=None):
         r"""
         Save the model.
 
@@ -899,6 +929,8 @@ class Trainer:
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
+        if state is None:
+            state = {}
 
         if not self.save_path:
             return
@@ -913,6 +945,8 @@ class Trainer:
         }
         state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
+            import wandb
+
             state["wandb_id"] = wandb.run.id
 
         torch.save(
@@ -940,6 +974,9 @@ class Trainer:
 
         for l in self.logs_metrics_eval:
             l.reset()
+
+        if hasattr(self, "check_grad_val"):
+            self.check_grad_val.reset()
 
     def save_best_model(self, epoch, train_ite, **kwargs):
         r"""
@@ -1025,7 +1062,6 @@ class Trainer:
 
         :returns: The trained model.
         """
-
         self.setup_train()
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
@@ -1146,6 +1182,8 @@ class Trainer:
                 break
 
         if self.wandb_vis:
+            import wandb
+
             wandb.save("model.h5")
             wandb.finish()
 
@@ -1161,8 +1199,8 @@ class Trainer:
         r"""
         Test the model, compute metrics and plot images.
 
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see options 1 to 3
-            above for how we expect data to be provided.
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
+            for how we expect data to be provided.
         :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
@@ -1180,6 +1218,9 @@ class Trainer:
 
         if not isinstance(test_dataloader, list):
             test_dataloader = [test_dataloader]
+
+        for loader in test_dataloader:
+            check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 
@@ -1231,7 +1272,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, List[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss], None] = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
@@ -1250,16 +1291,18 @@ def train(
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
     :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
-        above for how we expect data to be provided.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
+        for how we expect data to be provided.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see options 1 to 3
-        above for how we expect data to be provided.
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
+        for how we expect data to be provided.
     :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
     """
+    if losses is None:
+        losses = SupLoss()
     trainer = Trainer(
         model=model,
         physics=physics,

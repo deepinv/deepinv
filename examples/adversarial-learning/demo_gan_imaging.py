@@ -11,19 +11,11 @@ examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
 This example is based on, and we provide implementations for, the following papers:
+DeblurGAN :footcite:p:`kupyn2018deblurgan`, Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed`,
+AmbiantGAN :footcite:p:`bora2018ambientgan`, Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`,
+and Cole et al. :footcite:p:`cole2021fast`.
 
--  Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
--  Bora et al., `Compressed Sensing using Generative
-   Models <https://arxiv.org/abs/1703.03208>`_ (CSGM)
--  Bora et al., `AmbientGAN: Generative models from lossy
-   measurements <https://openreview.net/forum?id=Hy7fDog0b>`_
--  Pajot et al., `Unsupervised Adversarial Image
-   Reconstruction <https://openreview.net/forum?id=BJg4Z3RqF7>`_
--  Cole et al., `Fast Unsupervised MRI Reconstruction Without
-   Fully-Sampled Ground Truth Data Using Generative Adversarial Networks
-   <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
-
-Adversarial networks are characterised by the addition of an adversarial
+Adversarial networks are characterized by the addition of an adversarial
 loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 
 .. math:: \mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]
@@ -43,9 +35,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
-from torchvision.datasets.utils import download_and_extract_archive
 
 import deepinv as dinv
 from deepinv.loss import adversarial
@@ -69,7 +59,7 @@ ORGINAL_DATA_DIR = get_data_home() / "Urban100"
 #
 
 physics = dinv.physics.Blur(padding="circular", device=device)
-blur_generator = MotionBlurGenerator((11, 11))
+blur_generator = MotionBlurGenerator((11, 11), device=device)
 
 dataset = dinv.datasets.Urban100HR(
     root=ORGINAL_DATA_DIR,
@@ -91,10 +81,16 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=True, load_physics_generator_params=True
+    ),
+    shuffle=True,
 )
 test_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=False, load_physics_generator_params=True
+    ),
+    shuffle=False,
 )
 
 
@@ -105,7 +101,7 @@ test_dataloader = DataLoader(
 # We first define reconstruction network (i.e conditional generator) and
 # discriminator network to use for adversarial training. For demonstration
 # we use a simple U-Net as the reconstruction network and the
-# discriminator from `PatchGAN <https://arxiv.org/abs/1611.07004>`_, but
+# discriminator from PatchGAN :footcite:p:`isola2017image`, but
 # these can be replaced with any architecture e.g transformers, unrolled
 # etc. Further discriminator models are in :ref:`adversarial models <adversarial>`.
 #
@@ -140,10 +136,9 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 # Conditional GAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Conditional GANs (Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
-# <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_)
-# are a type of GAN where the generator is conditioned on a label or input. In the context of imaging,
-# this can be used to generate images from a given measurement. In this example, we use a simple U-Net as the generator
+# Conditional GANs :footcite:p:`kupyn2018deblurgan` are a type of GAN where the generator is conditioned on a label or input.
+# In the context of imaging, this can be used to generate images from a given measurement.
+# In this example, we use a simple U-Net as the generator
 # and a PatchGAN discriminator. The forward pass of the generator is given by:
 #
 # **Conditional GAN** forward pass:
@@ -222,8 +217,7 @@ trainer.test(test_dataloader)
 # UAIR training
 # ~~~~~~~~~~~~~
 #
-# Unsupervised Adversarial Image Reconstruction (UAIR) (Pajot et al.,
-# `Unsupervised Adversarial Image Reconstruction <https://openreview.net/forum?id=BJg4Z3RqF7>`_)
+# Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`
 # is a method for solving inverse problems using generative models. In this
 # example, we use a simple U-Net as the generator and discriminator, and
 # train using the adversarial loss. The forward pass of the generator is defined as:
@@ -291,11 +285,9 @@ trainer.test(test_dataloader)
 # CSGM / AmbientGAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Compressed Sensing using Generative Models (CSGM) and AmbientGAN are two methods for solving inverse problems
-# using generative models. CSGM (Bora et al., `Compressed Sensing using Generative Models
-# <https://arxiv.org/abs/1703.03208>`_) uses a generative model to solve the inverse problem by optimising the latent
-# space of the generator. AmbientGAN (Bora et al., `AmbientGAN: Generative models from lossy measurements
-# <https://openreview.net/forum?id=Hy7fDog0b>`_) uses a generative model to solve the inverse problem by optimising the
+# Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed` and AmbientGAN :footcite:p:`bora2018ambientgan` are two methods for solving inverse problems
+# using generative models. CSGM uses a generative model to solve the inverse problem by optimising the latent
+# space of the generator. AmbientGAN uses a generative model to solve the inverse problem by optimising the
 # measurements themselves. Both methods are trained using an adversarial loss; the main difference is that CSGM requires
 # a ground truth dataset (supervised loss), while AmbientGAN does not (unsupervised loss).
 #
@@ -382,3 +374,8 @@ G = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

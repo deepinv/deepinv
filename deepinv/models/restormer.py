@@ -1,23 +1,10 @@
-r"""Define the neural network architecture of the Restormer.
-
-Model specialized in restoration tasks including deraining, single-image motion deblurring,
-defocus deblurring and image denoising for high-resolution images. Code adapted from
-https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
-
-Restormer: Efficient Transformer for High-Resolution Image Restoration
-Authors: Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
-Paper: https://arxiv.org/abs/2111.09881
-Code: https://github.com/swz30/Restormer
-"""
-
 import numbers
 import os
-from typing import List, Optional
+from typing import Optional, Sequence
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange
 
 from .utils import get_weights_url, test_pad
 from .base import Denoiser
@@ -27,8 +14,10 @@ class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
 
-    This network architecture was proposed in the paper:
-    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
+    Model introduced by :footcite:t:`zamir2022restormer`, specialized in restoration tasks including deraining, single-image motion deblurring,
+    defocus deblurring and image denoising for high-resolution images.
+
+    Code adapted from https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
 
     By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
 
@@ -36,11 +25,11 @@ class Restormer(Denoiser):
     :param int out_channels: number of channels of the output.
     :param int dim: number of channels after the first conv operation (``in_channel``, H, W) -> (``dim``, H, W).
         ``dim`` corresponds to ``C`` in the figure.
-    :param list num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales.
+    :param Sequence num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales.
         ``num_blocks = [L1, L2, L3, L4]`` with L1 ≤ L2 ≤ L3 ≤ L4.
     :param int num_refinement_blocks: number of ``TransformerBlock`` in the refinement stage after the decoder stage.
         Corresponds to ``Lr`` in the figure.
-    :param list heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage.
+    :param Sequence heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage.
         At same scale, all `TransformerBlock` have the same number of heads. The number of heads for the refinement block is ``heads[0]``.
     :param float ffn_expansion_factor: corresponds to :math:`\eta` in GDFN.
     :param bool bias: Add bias or not in each of the Attention and Feedforward layers inside of the ``TransformerBlock``.
@@ -56,8 +45,8 @@ class Restormer(Denoiser):
 
     .. note::
         To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
-        ``LayerNorm_type='BiasFree'`` and ``bias=False``
-        (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
+        ``LayerNorm_type='BiasFree'`` and ``bias=False``, as proposed by :footcite:t:`mohan2020robust`.
+
     """
 
     def __init__(
@@ -65,9 +54,9 @@ class Restormer(Denoiser):
         in_channels: int = 3,
         out_channels: int = 3,
         dim: int = 48,
-        num_blocks: List[int] = [4, 6, 6, 8],
+        num_blocks: Sequence[int] = (4, 6, 6, 8),
         num_refinement_blocks: int = 4,
-        heads: List[int] = [1, 2, 4, 8],
+        heads: Sequence[int] = (1, 2, 4, 8),
         ffn_expansion_factor: float = 2.66,
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",
@@ -509,7 +498,7 @@ class Restormer(Denoiser):
         assert (
             dim == 48
         ), f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
-        assert num_blocks == [
+        assert list(num_blocks) == [
             4,
             6,
             6,
@@ -518,7 +507,7 @@ class Restormer(Denoiser):
         assert (
             num_refinement_blocks == 4
         ), f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
-        assert heads == [
+        assert list(heads) == [
             1,
             2,
             4,
@@ -535,10 +524,14 @@ class Restormer(Denoiser):
 ##########################################################################
 ## Layer Norm
 def to_3d(x):
+    from einops import rearrange
+
     return rearrange(x, "b c h w -> b (h w) c")
 
 
 def to_4d(x, h, w):
+    from einops import rearrange
+
     return rearrange(x, "b (h w) c -> b c h w", h=h, w=w)
 
 
@@ -642,6 +635,8 @@ class Attention(nn.Module):
         self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
 
     def forward(self, x):
+        from einops import rearrange
+
         b, c, h, w = x.shape
 
         qkv = self.qkv_dwconv(self.qkv(x))

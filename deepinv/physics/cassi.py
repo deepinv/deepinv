@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 import torch
 from torch import Tensor
 from torch.nn.functional import pad
@@ -22,16 +22,16 @@ class CompressiveSpectralImaging(LinearPhysics):
     .. math::
 
         y =
-        \begin{cases} 
-            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='spatial-spectral'} \\ 
+        \begin{cases}
+            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='spatial-spectral'} \\
             \Sigma_{c=1}^{C} SMx & \text{if mode='single-disperser'}
         \end{cases}
 
     where :math:`M` is a binary mask (the "coded aperture"), :math:`S` is a pixel shear in the 2D
-    channel-height of channel-width plane and :math:`C` is number of channels. 
+    channel-height of channel-width plane and :math:`C` is number of channels.
     Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
-    For more details see e.g. the paper `High-Quality Hyperspectral Reconstruction Using a Spectral Prior <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
+    For more details see e.g. the paper :footcite:t:`choi2017high`.
 
     The implementation is a type of linear physics as it is not completely decomposable due to edge effects and different scaling.
 
@@ -57,11 +57,12 @@ class CompressiveSpectralImaging(LinearPhysics):
     :param str shear_dir: "h" for shear in H-C plane or "w" for shear in W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
+    
     """
 
     def __init__(
         self,
-        img_size: Tuple[int, int, int],  # C,H,W
+        img_size: tuple[int, int, int],  # C,H,W
         mask: Union[Tensor, float] = None,
         mode: str = "ss",
         shear_dir: str = "h",
@@ -93,11 +94,12 @@ class CompressiveSpectralImaging(LinearPhysics):
                 rng=rng,
             ).step()["mask"]
 
-        self.update_parameters(mask=mask, **kwargs)
-
         # In SS-CASSI, masking happens on the padded image after shearing
         if self.mode == "ss":
-            self.mask = self.pad(self.mask)
+            mask = self.pad(mask)
+
+        self.register_buffer("mask", mask)
+        self.to(device)
 
     def pad(self, x: Tensor) -> Tensor:
         """Pad image on bottom or on right.
@@ -162,9 +164,9 @@ class CompressiveSpectralImaging(LinearPhysics):
         :return: (:class:`torch.Tensor`) output measurements
         """
         if x.shape[1:] != self.img_size:
-            raise ValueError("Input must be same shape as img_shape.")
+            raise ValueError("Input must be same shape as img_size.")
 
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         # fmt: off
         if self.mode == "ss":
@@ -175,7 +177,7 @@ class CompressiveSpectralImaging(LinearPhysics):
                     ),
                 un=True)
             ))
-        
+
         elif self.mode == "sd":
             y = self.flatten(
                 self.shear(
@@ -196,7 +198,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         :param torch.Tensor mask: CASSI mask
         :return: (:class:`torch.Tensor`) output image
         """
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         # fmt: off
         if self.mode == "ss":
@@ -221,6 +223,3 @@ class CompressiveSpectralImaging(LinearPhysics):
         if x.shape[1:] != self.img_size:
             raise ValueError("Output must be same shape as img_size.")
         return x
-
-    def update_parameters(self, mask: Tensor, **kwargs):
-        self.mask = mask if mask is not None else self.mask

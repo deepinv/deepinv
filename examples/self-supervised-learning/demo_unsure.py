@@ -3,8 +3,7 @@ Self-supervised denoising with the UNSURE loss.
 ====================================================================================================
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
-i.e., using noisy images with unknown noise level only via the UNSURE loss, which is introduced in
-https://arxiv.org/abs/2409.01985.
+i.e., using noisy images with unknown noise level only via the UNSURE loss, which is introduced by :footcite:t:`tachella2024unsure`.
 
 The UNSURE optimization problem for Gaussian denoising with unknown noise level is defined as:
 
@@ -76,7 +75,7 @@ true_sigma = 0.1
 # defined physics
 physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=true_sigma))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
@@ -197,3 +196,8 @@ test_dataloader = DataLoader(
 
 trainer.plot_images = True
 trainer.test(test_dataloader=test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

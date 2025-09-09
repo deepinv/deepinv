@@ -4,33 +4,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
-license = {text = "BSD 3-Clause"}
-description = "Pytorch library for solving inverse problems with deep learning"
+authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
+license = "BSD-3-Clause"
+description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.9"
-version = "0.3.0"
+requires-python = ">=3.10"
+version = "0.3.4"
 dependencies = [
     "numpy",
     "matplotlib",
-    "hdf5storage",
     "tqdm",
-    "torch<2.7",
+    "torch>=2.2.0",
     "torchvision",
     "torchmetrics",
     "einops",
-    "wandb",
     "scipy",
+    "requests",
+    "h5py",
     "natsort",
 ]
 
@@ -53,6 +55,7 @@ Tracker = "https://github.com/deepinv/deepinv/issues"
 test = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "coverage",
 ]
 
@@ -64,9 +67,16 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
+    "sphinx_sitemap<2.7.0",
+    "sphinxcontrib.bibtex"
 ]
 
-# optional dependencies for specific denoisers
+lint = [
+    "black",
+    "ruff"
+]
+
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -79,6 +89,7 @@ denoisers = [
     "torchkbnufft",
     "libcpab",
     "sigpy",
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
 ]
 
 # optional dependencies for specific datasets
@@ -89,6 +100,12 @@ dataset = [
     "mat73",
 ]
 
+# optional dependencies for training
+training = [
+    "wandb"
+]
+
+
 
 #####################################################################
 # Pytest configuration and coverage reporting
@@ -98,6 +115,9 @@ minversion = "6.0"
 testpaths = [
     "deepinv/tests",
 ]
+markers = [
+    "slow",
+]
 
 [tool.coverage.run]
 branch = true
@@ -106,3 +126,18 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253"]
+
+[tool.ruff.lint.per-file-ignores]
+# NOTE: Rule F401 is ruff's unused imports rule.
+"__init__.py" = ["F401"]
+"examples/**/*" = ["TID253"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Modules that slow down startup and should be imported lazily
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]

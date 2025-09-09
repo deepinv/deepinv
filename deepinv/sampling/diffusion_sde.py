@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Tuple, Optional, List
+from typing import Callable, Union, Optional
 import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
@@ -33,7 +33,7 @@ class BaseSDE(nn.Module):
         drift: Callable,
         diffusion: Callable,
         solver: BaseSDESolver = None,
-        dtype=torch.float32,
+        dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
@@ -65,7 +65,7 @@ class BaseSDE(nn.Module):
         :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
-        if isinstance(x_init, (Tuple, List, torch.Size)):
+        if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sample_init(x_init, rng=self.solver.rng)
 
         solution = self.solver.sample(
@@ -78,7 +78,7 @@ class BaseSDE(nn.Module):
 
     def discretize(
         self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         r"""
         Discretize the SDE at the given time step.
 
@@ -87,12 +87,12 @@ class BaseSDE(nn.Module):
         :param \*args: additional arguments for the drift.
         :param \*\*kwargs: additional keyword arguments for the drift.
 
-        :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
+        :return tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
-        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
+        self, shape: Union[list, tuple, torch.Size], rng: torch.Generator = None
     ) -> Tensor:
         r"""
         Sample from the end-time distribution of the forward diffusion.
@@ -208,7 +208,9 @@ class DiffusionSDE(BaseSDE):
 
 class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
-    `Variance-Exploding Stochastic Differential Equation (VE-SDE) <https://arxiv.org/abs/2011.13456>`_
+    Variance-Exploding Stochastic Differential Equation (VE-SDE).
+
+    This class implements the reverse-time SDE of the Variance-Exploding SDE (VE-SDE) :footcite:t:`song2020score`.
 
     The forward-time SDE is defined as follows:
 
@@ -233,12 +235,14 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
+
+
     """
 
     def __init__(
         self,
         denoiser: nn.Module = None,
-        sigma_min: float = 0.02,
+        sigma_min: float = 0.005,
         sigma_max: float = 100,
         alpha: float = 1.0,
         solver: BaseSDESolver = None,
@@ -317,7 +321,9 @@ class VarianceExplodingDiffusion(DiffusionSDE):
 
 class VariancePreservingDiffusion(DiffusionSDE):
     r"""
-    `Variance-Preserving Stochastic Differential Equation (VP-SDE) <https://arxiv.org/abs/2011.13456>`_
+    Variance-Preserving Stochastic Differential Equation (VP-SDE).
+
+    This class implements the reverse-time SDE of the Variance-Preserving SDE (VP-SDE) :footcite:t:`song2020score`.
 
     The forward-time SDE is defined as follows:
 
@@ -331,9 +337,9 @@ class VariancePreservingDiffusion(DiffusionSDE):
 
     where :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
 
-    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
+    This class is the reverse-time SDE of the VP-SDE, serving as the generation process.
 
-    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
     :param float beta_min: the minimum noise level.
     :param float beta_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
@@ -342,13 +348,15 @@ class VariancePreservingDiffusion(DiffusionSDE):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
+
+
     """
 
     def __init__(
         self,
         denoiser: Denoiser = None,
-        beta_min: float = 0.1,
-        beta_max: float = 20.0,
+        beta_min: float = 0.0001,
+        beta_max: float = 5.0,
         alpha: float = 1.0,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
@@ -464,7 +472,7 @@ class PosteriorDiffusion(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity: NoisyDataFidelity = ZeroFidelity(),
+        data_fidelity: Optional[NoisyDataFidelity] = None,
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
@@ -474,6 +482,8 @@ class PosteriorDiffusion(Reconstructor):
         *args,
         **kwargs,
     ):
+        if data_fidelity is None:
+            data_fidelity = ZeroFidelity()
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
@@ -541,7 +551,7 @@ class PosteriorDiffusion(Reconstructor):
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
-        if isinstance(x_init, (Tuple, List, torch.Size)):
+        if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
         elif x_init is None:
             if physics is not None:
@@ -598,10 +608,14 @@ class PosteriorDiffusion(Reconstructor):
         else:
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
-            score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
-                (x / scale).to(torch.float32),
-                y.to(torch.float32),
-                physics=physics,
-                sigma=sigma.to(torch.float32),
+            score = (
+                self.sde.score(x, t, *args, **kwargs).to(self.dtype)
+                - self.data_fidelity.grad(
+                    (x / scale),
+                    y,
+                    physics=physics,
+                    sigma=sigma,
+                ).to(self.dtype)
+                / scale
             )
-            return score.to(self.dtype)
+            return score

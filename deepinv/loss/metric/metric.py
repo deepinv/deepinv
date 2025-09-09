@@ -2,11 +2,12 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Optional, Callable
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 
-from deepinv.loss.metric.functional import complex_abs, norm
-from deepinv.utils.plotting import rescale_img
+from deepinv.loss.metric.functional import norm
+from deepinv.utils.signal import normalize_signal, complex_abs
 
 
 def import_pyiqa() -> ModuleType:
@@ -34,12 +35,12 @@ class Metric(Module):
     The metric function must reduce over all dims except the batch dim (see example).
 
     :param Callable metric: metric function, it must reduce over all dims except batch dim. It must not reduce over batch dim.
-        This is unused if the ``metric`` method is overridden.
+        This is unused if the ``metric`` method is overridden. Takes as input `x_net` and `x` tensors and returns a tensor of metric scores.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input, ``clip`` clips to :math:`[0,1]`, ``standardize`` standardizes to same mean and std as ground truth, ``none`` or None no reduction will be applied (default).
 
     |sep|
 
@@ -59,7 +60,7 @@ class Metric(Module):
 
     def __init__(
         self,
-        metric: Callable = None,
+        metric: Callable[[Tensor, Tensor], Tensor] = None,
         complex_abs: bool = False,
         train_loss: bool = False,
         reduction: Optional[str] = None,
@@ -72,13 +73,15 @@ class Metric(Module):
         normalizer = lambda x: x
         if norm_inputs is not None:
             if not isinstance(norm_inputs, str):
-                raise ValueError(
-                    "norm_inputs must either be l2, min_max, none or None."
-                )
+                raise ValueError("norm_inputs must be str or None.")
             elif norm_inputs.lower() == "min_max":
-                normalizer = lambda x: rescale_img(x, rescale_mode="min_max")
+                normalizer = lambda x: normalize_signal(x, mode="min_max")
+            elif norm_inputs.lower() == "clip":
+                normalizer = lambda x: normalize_signal(x, mode="clip")
             elif norm_inputs.lower() == "l2":
                 normalizer = lambda x: x / norm(x)
+            elif norm_inputs.lower() == "standardize":
+                pass
             elif norm_inputs.lower() == "none":
                 pass
             else:
@@ -86,10 +89,14 @@ class Metric(Module):
                     "norm_inputs must either be l2, min_max, none or None."
                 )
         self.normalizer = lambda x: x if x is None else normalizer(x)
+        self.norm_inputs = norm_inputs
+
         self.reducer = lambda x: x
         if reduction is not None:
-            if not isinstance(reduction, str):
-                raise ValueError("reduction must either be mean, sum, none or None.")
+            if callable(reduction):
+                self.reducer = reduction
+            elif not isinstance(reduction, str):
+                raise ValueError("reduction must either be str, callable, or None.")
             elif reduction.lower() == "mean":
                 self.reducer = lambda x: x.mean()
             elif reduction.lower() == "sum":
@@ -112,11 +119,12 @@ class Metric(Module):
         r"""Calculate metric on data.
 
         Override this function to implement your own metric. Always include ``args`` and ``kwargs`` arguments.
+        Do not perform reduction.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
         :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
-        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
+        :return torch.Tensor: calculated unreduced metric of shape ``(B,)``.
         """
         return self._metric(x_net, x, *args, **kwargs)
 
@@ -145,6 +153,10 @@ class Metric(Module):
 
         All tensors should be of shape ``(B, ...)`` or ``(B, C, ...)`` where ``B`` is batch size and ``C`` is channels.
 
+        .. note::
+
+            If a full reference metric is used and a tensor is `None`, a tensor of NaN will be returned instead.
+
         :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
         :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
@@ -157,12 +169,20 @@ class Metric(Module):
         if self.complex_abs:
             x_net, x = complex_abs(x_net), complex_abs(x)
 
-        m = self.metric(
-            self.normalizer(x_net),
-            self.normalizer(x),
-            *args,
-            **kwargs,
-        )
+        if self.norm_inputs == "standardize":
+            if x_net is None or x is None:
+                raise ValueError(
+                    "Both x and x_net must not be None in order to use standardize."
+                )
+            x_net = (x_net - x_net.mean()) / x_net.std() * x.std() + x.mean()
+
+        x_net = self.normalizer(x_net)
+        x = self.normalizer(x) if x is not None else None
+
+        try:
+            m = self.metric(x_net, x, *args, **kwargs)
+        except TypeError:
+            return torch.tensor([torch.nan])
 
         m = self.reducer(m)
 

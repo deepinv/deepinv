@@ -18,6 +18,9 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.PhysicsMultiScaler
+   deepinv.physics.LinearPhysicsMultiScaler
+   deepinv.physics.PhysicsCropper
    deepinv.physics.NoiseModel
 
 Operators
@@ -37,13 +40,14 @@ Operators
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
+   deepinv.physics.Upsampling
+   deepinv.physics.DownsamplingMatlab
    deepinv.physics.MRI
-   deepinv.physics.MRIMixin
-   deepinv.physics.TimeMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
+   deepinv.physics.TomographyWithAstra
    deepinv.physics.Pansharpen
    deepinv.physics.CompressiveSpectralImaging
    deepinv.physics.HyperSpectralUnmixing
@@ -73,6 +77,7 @@ Generators
    deepinv.physics.generator.GeneratorMixture
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
    deepinv.physics.generator.GaussianSplittingMaskGenerator
+   deepinv.physics.generator.MultiplicativeSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
    deepinv.physics.generator.PSFGenerator
@@ -86,6 +91,7 @@ Generators
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
+   deepinv.physics.generator.PolyOrderMaskGenerator
 
 
 .. autosummary::
@@ -110,6 +116,7 @@ Noise distributions
    :nosignatures:
 
    deepinv.physics.NoiseModel
+   deepinv.physics.ZeroNoise
    deepinv.physics.GaussianNoise
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
@@ -152,6 +159,7 @@ Functional
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
+   deepinv.physics.functional.imresize_matlab
 
 
 .. autosummary::
@@ -161,3 +169,4 @@ Functional
 
    deepinv.physics.functional.Radon
    deepinv.physics.functional.IRadon
+   deepinv.physics.functional.XrayTransform

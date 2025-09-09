@@ -77,13 +77,18 @@ We provide some useful utility and demo functions:
      - Get URL for degradation from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_url_image`
      - Loads an image directly from a URL for experiments or demos.
+   * - :func:`deepinv.utils.load_example`
+     - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
+   * - :func:`deepinv.utils.download_example`
+     - Downloads an image from DeepInverse HuggingFace repository to file.
    * - :func:`deepinv.utils.load_image`
      - Loads a local image file for experiments or demos.
    * - :func:`deepinv.utils.load_dataset`
      - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
-
+   * - :func:`deepinv.utils.load_torch_url`
+     - Loads a torch tensor directly from a URL for experiments or demos.
 
 .. _tensorlist:
 
@@ -102,3 +107,23 @@ elementary operations on the list of tensors, such as sum, multiplication, etc.:
     >>> t2 = TensorList([x1*2, x2/2])
     >>> t3 = t1 + t2
 
+.. _mixin:
+
+Mixins
+~~~~~~
+
+DeepInverse maximizes code reuse via inheritance. 
+We provide mixin classes to provide specialized methods for certain physics, models, datasets and losses,
+such as temporal or MRI functionality.
+
+.. list-table:: Mixins
+   :header-rows: 1
+
+   * - **Mixin**
+     - **Description**
+
+   * - :class:`deepinv.utils.MRIMixin`
+     - Utility methods for MRI physics.
+
+   * - :class:`deepinv.utils.TimeMixin`
+     - Methods for expanding and flattening time dimension for dynamic/video data.

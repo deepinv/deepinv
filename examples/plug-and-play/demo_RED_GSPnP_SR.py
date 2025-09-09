@@ -2,11 +2,8 @@ r"""
 Regularization by Denoising (RED) for Super-Resolution.
 ====================================================================================================
 
-We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+Implementation of :footcite:t:`romano2017little` using as plug-in denoiser the Gradient-Step Denoiser (GSPnP) :footcite:t:`hurault2021gradient` which provides an explicit prior.
 
-Hurault, S., Leclaire, A., & Papadakis, N.
-"Gradient Step Denoiser for convergent Plug-and-Play"
-In International Conference on Learning Representations.
 """
 
 import deepinv as dinv
@@ -40,8 +37,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 32
@@ -60,13 +56,13 @@ kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 factor = 2  # down-sampling factor
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 n_images_max = 3  # Maximal number of images to restore from the input dataset
-noise_level_img = 0.03  # Gaussian Noise standart deviation for the degradation
+noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 p = dinv.physics.Downsampling(
     img_size=(n_channels, img_size, img_size),
     factor=factor,
@@ -190,3 +186,8 @@ test(
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

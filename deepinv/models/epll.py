@@ -2,13 +2,15 @@ import torch
 from deepinv.optim.epll import EPLL
 from deepinv.physics import Denoising, GaussianNoise
 from .base import Denoiser
+from typing import Union
+from deepinv.optim.utils import GaussianMixtureModel
 
 
 class EPLLDenoiser(Denoiser):
     r"""
     Expected Patch Log Likelihood denoising method.
 
-    Denoising method based on the minimization problem
+    This class implements the Expected Patch Log Likelihood (EPLL) denoising method from :footcite:t:`zoran2011learning`, which is a denoising method based on the minimization problem
 
     .. math::
 
@@ -26,16 +28,18 @@ class EPLLDenoiser(Denoiser):
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (``cpu`` or ``cuda``)
+
+
     """
 
     def __init__(
         self,
-        GMM=None,
-        n_components=200,
-        pretrained="download",
-        patch_size=6,
-        channels=1,
-        device="cpu",
+        GMM: GaussianMixtureModel = None,
+        n_components: int = 200,
+        pretrained: str = "download",
+        patch_size: int = 6,
+        channels: int = 1,
+        device: torch.device = torch.device("cpu"),
     ):
         super(EPLLDenoiser, self).__init__()
         self.PatchGMM = EPLL(
@@ -43,7 +47,13 @@ class EPLLDenoiser(Denoiser):
         )
         self.denoising_operator = Denoising(GaussianNoise(0))
 
-    def forward(self, x, sigma, betas=None, batch_size=-1):
+    def forward(
+        self,
+        x: torch.Tensor,
+        sigma: Union[float, torch.Tensor, list[float]],
+        betas: list[float] = None,
+        batch_size: int = -1,
+    ) -> torch.Tensor:
         r"""
         Denoising method based on the minimization problem.
 
@@ -55,6 +65,9 @@ class EPLLDenoiser(Denoiser):
             but a small value reduces the memory consumption
             and might increase the computation time. ``-1`` for considering all patches at once.
         """
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), device=x.device, dtype=x.dtype
+        )
         return self.PatchGMM(
             x,
             x_init=x.clone(),

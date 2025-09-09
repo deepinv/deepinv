@@ -3,7 +3,7 @@
 Optimization
 ============
 
-This package contains a collection of routines that optimize
+This module contains a collection of routines that optimize
 
 .. math::
     \begin{equation}
@@ -52,7 +52,7 @@ least squares problem.
     >>> # Forward operator, here inpainting
     >>> mask = torch.ones((1, 2, 2))
     >>> mask[0, 0, 0] = 0
-    >>> physics = dinv.physics.Inpainting(tensor_size=mask.shape, mask=mask)
+    >>> physics = dinv.physics.Inpainting(img_size=mask.shape, mask=mask)
     >>> # Generate data
     >>> x = torch.ones((1, 1, 2, 2))
     >>> y = physics(x)

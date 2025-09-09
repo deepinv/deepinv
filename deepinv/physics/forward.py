@@ -1,10 +1,17 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, Optional, Callable
+import warnings
+import copy
+import inspect
+import collections.abc
 
 import torch
 from torch import Tensor
-from deepinv.physics.noise import GaussianNoise
+import torch.nn as nn
+from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
+from deepinv.utils.compat import zip_strict
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -15,7 +22,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     .. math::
 
-        y = N(A(x))
+        y = \noise{\forw{x}}
 
     where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
     :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
@@ -23,11 +30,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
     the measurements.
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`\noise{z}`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
-        such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
-        :math:`y=\eta\left(N(A(x))\right)`. By default, the `sensor_model` is set to the identity :math:`\eta(z)=z`.
+        such as quantization or saturation, defined as a function :math:`\sensor{z}`, such that
+        :math:`y=\sensor{\noise{\forw{x}}}`. By default, the `sensor_model` is set to the identity :math:`\sensor{z}=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
@@ -37,13 +44,16 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def __init__(
         self,
-        A=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
-        sensor_model=lambda x: x,
-        solver="gradient_descent",
-        max_iter=50,
-        tol=1e-4,
+        A: Callable = lambda x, **kwargs: x,
+        noise_model: Optional[NoiseModel] = None,
+        sensor_model: Callable = lambda x: x,
+        solver: str = "gradient_descent",
+        max_iter: int = 50,
+        tol: float = 1e-4,
+        **kwargs,
     ):
+        if noise_model is None:
+            noise_model = ZeroNoise()
         super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
@@ -53,7 +63,12 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.tol = tol
         self.solver = solver
 
-    def __mul__(self, other):  #  physics3 = physics1 \circ physics2
+        if len(kwargs) > 0:
+            warnings.warn(
+                f"Arguments {kwargs} are passed to {self.__class__.__name__} but are ignored."
+            )
+
+    def __mul__(self, other):
         r"""
         Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
@@ -63,16 +78,12 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
-        A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
-        noise = self.noise_model
-        sensor = self.sensor_model
-        return Physics(
-            A=A,
-            noise_model=noise,
-            sensor_model=sensor,
-            max_iter=self.max_iter,
-            tol=self.tol,
+
+        warnings.warn(
+            "You are composing two physics objects. The resulting physics will not retain the original attributes. "
+            "You may instead retrieve attributes of the original physics by indexing the resulting physics."
         )
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
         r"""
@@ -156,14 +167,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
         This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param torch.Tensor x_init: initial guess for the reconstruction.
+        :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-
         if self.solver == "gradient_descent":
             if x_init is None:
-                x_init = self.A_adjoint(y)
+                if hasattr(self, "A_adjoint"):
+                    x_init = self.A_adjoint(y)
+                else:
+                    raise ValueError(
+                        "x_init must be provided for gradient descent solver if the physics does not have"
+                        " A_adjoint defined."
+                    )
 
             x = x_init
 
@@ -218,31 +234,91 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the parameters of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
-
     def update(self, **kwargs):
         r"""
-        Update the parameters of the forward operator.
+        Update the parameters of the physics: forward operator and noise model.
 
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
-
-        # if self.noise_model is not None:
-        # check if noise model has a method named update_parameters
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
+
+    def update_parameters(self, **kwargs):
+        r"""
+
+        Update the parameters of the forward operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        if kwargs:
+            for key, value in kwargs.items():
+                if (
+                    value is not None
+                    and hasattr(self, key)
+                    and isinstance(value, torch.Tensor)
+                ):
+                    self.register_buffer(key, value)
+
+    # NOTE: Physics instances can hold instances of torch.Generator as
+    # (possibly nested) attributes and they cannot be copied using deepcopy
+    # natively. For this reason, we manually copy them beforehand and populate
+    # the copies using the memo parameter of deepcopy. For more details, see:
+    # https://github.com/pytorch/pytorch/issues/43672
+    # https://github.com/pytorch/pytorch/pull/49840
+    # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
+    def clone(self):
+        r"""
+        Clone the forward operator by performing deepcopy to copy all attributes to new memory.
+
+        This method should be favored to `copy.deepcopy` as it works even in
+        the presence of `torch.Generator` objects. See `this issue
+        <https://github.com/pytorch/pytorch/issues/43672>` for more details.
+        """
+        memo = {}
+
+        # Traverse the object hierarchy graph of the forward operator
+        traversal_queue = [self]
+        seen = set()
+        while traversal_queue:
+            # 1. Get the next node to process
+            node = traversal_queue.pop()
+
+            # 2. Process the node
+            if isinstance(node, torch.Generator):
+                generator_device = node.device
+                obj_clone = torch.Generator(generator_device)
+                obj_clone.set_state(node.get_state())
+                node_id = id(node)
+                memo[node_id] = obj_clone
+
+            # 3. Compute its neighbors (attributes and values for mapping objects)
+            neighbors = []
+
+            # NOTE: Attribute resolution can be dynamic and return new objects,
+            # preventing the algorithm from terminating. To avoid that, we use
+            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # because it was only introduced in Python 3.11 and we currently
+            # support Python 3.9 onwards.
+            for attr in dir(node):
+                value = inspect.getattr_static(node, attr, default=None)
+                if value is not None:
+                    neighbors.append(value)
+
+            # NOTE: It is necessary to include values for mapping objects for
+            # the case of submodules which are stored as entries in a
+            # dictionary instead of directly as attributes.
+            if isinstance(node, collections.abc.Mapping):
+                neighbors += list(node.values())
+
+            # 4. Queue the unseen neighbors
+            for neighbor in neighbors:
+                child_id = id(neighbor)
+                if child_id not in seen:
+                    seen.add(child_id)
+                    traversal_queue.append(neighbor)
+
+        return copy.deepcopy(self, memo=memo)
 
 
 class LinearPhysics(Physics):
@@ -262,13 +338,13 @@ class LinearPhysics(Physics):
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
-    :param Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
-
-        .. note::
-
-            A_adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function`
-            method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
-
+    :param None | Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+        By default, it is set to `None`, which means that the adjoint is computed automatically using :func:`deepinv.physics.adjoint_function`.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter
+        If you have a closed form for the adjoint, you can pass it as a callable function or rewrite the class method.
+    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+        used for the automatic adjoint computation.
     :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
@@ -334,12 +410,13 @@ class LinearPhysics(Physics):
     def __init__(
         self,
         A=lambda x, **kwargs: x,
-        A_adjoint=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
+        A_adjoint=None,
+        img_size=None,
+        noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-4,
-        solver="CG",
+        solver="lsqr",
         **kwargs,
     ):
         super().__init__(
@@ -349,8 +426,10 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
+            **kwargs,
         )
         self.A_adj = A_adjoint
+        self.img_size = img_size
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -367,7 +446,17 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-        return self.A_adj(y, **kwargs)
+        if self.A_adj is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic A_adjoint implementation."
+                    "Set img_size in the constructor of the LinearPhyics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (y.shape[0],) + self.img_size
+            return adjoint_function(self.A, tensor_size, device=y.device)(y, **kwargs)
+        else:
+            return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
         r"""
@@ -409,7 +498,7 @@ class LinearPhysics(Physics):
 
     def __mul__(self, other):
         r"""
-        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
+        Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
         The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
@@ -417,20 +506,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(
-            self.A_adjoint(x, **kwargs), **kwargs
-        )
-        noise = self.noise_model
-        sensor = self.sensor_model
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
-            noise_model=noise,
-            sensor_model=sensor,
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
         r"""
@@ -456,7 +532,7 @@ class LinearPhysics(Physics):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
 
-        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,
 
         using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
@@ -476,13 +552,16 @@ class LinearPhysics(Physics):
             z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
-            if rel_var < tol and verbose:
-                print(
-                    f"Power iteration converged at iteration {it}, value={z.item():.2f}"
-                )
+            if rel_var < tol:
+                if verbose:
+                    print(
+                        f"Power iteration converged at iteration {it}, value={z.item():.2f}"
+                    )
                 break
             zold = z
             x = y / torch.norm(y)
+        else:
+            warnings.warn("Power iteration: convergence not reached")
 
         return z.real
 
@@ -502,7 +581,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip(Au, V):
+            for au, v in zip_strict(Au, V):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
@@ -616,6 +695,132 @@ class LinearPhysics(Physics):
         )
 
 
+class ComposedPhysics(Physics):
+    r"""
+    Composes multiple physics operators into a single operator.
+
+    The measurements produced by the resulting model are defined as
+
+    .. math::
+
+        \noise{\forw{x}} = N_k(A_k(\dots A_2(A_1(x))))
+
+    where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
+
+    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    """
+
+    def __init__(self, *physics: Physics, device=None, **kwargs):
+        super().__init__()
+
+        self.physics_list = nn.ModuleList([])
+        for physics_item in physics:
+            self.physics_list.extend(
+                [physics_item]
+                if not isinstance(physics_item, ComposedPhysics)
+                else physics_item.physics_list
+            )
+        self.noise_model = physics[-1].noise_model
+        self.sensor_model = physics[-1].sensor_model
+        self.to(device)
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
+        r"""
+        Computes forward of composed operator
+
+        .. math::
+
+            y = A_k(\dots(A_1(x)))
+
+        :param torch.Tensor x: signal/image
+        :return: measurements
+        """
+        for physics in self.physics_list:
+            x = physics.A(x, **kwargs)
+        return x
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of each operator in the composed operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
+
+    def __str__(self):
+        return (
+            "ComposedPhysics("
+            + "\n".join([f"{p}" for p in reversed(self.physics_list)])
+            + ")"
+        )
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __getitem__(self, item):
+        r"""
+        Returns the physics operator at index `item`.
+
+        :param int item: index of the physics operator
+        """
+        return self.physics_list[item]
+
+
+class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
+    r"""
+    Composes multiple linear physics operators into a single operator.
+
+    The measurements produced by the resulting model are defined as
+
+    .. math::
+
+        \noise{\forw{x}} = N_k(A_k \dots A_2(A_1(x)))
+
+    where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
+
+    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    """
+
+    def __init__(self, *physics: Physics, **kwargs):
+        super().__init__(*physics, **kwargs)
+
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+        r"""
+        Computes adjoint of composed operator
+
+        .. math::
+
+            x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y
+
+        :param torch.Tensor y: measurements
+        :return: signal/image
+        """
+        for physics in reversed(self.physics_list):
+            y = physics.A_adjoint(y, **kwargs)
+        return y
+
+
+def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
+    r"""
+    Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    """
+    if any(isinstance(phys, DecomposablePhysics) for phys in physics):
+        warnings.warn(
+            "At least one input physics is a DecomposablePhysics, but resulting physics will not be decomposable. `A_dagger` and `prox_l2` will fall back to approximate methods, which may impact performance."
+        )
+
+    if all(isinstance(phys, LinearPhysics) for phys in physics):
+        return ComposedLinearPhysics(*physics, **kwargs)
+    else:
+        return ComposedPhysics(*physics, **kwargs)
+
+
 class DecomposablePhysics(LinearPhysics):
     r"""
     Parent class for linear operators with SVD decomposition.
@@ -629,10 +834,18 @@ class DecomposablePhysics(LinearPhysics):
     where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`
     are orthonormal linear transformations and :math:`s\in\mathbb{R}_{+}^{n}` are the singular values.
 
-    :param Callable U: orthonormal transformation
-    :param Callable U_adjoint: transpose of U
-    :param Callable V: orthonormal transformation
-    :param Callable V_adjoint: transpose of V
+    :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
+    :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
+    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+        used for the automatic adjoint computation.
+    :param None | Callable U_adjoint: transpose of U. If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
+        from the `U` function and the `img_size` parameter.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
+    :param None | Callable V: If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
+        from the `V_adjoint` function and the `img_size` parameter.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
     :param torch.nn.parameter.Parameter, float params: Singular values of the transform
 
     |sep|
@@ -643,7 +856,7 @@ class DecomposablePhysics(LinearPhysics):
 
         >>> from deepinv.physics import DecomposablePhysics
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
-        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> img_size = (1, 1, 3, 3)  # Input size
         >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
         >>> U = lambda x: x  # U is the identity operation
         >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
@@ -654,7 +867,7 @@ class DecomposablePhysics(LinearPhysics):
 
         Apply the operator to a random tensor:
 
-        >>> x = torch.randn(tensor_size)
+        >>> x = torch.randn(img_size)
         >>> with torch.no_grad():
         ...     physics.A(x)  # Apply the masking
         tensor([[[[ 1.5410, -0.0000, -2.1788],
@@ -665,20 +878,36 @@ class DecomposablePhysics(LinearPhysics):
 
     def __init__(
         self,
-        U=lambda x: x,
-        U_adjoint=lambda x: x,
-        V=lambda x: x,
-        V_adjoint=lambda x: x,
+        U=None,
+        V_adjoint=None,
+        img_size=None,
+        U_adjoint=None,
+        V=None,
         mask=1.0,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._V = V
-        self._U = U
-        self._U_adjoint = U_adjoint
-        self._V_adjoint = V_adjoint
+
+        assert not (
+            U is None and not (U_adjoint is None)
+        ), "U must be provided if U_adjoint is provided."
+        assert not (
+            V_adjoint is None and not (V is None)
+        ), "V_adjoint must be provided if V is provided."
+
+        # set to identity if not provided
+        self._V_adjoint = (lambda x: x) if V_adjoint is None else V_adjoint
+        self._U = (lambda x: x) if U is None else U
+
+        # if U is the identity, we set U_adjoint as the identity as well
+        self._U_adjoint = (lambda x: x) if U is None else U_adjoint
+
+        # if V_adjoint is the identity, we set V as the identity as well
+        self._V = (lambda x: x) if V_adjoint is None else V
+
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
-        self.mask = mask
+        self.img_size = img_size
+        self.register_buffer("mask", mask)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
         r"""
@@ -754,7 +983,7 @@ class DecomposablePhysics(LinearPhysics):
         """
         return self._U(x)
 
-    def V(self, x):
+    def V(self, x, **kwargs):
         r"""
         Applies the :math:`V` operator of the SVD decomposition.
 
@@ -764,9 +993,21 @@ class DecomposablePhysics(LinearPhysics):
 
         :param torch.Tensor x: input tensor
         """
-        return self._V(x)
+        if self._V is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic V implementation. "
+                    "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (x.shape[0],) + self.img_size
+            return adjoint_function(self.V_adjoint, tensor_size, device=x.device)(
+                x, **kwargs
+            )
+        else:
+            return self._V(x)
 
-    def U_adjoint(self, x):
+    def U_adjoint(self, x, **kwargs):
         r"""
         Applies the :math:`U^{\top}` operator of the SVD decomposition.
 
@@ -776,7 +1017,17 @@ class DecomposablePhysics(LinearPhysics):
 
         :param torch.Tensor x: input tensor
         """
-        return self._U_adjoint(x)
+        if self._U_adjoint is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic U_adjoint implementation. "
+                    "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (x.shape[0],) + self.img_size
+            return adjoint_function(self.U, tensor_size, device=x.device)(x, **kwargs)
+        else:
+            return self._U_adjoint(x)
 
     def V_adjoint(self, x):
         r"""
@@ -840,7 +1091,7 @@ class Denoising(DecomposablePhysics):
 
     The linear operator is just the identity mapping :math:`A(x)=x`
 
-    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module.
+    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module. By default, it is set to Gaussian noise with a standard deviation of 0.1.
 
     |sep|
 
@@ -860,7 +1111,9 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
+    def __init__(self, noise_model: Optional[NoiseModel] = None, **kwargs):
+        if noise_model is None:
+            noise_model = GaussianNoise(sigma=0.1)
         super().__init__(noise_model=noise_model, **kwargs)
 
 
@@ -893,17 +1146,38 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     (_, vjpfunc) = torch.func.vjp(A, x)
     batches = x.size()[0]
 
-    def adjoint(y):
-        if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
-            y2[: y.size()[0], ...] = y
-            return vjpfunc(y2)[0][: y.size()[0], ...]
-        elif y.size()[0] > batches:
-            raise ValueError("Batch size of A_adjoint input is larger than expected")
-        else:
-            return vjpfunc(y)[0]
+    # NOTE: In certain cases A(x) can't be automatically differentiated
+    # infinitely many times wrt x. In that case, the adjoint of A computed
+    # using automatic differentiation might not be automatically differentiable
+    # either. We avoid this problem by using the involutive property of the
+    # adjoint operator, i.e.,  (A^\top)^\top = A, and we specifically define
+    # the adjoint of the adjoint as the original linear operator A. For more
+    # details, see https://github.com/deepinv/deepinv/issues/511
+    class Adjoint(torch.autograd.Function):
+        @staticmethod
+        def forward(y):
+            if y.size()[0] < batches:
+                y2 = torch.zeros(
+                    (batches,) + y.shape[1:], device=y.device, dtype=y.dtype
+                )
+                y2[: y.size()[0], ...] = y
+                return vjpfunc(y2)[0][: y.size()[0], ...]
+            elif y.size()[0] > batches:
+                raise ValueError(
+                    "Batch size of A_adjoint input is larger than expected"
+                )
+            else:
+                return vjpfunc(y)[0]
 
-    return adjoint
+        @staticmethod
+        def setup_context(ctx, inputs, outputs):
+            pass
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            return A(grad_output)
+
+    return Adjoint.apply
 
 
 def stack(*physics: Union[Physics, LinearPhysics]):
@@ -1061,12 +1335,3 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
                 for i, physics in enumerate(self.physics_list)
             ]
         )
-
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the parameters of the stacked operator.
-
-        :param dict kwargs: dictionary of parameters to update.
-        """
-        for physics in self.physics_list:
-            physics.update_parameters(**kwargs)

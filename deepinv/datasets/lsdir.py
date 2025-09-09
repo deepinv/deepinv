@@ -1,19 +1,20 @@
 import hashlib
-from typing import Any, Callable
+from typing import Callable
+from types import MappingProxyType
 import os
-
-from PIL import Image
-import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import ImageFolder
 
 
-class LsdirHR(torch.utils.data.Dataset):
-    """Dataset for `LSDIR <https://data.vision.ee.ethz.ch/yawli/>`_.
+class LsdirHR(ImageFolder):
+    """Dataset for `LSDIR <https://ofsoundof.github.io/lsdir-data/>`_.
+
+    Published in :footcite:t:`li2023lsdir`.
 
     A large-scale dataset for image restoration tasks such as image super-resolution (SR),
     image denoising, JPEG deblocking, deblurring, and demosaicking, and real-world SR.
@@ -61,38 +62,47 @@ class LsdirHR(torch.utils.data.Dataset):
             print(val_dataset.verify_split_dataset_integrity())             # check that raw data has been downloaded correctly
             print(len(val_dataset))                                         # check that we have 250 images
 
+
     """
 
-    archive_urls = {
-        "train": {
-            "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
-            "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
-            "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
-            "shard-03.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-03.tar.gz",
-            "shard-04.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-04.tar.gz",
-            "shard-05.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-05.tar.gz",
-            "shard-06.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-06.tar.gz",
-            "shard-07.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-07.tar.gz",
-            "shard-08.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-08.tar.gz",
-            "shard-09.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-09.tar.gz",
-            "shard-10.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-10.tar.gz",
-            "shard-11.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-11.tar.gz",
-            "shard-12.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-12.tar.gz",
-            "shard-13.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-13.tar.gz",
-            "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
-            "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
-            "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
-        },
-        "val": {
-            "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
-        },
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "train": MappingProxyType(
+                {
+                    "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
+                    "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
+                    "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
+                    "shard-03.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-03.tar.gz",
+                    "shard-04.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-04.tar.gz",
+                    "shard-05.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-05.tar.gz",
+                    "shard-06.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-06.tar.gz",
+                    "shard-07.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-07.tar.gz",
+                    "shard-08.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-08.tar.gz",
+                    "shard-09.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-09.tar.gz",
+                    "shard-10.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-10.tar.gz",
+                    "shard-11.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-11.tar.gz",
+                    "shard-12.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-12.tar.gz",
+                    "shard-13.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-13.tar.gz",
+                    "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
+                    "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
+                    "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
+                }
+            ),
+            "val": MappingProxyType(
+                {
+                    "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
+                }
+            ),
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "train": "a83bdb97076d617e4965913195cc84d1",
-        "val": "972ba478c530b76eb9404b038597f65f",
-    }
+    _checksums = MappingProxyType(
+        {
+            "train": "a83bdb97076d617e4965913195cc84d1",
+            "val": "972ba478c530b76eb9404b038597f65f",
+        }
+    )
 
     def __init__(
         self,
@@ -103,7 +113,6 @@ class LsdirHR(torch.utils.data.Dataset):
     ) -> None:
         self.root = root
         self.mode = mode
-        self.transform = transform
 
         if self.mode == "train":
             # train_folder_names = ['0001000', ..., '0085000']
@@ -132,7 +141,7 @@ class LsdirHR(torch.utils.data.Dataset):
                     f"The {self.mode} folders already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dirs}`."
                 )
 
-            for filename, url in self.archive_urls[self.mode].items():
+            for filename, url in self._archive_urls[self.mode].items():
                 # download tar file from the Internet and save it locally
                 download_archive(
                     url=url,
@@ -146,29 +155,11 @@ class LsdirHR(torch.utils.data.Dataset):
             else:
                 raise ValueError("There is an issue with the data downloaded.")
 
-        self.img_paths = []
-        for img_dir in self.img_dirs:
-            try:
-                self.img_paths.extend(
-                    [os.path.join(img_dir, fname) for fname in os.listdir(img_dir)]
-                )
-            except FileNotFoundError:
-                raise RuntimeError(
-                    "Data folder doesn't exist, please set `download=True`"
-                )
-        self.img_paths = sorted(self.img_paths)
+        if not all(os.path.isdir(d) and os.listdir(d) for d in self.img_dirs):
+            raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
-    def __len__(self) -> int:
-        return len(self.img_paths)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = self.img_paths[idx]
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialize ImageFolder
+        super().__init__(self.root, x_path="**/*.png", transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
@@ -196,4 +187,4 @@ class LsdirHR(torch.utils.data.Dataset):
         md5_folders = hashlib.md5()
         for img_dir in self.img_dirs:
             md5_folders.update(calculate_md5_for_folder(img_dir).encode())
-        return md5_folders.hexdigest() == self.checksums[self.mode]
+        return md5_folders.hexdigest() == self._checksums[self.mode]

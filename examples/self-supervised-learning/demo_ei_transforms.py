@@ -24,14 +24,9 @@ See :ref:`docs <transform>` for full list.
 
 These were proposed in the papers:
 
--  ``Shift``, ``Rotate``: `Chen et al., Equivariant Imaging: Learning
-   Beyond the Range
-   Space <https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`__
--  ``Scale``: `Scanvic et al., Self-Supervised Learning for Image
-   Super-Resolution and Deblurring <https://arxiv.org/abs/2312.11232>`__
--  ``Homography`` and the projective geometry framework: `Wang et al.,
-   Perspective-Equivariant Imaging: an Unsupervised Framework for
-   Multispectral Pansharpening <https://arxiv.org/abs/2403.09327>`__
+-  ``Shift``, ``Rotate``: :footcite:t:`chen2021equivariant`.
+-  ``Scale``: :footcite:t:`scanvic2025scale`.
+-  ``Homography`` and the projective geometry framework: :footcite:t:`wang2024perspective`.
 
 """
 
@@ -70,10 +65,11 @@ transforms = [
 # measurements ``y``.
 #
 
-x = dinv.utils.load_url_image(dinv.utils.demo.get_image_url("celeba_example.jpg"))
+x = dinv.utils.load_example("celeba_example.jpg")
 dinv.utils.plot(
     [x] + [t(x) for t in transforms],
     ["Orig"] + [t.__class__.__name__ for t in transforms],
+    fontsize=24,
 )
 
 
@@ -159,3 +155,8 @@ y = physics(x)
 x_hat = model(y)
 
 dinv.utils.plot([x, y, x_hat], ["x", "y", "reconstruction"])
+
+# %%
+# :References:
+#
+# .. footbibliography::

@@ -2,7 +2,6 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.utils.tensorlist import TensorList
 
 
@@ -25,10 +24,10 @@ class Pansharpen(StackedLinearPhysics):
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
         See :class:`deepinv.physics.Decolorize` for parameter options. Defaults to ``flat`` i.e. simply average the bands.
-    :param bool use_brovey: if ``True``, use the `Brovey method <https://ieeexplore.ieee.org/document/6998089>`_
+    :param bool use_brovey: if ``True``, use the Brovey method :footcite:t:`vivone2014critical`.
         to compute the pansharpening, otherwise use the conjugate gradient method.
-    :param torch.nn.Module noise_color: noise model for the RGB image.
-    :param torch.nn.Module noise_gray: noise model for the grayscale image.
+    :param torch.nn.Module noise_color: noise model for the RGB image. It defaults to zero noise.
+    :param torch.nn.Module noise_gray: noise model for the grayscale image. It defaults to zero noise.
     :param torch.device, str device: torch device.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -62,8 +61,8 @@ class Pansharpen(StackedLinearPhysics):
         filter="bilinear",
         factor=4,
         srf="flat",
-        noise_color=GaussianNoise(sigma=0.0),
-        noise_gray=GaussianNoise(sigma=0.05),
+        noise_color=None,
+        noise_gray=None,
         use_brovey=True,
         device="cpu",
         padding="circular",
@@ -71,6 +70,10 @@ class Pansharpen(StackedLinearPhysics):
         eps=1e-6,
         **kwargs,
     ):
+        if noise_color is None:
+            noise_color = GaussianNoise(sigma=0.0)
+        if noise_gray is None:
+            noise_gray = GaussianNoise(sigma=0.0)
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         noise_color = noise_color if noise_color is not None else lambda x: x
@@ -102,7 +105,7 @@ class Pansharpen(StackedLinearPhysics):
         """
         If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
 
-        See `review paper <https://ieeexplore.ieee.org/document/6998089>`_ for details.
+        See the review paper :footcite:t:`vivone2014critical` for more details.
 
         :param deepinv.utils.TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
@@ -119,42 +122,3 @@ class Pansharpen(StackedLinearPhysics):
             return x
         else:
             return super().A_dagger(y, **kwargs)
-
-
-# test code
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#     import torch
-#     import torchvision
-#     import deepinv
-#
-#     device = "cuda:0"
-#
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#     x = torchvision.transforms.Resize((160, 180))(x)
-#
-#     class Toy(LinearPhysics):
-#         def __init__(self, **kwargs):
-#             super().__init__(**kwargs)
-#             self.A = lambda x: x * 2
-#             self.A_adjoint = lambda x: x * 2
-#
-#     sigma_noise = 0.1
-#     kernel = torch.zeros((1, 1, 15, 15), device=device)
-#     kernel[:, :, 7, :] = 1 / 15
-#     # physics = deepinv.physics.BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)
-#     physics = Pansharpen(factor=8, img_size=x.shape[1:], device=device)
-#
-#     y = physics(x)
-#
-#     xhat2 = physics.A_adjoint(y)
-#     xhat1 = physics.A_dagger(y)
-#
-#     physics.compute_norm(x)
-#     physics.adjointness_test(x)
-#
-#     deepinv.utils.plot(
-#         [y[0], y[1], xhat2, xhat1, x],
-#         titles=["low res color", "high res gray", "A_adjoint", "A_dagger", "x"],
-#     )

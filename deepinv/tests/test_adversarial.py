@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss import adversarial
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
-from test_loss import dataset, physics
+# NOTE: They're injected in tests as fixtures.
+from test_loss import dataset, physics  # noqa: F401
 
 ADVERSARIAL_COMBOS = [
     "DeblurGAN",
@@ -28,7 +29,7 @@ def imsize():
     return (3, 64, 64)
 
 
-def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
+def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
     unet = dinv.models.UNet(
         in_channels=imsize[0],
         out_channels=imsize[0],
@@ -59,9 +60,9 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
         dis_loss = adversarial.SupAdversarialDiscriminatorLoss(device=device)
     elif combo_name == "UAIR":
         generator = unet
-        discrimin = dinv.models.ESRGANDiscriminator(input_shape=imsize).to(device)
-        gen_loss = adversarial.UAIRGeneratorLoss(device=device, metric_adv=metric)
-        dis_loss = adversarial.UAIRDiscriminatorLoss(device=device, metric_adv=metric)
+        gen_loss = adversarial.UAIRGeneratorLoss(device=device, domain=domain)
+        dis_loss = adversarial.UAIRDiscriminatorLoss(device=device, domain=domain)
+        discrimin = dinv.models.ESRGANDiscriminator(img_size=imsize).to(device)
     elif combo_name == "CSGM":
         generator = csgm_generator
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)
@@ -71,10 +72,10 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
         generator = csgm_generator
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)
         gen_loss = adversarial.UnsupAdversarialGeneratorLoss(
-            device=device, metric=metric
+            device=device, domain=domain
         )
         dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(
-            device=device, metric=metric
+            device=device, domain=domain
         )
     elif combo_name == "MultiOperatorAdversarial":
         generator = unet
@@ -89,28 +90,28 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
             dataloader=dataloader_factory(),
             physics_generator=physics_generator_factory(),
             device=device,
-            metric=metric,
+            domain=domain,
         )
         dis_loss = adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss(
             dataloader=dataloader_factory(),
             physics_generator=physics_generator_factory(),
             device=device,
-            metric=metric,
+            domain=domain,
         )
 
     return generator, discrimin, gen_loss, dis_loss
 
 
 @pytest.mark.parametrize("combo_name", ADVERSARIAL_COMBOS)
-@pytest.mark.parametrize("metric", [None, "A_adjoint"])
-def test_adversarial_training(combo_name, imsize, device, physics, dataset, metric):
+@pytest.mark.parametrize("domain", [None, "A_adjoint"])
+def test_adversarial_training(combo_name, imsize, device, physics, dataset, domain):
     model, D, gen_loss, dis_loss = choose_adversarial_combo(
-        combo_name, imsize, device, dataset, metric
+        combo_name, imsize, device, dataset, domain
     )
-    if metric is not None and isinstance(
+    if domain is not None and isinstance(
         dis_loss, adversarial.SupAdversarialDiscriminatorLoss
     ):
-        pytest.skip("Metric does not apply for supervised loss.")
+        pytest.skip("domain does not apply for supervised loss.")
 
     optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8),

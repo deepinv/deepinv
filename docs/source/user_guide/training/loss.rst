@@ -3,7 +3,7 @@
 Training Losses
 ===============
 
-This package contains popular training losses for supervised and self-supervised learning,
+This module contains popular training losses for supervised and self-supervised learning,
 which are especially designed for inverse problems.
 
 Introduction
@@ -74,6 +74,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.ScoreLoss`
      - Poisson, Gaussian or Gamma noise
      - No
+   * - :class:`deepinv.loss.SureGaussianLoss`
+     - Gaussian noise and multiple forward operators
+     - No
 
 In order to learn from incomplete data, you can either:
 
@@ -97,35 +100,43 @@ In order to learn from incomplete data, you can either:
    * - :class:`deepinv.loss.SplittingLoss`
      - | Assumes masks observe whole distribution.
        | (i.e. measurement splitting or data undersampling)
-   * - :class:`deepinv.loss.Phase2PhaseLoss`
-     - Splitting loss but across time dimension
-   * - :class:`deepinv.loss.Artifact2ArtifactLoss`
-     - Splitting loss but across time dimension
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
-
+   * - :class:`deepinv.loss.AugmentConsistencyLoss`
+     - Assumes consistency to data augmentations.
 
 .. tip::
 
-       Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`, :class:`Phase2PhaseLoss <deepinv.loss.Phase2PhaseLoss>`,
-       and :class:`Artifact2ArtifactLoss <deepinv.loss.Artifact2ArtifactLoss>`
+       Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
-.. _regularization-losses:
+.. _mri-losses:
 
-Network Regularization
-----------------------
-These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
+Specialized self-supervised losses for MRI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. list-table:: Network Regularization Losses Overview
+Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
+
+.. note::
+
+  These losses are specialized versions of :class:`SplittingLoss <deepinv.loss.SplittingLoss>` and :class:`Recorrupted2Recorrupted <deepinv.loss.R2RLoss>` to accelerated MRI problems.
+
+.. list-table:: MRI specialized losses
    :header-rows: 1
 
    * - Loss
      - Description
-   * - :class:`deepinv.loss.JacobianSpectralNorm`
-     - Controls spectral norm of the Jacobian matrix
-   * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
-     - Promotes a firmly non-expansive network.
+   * - :class:`deepinv.loss.mri.WeightedSplittingLoss`
+     - Splitting loss for MRI with K-weighting
+   * - :class:`deepinv.loss.mri.RobustSplittingLoss`
+     - Splitting loss for noisy MRI with additional Noisier2Noise
+   * - :class:`deepinv.loss.mri.Phase2PhaseLoss`
+     - Splitting loss across time dimension for dynamic MRI
+   * - :class:`deepinv.loss.mri.Artifact2ArtifactLoss`
+     - Splitting loss across time dimension for sequential MRI
+   * - :class:`deepinv.loss.mri.ENSURELoss`
+     - Gaussian SURE but for rank-deficient multiple operators.
+
 
 .. _adversarial-losses:
 
@@ -158,6 +169,22 @@ and for discriminators is :class:`deepinv.loss.adversarial.DiscriminatorLoss`.
      - Unsupervised reconstruction & adversarial loss.
 
 
+.. _regularization-losses:
+
+Network Regularization
+----------------------
+These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
+
+.. list-table:: Network Regularization Losses Overview
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.JacobianSpectralNorm`
+     - Controls spectral norm of the Jacobian matrix
+   * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
+     - Promotes a firmly non-expansive network.
+
 .. _loss-schedulers:
 
 Loss schedulers
@@ -179,3 +206,5 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
+
+

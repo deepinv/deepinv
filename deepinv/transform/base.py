@@ -1,8 +1,8 @@
 from __future__ import annotations
 from itertools import product
-from typing import Tuple, Callable, Any
+from typing import Callable, Any
 import torch
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixins import TimeMixin
 
 
 class TransformParam(torch.Tensor):
@@ -140,7 +140,7 @@ class Transform(torch.nn.Module, TimeMixin):
         Params store e.g rotation degrees or shift amounts.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
-        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
+        To change this behavior (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
         ``p = TransformParam(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
@@ -262,7 +262,7 @@ class Transform(torch.nn.Module, TimeMixin):
         collate_batch: bool = True,
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         r"""
-        Symmetrise a function with a transform and its inverse.
+        Symmetrize a function with a transform and its inverse.
 
         Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 
@@ -316,7 +316,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
@@ -362,7 +362,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class StackTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
 
@@ -395,7 +395,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class EitherTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.recent_choice = None
@@ -430,3 +430,15 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+
+class Identity(Transform):
+    """
+    Identity transform i.e. trivial group.
+    """
+
+    def _get_params(self, *args):
+        return {}
+
+    def _transform(self, x, **params):
+        return x

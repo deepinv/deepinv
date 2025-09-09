@@ -1,158 +1,10 @@
-from typing import List, Optional, Union
-
-from numpy import ndarray
+from typing import Optional, Union
+import numpy as np
 import torch
 from torch import Tensor
-from torchvision.transforms import CenterCrop
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
-from deepinv.physics.time import TimeMixin
-
-
-class MRIMixin:
-    r"""
-    Mixin base class for MRI functionality.
-
-    Base class that provides helper functions for FFT and mask checking.
-    """
-
-    def check_mask(
-        self, mask: Tensor = None, three_d: bool = False, device: str = "cpu", **kwargs
-    ) -> None:
-        r"""
-        Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
-
-        :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
-        :param torch.device, str device: mask intended device.
-        """
-        if mask is not None:
-            if isinstance(mask, ndarray):
-                mask = torch.from_numpy(mask)
-
-            mask = mask.to(device)
-
-            while len(mask.shape) < (
-                4 if not three_d else 5
-            ):  # to B,C,H,W or B,C,D,H,W
-                mask = mask.unsqueeze(0)
-
-            if mask.shape[1] == 1:  # make complex if real
-                mask = torch.cat([mask, mask], dim=1)
-
-        return mask
-
-    @staticmethod
-    def to_torch_complex(x: Tensor):
-        """[B,2,...,H,W] real -> [B,...,H,W] complex"""
-        return torch.view_as_complex(x.moveaxis(1, -1).contiguous())
-
-    @staticmethod
-    def from_torch_complex(x: Tensor):
-        """[B,...,H,W] complex -> [B,2,...,H,W] real"""
-        return torch.view_as_real(x).moveaxis(-1, 1)
-
-    @staticmethod
-    def ifft(x: Tensor, dim=(-2, -1), norm="ortho"):
-        """Centered, orthogonal ifft
-
-        :param torch.Tensor x: input kspace of complex dtype of shape [B,...] where ... is all dims to be transformed
-        :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
-        """
-        x = torch.fft.ifftshift(x, dim=dim)
-        x = torch.fft.ifftn(x, dim=dim, norm=norm)
-        return torch.fft.fftshift(x, dim=dim)
-
-    @staticmethod
-    def fft(x: Tensor, dim=(-2, -1), norm="ortho"):
-        """Centered, orthogonal fft
-
-        :param torch.Tensor x: input image of complex dtype of shape [B,...] where ... is all dims to be transformed
-        :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
-        """
-        x = torch.fft.ifftshift(x, dim=dim)
-        x = torch.fft.fftn(x, dim=dim, norm=norm)
-        return torch.fft.fftshift(x, dim=dim)
-
-    def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
-        """Convenience method that wraps fft.
-
-        :param torch.Tensor x: input image of shape (B,2,...) of real dtype
-        :param bool three_d: whether MRI data is 3D or not, defaults to False
-        :return: Tensor: output measurements of shape (B,2,...) of real dtype
-        """
-        return self.from_torch_complex(
-            self.fft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if three_d else (-2, -1)
-            )
-        )
-
-    def kspace_to_im(self, y: Tensor, three_d: bool = False) -> Tensor:
-        """Convenience method that wraps inverse fft.
-
-        :param torch.Tensor y: input measurements of shape (B,2,...) of real dtype
-        :param bool three_d: whether MRI data is 3D or not, defaults to False
-        :return: Tensor: output image of shape (B,2,...) of real dtype
-        """
-        return self.from_torch_complex(
-            self.ifft(
-                self.to_torch_complex(y), dim=(-3, -2, -1) if three_d else (-2, -1)
-            )
-        )
-
-    def crop(self, x: Tensor, crop: bool = True) -> Tensor:
-        """Center crop 2D image according to ``img_size``.
-
-        This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
-
-        If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
-
-        :param torch.Tensor x: input tensor of shape (...,H,W)
-        :param bool crop: whether to perform crop, defaults to True
-        """
-        crop_size = self.img_size[-2:]
-        odd_h = crop_size[0] % 2 == 1
-
-        if odd_h:
-            crop_size = (crop_size[0] + 1, crop_size[1])
-
-        cropped = CenterCrop(crop_size)(x)
-
-        if odd_h:
-            cropped = cropped[..., :-1, :]
-
-        return cropped if crop else x
-
-    @staticmethod
-    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
-        r"""Perform root-sum-square reconstruction on multicoil data, defined as
-
-        .. math::
-
-                \operatorname{RSS}(x) = \sqrt{\sum_{n=1}^N |x_n|^2}
-
-        where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
-        and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
-
-        :param torch.Tensor x: input image of shape (B,2,...) where 2 represents
-            real and imaginary channels
-        :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
-            and reduce over coil dimension N too.
-        """
-        assert (
-            x.shape[1] == 2 and not x.is_complex()
-        ), "x should be of shape (B,2,...) and not of complex dtype."
-
-        mc_dim = 1 if multicoil else 0
-        th_dim = 1 if three_d else 0
-        assert (
-            len(x.shape) == 4 + mc_dim + th_dim
-        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
-
-        ss = x.pow(2).sum(dim=1, keepdim=True)
-        return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+from deepinv.utils.mixins import MRIMixin, TimeMixin
 
 
 class MRI(MRIMixin, DecomposablePhysics):
@@ -241,7 +93,8 @@ class MRI(MRIMixin, DecomposablePhysics):
             mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
-        self.update_parameters(mask=mask.to(self.device))
+        self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return self.im_to_kspace(x, three_d=self.three_d)
@@ -256,7 +109,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         mag: bool = False,
         crop: bool = False,
         **kwargs,
-    ):
+    ) -> Tensor:
         """Adjoint operator.
 
         Optionally perform crop and magnitude to match FastMRI data.
@@ -297,18 +150,19 @@ class MRI(MRIMixin, DecomposablePhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(
-                        mask=mask,
-                        three_d=getattr(self, "three_d", False),
-                        device=self.device,
-                    )
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(
+                    mask=mask,
+                    three_d=getattr(self, "three_d", False),
+                    device=self.device,
+                )
+                if check_mask
+                else mask
             )
+
+            self.register_buffer("mask", mask)
+        if kwargs:
+            super().update_parameters(**kwargs)
 
 
 class MultiCoilMRI(MRIMixin, LinearPhysics):
@@ -393,9 +247,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
 
-        self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
+        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        self.to(device)
 
-    def A(self, x, mask=None, coil_maps=None, **kwargs):
+    def A(
+        self, x: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
+    ) -> Tensor:
         r"""
         Applies linear operator.
 
@@ -425,13 +282,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     def A_adjoint(
         self,
-        y,
-        mask=None,
-        coil_maps=None,
+        y: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
         rss: bool = False,
         crop: bool = False,
         **kwargs,
-    ):
+    ) -> Tensor:
         r"""
         Applies adjoint linear operator.
 
@@ -458,10 +315,30 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             x = self.from_torch_complex(FiMy)
             x = self.rss(x, multicoil=True)  # [B,1,...,H,W]
         else:
+            # Use conj as coil maps are elementwise multiplication
             SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
             x = self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
 
         return self.crop(x, crop=crop)
+
+    def A_dagger(
+        self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
+    ) -> Tensor:
+        r"""
+        Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
+
+        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.utils.least_squares` for details.
+
+        The MRI mask or coil sensitivity maps are updated if passed as inputs to the function.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :param torch.Tensor mask: optionally set the mask on-the-fly.
+        :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
+        :param dict kwargs: kwargs to pass to base :meth:`deepinv.physics.LinearPhysics.A_dagger`.
+        :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)`
+        """
+        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        return super().A_dagger(y, **kwargs)
 
     def update_parameters(
         self,
@@ -477,14 +354,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
+                if check_mask
+                else mask
             )
+            self.register_buffer("mask", mask)
 
         if coil_maps is not None:
             while len(coil_maps.shape) < (
@@ -495,11 +370,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             if not coil_maps.is_complex():
                 raise ValueError("coil_maps should be of torch complex dtype.")
 
-            self.coil_maps = torch.nn.Parameter(
-                coil_maps.to(self.device), requires_grad=False
-            )
+            self.register_buffer("coil_maps", coil_maps.to(self.device))
 
-    def simulate_birdcage_csm(self, n_coils: int):
+        if kwargs:
+            super().update_parameters(**kwargs)
+
+    def simulate_birdcage_csm(self, n_coils: int) -> Tensor:
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
 
         :param int n_coils: number of coils N
@@ -507,16 +383,44 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         """
         try:
             from sigpy.mri import birdcage_maps
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to simulate coil maps. Install it using pip install sigpy"
-            )
+            )  # pragma: no cover
 
         coil_maps = birdcage_maps(
             (n_coils,)
             + (self.img_size[-2:] if not self.three_d else self.img_size[-3:])
         )
         return torch.tensor(coil_maps).type(torch.complex64)
+
+    @staticmethod
+    def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
+        """Estimate coil sensitivity maps using ESPIRiT.
+
+        This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
+
+        Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
+        :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
+        """
+        try:
+            from sigpy.mri.app import EspiritCalib
+        except ImportError:
+            raise ImportError(
+                "sigpy is required to estimate sens maps. Install it using pip install sigpy"
+            )
+
+        return torch.from_numpy(
+            np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False).run()
+                    for yb in MRIMixin.to_torch_complex(y).numpy()
+                ]
+            )
+        )
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -576,15 +480,14 @@ class DynamicMRI(MRI, TimeMixin):
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
-        mask = self.check_mask(self.mask if mask is None else mask)
+        mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
+        mask_flatten = self.flatten(mask.expand(*x.shape))
 
-        mask_flatten = self.flatten(mask.expand(*x.shape)).to(x.device)
         y = self.unflatten(
             super().A(self.flatten(x), mask_flatten, check_mask=False),
             batch_size=x.shape[0],
         )
-
-        self.update_parameters(mask=mask, **kwargs)
+        self.update_parameters(mask=mask, check_mask=False, **kwargs)
         return y
 
     def A_adjoint(
@@ -598,17 +501,16 @@ class DynamicMRI(MRI, TimeMixin):
         :param torch.Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
         :param bool mag: perform complex magnitude.
         """
-        mask = self.check_mask(self.mask if mask is None else mask)
-
-        mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
+        mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
+        mask_flatten = self.flatten(mask.expand(*y.shape))
         x = self.unflatten(
             super().A_adjoint(
                 self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag
             ),
             batch_size=y.shape[0],
         )
+        self.update_parameters(mask=mask, check_mask=False, **kwargs)
 
-        self.update_parameters(mask=mask, **kwargs)
         return x
 
     def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:

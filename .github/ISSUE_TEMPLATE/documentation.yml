@@ -1,0 +1,37 @@
+name: Documentation issue
+description: Report a problem or suggest an improvement for the DeepInverse documentation.
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve our documentation! Please fill out the form below to describe the issue or suggestion.
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Where did you find the issue? (e.g., file name, section, or URL)
+      placeholder: e.g. docs/source/index.rst, README, or a specific URL
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue or suggestion
+      description: What is unclear, incorrect, missing, or could be improved?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix or improvement (optional)
+      description: If you have a suggestion for how to fix or improve the documentation, please provide it here.
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context, screenshots, or examples here.
+    validations:
+      required: false

@@ -1,17 +1,23 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union, Callable, Tuple
+from typing import TYPE_CHECKING, Union, Callable
 
 from tqdm import tqdm
 import os
 from warnings import warn
-import h5py
+
+try:
+    import h5py
+except ImportError:  # pragma: no cover
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )  # pragma: no cover
 import torch
 
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
-from torch.utils import data
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
+from deepinv.datasets.base import ImageDataset
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -19,7 +25,7 @@ if TYPE_CHECKING:
     from deepinv.transform import Transform
 
 
-class HDF5Dataset(data.Dataset):
+class HDF5Dataset(ImageDataset):
     r"""
     DeepInverse HDF5 dataset with signal/measurement pairs ``(x, y)``.
 
@@ -60,29 +66,32 @@ class HDF5Dataset(data.Dataset):
         self.load_physics_generator_params = load_physics_generator_params
         self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
 
-        hd5 = h5py.File(path, "r")
+        if isinstance(h5py, ImportError):
+            raise h5py
+
+        self.hd5 = h5py.File(path, "r")
         suffix = ("_train" if train else "_test") if split is None else f"_{split}"
 
-        if "stacked" in hd5.attrs.keys():
-            self.stacked = hd5.attrs["stacked"]
-            self.y = [hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
+        if "stacked" in self.hd5.attrs.keys():
+            self.stacked = self.hd5.attrs["stacked"]
+            self.y = [self.hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
         else:
             self.stacked = 0
-            self.y = hd5[f"y{suffix}"]
+            self.y = self.hd5[f"y{suffix}"]
 
         if train or split == "train":
-            if "x_train" in hd5:
-                self.x = hd5[f"x{suffix}"]
+            if "x_train" in self.hd5:
+                self.x = self.hd5[f"x{suffix}"]
             else:
                 self.unsupervised = True
         else:
-            self.x = hd5[f"x{suffix}"]
+            self.x = self.hd5[f"x{suffix}"]
 
         if self.load_physics_generator_params:
             self.params = {}
-            for k in hd5:
+            for k in self.hd5:
                 if suffix in k and k not in (f"x{suffix}", f"y{suffix}"):
-                    self.params[k.replace(suffix, "")] = hd5[k]
+                    self.params[k.replace(suffix, "")] = self.hd5[k]
 
     def __getitem__(self, index):
         r"""
@@ -93,6 +102,11 @@ class HDF5Dataset(data.Dataset):
 
         :param int index: Index of the pair to return.
         """
+        if self.hd5 is None:
+            raise ValueError(
+                "Dataset has been closed. Redefine the dataset to continue."
+            )
+
         if self.stacked > 0:
             y = TensorList([self.cast(torch.from_numpy(y[index])) for y in self.y])
         else:
@@ -128,6 +142,14 @@ class HDF5Dataset(data.Dataset):
         else:
             return len(self.y)
 
+    def close(self):
+        """
+        Closes the HDF5 dataset. Use when you are finished with the dataset.
+        """
+        if hasattr(self, "hd5") and self.hd5:
+            self.hd5.close()
+            self.hd5 = None
+
 
 def generate_dataset(
     train_dataset: Dataset,
@@ -148,13 +170,16 @@ def generate_dataset(
     verbose: bool = True,
     show_progress_bar: bool = False,
     device: Union[torch.device, str] = "cpu",
-):
+) -> Union[str, list[str]]:
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
 
     It generates the measurement data using the forward operator provided by the user.
-    The dataset is saved in HD5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.
-    The generated dataset contains a train and test splits.
+    The dataset is saved in HDF5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.
+    The generated dataset contains `train` and `test` splits.
+
+    The base dataset of ground-truth images must return tensors `x` or tuples `(x, ...)`. We provide a large library of predefined
+    popular imaging datasets. See :ref:`datasets user guide <datasets>` for more information.
 
     Optionally, if random physics generator is used to generate data, also save physics generator params.
     This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,
@@ -168,10 +193,7 @@ def generate_dataset(
 
         By default, we overwrite existing datasets if they have been previously created. To avoid this, set ``overwrite_existing=False``.
 
-    :param torch.utils.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
-        with images used for generating associated measurements
-        via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
-        HD5Dataset class.
+    :param torch.utils.data.Dataset train_dataset: base dataset of ground-truth images. Must return tensors `x` or tuples `(x, ...)`.
     :param deepinv.physics.Physics physics: Forward operator used to generate the measurement data.
         It can be either a single operator or a list of forward operators. In the latter case, the dataset will be
         assigned evenly across operators.
@@ -203,6 +225,9 @@ def generate_dataset(
     :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.
 
     """
+    if isinstance(h5py, ImportError):
+        raise h5py
+
     if test_dataset is None and train_dataset is None and val_dataset is None:
         raise ValueError("No train or test datasets provided.")
 
@@ -211,6 +236,8 @@ def generate_dataset(
 
     if not isinstance(physics, (list, tuple)):
         physics = [physics]
+
+    physics = [p.clone() for p in physics]
 
     G = len(physics)
 
@@ -264,7 +291,7 @@ def generate_dataset(
         x0 = x0.to(device).unsqueeze(0)
 
         # get initial measurement for initial image
-        def measure(x: Tensor, b: int, g: int) -> Tuple[Tensor, Union[dict, None]]:
+        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, Union[dict, None]]:
             if physics_generator is None:
                 return physics[g](x), None
             else:

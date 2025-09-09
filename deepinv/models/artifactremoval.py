@@ -24,7 +24,7 @@ class ArtifactRemoval(Reconstructor):
     .. note::
 
         In the case of ``mode='pinv'``, the architecture is inspired by the FBPConvNet
-        approach of https://arxiv.org/pdf/1611.03679 where a deep network :math:`\phi`
+        approach :footcite:t:`jin2017deep` where a deep network :math:`\phi`
         is used to improve the filtered back projection :math:`A^{\dagger}y`.
 
     .. deprecated:: 0.2.2
@@ -76,12 +76,7 @@ class ArtifactRemoval(Reconstructor):
         :param torch.Tensor y: input measurements y
         :return: (:class:`torch.Tensor`): reconstructed image
         """
-        if hasattr(physics.noise_model, "sigma"):
-            sigma = physics.noise_model.sigma
-        else:
-            sigma = None
-
-        return self.backbone_net(tensor_in, sigma)
+        return self.backbone_net(tensor_in, getattr(physics.noise_model, "sigma", None))
 
     def forward(self, y: Tensor, physics: Physics, **kwargs):
         r"""

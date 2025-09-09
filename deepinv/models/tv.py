@@ -14,9 +14,7 @@ class TVDenoiser(Denoiser):
 
     where :math:`D` maps an image to its gradient field.
 
-    The problem is solved with an over-relaxed Chambolle-Pock algorithm (see L. Condat, "A primal-dual splitting method
-    for convex optimization  involving Lipschitzian, proximable and linear composite terms", J. Optimization Theory and
-    Applications, vol. 158, no. 2, pp. 460-479, 2013.
+    The problem is solved with an over-relaxed Chambolle-Pock algorithm, see :footcite:t:`condat2013primal`.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
@@ -78,7 +76,7 @@ class TVDenoiser(Denoiser):
         return u / (
             torch.maximum(
                 torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device).type(u.dtype),
+                torch.tensor([1], device=u.device, dtype=u.dtype),
             ).unsqueeze(-1)
         )
 
@@ -111,7 +109,9 @@ class TVDenoiser(Denoiser):
             u2 = self.u2.clone()
 
         if ths is not None:
-            lambd = ths
+            lambd = self._handle_sigma(
+                ths, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+            )
 
         for _ in range(self.n_it_max):
             x_prev = x2

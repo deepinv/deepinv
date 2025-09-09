@@ -10,7 +10,6 @@ bases, which does not admit a closed-form solution. We solve the denoising probl
 import deepinv as dinv
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -49,7 +48,9 @@ volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
 x = volume_data / volume_data.max()
 
 noise_level_img = 0.1  # Gaussian Noise standard deviation for the degradation
-physics = dinv.physics.GaussianNoise(sigma=noise_level_img)
+physics = dinv.physics.Denoising(
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img)
+)
 
 # Apply the degradation to the image
 y = physics(x)
@@ -134,8 +135,7 @@ dinv.utils.plot(
 # :math:`\sum_{\ell=1}^{L}\lambda_i \|\Psi_{\ell} x\|_1`. In this case however, the proximal operator is not available in closed
 # form but can be computed numerically.
 #
-# A convenient algorithm in this situation is the Dykstra-like algorithm proposed in
-# `[Combettes, 2009] <https://pcombet.math.ncsu.edu/jca2.pdf>`_, writing
+# A convenient algorithm in this situation is the Dykstra-like algorithm proposed by :footcite:t:`combettes2009iterative`, writing
 #
 # .. math::
 #     \begin{equation}
@@ -250,3 +250,8 @@ dinv.utils.plot(
 #       model = dinv.models.WaveletDictDenoiser(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
 #       xhat = model(y, ths)
 #
+
+# %%
+# :References:
+#
+# .. footbibliography::

@@ -2,7 +2,7 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
+This example shows how to implement the LISTA algorithm :footcite:t:`gregor2010learning`,
 for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
 soft-thresholding proximal operator with learnable thresholding parameters.
 
@@ -65,13 +65,13 @@ test_base_dataset = datasets.MNIST(
 # where :math:`A` is a (normalized) random Gaussian matrix.
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), fast=True, device=device
+    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (
@@ -96,7 +96,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded Proximal Gradient algorithm.
 # ------------------------------------------------------------------------
-# In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
+# In this example, following the original LISTA algorithm :footcite:t:`gregor2010learning`
 # the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
 #
 # .. math::
@@ -153,7 +153,7 @@ prior = [
 
 # Unrolled optimization algorithm parameters
 lamb = [
-    torch.ones(3, 3, device=device)
+    torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
@@ -271,3 +271,8 @@ dinv.utils.plot(
 dinv.utils.plotting.plot_parameters(
     model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

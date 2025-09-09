@@ -1,5 +1,3 @@
-import torch
-import numpy as np
 import warnings
 
 
@@ -28,10 +26,6 @@ def cal_psnr_complex(a, b):
     deprecate(
         "This function is deprecated. Use dinv.metric.PSNR(complex_abs=True) instead."
     )
-
-
-def complex_abs(data, dim=1, keepdim=True):
-    deprecate("This function is deprecated. Use dinv.metric.complex_abs instead.")
 
 
 def norm_psnr(a, b, complex=False):

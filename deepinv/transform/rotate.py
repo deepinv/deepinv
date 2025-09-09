@@ -1,8 +1,9 @@
-from typing import Union, Iterable
+from typing import Union, Iterable, Optional
 import torch
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
+from warnings import warn
 
 
 class Rotate(Transform):
@@ -22,6 +23,7 @@ class Rotate(Transform):
     :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
         When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
+    :param torchvision.transforms.InterpolationMode interpolation_mode: interpolation mode used for rotation, defaults to ``torchvision.transforms.InterpolationMode.NEAREST``.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     """
@@ -32,13 +34,20 @@ class Rotate(Transform):
         limits: float = 360.0,
         multiples: float = 1.0,
         positive: bool = False,
-        interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
+        interpolation_mode: Optional[InterpolationMode] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.limits = limits
         self.multiples = multiples
         self.positive = positive
+        if interpolation_mode is None:
+            interpolation_mode = InterpolationMode.NEAREST
+            warn(
+                "The default interpolation mode will be changed to bilinear "
+                "interpolation in the near future. Please specify the interpolation "
+                "mode explicitly if you plan to keep using nearest interpolation."
+            )
         self.interpolation_mode = interpolation_mode
 
     def _get_params(self, x: torch.Tensor) -> dict:
@@ -59,7 +68,7 @@ class Rotate(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.

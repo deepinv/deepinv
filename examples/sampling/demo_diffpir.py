@@ -2,9 +2,8 @@ r"""
 Implementing DiffPIR
 ====================
 
-In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from
-`Zhou et al. <https://arxiv.org/abs/2305.08995>`_. The full algorithm is implemented in
-:class:`deepinv.sampling.DiffPIR`.
+In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from :footcite:t:`zhu2023denoising`.
+The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
 import numpy as np
@@ -14,12 +13,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, get_image_url
-
-# Use matplotlib config from deepinv to get nice plots
-from deepinv.utils.plotting import config_matplotlib
-
-config_matplotlib()
+from deepinv.utils.demo import load_example
 
 # %%
 # Generate an inverse problem
@@ -37,9 +31,7 @@ config_matplotlib()
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(1)
 
-url = get_image_url("69037.png")
-
-x_true = load_url_image(url=url, img_size=256, device=device)
+x_true = load_example("69037.png", img_size=256, device=device)
 
 x = x_true.clone()
 mask = torch.ones_like(x)
@@ -49,7 +41,7 @@ mask[:, :, 80:130, 50:100] = 0
 sigma_noise = 12.75 / 255.0  # noise level
 physics = dinv.physics.Inpainting(
     mask=mask,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
@@ -104,7 +96,7 @@ plot(
 #
 # In this section, we show how to use the denoising diffusion model from DiffPIR.
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
-# of DiffPIR use a U-Net architecture from `Ho et al. <https://arxiv.org/abs/2108.02938>`_,
+# of DiffPIR use a U-Net architecture from :footcite:t:`ho2020denoising`,
 # which can be loaded as follows:
 
 model = dinv.models.DiffUNet(large_model=False).to(device)
@@ -177,7 +169,7 @@ y_denoised = model(y, sigmas[t_temp] / 2.0)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
-x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=1 / sigmas[t])
+x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(device))
 
 imgs = [y, y_denoised, x_prox]
 plot(
@@ -290,11 +282,10 @@ plt.show()
 # In the algorithm, we will only use sub-sampled versions of the noise and regularization schedules. Let's visualize
 # those.
 
-list_sigmas_algo = [sigmas[seq[i]] for i in range(max_iter)]
-list_rhos_algo = [rhos[seq[i]] for i in range(max_iter)]
+list_sigmas_algo = [sigmas[seq[i]].cpu().item() for i in range(max_iter)]
+list_rhos_algo = [rhos[seq[i]].cpu().item() for i in range(max_iter)]
 
 plt.figure(figsize=(6, 3))
-plt.rcParams.update({"font.size": 9})
 plt.subplot(121)
 plt.plot(
     2 / torch.tensor(list_rhos_algo).cpu().numpy()
@@ -351,7 +342,7 @@ with torch.no_grad():
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
             t_im1 = find_nearest(
-                sigmas, next_sigma
+                sigmas.cpu().numpy(), next_sigma
             )  # time step associated with the next noise level
 
             eps = (x - alphas_cumprod[t_i].sqrt() * x0) / torch.sqrt(
@@ -411,3 +402,8 @@ plot(
 #       model = dinv.sampling.DiffPIR(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
+
+# %%
+# :References:
+#
+# .. footbibliography::

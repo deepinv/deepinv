@@ -15,7 +15,7 @@ from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils.demo import load_dataset
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -60,7 +60,7 @@ noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
 # Select the first image from the dataset
-x = dataset[0][0].unsqueeze(0).to(device)
+x = dataset[0].unsqueeze(0).to(device)
 
 # Generate a mask for the inpainting problem
 mask = torch.ones_like(x)[0]
@@ -71,7 +71,7 @@ mask[
 ] = 0
 
 physics = dinv.physics.Inpainting(
-    tensor_size=(n_channels, img_size, img_size),
+    img_size=(n_channels, img_size, img_size),
     mask=mask,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
@@ -93,7 +93,7 @@ prior = dinv.optim.prior.WaveletPrior(level=4, wv="db8", p=1, device=device)
 
 # Compute the wavelet prior cost
 cost_wv = prior(y)
-print(f"Cost wavelet: g(y) = {cost_wv:.2f}")
+print(f"Cost wavelet: g(y) = {cost_wv.item():.2f}")
 
 # Apply the proximal operator of the wavelet prior
 x_wv = prior.prox(y, gamma=0.1)
@@ -111,8 +111,8 @@ imgs = [y, x_wv]
 plot(
     imgs,
     titles=[
-        f"Input, wavelet cost: {cost_wv:.2f}",
-        f"Output, wavelet cost: {cost_wv_prox:.2f}",
+        f"Input \nWavelet cost: {cost_wv.item():.2f}",
+        f"Output \nWavelet cost: {cost_wv_prox.item():.2f}",
     ],
 )
 

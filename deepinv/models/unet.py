@@ -6,11 +6,7 @@ from .base import Denoiser
 
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
-    From Mohan et al.
-
-    "Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks"
-    S. Mohan, Z. Kadkhodaie, E. P. Simoncelli, C. Fernandez-Granda
-    Int'l. Conf. on Learning Representations (ICLR), Apr 2020.
+    From :footcite:t:`mohan2020robust`.
     """
 
     def __init__(
@@ -72,8 +68,7 @@ class UNet(Denoiser):
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
     :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
-        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from
-        `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
+        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
     """
@@ -121,7 +116,13 @@ class UNet(Denoiser):
                     ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
@@ -143,7 +144,13 @@ class UNet(Denoiser):
                     ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
@@ -153,7 +160,13 @@ class UNet(Denoiser):
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
                     nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
@@ -166,7 +179,13 @@ class UNet(Denoiser):
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
                     nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
