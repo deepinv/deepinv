@@ -38,7 +38,7 @@ class SpatialUnwrapping(Physics):
         >>> x = torch.tensor([[0.5, 1.2, 2.7]])
         >>> physics = SpatialUnwrapping(threshold=1.0, mode="round")
         >>> y = physics(x)
-        >>> print(y.round(1))
+        >>> print(torch.round(y, 1))
         tensor([[ 0.5,  0.2, -0.3]])
 
     """
