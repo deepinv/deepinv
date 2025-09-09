@@ -296,6 +296,7 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param bool is_complex: whether the input is complex-valued. Default is False.
     :param str mode: padding mode for the wavelet transform (default: "zero").
     :param float clamp_min: minimum value for the clamping. Default is None.
     :param float clamp_max: maximum value for the clamping. Default is None.
@@ -308,7 +309,7 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
-        complex_input=False,
+        is_complex=False,
         mode="zero",
         clamp_min=None,
         clamp_max=None,
@@ -323,6 +324,7 @@ class WaveletPrior(Prior):
         self.level = level
         self.device = device
         self.mode = mode
+        self.is_complex = is_complex
 
         self.clamp_min = clamp_min
         self.clamp_max = clamp_max
@@ -342,8 +344,8 @@ class WaveletPrior(Prior):
                 wv=self.wv,
                 device=self.device,
                 non_linearity=self.non_linearity,
+                is_complex=self.is_complex,
                 wvdim=self.wvdim,
-                complex_input=complex_input,
             )
         elif type(self.wv) == list:
             self.WaveletDenoiser = WaveletDictDenoiser(
@@ -351,8 +353,8 @@ class WaveletPrior(Prior):
                 list_wv=self.wv,
                 max_iter=10,
                 non_linearity=self.non_linearity,
+                is_complex=self.is_complex,
                 wvdim=self.wvdim,
-                complex_input=complex_input,
             )
         else:
             raise ValueError(

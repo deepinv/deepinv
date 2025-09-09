@@ -494,6 +494,8 @@ class WaveletDictDenoiser(Denoiser):
     :param str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
     :param str non_linearity: "soft", "hard" or "topk" thresholding (default: "soft")
+    :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
+    :param bool is_complex: whether the input is complex-valued (default: False).
     """
 
     def __init__(
@@ -503,7 +505,7 @@ class WaveletDictDenoiser(Denoiser):
         max_iter=10,
         non_linearity="soft",
         wvdim=2,
-        complex_input=False,
+        is_complex=False,
         device="cpu",
     ):
         super().__init__()
@@ -517,7 +519,7 @@ class WaveletDictDenoiser(Denoiser):
                     non_linearity=non_linearity,
                     wvdim=wvdim,
                     device=device,
-                    is_complex=complex_input,
+                    is_complex=is_complex,
                 )
                 for wv in list_wv
             ]
