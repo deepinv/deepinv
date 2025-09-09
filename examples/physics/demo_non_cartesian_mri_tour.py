@@ -111,38 +111,22 @@ prior = dinv.optim.prior.WaveletPrior(level=3, wv="db8", wvdim=3, p=1, device=de
 
 model = dinv.optim.optim_builder(
     iteration="FISTA",
-    max_iter=2,
+    max_iter=10,
     prior=prior,
     early_stop=True,
     custom_init=lambda y, physics: {"est": (x_zf, x_zf.clone())},
-    params_algo={"stepsize": 1/physics.E.get_lipschitz_cst(), "lambda": 1e-2},
+    params_algo={"stepsize": 1/physics.E.get_lipschitz_cst(), "lambda": 10.0},
     data_fidelity=dinv.optim.data_fidelity.L2(),
     verbose=True,
 )
 x_hat = model(kspace_data.to(device), physics=physics)
+dinv.utils.plot(get_mid_planes(x_hat))
 
 # %%
 # These backbones can be used within specific MRI models, such as
 # VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end` and MoDL :footcite:t:`aggarwal2018modl`,
 # for which we provide implementations:
 #
-
-
-# %%
-# We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we
-# visualize t=5 frames of the ground truth ``x``, the mask, and the zero-filled
-# reconstruction ``x_zf`` (and crop to square for better visibility):
-#
-
-
-dinv.utils.plot(
-    {
-        f"t={i}": torch.cat([x[:, :, i], params["mask"][:, :, i], x_zf[:, :, i]])[
-            ..., 128:384, :
-        ]
-        for i in range(5)
-    }
-)
 
 # %%
 # :References:
