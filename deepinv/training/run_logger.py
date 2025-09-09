@@ -49,7 +49,7 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def log(
+    def log_losses(
         self,
         losses: dict[str, float],
         step: Optional[int] = None,
@@ -60,6 +60,24 @@ class RunLogger(ABC):
         Log loss values for the current step/epoch.
 
         :param losses: Dictionary of loss_name -> value
+        :param step: Current training step
+        :param epoch: Current epoch
+        :param phase: Training phase ('train', 'eval', 'test')
+        """
+        pass
+
+    @abstractmethod
+    def log_metrics(
+        self,
+        metrics: dict[str, float],
+        step: Optional[int] = None,
+        epoch: Optional[int] = None,
+        phase: str = "train",
+    ):
+        """
+        Log metric values for the current step/epoch.
+
+        :param metrics: Dictionary of metric_name -> value
         :param step: Current training step
         :param epoch: Current epoch
         :param phase: Training phase ('train', 'eval', 'test')
