@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from typing import Optional
 
+
 def get_mgrid(shape):
     """
     Generates a flattened grid of (x,y,...) coordinates in a range of -1 to 1.
@@ -14,8 +15,11 @@ def get_mgrid(shape):
     mgrid = mgrid.reshape(-1, len(shape))
     return mgrid
 
-def nabla(y:torch.Tensor, x:torch.Tensor, grad_outputs:Optional[torch.Tensor]=None) -> torch.Tensor:
-    r""" Computes the vector-Jacobian-product (VJP) of y w.r.t. x on the direction of grad_outputs.
+
+def nabla(
+    y: torch.Tensor, x: torch.Tensor, grad_outputs: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    r"""Computes the vector-Jacobian-product (VJP) of y w.r.t. x on the direction of grad_outputs.
 
     Each element of the VJP is computed as :math:`\sum_{i=1}^m \frac{\partial y_i}{\partial x_k} \cdot v_i`, where :math:`x_k` is the k-th element of `x`, :math:`y_i` is the i-th element of `y` and :math:`v_i` is the i-th element of `grad_outputs`.
 
@@ -29,7 +33,8 @@ def nabla(y:torch.Tensor, x:torch.Tensor, grad_outputs:Optional[torch.Tensor]=No
         grad_outputs = torch.ones_like(y)
     grad = torch.autograd.grad(y, [x], grad_outputs=grad_outputs, create_graph=True)[0]
     return grad
-        
+
+
 class TVPrior(nn.Module):
     r"""
     Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.
@@ -38,8 +43,9 @@ class TVPrior(nn.Module):
     """
 
     def forward(self, y, x):
-        y = torch.mean(nabla(y,x).abs())
+        y = torch.mean(nabla(y, x).abs())
         return y
+
 
 class FourierPE(nn.Module):
     r"""
@@ -82,6 +88,7 @@ class FourierPE(nn.Module):
         x = self.linear(x)
         return torch.sin(self.omega0 * x)
 
+
 class Sin(nn.Module):
     r"""
     Sine activation function with frequency scaling.
@@ -90,15 +97,17 @@ class Sin(nn.Module):
 
     .. math::
         \text{Sin}(x) = \sin(\omega_0 \, x)
-    
+
     :param float omega0: Frequency scaling factor.
     """
+
     def __init__(self, omega0: float = 1.0) -> None:
         super().__init__()
         self.register_buffer("omega0", torch.tensor(omega0, dtype=torch.float32))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sin(self.omega0 * x)
+
 
 class SinMLP(nn.Module):
     r"""
@@ -151,7 +160,11 @@ class SinMLP(nn.Module):
         r"""Initialize the weights of the SIREN."""
         with torch.no_grad():
             for layer in self.layers:
-                nn.init.uniform_(layer.weight, -math.sqrt(6 / layer.in_features)  / self.layer.omega_0, math.sqrt(6 / layer.in_features)  / self.layer.omega_0)
+                nn.init.uniform_(
+                    layer.weight,
+                    -math.sqrt(6 / layer.in_features) / self.layer.omega_0,
+                    math.sqrt(6 / layer.in_features) / self.layer.omega_0,
+                )
                 nn.init.zeros_(layer.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -177,15 +190,15 @@ class SIREN(nn.Module):
 
     def __init__(
         self,
-        input_dim: int, 
+        input_dim: int,
         encoding_dim: int,
         out_channels: int,
         siren_dims: list[int],
         omega0: dict = {"encoding": 20.0, "siren": 1.0},
-        device: str = "cpu"
+        device: str = "cpu",
     ) -> None:
 
-        super().__init__() 
+        super().__init__()
 
         self.pe = FourierPE(
             input_dim=input_dim,
@@ -196,7 +209,7 @@ class SIREN(nn.Module):
             input_dim=self.pe.output_dim,
             hidden_dims=siren_dims,
             output_dim=out_channels,
-            omega0=omega0['siren'],
+            omega0=omega0["siren"],
         ).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

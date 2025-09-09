@@ -137,7 +137,7 @@ class DeepImagePrior(Reconstructor):
         learning_rate=1e-2,
         verbose=False,
         re_init=False,
-        regul_param=None
+        regul_param=None,
     ):
         super().__init__()
         self.generator = generator
@@ -176,12 +176,12 @@ class DeepImagePrior(Reconstructor):
             z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
         if shape is None:
             raise ValueError("shape must be provided.")
-        
+
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
         z.requires_grad_(True)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y=y, x_net=x.view(shape), physics=physics) 
+            error = self.loss(y=y, x_net=x.view(shape), physics=physics)
             if self.regul_param is not None:
                 error += self.regul_param * self.prior(x, z)
             optimizer.zero_grad()
