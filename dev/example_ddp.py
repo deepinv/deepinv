@@ -30,15 +30,14 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent / "utils.py"))
+# Add the current directory to path to import utils
+sys.path.append(str(Path(__file__).parent))
 
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 import deepinv as dinv
 from torchvision.transforms import ToTensor, Compose, CenterCrop
-
 
 from utils import *
 
@@ -69,8 +68,11 @@ if __name__ == "__main__":
     # Data loading setup
 
     # save_dir = Path(__file__).parent / "data/urban100"
+    # save_dir = (
+    #     "/lustre/fswork/projects/rech/fio/ulx23va/projects/deepinv_PR/data/urban100"
+    # )
     save_dir = (
-        "/lustre/fswork/projects/rech/fio/ulx23va/projects/deepinv_PR/data/urban100"
+        "/Users/tl255879/Documents/research/repos/deepinv-PRs/hackaton_v2/data/urban100"
     )
 
     torch.manual_seed(0)
