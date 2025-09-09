@@ -4,7 +4,7 @@ from .base import Denoiser
 from typing import Union, Sequence  # noqa: F401
 
 
-def _get_axes(dimension, is_complex):
+def _get_axes(is_complex, dimension):
     axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
     if is_complex:
         axes = tuple(a - 1 for a in axes)
@@ -151,7 +151,7 @@ class WaveletDenoiser(Denoiser):
         import pywt
         import ptwt
 
-        iscomplex = x.is_complex()
+        is_complex = x.is_complex()
         x, axes = _realify(x, dimension)
         if dimension == 2:
             dec = ptwt.wavedec2(
@@ -159,7 +159,7 @@ class WaveletDenoiser(Denoiser):
             )
             dec = list(dec)
             vec = [
-                _complexify(decl, iscomplex).flatten(1, -1)
+                _complexify(decl, is_complex).flatten(1, -1)
                 for l in range(1, len(dec))
                 for decl in dec[l]
             ]
@@ -169,7 +169,7 @@ class WaveletDenoiser(Denoiser):
             )
             dec = list(dec)
             vec = [
-                _complexify(dec[l][key], iscomplex).flatten(1, -1)
+                _complexify(dec[l][key], is_complex).flatten(1, -1)
                 for l in range(1, len(dec))
                 for key in dec[l]
             ]
