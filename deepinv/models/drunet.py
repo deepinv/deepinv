@@ -9,11 +9,12 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class DRUNet(Denoiser):
+class DRUNet(nn.Module):
     r"""
     DRUNet denoiser network.
 
-    The network architecture is based on the paper :footcite:t:`zhang2021plug`.
+    The network architecture is based on the paper
+    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -23,9 +24,10 @@ class DRUNet(Denoiser):
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
-    :param Sequence[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
+    :param list nc: number of convolutional layers.
     :param int nb: number of convolutional blocks per layer.
-    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
+    :param int nf: number of channels per convolutional layer.
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
@@ -35,6 +37,7 @@ class DRUNet(Denoiser):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
     """
@@ -49,11 +52,15 @@ class DRUNet(Denoiser):
         downsample_mode="strideconv",
         upsample_mode="convtranspose",
         pretrained="download",
+        train=False,
         device=None,
+        dim=2,
     ):
         super(DRUNet, self).__init__()
         in_channels = in_channels + 1  # accounts for the input noise channel
-        self.m_head = conv(in_channels, nc[0], bias=False, mode="C")
+        self.dim = dim
+
+        self.m_head = conv(in_channels, nc[0], bias=False, mode="C", dim=dim)
 
         # downsample
         if downsample_mode == "avgpool":
@@ -69,29 +76,29 @@ class DRUNet(Denoiser):
 
         self.m_down1 = sequential(
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[0], nc[1], bias=False, mode="2"),
+            downsample_block(nc[0], nc[1], bias=False, mode="2", dim=dim),
         )
         self.m_down2 = sequential(
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[1], nc[2], bias=False, mode="2"),
+            downsample_block(nc[1], nc[2], bias=False, mode="2", dim=dim),
         )
         self.m_down3 = sequential(
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[2], nc[3], bias=False, mode="2"),
+            downsample_block(nc[2], nc[3], bias=False, mode="2", dim=dim),
         )
 
         self.m_body = sequential(
             *[
-                ResBlock(nc[3], nc[3], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[3], nc[3], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ]
         )
@@ -109,28 +116,28 @@ class DRUNet(Denoiser):
             )
 
         self.m_up3 = sequential(
-            upsample_block(nc[3], nc[2], bias=False, mode="2"),
+            upsample_block(nc[3], nc[2], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
         self.m_up2 = sequential(
-            upsample_block(nc[2], nc[1], bias=False, mode="2"),
+            upsample_block(nc[2], nc[1], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
         self.m_up1 = sequential(
-            upsample_block(nc[1], nc[0], bias=False, mode="2"),
+            upsample_block(nc[1], nc[0], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
 
-        self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
+        self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 4:
@@ -146,10 +153,16 @@ class DRUNet(Denoiser):
                     pretrained, map_location=lambda storage, loc: storage
                 )
 
-            self.load_state_dict(ckpt_drunet, strict=True)
-            self.eval()
+                ckpt_new = update_keyvals(ckpt_drunet, self.state_dict())
+
+            self.load_state_dict(ckpt_new, strict=True)
         else:
             self.apply(weights_init_drunet)
+
+        if not train:
+            self.eval()
+            for _, v in self.named_parameters():
+                v.requires_grad = False
 
         if device is not None:
             self.to(device)
@@ -175,27 +188,48 @@ class DRUNet(Denoiser):
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
         if isinstance(sigma, torch.Tensor):
-            if sigma.ndim > 0:
-                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
-                noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
-            else:
-                noise_level_map = torch.ones(
-                    (x.size(0), 1, x.size(2), x.size(3)), device=x.device
-                ) * sigma[None, None, None, None].to(x.device)
+            if self.dim == 2:
+                if sigma.ndim > 0:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1)
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, x.size(2), x.size(3)
+                    )
+                else:
+                    noise_level_map = torch.ones(
+                        (x.size(0), 1, x.size(2), x.size(3)), device=x.device
+                    ) * sigma[None, None, None, None].to(x.device)
+            elif self.dim == 3:
+                if sigma.ndim > 0:
+                    noise_level_map = sigma.view(x.size(0), 1, 1, 1, 1)
+                    noise_level_map = noise_level_map.expand(
+                        -1, 1, x.size(2), x.size(3), x.size(4)
+                    )
+                else:
+                    noise_level_map = torch.ones(
+                        (x.size(0), 1, x.size(2), x.size(3), x.size(4)), device=x.device
+                    ) * sigma[None, None, None, None, None].to(x.device)
         else:
-            noise_level_map = (
-                torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
-                * sigma
-            )
+            if self.dim == 2:
+                noise_level_map = (
+                    torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
+                    * sigma
+                )
+            elif self.dim == 3:
+                noise_level_map = (
+                    torch.ones(
+                        (x.size(0), 1, x.size(2), x.size(3), x.size(4)), device=x.device
+                    )
+                    * sigma
+                )
         x = torch.cat((x, noise_level_map), 1)
-        if (
+        if self.training or (
             x.size(2) % 8 == 0
             and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
+        elif x.size(2) < 32 or x.size(3) < 32:
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)
@@ -271,12 +305,13 @@ def conv(
     bias=True,
     mode="CBR",
     negative_slope=0.2,
+    dim=2,
 ):
     L = []
     for t in mode:
         if t == "C":
-            L.append(
-                nn.Conv2d(
+            if dim == 2:
+                conv = nn.Conv2d(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=kernel_size,
@@ -284,10 +319,19 @@ def conv(
                     padding=padding,
                     bias=bias,
                 )
-            )
+            elif dim == 3:
+                conv = nn.Conv3d(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    padding=padding,
+                    bias=bias,
+                )
+            L.append(conv)
         elif t == "T":
-            L.append(
-                nn.ConvTranspose2d(
+            if dim == 2:
+                conv = nn.ConvTranspose2d(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=kernel_size,
@@ -295,7 +339,16 @@ def conv(
                     padding=padding,
                     bias=bias,
                 )
-            )
+            elif dim == 3:
+                conv = nn.ConvTranspose3d(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    padding=padding,
+                    bias=bias,
+                )
+            L.append(conv)
         elif t == "B":
             L.append(nn.BatchNorm2d(out_channels, momentum=0.9, eps=1e-04, affine=True))
         elif t == "I":
@@ -329,7 +382,7 @@ def conv(
         elif t == "A":
             L.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=0))
         else:
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError("Undefined type: ")
     return sequential(*L)
 
 
@@ -347,6 +400,7 @@ class ResBlock(nn.Module):
         bias=True,
         mode="CRC",
         negative_slope=0.2,
+        dim=2,
     ):
         super(ResBlock, self).__init__()
 
@@ -363,10 +417,11 @@ class ResBlock(nn.Module):
             bias,
             mode,
             negative_slope,
+            dim=dim,
         )
 
     def forward(self, x):
-        res = self.res(x)
+        res = self.res(x)  # TODO not gona work
         return x + res
 
 
@@ -425,6 +480,7 @@ def upsample_upconv(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -447,6 +503,7 @@ def upsample_upconv(
         bias,
         mode=mode,
         negative_slope=negative_slope,
+        dim=dim,
     )
     return up1
 
@@ -463,6 +520,7 @@ def upsample_convtranspose(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -481,6 +539,7 @@ def upsample_convtranspose(
         bias,
         mode,
         negative_slope,
+        dim=dim,
     )
     return up1
 
@@ -509,6 +568,7 @@ def downsample_strideconv(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -527,6 +587,7 @@ def downsample_strideconv(
         bias,
         mode,
         negative_slope,
+        dim=dim,
     )
     return down1
 
@@ -543,6 +604,7 @@ def downsample_maxpool(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -556,6 +618,7 @@ def downsample_maxpool(
         stride=stride_pool,
         mode=mode[0],
         negative_slope=negative_slope,
+        dim=dim,
     )
     pool_tail = conv(
         in_channels,
@@ -566,6 +629,7 @@ def downsample_maxpool(
         bias,
         mode=mode[1:],
         negative_slope=negative_slope,
+        dim=dim,
     )
     return sequential(pool, pool_tail)
 
@@ -582,6 +646,7 @@ def downsample_avgpool(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -595,6 +660,7 @@ def downsample_avgpool(
         stride=stride_pool,
         mode=mode[0],
         negative_slope=negative_slope,
+        dim=dim,
     )
     pool_tail = conv(
         in_channels,
@@ -605,9 +671,78 @@ def downsample_avgpool(
         bias,
         mode=mode[1:],
         negative_slope=negative_slope,
+        dim=dim,
     )
     return sequential(pool, pool_tail)
 
+
+def update_keyvals(old_ckpt, new_ckpt):
+    """
+    Converting old DRUNet keys to new UNExt style keys.
+
+    KEYS do not change but weight need to be 0 padded.
+
+    Args:
+        old_key (str): The old key from the state dictionary.
+    """
+    # Loop through old state dict and update keys
+    # new_ckpt = {}
+    for old_key, old_value in old_ckpt.items():
+        new_value = new_ckpt[old_key]
+        if "head" not in old_key and "tail" not in old_key:
+            for _ in range(new_value.shape[-1]):
+                new_value[..., _] = old_value / new_value.shape[-1]
+            new_ckpt[old_key] = new_value
+        else:
+            if "head" in old_key:
+                c_in = new_value.shape[1]
+                c_in_old = old_value.shape[1]
+                if c_in == c_in_old:
+                    new_value = old_value.detach()
+                elif c_in < c_in_old:
+                    new_value = torch.zeros_like(new_value.detach())
+                    for _ in range(new_value.shape[-1]):
+                        new_value[:, -1:, ..., _] = (
+                            old_value[:, -1:, ...] / new_value.shape[-1]
+                        )
+                    for _ in range(new_value.shape[-1]):
+                        new_value[:, : c_in - 1, ..., _] = (
+                            old_value[:, : c_in - 1, ...] / new_value.shape[-1]
+                        )
+            elif "tail" in old_key:
+                c_in = new_value.shape[0]
+                c_in_old = old_value.shape[0]
+                new_value = torch.zeros_like(new_value.detach())
+                if c_in == c_in_old:
+                    new_value = old_value.detach()
+                elif c_in < c_in_old:
+                    new_value = torch.zeros_like(new_value.detach())
+                    for _ in range(new_value.shape[-1]):
+                        new_value[:1, ..., _] = old_value[:1, ...] / new_value.shape[-1]
+                    for _ in range(new_value.shape[-1]):
+                        new_value[1:, ..., _] = (
+                            old_value[1:c_in, ...] / new_value.shape[-1]
+                        )
+            new_ckpt[old_key] = new_value
+    return new_ckpt
+
+
+def test_pad(model, L, modulo=16, sigma: float = 0.0):
+    """
+    Pads the image to fit the model's expected image size.
+
+    Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
+    """
+    d, h, w = L.size()[-3:]
+    padding_d = int(np.ceil(d / modulo) * modulo - d)
+    padding_h = int(np.ceil(h / modulo) * modulo - h)
+    padding_w = int(np.ceil(w / modulo) * modulo - w)
+    L = torch.nn.ReplicationPad3d(
+        (0, padding_w, 0, padding_h, 0, padding_d)
+    )(L)
+    E = model(L, sigma)
+    E = E[..., :d, :h, :w]
+    return E
 
 def weights_init_drunet(m):
     classname = m.__class__.__name__
