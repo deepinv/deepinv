@@ -14,6 +14,7 @@ from deepinv.loss.mc import MCLoss
 from deepinv.models.base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
 
+
 class PatchGANDiscriminator(nn.Module):
     r"""PatchGAN Discriminator model.
 

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss import adversarial
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+
 # NOTE: They're injected in tests as fixtures.
 from test_loss import dataset, physics  # noqa: F401
 
