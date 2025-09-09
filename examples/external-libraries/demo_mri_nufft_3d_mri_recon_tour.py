@@ -106,6 +106,9 @@ x_zf = physics.A_adjoint(kspace_data.to(device))
 physics.E.density = None # disable density compensation for iterations 
 #dinv.utils.plot(get_mid_planes(x_zf))
 
+denoiser = dinv.models.complex.to_complex_denoiser(
+    dinv.models.drunet.DRUNet(in_channels=2, out_channels=2, dim=3, pretrained="/volatile/drunet_3d_0303.pth").to(device)
+)
 
 prior = dinv.optim.prior.WaveletPrior(level=3, wv="db8", wvdim=3, p=1, device=device, is_complex=True)
 
