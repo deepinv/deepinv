@@ -61,7 +61,7 @@ rng = torch.Generator(device=device).manual_seed(0)
 def get_mid_planes(x):
     """Get mid axial, coronal, sagittal planes."""
     d, h, w = x.shape[-3:]
-    return [x[..., d // 2, :, :], x[..., :, h // 2, :], x[..., :, :, w // 2]]
+    return [x[..., d // 2 + 5, :, :], x[..., :, h // 2 + 5, :], x[..., :, :, w // 2 + 5]]
 
 from mrinufft.trajectories import initialize_3D_floret
 from mrinufft.trajectories.display import display_3D_trajectory
