@@ -544,14 +544,15 @@ def ddp_infer_windows(
 
                 # Optional: crop back to original (h,w) if your model preserves spatial size
                 if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
-                    # Create a new tensor instead of inplace operation
-                    y_cropped = []
+                    # Handle variable-sized outputs properly
                     for k, (h, w) in enumerate(shapes):
-                        y_cropped.append(y[k, :, :h, :w].clone())
-                    y = torch.stack(y_cropped)
-
-                for k, idx in enumerate(ids.tolist()):
-                    local_results.append((idx, y[k]))
+                        cropped = y[k, :, :h, :w].clone()
+                        idx = ids[k].item()
+                        local_results.append((idx, cropped))
+                else:
+                    # If shapes don't match, use full outputs
+                    for k, idx in enumerate(ids.tolist()):
+                        local_results.append((idx, y[k]))
 
             # Prepare outputs in correct order
             outputs = [None] * len(windows)
@@ -618,14 +619,15 @@ def ddp_infer_windows(
                 # Optional: crop back to original (h,w) if your model preserves spatial size
                 # (this block is safe: if shapes match, we crop; otherwise we keep full y)
                 if y.ndim == 4 and y.shape[-2:] == x.shape[-2:]:
-                    # Create a new tensor instead of inplace operation
-                    y_cropped = []
+                    # Handle variable-sized outputs properly for distributed processing
                     for k, (h, w) in enumerate(shapes):
-                        y_cropped.append(y[k, :, :h, :w].clone())
-                    y = torch.stack(y_cropped)
-
-                for k, idx in enumerate(ids.tolist()):
-                    local_results.append((idx, y[k]))
+                        cropped = y[k, :, :h, :w].clone()
+                        idx = ids[k].item()
+                        local_results.append((idx, cropped))
+                else:
+                    # If shapes don't match, use full outputs
+                    for k, idx in enumerate(ids.tolist()):
+                        local_results.append((idx, y[k]))
 
             print(f"Rank {rank}: Completed processing, gathering results...")
 
