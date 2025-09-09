@@ -6,7 +6,9 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
+from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.models import Reconstructor
+from .nmapg import nonmonotone_accelerated_proximal_gradient
 
 
 class BaseOptim(Reconstructor):
@@ -624,3 +626,128 @@ def optim_builder(
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
+
+class NMAPG(Reconstructor):
+    r"""
+    Nonmonotonic accelerated Proximal Gradient Descent (nmAPG) for minimizing
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    The nmAPG combines a proximal gradient descent with momentum and a backtracking/line search mechanism with Barzilai-Borwein step sizes.
+    The algorithm supports batching wrt. :math:`y` and applies the stopping criterion per element in the batch.
+
+    Reference:
+
+    Huan Li, Zhouchen Lin
+    Accelerated Proximal Gradient Methods for Nonconvex Programming
+    NeurIPS 2015
+
+    We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
+    supplementary material of the paper.
+
+    :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}` as an instance of
+        :class:`deepinv.optim.DataFidelity`. Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}` as an instance of
+        :class:`deepinv.optim.Prior`. Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``2000``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),
+        the algorithm is initialized with the adjoint :math:`A^{\dagger}y`. Default: ``None``.
+    :param float L_init: Initial guess of the (local) Lipschitz constant of :math:`\nabla_x f(x,y)`. Default: `1.0`
+    :param float thres_conv: convergence criterion. The algorithm terminates if the relative residual between two steps is smaller than thres_conv. Default: `1e-4`
+    :param float rho: Decrease ratio of the step size if the line search fails. Default: `0.9`
+    :param float delta: Quadratic decay parameter for the line search. Should be :math:`>0`. Default: `0.1`
+    :param float eta: Non-monotonicity parameter for the line search. Should be in :math:`[0,1)`. Default: `0.8`
+    :param bool gradient_for_both: If `True`, we define :math:`f(x,y)=\datafid{x}{y}+\lambda \reg{x}` and :math:`g(x,y)=0` in the nmAPG
+        (that is, we use purely gradient-based optimization). If `False`, we set :math:`f(x,y)=\lambda \reg{x}` and :math:`g(x,y)=\datafid{x}{y}`
+        (that is, we use the prox for the data-fidelity term and the gradient for the prior). Default: `True`.
+    :param bool verbose: Set to `True` to print the number of iterations used in the algorithm. Default: `False`.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        max_iter=2000,
+        custom_init=None,
+        L_init=1.0,
+        thres_conv=1e-4,
+        rho=0.9,
+        delta=0.1,
+        eta=0.8,
+        gradient_for_both=True,
+        verbose=False,
+    ):
+        super().__init__()
+        self.data_fidelity = ZeroFidelity() if data_fidelity is None else data_fidelity
+        self.prior = Zero() if prior is None else prior
+        self.lambda_reg = lambda_reg
+        self.max_iter = max_iter
+        self.L_init = L_init
+        self.tol = thres_conv
+        self.rho = rho
+        self.delta = delta
+        self.eta = eta
+        self.gradient_for_both = gradient_for_both
+        self.verbose = verbose
+        self.custom_init = custom_init
+
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, x_init=None):
+        r"""
+        Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :param torch.Tensor x_init: Use `x_init` as initialization instead of :math:`A^{\dagger}y` or the custom init function. Default: `None`
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        """
+        if self.gradient_for_both:
+            f = lambda x, y: self.data_fidelity(
+                x, y, physics
+            ) + self.lambda_reg * self.prior(x)
+            nabla_f = lambda x, y: self.data_fidelity.grad(
+                x, y, physics
+            ) + self.lambda_reg * self.prior.grad(x)
+            f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
+            g = None
+            prox_g = None
+        else:
+            f = lambda x, y: self.lambda_reg * self.prior(x)
+            nabla_f = lambda x, y: self.lambda_reg * self.prior.grad(x)
+            f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
+            g = self.data_fidelity(x, y, physics)
+            prox_g = self.data_fidelity.prox(x, y, physics)
+        if self.custom_init is None:
+            x0 = physics.A_dagger(y)
+        else:
+            x0 = self.custom_init(y, physics)
+
+        with torch.no_grad():
+            rec, L, steps, converged = nonmonotone_accelerated_proximal_gradient(
+                x0,
+                f,
+                y=y,
+                nabla_f=nabla_f,
+                f_and_nabla=f_and_nabla,
+                g=g,
+                prox_g=prox_g,
+                weighting=1.0,
+                max_iter=self.max_iter,
+                L_init=self.L_init,
+                tol=self.tol,
+                rho=self.rho,
+                delta=self.delta,
+                eta=self.eta,
+                verbose=self.verbose,
+            )

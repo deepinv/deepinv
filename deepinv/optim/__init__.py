@@ -9,7 +9,7 @@ from .data_fidelity import (
     LogPoissonLikelihood,
     ZeroFidelity,
 )
-from .optimizers import BaseOptim, optim_builder
+from .optimizers import BaseOptim, optim_builder, NMAPG
 from .fixed_point import FixedPoint
 from .prior import (
     Prior,
