@@ -13,7 +13,7 @@ NOISES = [
     "Uniform",
     "LogPoisson",
     "SaltPepper",
-    "Speckle"
+    "Speckle",
 ]
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
