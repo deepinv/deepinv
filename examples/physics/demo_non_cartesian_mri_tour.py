@@ -63,8 +63,12 @@ def get_mid_planes(x):
     d, h, w = x.shape[-3:]
     return [x[..., d // 2, :, :], x[..., :, h // 2, :], x[..., :, :, w // 2]]
 
-from mrinufft.trajectories import initialize_3D_cones
-trajectory = initialize_3D_cones(3000, 256)
+from mrinufft.trajectories import initialize_3D_floret
+from mrinufft.trajectories.display import display_3D_trajectory
+
+
+trajectory = initialize_3D_floret(3000, 512)
+display_3D_trajectory(trajectory[::10])
 img_size = (256, 218, 170)
 n_coils = 12
 
@@ -83,7 +87,7 @@ brain_dataset = dinv.datasets.Calgary3DBrainMRIDataset(
     transform=dinv.datasets.CalgaryDataTransformer(foward_model=foward_model),
 )
 kspace_data, recon_image = brain_dataset[0]
-
+#dinv.utils.plot(get_mid_planes(recon_image))
 # %%
 # We can also simulate multicoil MRI data. Either pass in ground-truth
 # coil maps, or pass an integer to simulate simple birdcage coil maps. The
@@ -99,9 +103,11 @@ physics = dinv.physics.mri.NonCartesianMRI(
     smaps={"name": "low_frequency", "kspace_data": kspace_data}, # use low-res kspace to estimate maps
 )
 x_zf = physics.A_adjoint(kspace_data.to(device))
-physics.E.density = None # disable density compensation for iterations
+physics.E.density = None # disable density compensation for iterations 
+#dinv.utils.plot(get_mid_planes(x_zf))
 
-prior = dinv.optim.prior.WaveletPrior(level=3, wv="db8", wvdim=3, p=1, device=device, complex_input=True)
+
+prior = dinv.optim.prior.WaveletPrior(level=3, wv="db8", wvdim=3, p=1, device=device, is_complex=True)
 
 model = dinv.optim.optim_builder(
     iteration="FISTA",
