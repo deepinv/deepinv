@@ -18,10 +18,10 @@ class XrayTransform:
 
         This transform does not handle batched and multi-channel inputs. It is
         handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.
-        To handle standard PyTorch pipelines, :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
+        To handle standard PyTorch pipelines, :class:`XrayTransform` is instantiated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
 
-    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
-    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
+    :param dict[str, Any] projection_geometry: Dictionary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
+    :param dict[str, Any] object_geometry:  Dictionary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
     :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.
 
     .. note::
@@ -139,7 +139,7 @@ class XrayTransform:
         r"""Forward projection.
 
         :param torch.Tensor x: Tensor of shape [1,H,W] in 2D, or [D,H,W] in 3D.
-        :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
+        :param torch.Tensor, None out: To avoid unnecessary copies, provide tensor of shape [...,A,N]
         to store output results
         :return: Sinogram of shape [1,A,N] in 2D or set of sinograms [V,A,N] in 3D.
         """
@@ -180,7 +180,7 @@ class XrayTransform:
                 r"""Backprojection.
 
                 :param torch.Tensor x: Tensor of shape [1,A,N] in 2D, or [V,A,N] in 3D.
-                :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
+                :param torch.Tensor, None out: To avoid unnecessary copies, provide tensor of shape [...,H,W]
                 to store output results
                 :return: Image of shape [1,H,W] in 2D or volume [D,H,W] in 3D.
                 """
@@ -287,7 +287,7 @@ class AutogradTransform(torch.autograd.Function):
         """Forward autograd.
 
         The ``astra-toolbox`` does not handle batched computation, the transform
-        is applied sequantially by iterating over the batch and channel dimension
+        is applied sequentially by iterating over the batch and channel dimension
         (e.g. Learned Primal-Dual).
 
         :param torch.Tensor input: Batched with channel input Tensor of shape [B,C,...].
@@ -353,7 +353,7 @@ def create_projection_geometry(
     :param int | tuple[int, int]: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
     :param torch.Tensor angles: Tensor containing angular positions in degrees.
     :param bool is_2d: Boolean specifying if the parameters define a 2D slice or a 3D volume.
-    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionary should contains the keys
 
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
@@ -527,7 +527,7 @@ def create_object_geometry(
                 pixel_spacing = (pixel_spacing, pixel_spacing, pixel_spacing)
             if len(pixel_spacing) != 3:
                 raise ValueError(
-                    f"For 23 geometry, `pixel_spacing` should be float or a tuple of size 3 specifying (length_x,length_y,length_z) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
+                    f"For 2D geometry, `pixel_spacing` should be float or a tuple of size 3 specifying (length_x,length_y,length_z) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
 
     if is_2d:
