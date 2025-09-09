@@ -5,7 +5,7 @@ from .tv import TVDenoiser
 
 class TGVDenoiser(Denoiser):
     r"""
-    Proximal operator of (2nd order) Total Generalised Variation operator.
+    Proximal operator of (2nd order) Total Generalized Variation operator.
 
     Adapted from :footcite:t:`bredies2010total`.
 

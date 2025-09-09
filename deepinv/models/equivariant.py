@@ -31,7 +31,7 @@ class EquivariantDenoiser(Denoiser):
 
         ``Rotate(n_trans=4, multiples=90, positive=True) * Reflect(n_trans=2, dims=[-1])``
 
-    See :ref:`sphx_glr_auto_examples_basics_demo_transforms.py` for an example.
+    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` for an example.
 
     :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).

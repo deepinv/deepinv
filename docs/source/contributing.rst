@@ -1,4 +1,5 @@
 :html_theme.sidebar_secondary.remove:
+.. _contributing:
 
 Contributing to DeepInverse
 ===========================
@@ -38,25 +39,25 @@ repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR). When preparing the PR, please make sure to
 check the following points:
 
-- **Code quality**: your code is compliant with PEP8 and the `black <https://black.readthedocs.io>`_ style. This can be done easily
-  by installing the ``black`` library and running ``black .`` in the root directory of the repository after
+- **Code quality**: your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers. This can be done easily
+  by installing the ``black`` and ``ruff`` libraries and running ``black .`` and ``ruff check`` in the root directory of the repository after
   making the desired changes.
-- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using a partial `ruff <https://docs.astral.sh/ruff/>`_ checker (see our `workflow for details <https://github.com/deepinv/deepinv/blob/main/.github/workflows/lint.yml>`_).
+- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using ruff.
 - **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,
-  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behaviour),
+  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behavior),
   following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
   All existing tests should pass on your local machine. This can be done by installing ``pytest`` and running
   ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.
   Learn more `here <https://realpython.com/pytest-python-testing/>`__.
   Your code coverage will automatically be checked using ``codecov``.
-- **Docs**: the documentation and docstrings are updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
+- **Docs**: the documentation and docstrings are updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
   and built with `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_.
   Please refer to the docstring guidelines below.
   Your documentation should be added to: a) docstring, b) API reference, c) User Guide, d) Examples (optional).
   After making the desired changes, check the documentation by installing
   ``sphinx`` and building the docs by running one of the commands in the table below in the ``docs`` directory.
   Note that if the build process fails, supplementary additional libraries may need to be manually installed
-  (e.g. ``sphinx-gallery``): please follow instructions in the log. 
+  (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
 
@@ -93,7 +94,7 @@ You can also send an email to any of the `maintainers <https://github.com/deepin
 Docstring Guidelines
 --------------------
 
-For class and function docstrings, we use the **reStructuredText (reST)** syntax.  
+For class and function docstrings, we use the **reStructuredText (reST)** syntax.
 See the `Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ for more details.
 
 Please follow these guidelines:

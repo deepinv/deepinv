@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
+from typing import Optional
 
 
 class DiscriminatorMetric:
@@ -29,12 +30,14 @@ class DiscriminatorMetric:
 
     def __init__(
         self,
-        metric: nn.Module = nn.MSELoss(),
+        metric: Optional[nn.Module] = None,
         real_label: float = 1.0,
         fake_label: float = 0.0,
         no_grad: bool = False,
         device="cpu",
     ):
+        if metric is None:
+            metric = nn.MSELoss()
         self.real = Tensor([real_label]).to(device)
         self.fake = Tensor([fake_label]).to(device)
         self.no_grad = no_grad

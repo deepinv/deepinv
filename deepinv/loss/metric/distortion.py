@@ -4,12 +4,6 @@ from functools import partial
 
 import torch
 from torch import Tensor
-from torchmetrics.functional.image import (
-    structural_similarity_index_measure,
-    multiscale_structural_similarity_index_measure,
-    spectral_angle_mapper,
-    error_relative_global_dimensionless_synthesis,
-)
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
@@ -32,7 +26,7 @@ class MAE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
+        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
 
     :Example:
 
@@ -66,7 +60,7 @@ class MSE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
+        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
     :Example:
 
@@ -89,10 +83,10 @@ class MSE(Metric):
 
 class NMSE(MSE):
     r"""
-    Normalised Mean Squared Error metric.
+    Normalized Mean Squared Error metric.
 
     Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
-    Normalises MSE by the L2 norm of the ground truth ``x``.
+    Normalizes MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
 
@@ -164,14 +158,22 @@ class SSIM(Metric):
         multiscale=False,
         max_pixel=1.0,
         min_pixel=0.0,
-        torchmetric_kwargs: dict = {},
+        torchmetric_kwargs: dict = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        from torchmetrics.functional.image import (
+            structural_similarity_index_measure,
+            multiscale_structural_similarity_index_measure,
+        )
+
         self.ssim = (
             multiscale_structural_similarity_index_measure
             if multiscale
             else structural_similarity_index_measure
+        )
+        torchmetric_kwargs = (
+            torchmetric_kwargs if torchmetric_kwargs is not None else {}
         )
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
@@ -401,6 +403,10 @@ class QNR(Metric):
     ):
         super().__init__(**kwargs)
         self.alpha, self.beta, self.p, self.q = alpha, beta, p, q
+        from torchmetrics.functional.image import (
+            structural_similarity_index_measure,
+        )
+
         self.Q = partial(
             structural_similarity_index_measure, reduction="none"
         )  # Wang-Bovik
@@ -508,6 +514,8 @@ class SpectralAngleMapper(Metric):
     """
 
     def metric(self, x_net, x, *args, **kwargs):
+        from torchmetrics.functional.image import spectral_angle_mapper
+
         return spectral_angle_mapper(x_net, x, reduction="none").mean(
             dim=tuple(range(1, x.ndim - 1)), keepdim=False
         )
@@ -544,6 +552,10 @@ class ERGAS(Metric):
 
     def __init__(self, factor: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from torchmetrics.functional.image import (
+            error_relative_global_dimensionless_synthesis,
+        )
+
         self._metric = self._metric = (
             lambda x_hat, x, *args, **kwargs: error_relative_global_dimensionless_synthesis(
                 x_hat, x, ratio=factor, reduction="none"

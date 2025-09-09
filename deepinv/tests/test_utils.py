@@ -2,6 +2,7 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -13,14 +14,17 @@ import subprocess
 import os
 import inspect
 import pathlib
-import torchvision
 import torchvision.transforms as transforms
 import PIL
 import io
 import copy
+import math
+import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
+
+from deepinv.tests.test_datasets import check_dataset_format
 
 
 @pytest.fixture
@@ -111,6 +115,21 @@ def test_tensordict_append(tensorlist):
     assert (z1[0] == z[0]).all() and (z1[-1] == z[-1]).all()
 
 
+def test_tensorlist_any_all_isnan():
+    x = torch.zeros(1, 3)
+    x_nan = torch.nan * x
+    tl = deepinv.utils.TensorList([x, x])
+    tl_mixed = deepinv.utils.TensorList([x, x_nan])
+    tl_nan = deepinv.utils.TensorList([x_nan, x_nan])
+
+    assert x_nan.isnan().all()
+    assert not tl.isnan().any()
+    assert not tl.isnan().all()
+    assert tl_mixed.isnan().any()
+    assert not tl_mixed.isnan().all()
+    assert tl_nan.isnan().all()
+
+
 # The class TensorList features many utility methods that we do not test in
 # depth but verify that they do not raise any exception when called. To do
 # that, we get a tensor list instance, we iterate over its methods and try to call
@@ -163,11 +182,11 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x, strict=True)
+            for hi, xi in zip_strict(h, x)
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y, strict=True):
+    for xi, hi, yi in zip_strict(x, h, y):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -199,7 +218,7 @@ def test_plot(
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
-    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
+    img_list = {k: v for k, v in zip_strict(titles, img_list)}
     if not with_titles:
         titles = None
     if not dict_img_list:
@@ -353,48 +372,23 @@ def test_deprecated_alias():
 @pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
-@pytest.mark.parametrize("length", [1, 2, 10, np.inf])
-def test_random_phantom_dataset(size, n_data, transform, length):
-    # Although it is the default value for the parameter length, the current
-    # implementation fails when it is used. We simply verify this behavior
-    # but it will probably need to be changed in the future.
-    dataset = None
-    with pytest.raises(ValueError) if length == np.inf else nullcontext():
+@pytest.mark.parametrize("length", [1, 10])
+@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+def test_phantom_datasets(size, n_data, transform, length, dataset_name):
+    if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
             size=size, n_data=n_data, transform=transform, length=length
         )
-        assert dataset is not None, "Dataset should not be None when length is finite."
-
-    if dataset is not None:
-        x, y = dataset[0]
-
-        assert (
-            len(dataset) == length
-        ), "Length of dataset should match the specified length."
-
-        assert x.shape == (
-            n_data,
-            size,
-            size,
-        ), "Shape of phantom should match (n_data, size, size)."
-
-
-@pytest.mark.parametrize("size", [64, 128])
-@pytest.mark.parametrize("n_data", [1, 2, 3])
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_shepp_logan_dataset(size, n_data, transform):
-    dataset = deepinv.utils.SheppLoganDataset(
-        size=size, n_data=n_data, transform=transform
+    elif dataset_name == "shepplogan":
+        dataset = deepinv.utils.SheppLoganDataset(
+            size=size, n_data=n_data, transform=transform
+        )
+    check_dataset_format(
+        dataset,
+        length=length if dataset_name != "shepplogan" else 1,
+        dtype=torch.Tensor,
+        shape=(n_data, size, size),
     )
-    x, y = dataset[0]
-
-    assert len(dataset) == 1, "Length of dataset should be 1 for Shepp-Logan phantom."
-
-    assert x.shape == (
-        n_data,
-        size,
-        size,
-    ), "Shape of phantom should match (n_data, size, size)."
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
@@ -527,9 +521,7 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize(
-    "fn_name", ["norm", "cal_angle", "cal_mse", "complex_abs", "norm_psnr"]
-)
+@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
 def test_deprecated_metric_functions(fn_name):
     f = getattr(deepinv.utils.metric, fn_name)
     with pytest.raises(NotImplementedError, match="deprecated"):
@@ -584,25 +576,35 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
         transform = mock.Mock(wraps=transform)
 
     dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
-
-    assert isinstance(dataset, torchvision.datasets.ImageFolder)
+    assert isinstance(dataset, deepinv.datasets.ImageFolder)
 
     for k in range(n_retrievals):
-        x, y = dataset[k]
-        # NOTE: We assume that the transform always converts the image to a
-        # tensor if it is provided.
+        x = dataset[k]
         if transform is not None:
             assert isinstance(x, torch.Tensor), "Dataset image should be a tensor."
         else:
             assert isinstance(
                 x, PIL.Image.Image
             ), "Dataset image should be a PIL Image."
-        assert isinstance(y, int), "Dataset label should be an integer."
 
     if transform is not None:
         assert (
             transform.call_count == n_retrievals
         ), "Transform should be called once for each dataset item."
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "butterfly.png",
+        "CT100_256x256_0.pt",
+        "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy",
+    ],
+)
+def test_load_example(name):
+    x = deepinv.utils.load_example(name, img_size=(64, 64))
+    if name.split(".")[-1] == "png":
+        assert x.shape[-2:] == (64, 64)
 
 
 @pytest.mark.parametrize(
@@ -717,5 +719,130 @@ def test_load_image(
             ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
 
 
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize(
+    "signal_shape",
+    [(3, 16, 16), (1, 16, 16), (1, 16), (1, 16, 16, 16), (1, 16, 8), (16, 16), (16,)],
+)
+@pytest.mark.parametrize("mode", ["min_max", "clip"])
+@pytest.mark.parametrize("seed", [0])
+def test_normalize_signals(batch_size, signal_shape, mode, seed):
+    shape = (batch_size, *signal_shape)
+    rng = torch.Generator().manual_seed(seed)
+
+    # Generate a batch of random signals, half constant and half not
+    # NOTE: Constant signals are the main edge case to test.
+    inp = torch.empty(shape, device="cpu", dtype=torch.float32)
+    indices = torch.randperm(batch_size, generator=rng)
+    N_const_idx = math.ceil(batch_size / 2)
+    const_idx, var_idx = indices[:N_const_idx], indices[N_const_idx:]
+    const_values = torch.randn(
+        N_const_idx, generator=rng, device=inp.device, dtype=inp.dtype
+    )
+    inp[const_idx] = const_values.view((-1,) + ((1,) * len(signal_shape)))
+    if var_idx.numel() != 0:
+        inp[var_idx] = torch.randn(
+            inp[const_idx].shape, generator=rng, device=inp.device, dtype=inp.dtype
+        )
+
+    # Sanity check
+    assert inp.shape == shape, "Input tensor should have the specified shape."
+
+    # Apply the tested function
+    out = deepinv.utils.normalize_signal(inp, mode=mode)
+
+    # Check the tensor attributes
+    assert out.dtype == inp.dtype, "Output dtype should match input dtype."
+    assert out.device == inp.device, "Output device should match input device."
+    assert out.shape == inp.shape, "Output shape should match input shape."
+
+    # Check that the output entries are between zero and one
+    assert torch.all(0 <= out) and torch.all(
+        out <= 1
+    ), "Output entries should be in [0, 1]."
+
+    # Tests specific to min-max normalization
+    if mode == "min_max":
+        # Test the edge case of constant signals
+        for inp_s, out_s in zip_strict(inp, out):
+            inp_unique = torch.unique(inp_s)
+            is_inp_constant = inp_unique.numel() == 1
+            if is_inp_constant:
+                # Verify that constant signals remain constant after normalization
+                out_unique = torch.unique(out_s)
+                is_out_constant = out_unique.numel() == 1
+                assert (
+                    is_out_constant
+                ), "Output should be constant if input is constant."
+
+                # Input and output constant values
+                inp_c = inp_unique.item()
+                out_c = out_unique.item()
+
+                # Verify that the rescaling is the smallest possible
+                target_c = max(0, min(1, inp_c))
+                assert (
+                    out_c == target_c
+                ), "The distance between the input and ouput constants is not minimal."
+    elif mode == "clip":
+        # Check that the input is clipped between zero and one
+        assert torch.all(
+            out == torch.clamp(inp, 0, 1)
+        ), "Output should be clipped between 0 and 1."
+    else:
+        raise ValueError(
+            f"Unknown mode '{mode}'. Supported modes are 'min_max' and 'clip'."
+        )
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
+
+
+@pytest.mark.parametrize("force_polyfill", [False, True])
+def test_zip_strict_behavior(force_polyfill):
+    # Test correct pairing
+    a = [1, 2, 3]
+    b = ["x", object(), "z"]
+    c = [True, False, object()]
+
+    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
+
+    # If Python >= 3.10, compare with zip(strict=True)
+    if sys.version_info >= (3, 10):
+        expected = list(zip(a, b, c, strict=True))  # novermin
+        assert result == expected
+
+    # Test ValueError for different lengths
+    d = [1, 2]
+    with pytest.raises(ValueError):
+        list(zip_strict(a, d, force_polyfill=force_polyfill))
+
+    # If Python >= 3.10, confirm zip(strict=True) also raises
+    if sys.version_info >= (3, 10):
+        with pytest.raises(ValueError):
+            list(zip(a, d, strict=True))  # novermin
+
+    # Test consumption behavior
+    def spy(iterable):
+        it = iter(iterable)
+        for x in it:
+            yield x
+
+    a = spy([1, 2, 3])
+    b = spy([10, 20, 30, 40])
+    c = spy([100, 200, 300, 400])
+
+    try:
+        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
+    except ValueError:
+        pass
+
+    assert next(a, None) is None, "Iterator a should be fully consumed."
+    assert next(b, None) is None, "Iterator b should be fully consumed."
+    assert next(c, None) == 400, "Iterator c should have one item left."
+
+    # Test empty input
+    assert (
+        list(zip_strict(force_polyfill=force_polyfill)) == []
+    ), "Empty input should yield empty output."

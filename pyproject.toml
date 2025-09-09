@@ -5,13 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deepinv"
 authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
-license = {text = "BSD 3-Clause"}
+license = "BSD-3-Clause"
 description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -22,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -34,6 +33,7 @@ dependencies = [
     "scipy",
     "requests",
     "h5py",
+    "natsort",
 ]
 
 [tool.setuptools]
@@ -98,7 +98,6 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
-    "natsort",
 ]
 
 # optional dependencies for training
@@ -128,6 +127,17 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 show_missing = true
 skip_covered = true
 
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253"]
+
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
 "__init__.py" = ["F401"]
+"examples/**/*" = ["TID253"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Modules that slow down startup and should be imported lazily
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]

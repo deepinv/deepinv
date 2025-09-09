@@ -6,7 +6,7 @@ Denoisers
 The :class:`deepinv.models.Denoiser` base class describe
 denoisers that take a noisy image as input and return a denoised image.
 They can be used as a building block for plug-and-play restoration, for building unrolled architectures,
-for artifact removal networks, or as a standalone denoisers. All denoisers have a
+for :ref:`artifact removal networks <artifact>`, or as standalone denoisers. All denoisers have a
 :func:`forward <deepinv.models.Denoiser.forward>` method that takes a
 noisy image and a noise level (which generally corresponds to the standard deviation of the noise)
 as input and returns a denoised image:
@@ -24,7 +24,7 @@ as input and returns a denoised image:
     Some denoisers (e.g., :class:`deepinv.models.DnCNN`) do not use the information about the noise level.
     In this case, the noise level is ignored.
 
-.. _deep-architectures:
+.. _deep-denoisers:
 
 Deep denoisers
 ~~~~~~~~~~~~~~
@@ -105,7 +105,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Unrolled
      - Any C, H, W
      - RGB
-     - Yes    
+     - Yes
+   * - :class:`deepinv.models.RAM`
+     - CNN-UNet
+     - C=1, 2, 3; H,W>8
+     - C=1, 2, 3
+     - Yes
 
 .. _non-learned-denoisers:
 
@@ -143,10 +148,10 @@ and rely on hand-crafted priors.
      - Learned patch-prior
      - C=1 or C=3, any H, W
 
-.. _denoiser-utils:
+.. _model-utils:
 
-Denoisers Utilities
-~~~~~~~~~~~~~~~~~~~
+Model Utilities
+~~~~~~~~~~~~~~~
 
 Equivariant denoisers
 ^^^^^^^^^^^^^^^^^^^^^
@@ -171,4 +176,3 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
-

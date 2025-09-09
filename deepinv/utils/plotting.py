@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
+from types import MappingProxyType
 from functools import partial
 from warnings import warn
 
@@ -12,19 +13,38 @@ from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from matplotlib.animation import FuncAnimation
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 from PIL import Image
+
+from deepinv.utils.signal import normalize_signal, complex_abs
+
+_DEFAULT_PLOT_FONTSIZE = 17
+
+
+def set_default_plot_fontsize(fontsize: int):
+    """Set global default fontsize for DeepInv plots."""
+    global _DEFAULT_PLOT_FONTSIZE
+    _DEFAULT_PLOT_FONTSIZE = fontsize
+
+
+def get_default_plot_fontsize() -> int:
+    """Get global default fontsize for DeepInv plots."""
+    return _DEFAULT_PLOT_FONTSIZE
 
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
-    plt.rcParams.update({"font.size": fontsize})
+    import matplotlib.pyplot as plt
+
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+    plt.rcParams["font.size"] = fontsize
+    plt.rcParams["axes.titlesize"] = fontsize
+    plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+    plt.rcParams["text.latex.preamble"] = (
+        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
+    )
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -113,27 +133,37 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
+@torch.no_grad
 def preprocess_img(im, rescale_mode="min_max"):
     r"""
-    Preprocesses an image tensor for plotting.
+    Prepare a batch of images for plotting.
 
-    :param torch.Tensor im: the image to preprocess.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the preprocessed image.
+    Real and complex images are transformed into images with values between
+    zero and one by first applying the modulus function for complex images, and
+    then by normalizing the resulting images between zero and one using min-max
+    normalization ``min_max`` or clipping ``clip``.
+
+    .. note::
+
+        Real-valued tensors with two channels are assumed to be Cartesian
+        representation of complex images and are processed accordingly.
+
+    :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
+    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :return: the batch of pre-processed images.
     """
-    with torch.no_grad():
-        if im.shape[1] == 2:  # for complex images
-            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
-        elif im.shape[1] > 3:
-            pimg = im.type(torch.float32)
-        else:
-            if torch.is_complex(im):
-                pimg = im.abs().type(torch.float32)
-            else:
-                pimg = im.type(torch.float32)
+    # Apply the modulus function if the image is inferred to be complex
+    if torch.is_complex(im) or im.shape[1] == 2:
+        im = complex_abs(im, dim=1, keepdim=True)
 
-        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-    return pimg
+    # Cast image values to float32 numbers
+    # NOTE: Why is it needed?
+    im = im.type(torch.float32)
+
+    # Normalize values between zero and one
+    im = normalize_signal(im, mode=rescale_mode)
+
+    return im
 
 
 def tensor2uint(img):
@@ -156,22 +186,12 @@ def rescale_img(im, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
-    img = im.clone()
-    if rescale_mode == "min_max":
-        shape = img.shape
-        img = img.reshape(shape[0], -1)
-        mini = img.min(1)[0]
-        maxi = img.max(1)[0]
-        idx = mini < maxi
-        mini = mini[idx].unsqueeze(1)
-        maxi = maxi[idx].unsqueeze(1)
-        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
-        img = img.reshape(shape)
-    elif rescale_mode == "clip":
-        img = img.clamp(min=0.0, max=1.0)
-    else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-    return img
+    warn(
+        "The function `deepinv.utils.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
@@ -187,7 +207,7 @@ def plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="none",
     cbar=False,
     dpi=1200,
@@ -249,6 +269,8 @@ def plot(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -288,29 +310,30 @@ def plot(
             len(imgs),
             figsize=figsize,
             squeeze=False,
+            layout="compressed" if tight else "constrained",
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12, wrap=True)
+        plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
             im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if cbar:
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
+
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, wrap=True)
+                axs[r, i].set_title(titles[i], wrap=True)
             axs[r, i].axis("off")
 
-    if tight:
-        if cbar:
-            plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        else:
-            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if cbar:
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
@@ -348,7 +371,7 @@ def scatter_plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     s=0.1,
     linewidths=1.5,
     color="b",
@@ -379,6 +402,8 @@ def scatter_plot(
     :param float linewidths: width of the lines. Default: 1.5
     :param str color: color of the points. Default: blue
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -400,10 +425,11 @@ def scatter_plot(
         len(scatters),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -412,7 +438,7 @@ def scatter_plot(
                 xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
             )
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i])
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
@@ -440,6 +466,8 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib()
 
@@ -447,7 +475,9 @@ def plot_curves(metrics, save_dir=None, show=True):
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
     fig, axs = plt.subplots(
-        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+        1,
+        len(metrics.keys()),
+        figsize=(6 * len(metrics.keys()), 4),
     )
     # NOTE: axs is not an array when a single metric is passed in
     if isinstance(axs, plt.Axes):
@@ -479,6 +509,8 @@ def plot_curves(metrics, save_dir=None, show=True):
                     axs[i].plot(metric_val[b], "-o", label=f"batch {b+1}")
                 else:
                     axs[i].semilogy(metric_val[b], "-o", label=f"batch {b+1}")
+            from matplotlib.ticker import MaxNLocator
+
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
             # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
@@ -501,6 +533,7 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
     :param bool show: whether to show the plot. Defaults to ``True``.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -570,7 +603,7 @@ def plot_inset(
     dpi: int = 1200,
     fig=None,
     axs=None,
-    labels: list[str] = [],
+    labels: list[str] = (),
     label_loc: Union[tuple, list] = (0.03, 0.03),
     extract_loc: Union[tuple, list] = (0.0, 0.0),
     extract_size: float = 0.2,
@@ -617,6 +650,7 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -751,7 +785,7 @@ def plot_videos(
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
-    anim_kwargs: dict = {},
+    anim_kwargs: dict = MappingProxyType({}),
     **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
@@ -831,6 +865,8 @@ def plot_videos(
     # plt.gcf().set_visible(not plt.gcf().get_visible())
     # fig, axs = plt.subplots()
 
+    from matplotlib.animation import FuncAnimation
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
@@ -895,6 +931,8 @@ def save_videos(
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
     :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
+    import matplotlib.pyplot as plt
+
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
 
@@ -938,7 +976,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="nearest",
 ):
     r"""
@@ -977,6 +1015,8 @@ def plot_ortho3D(
     :param int fontsize: fontsize for the titles. Default: 17
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -1014,7 +1054,7 @@ def plot_ortho3D(
                     pimg = im[i, :, :, :, :].abs().type(torch.float32)
                 else:
                     pimg = im[i, :, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+            pimg = preprocess_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
         imgs.append(col_imgs)
 
@@ -1036,6 +1076,7 @@ def plot_ortho3D(
         len(imgs),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
@@ -1051,6 +1092,8 @@ def plot_ortho3D(
                 img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
             )
             # ax_XY.set_aspect(1.)
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY

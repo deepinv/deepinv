@@ -3,23 +3,33 @@
 Introduction
 ------------
 Reconstruction algorithms define an inversion function :math:`\hat{x}=\inversef{y}{A}`
-which attempts to recover a signal :math:`x` from measurements :math:`y`, (possibly) given an operator :math:`A`.
-All reconstruction algorithms in the library inherit from the
-:class:`deepinv.models.Reconstructor` base class.
+which recovers a signal :math:`x` from measurements :math:`y` given an operator :math:`A`.
+
+.. code-block::
+
+  x_hat = model(y, physics)
+
+.. seealso::
+  
+  See :ref:`pretrained reconstructors <pretrained-models>` for ready-to-use pretrained reconstruction algorithms
+  that you can use to reconstruct images in one line.
+
+Defining your own reconstructor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All reconstruction algorithms inherit from the
+:class:`deepinv.models.Reconstructor` base class, take as input measurements `y`
+and forward operator `physics`, and output a reconstruction `x_hat`.
+
+To use your own reconstructor with DeepInverse, simply define the `forward` method to follow this pattern.
+
+Summary
+~~~~~~~
 
 Below we provide a summary of existing reconstruction methods, and a qualitative
 description of their reconstruction performance and speed.
 
-.. tip::
-
-      Some methods do not require any training and can be quickly deployed in your problem.
-
-.. tip::
-
-      If you need to train your model and don't have ground truth data,
-      the library provides a :ref:`large set of self-supervised losses <self-supervised-losses>`
-      which can learn from measurement data alone.
-
+For the models that require training, you can do this using the :ref:`trainer <trainer>` and :ref:`loss functions <loss>`.
 
 .. list-table:: Reconstruction methods
    :header-rows: 1
@@ -29,9 +39,9 @@ description of their reconstruction performance and speed.
      - **Requires Training**
      - **Iterative**
      - **Sampling**
-   * - :ref:`Artifact Removal <artifact>`
-     - Applies a neural network to a non-learned pseudo-inverse
-     - Yes
+   * - :ref:`Deep Reconstruction Models <deep-reconstructors>`
+     - Deep model architectures for reconstruction.
+     - No if pretrained, yes otherwise
      - No
      - No
    * - :ref:`Plug-and-Play (PnP) <iterative>`
@@ -64,15 +74,28 @@ description of their reconstruction performance and speed.
      - No
      - Yes
      - Depends
-   * - :ref:`Specific network architectures <specific>`
-     - Off-the-shelf architectures for specific inverse problems.
-     - Yes
+   * - :ref:`Multi-physics models <general-reconstructors>`
+     - Models trained on multiple various physics and datasets for robustness to different problems.
      - No
      - No
-
+     - No
 
 .. note::
 
         Some algorithms might be better at reconstructing images with good perceptual quality (e.g. diffusion methods)
         whereas other methods are better at reconstructing images with low distortion (close to the ground truth).
 
+Using models in the cloud
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The client model :class:`deepinv.models.Client` allows users to perform inference on models hosted in the cloud directly from DeepInverse.
+
+The client allows contributors to disseminate their reconstruction models, without requiring the user to have high GPU resources
+or to accurately define their physics. As a contributor, all you have to do is:
+
+  * Define your model to take tensors as input and output tensors (like :class:`deepinv.models.Reconstructor`)
+  * Create a simple API
+  * Deploy it to the cloud, and distribute the endpoint URL and API keys to anyone who might want to use it!
+
+The user then only needs to define this client, specify the endpoint URL and API key, and pass in an image as a tensor.
+The client then performs checks and passes the deserialized tensor to the server for processing.

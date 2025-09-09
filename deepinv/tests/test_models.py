@@ -1,13 +1,17 @@
-import sys
 import pytest
+import json
+from unittest.mock import patch, MagicMock
+
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.loss import PSNR
+from deepinv.loss.metric.distortion import PSNR
+from deepinv.datasets.base import ImageDataset
 
 from dummy import DummyCircles, DummyModel
 
+from deepinv.tests.test_physics import find_operator
 
 MODEL_LIST_1_CHANNEL = [
     "autoencoder",
@@ -33,6 +37,35 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_topk",
     "dsccp",
 ]
+
+REST_MODEL_LIST = [
+    "ram",
+    "modl",
+    "varnet",
+    "pannet",
+]
+
+LINEAR_OPERATORS = [
+    "inpainting",
+    "demosaicing",
+    "denoising",
+    "fftdeblur",
+    "deblur_valid",
+    "super_resolution_circular",
+    "MRI",
+    "pansharpen_circular",
+]  # this is a reduced list of linear operators for testing restoration models.
+
+CHANNELS = [
+    1,
+    2,
+    3,
+]
+
+
+@pytest.fixture
+def rng(device):
+    return torch.Generator(device).manual_seed(0)
 
 
 def choose_denoiser(name, imsize):
@@ -109,6 +142,29 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
+    return out.eval()
+
+
+def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=None):
+    if name == "ram":
+        out = dinv.models.RAM(pretrained=pretrained)
+    elif name == "modl" or name == "varnet":
+        denoiser = dinv.models.DnCNN(
+            in_channels, out_channels, 7, pretrained=pretrained
+        )
+        if name == "modl":
+            out = dinv.models.MoDL(denoiser=denoiser, num_iter=3)
+        else:
+            out = dinv.models.VarNet(
+                num_cascades=3,
+                mode=name,
+                denoiser=denoiser,
+            )
+    elif name == "pannet":
+        hrms_shape = (8, 16, 16)  # manually adjust
+        out = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
+    else:
+        raise Exception("Unknown restoration model")
     return out.eval()
 
 
@@ -452,6 +508,12 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
 def test_wavelet_denoiser_ths(
     level, channels, dimension, non_linearity, batch_size, device
 ):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(
         level=level, wvdim=dimension, non_linearity=non_linearity
     ).to(device)
@@ -482,6 +544,12 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
 def test_wavelet_decomposition(channels, dimension, batch_size, device):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
@@ -694,26 +762,6 @@ def test_PDNet(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
-@pytest.mark.parametrize(
-    "denoiser, dep",
-    [
-        ("BM3D", "bm3d"),
-        ("SCUNet", "timm"),
-        ("SwinIR", "timm"),
-        ("WaveletDenoiser", "ptwt"),
-        ("WaveletDictDenoiser", "ptwt"),
-    ],
-)
-def test_optional_dependencies(denoiser, dep):
-    # Skip the test if the optional dependency is installed
-    if dep in sys.modules:
-        pytest.skip(f"Optional dependency {dep} is installed.")
-
-    klass = getattr(dinv.models, denoiser)
-    with pytest.raises(ImportError, match=f"pip install .*{dep}"):
-        klass()
-
-
 def test_icnn(device, rng):
     from deepinv.models import ICNN
 
@@ -769,7 +817,7 @@ def test_varnet(varnet_type, device):
     )
     y = physics(x)
 
-    class DummyMRIDataset(Dataset):
+    class DummyMRIDataset(ImageDataset):
         def __getitem__(self, i):
             return x[0], y[0]
 
@@ -806,6 +854,90 @@ def test_varnet(varnet_type, device):
 
     psnr = dinv.metric.PSNR()
     assert psnr(x_init, x) < psnr(x_hat, x)
+
+
+LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
+
+
+@pytest.mark.parametrize("pretrained", [True, None])
+@pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
+@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
+@pytest.mark.parametrize("channels", CHANNELS)
+def test_restoration_models(
+    device, pretrained, model_name, physics_name, channels, rng, whsize
+):
+
+    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
+
+    if channels == 2 and physics_name == "demosaicing":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
+
+    if channels == 3 and physics_name == "MRI":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
+
+    if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
+        pytest.skip(f"Skipping {model_name} with {physics_name}. TODO: fix.")
+
+    if model_name != "ram" and physics_name is None:
+        pytest.skip(f"Skipping {model_name} with {physics_name}.")
+
+    model = choose_restoration_model(
+        model_name, in_channels=channels, out_channels=channels, pretrained=pretrained
+    ).to(device)
+    torch.manual_seed(0)
+
+    imsize = (channels, whsize[0], whsize[1])
+
+    if physics_name is not None:
+        physics, imsize, _, dtype = find_operator(physics_name, device, imsize=imsize)
+    else:
+        physics = None
+
+    if hasattr(physics, "noise_model"):
+        if hasattr(physics.noise_model, "sigma"):
+            physics.noise_model.sigma = torch.tensor(
+                [max(physics.noise_model.sigma, 0.01)]
+            )
+        else:
+            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+    else:
+        if physics is not None:
+            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+
+    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0)
+
+    if physics is not None:
+        y = physics(x)
+    else:
+        y = torch.randn_like(x)
+
+    if physics_name is not None:
+        with torch.no_grad():
+            x_hat = model(y, physics)
+    else:
+        if model_name == "ram":
+            # ram model should output an error if no sigma and gain is provided
+            with pytest.raises(ValueError):
+                x_hat = model(y, physics)
+            x_hat = model(y, sigma=0.01, gain=1.0)
+
+    assert x_hat.shape == x.shape
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    if (
+        not (physics_name == "super_resolution_circular" and channels == 2)
+        and model_name == "ram"
+        and pretrained == True
+        and physics is not None
+    ):  # suboptimal performance in this case
+        psnr_in = psnr_fn(physics.A_dagger(y), x)
+        psnr_out = psnr_fn(x_hat, x)
+        assert torch.all(psnr_out > psnr_in)
+    else:
+        pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 
 
 def test_pannet():
@@ -878,6 +1010,11 @@ def test_dsccp_net(device, n_channels):
 
 
 def test_denoiser_perf(device):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",
@@ -971,3 +1108,86 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+
+@pytest.mark.parametrize("return_metadata", [False, True])
+def test_client_mocked(return_metadata):
+    model = dinv.models.Client(
+        endpoint="http://example.com",
+        api_key="test_key",
+        return_metadata=return_metadata,
+    )
+
+    y = torch.ones(1, 3, 16, 16)
+
+    # First test just serialize/deserialize
+    assert isinstance(dinv.models.Client.serialize(y), str)
+    assert torch.allclose(
+        dinv.models.Client.deserialize(dinv.models.Client.serialize(y)), y
+    )
+
+    # Test mocked API
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {
+        "output": {"file": dinv.models.Client.serialize(y), "metadata": {"time": 0.1}}
+    }
+
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        out = model(
+            y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3, another=[1, 2]
+        )
+
+        if return_metadata:
+            x_hat, metadata = out
+            assert metadata["time"] == 0.1
+        else:
+            x_hat = out
+
+        assert torch.allclose(x_hat, y)
+
+        # Verify request payload structure
+        called_args, called_kwargs = post.call_args
+        assert called_args[0] == "http://example.com"
+        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+
+        sent_payload = json.loads(called_kwargs["data"])
+        assert "input" in sent_payload
+        assert "file" in sent_payload["input"]
+        assert "metadata" in sent_payload["input"]
+        assert sent_payload["input"]["metadata"]["physics"] == "denoising"
+
+        input_file = sent_payload["input"]["file"]
+        assert isinstance(input_file, str)
+        assert torch.allclose(dinv.models.Client.deserialize(input_file), y)
+
+        assert sent_payload["input"]["metadata"]["sigma"] == 0.3
+        assert torch.allclose(
+            dinv.models.Client.deserialize(sent_payload["input"]["metadata"]["mask"]),
+            torch.tensor([1, 2]),
+        )
+
+        with pytest.raises(TypeError):
+            _ = model(y, a={"a": 3})
+
+        with pytest.raises(TypeError):
+            _ = model(y, a=[{"a": 3}, 3])
+
+        with pytest.raises(ValueError):
+            model.train()
+
+    resp.status_code = 404
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(RuntimeError, match="404"):
+            _ = model(y)
+
+    resp.status_code = 200
+    resp.json.return_value = {"output": {"xxx": 0.0}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="file"):
+            _ = model(y)
+
+    resp.json.return_value = {"other": {"xxx": 0.1}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="output"):
+            _ = model(y)

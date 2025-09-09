@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.optimizers import BaseOptim, create_iterator
+from types import MappingProxyType
+from typing import Sequence  # noqa: F401
 
 
 class BaseUnfold(BaseOptim):
@@ -39,7 +41,7 @@ class BaseUnfold(BaseOptim):
         Either a single instance (same prior for each iteration) or a list of instances of
         deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
-    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
+    :param Sequence trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
@@ -50,15 +52,18 @@ class BaseUnfold(BaseOptim):
     def __init__(
         self,
         iterator,
-        params_algo={"lambda": 1.0, "stepsize": 1.0},
+        params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
         data_fidelity=None,
         prior=None,
         max_iter=5,
-        trainable_params=["lambda", "stepsize"],
+        trainable_params=("lambda", "stepsize"),
         device=torch.device("cpu"),
         *args,
         **kwargs,
     ):
+        if isinstance(params_algo, MappingProxyType):
+            params_algo = params_algo.copy()
+
         super().__init__(
             iterator,
             max_iter=max_iter,
@@ -112,11 +117,11 @@ class BaseUnfold(BaseOptim):
 
 def unfolded_builder(
     iteration,
-    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
     data_fidelity=None,
     prior=None,
     max_iter=5,
-    trainable_params=["lambda", "stepsize"],
+    trainable_params=("lambda", "stepsize"),
     device=torch.device("cpu"),
     F_fn=None,
     g_first=False,
@@ -144,13 +149,13 @@ def unfolded_builder(
         Either a single instance (same prior for each iteration - weight tied) or a list of instances of
         deepinv.optim.Prior (distinct prior for each iteration - weight untied). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
-    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
+    :param Sequence trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
     :param Callable F_fn: Custom user input cost function. default: None.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, comes back to standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, comes back to standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
     :return: an unfolded architecture (instance of :class:`deepinv.unfolded.BaseUnfold`).
 
@@ -179,6 +184,9 @@ def unfolded_builder(
 
 
     """
+    if isinstance(params_algo, MappingProxyType):
+        params_algo = params_algo.copy()
+
     iterator = create_iterator(
         iteration,
         prior=prior,

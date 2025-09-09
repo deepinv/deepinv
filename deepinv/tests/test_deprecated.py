@@ -158,3 +158,8 @@ def test_deprecated_physics_image_size():
                 input_shape=img_size,
                 output_shape=img_size,
             )
+
+
+def test_deprecated_functions():
+    with pytest.warns(DeprecationWarning):
+        dinv.utils.rescale_img(torch.randn(3, 16, 32), rescale_mode="min_max")

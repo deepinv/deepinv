@@ -86,7 +86,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # We simulate a sequential k-space sampler, that, over the course of 4
 # phases (i.e. frames), samples 64 lines (i.e 2x total undersampling from
 # 128) with Gaussian weighting (plus a few extra for the ACS signals in
-# the centre of the k-space). We use
+# the center of the k-space). We use
 # :class:`deepinv.physics.SequentialMRI` to do this.
 #
 # First, we define a static 2x acceleration mask that all measurements use
@@ -135,8 +135,8 @@ physics = dinv.physics.SequentialMRI(mask=mask)
 
 
 # %%
-# Let's visualise the sequential measurements using a sample image (run
-# this notebook yourself to display the video). We also visualise the
+# Let's visualize the sequential measurements using a sample image (run
+# this notebook yourself to display the video). We also visualize the
 # frame-by-frame no-learning zero-filled reconstruction.
 #
 
@@ -150,7 +150,7 @@ dinv.utils.plot_videos(
 
 
 # %%
-# Also visualise the flattened time-series, recovering the original 2x
+# Also visualize the flattened time-series, recovering the original 2x
 # undersampling mask (note the actual undersampling factor is much lower
 # due to ACS lines):
 #
@@ -169,7 +169,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL :footcite:t:`aggarwal2018modl`.
+# DnCNN architecture which was proposed in MoDL :footcite:t:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 
@@ -241,3 +241,8 @@ model = trainer.train()
 
 trainer.plot_images = True
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

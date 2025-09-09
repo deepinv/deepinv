@@ -1,20 +1,11 @@
 from typing import Any, Callable
 import os
 
-import torch
-
 from deepinv.datasets.utils import calculate_md5
-
-error_import = None
-try:
-    from datasets import load_dataset as load_dataset_hf, load_from_disk
-except ImportError:  # pragma: no cover
-    error_import = ImportError(
-        "datasets is not available. Please install the datasets package with `pip install datasets`."
-    )  # pragma: no cover
+from deepinv.datasets.base import ImageDataset
 
 
-class CBSD68(torch.utils.data.Dataset):
+class CBSD68(ImageDataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
     Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
@@ -52,6 +43,10 @@ class CBSD68(torch.utils.data.Dataset):
         68
         >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
 
+    .. note::
+
+        This class requires the ``datasets`` package to be installed. Install with ``pip install datasets``.
+
     """
 
     # for integrity of downloaded data
@@ -63,8 +58,7 @@ class CBSD68(torch.utils.data.Dataset):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        if error_import is not None and isinstance(error_import, ImportError):
-            raise error_import
+        from datasets import load_dataset as load_dataset_hf, load_from_disk
 
         self.root = root
         self.transform = transform

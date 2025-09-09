@@ -2,12 +2,7 @@ from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
 
-try:
-    from natsort import natsorted
-except ImportError:  # pragma: no cover
-    natsorted = ImportError(
-        "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
-    )  # pragma: no cover
+from natsort import natsorted
 
 from tqdm import tqdm
 from warnings import warn
@@ -20,7 +15,7 @@ import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
 from deepinv.datasets.utils import loadmat
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
 
@@ -48,7 +43,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     .. note::
 
         The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.
-        See :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` for example using this dataset.
+        See :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py` for example using this dataset.
 
     We provide one single downloadable demo sample, see example below on how to use this.
     Otherwise, download the full dataset from the `challenge website <https://cmrxrecon.github.io/>`_.
@@ -151,9 +146,6 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             raise ValueError(
                 f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
             )
-
-        if isinstance(natsorted, ImportError):
-            raise natsorted
 
         all_fnames = natsorted(
             f
@@ -260,7 +252,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
 
-        # Normalise
+        # Normalize
         target = (target - target.mean()) / (target.std() + 1e-11)
 
         kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)

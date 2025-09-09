@@ -1,7 +1,7 @@
 deepinv.loss
 ============
 
-This package provides a collection of supervised and self-supervised loss functions for training reconstruction networks.
+This module provides a collection of supervised and self-supervised loss functions for training reconstruction networks.
 Refer to the :ref:`user guide <loss>` for more information.
 
 
@@ -66,6 +66,7 @@ Specialized self-supervised losses for MRI
     deepinv.loss.mri.RobustSplittingLoss
     deepinv.loss.mri.Phase2PhaseLoss
     deepinv.loss.mri.Artifact2ArtifactLoss
+    deepinv.loss.mri.ENSURELoss
 
 Adversarial Learning
 --------------------

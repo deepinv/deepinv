@@ -1,8 +1,8 @@
 r"""
-A tour of DeepInv's denoisers
+Benchmarking pretrained denoisers
 ===================================================
 
-This example provides a tour of the denoisers in DeepInv.
+This example provides a tour of the denoisers in DeepInverse.
 A denoiser is a model that takes in a noisy image and outputs a denoised version of it.
 Basically, it solves the following problem:
 
@@ -10,9 +10,9 @@ Basically, it solves the following problem:
 
     \underset{x}{\min}\|x -  \denoiser{x + \sigma \epsilon}{\sigma}\|_2^2.
 
-The denoisers in DeepInv comes with different flavors, depending on whether they are derived from
+The denoisers in DeepInverse comes with different flavors, depending on whether they are derived from
 analytical image processing techniques or learned from data.
-This example will show how to use the different denoisers in DeepInv, compare their performances,
+This example will show how to use the different denoisers in DeepInverse, compare their performances,
 and highlights the different tradeoffs they offer.
 """
 
@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import deepinv as dinv
 from deepinv.utils.plotting import plot_inset
 from deepinv.utils.demo import load_example
+from deepinv.utils.compat import zip_strict
 
 # %%
 # Load test images
@@ -63,7 +64,7 @@ def show_image_comparison(images, suptitle=None, ref=None):
         psnr = [dinv.metric.cal_psnr(image, im).item() for im in images.values()]
         titles = [
             f"{name} \n (PSNR: {psnr:.2f})" if name != "Original" else name
-            for name, psnr in zip(images.keys(), psnr, strict=True)
+            for name, psnr in zip_strict(images.keys(), psnr)
         ]
     # Plot the images with zoom-in
     fig = plot_inset(
@@ -91,7 +92,7 @@ def show_image_comparison(images, suptitle=None, ref=None):
 # Classical Denoisers
 # -------------------
 #
-# DeepInv provides a set of classical denoisers such as :class:`deepinv.models.BM3D`,
+# DeepInverse provides a set of classical denoisers such as :class:`deepinv.models.BM3D`,
 # :class:`deepinv.models.TGVDenoiser`, or :class:`deepinv.models.WaveletDictDenoiser`.
 #
 # They can be easily used simply by instanciating their corresponding class,
@@ -114,7 +115,7 @@ show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.
 # Deep Denoisers
 # --------------
 #
-# DeepInv also provides a set of deep denoisers.
+# DeepInverse also provides a set of deep denoisers.
 # Most of these denoisers are available with pretrained weights, so they can be used readily.
 # To instantiate them, you can simply call their corresponding class with default
 # parameters and ``pretrained="download"`` to load their weights.
@@ -168,7 +169,7 @@ psnr = dinv.loss.metric.PSNR()
 psnr_x = psnr(noisy_images, image)
 res = [
     {"sigma": sig.item(), "denoiser": "Noisy", "psnr": v.item(), "time": 0.0}
-    for sig, v in zip(noise_levels, psnr_x, strict=True)
+    for sig, v in zip_strict(noise_levels, psnr_x)
 ]
 
 # %%
@@ -199,7 +200,7 @@ for name, d in denoisers.items():
     res.extend(
         [
             {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sig, v in zip(noise_levels, psnr_x, strict=True)
+            for sig, v in zip_strict(noise_levels, psnr_x)
         ]
     )
     print(f" done ({runtime:.2f}s)")
@@ -254,7 +255,7 @@ for th in thresholds:
             "th": th.item(),
             "time": runtime,
         }
-        for sig, clean_img in zip(noise_levels, clean_images, strict=True)
+        for sig, clean_img in zip_strict(noise_levels, clean_images)
     )
 df_wavelet = pd.DataFrame(res)
 
@@ -387,7 +388,7 @@ for name, d in adapted_denoisers.items():
     res.extend(
         [
             {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sig, v in zip(noise_levels, psnr_x, strict=True)
+            for sig, v in zip_strict(noise_levels, psnr_x)
         ]
     )
     print(f" done ({runtime:.2f}s)")

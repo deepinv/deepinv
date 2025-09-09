@@ -12,20 +12,20 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 ## Current Maintainers
 
-| Maintainer | Website | Affiliation | Email |
+| Maintainer | GitHub | Affiliation | Email |
 |------|------|-------|-------|
-| Julián Tachella | [tachella.github.io](https://tachella.github.io/) | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr) |
-| Matthieu Terris | [matthieutrs.github.io](https://matthieutrs.github.io) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
-| Samuel Hurault | [github.com/samuro95](https://github.com/samuro95/) | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com) |
-| Andrew Wang | [andrewwango.github.io](https://andrewwango.github.io/about) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
-| Dongdong Chen | [dongdongchen.com](http://dongdongchen.com/) | Heriot-Watt University | [📧](mailto:d.chen@hw.ac.uk) |
-| Minh-Hai Nguyen | [mh-nguyen712.github.io](https://mh-nguyen712.github.io/) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com) |
-| Jérémy Scanvic | [jeremyscanvic.com](https://jeremyscanvic.com/) | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
+| Julián Tachella | [@tachella](https://github.com/tachella) | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr) |
+| Samuel Hurault | [@samuro95](https://github.com/samuro95/) | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com) |
+| Andrew Wang | [@andrewwango](https://github.com/andrewwango) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
+| Minh-Hai Nguyen | [@mh-nguyen712](https://github.com/mh-nguyen712) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com) |
+| Jérémy Scanvic | [@jscanvic](https://github.com/jscanvic) | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
 
 ## Emeritus
 
-| Maintainer | Website | Affiliation | Email |
+| Maintainer | GitHub | Affiliation | Email |
 |------|------|-------|-------|
+| Matthieu Terris | [@matthieutrs](https://github.com/matthieutrs) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
+| Dongdong Chen | [@edongdongchen](https://github.com/edongdongchen) | Heriot-Watt University | [📧](mailto:d.chen@hw.ac.uk) |
 
 ## Responsibilities
 

@@ -3,6 +3,7 @@ from typing import Union
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
+import torch.nn.functional as F
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
@@ -32,7 +33,7 @@ class Downsampling(LinearPhysics):
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
     :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
@@ -63,16 +64,19 @@ class Downsampling(LinearPhysics):
     def __init__(
         self,
         img_size=None,
-        filter=None,
+        filter="warn",
         factor=2,
         device="cpu",
         padding="circular",
         **kwargs,
     ):
+        if filter == "warn":
+            warn(
+                'Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter="bicubic" as a sensible anti-aliasing filter if you are not sure which one to use.',
+                stacklevel=2,
+            )
+            filter = None
         super().__init__(**kwargs)
-        if not isinstance(factor, (int, float)):
-            raise ValueError("Downsampling factor must be an integer")
-
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
@@ -265,6 +269,58 @@ class Downsampling(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
+class Upsampling(Downsampling):
+    r"""
+    Upsampling operator.
+
+    This operator performs the operation
+
+    .. math::
+        y = h^T * S^T (x)
+
+    where :math:`S^T` is the adjoint of the subsampling operator and :math:`h` is a low-pass filter.
+
+    :param torch.Tensor, str, None filter: Upsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``,
+        ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param tuple[int] img_size: size of the output image
+    :param int factor: upsampling factor
+    :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
+    :param str device: cpu or cuda
+    """
+
+    def __init__(
+        self,
+        img_size,
+        filter=None,
+        factor=2,
+        padding="circular",
+        device="cpu",
+        **kwargs,
+    ):
+
+        assert (
+            padding != "valid"
+        ), "Padding 'valid' is not supported for Upsampling operator."
+
+        super().__init__(
+            img_size=img_size,
+            filter=filter,
+            factor=factor,
+            padding=padding,
+            device=device,
+            **kwargs,
+        )
+
+    def A(self, x, **kwargs):
+        return super().A_adjoint(x, **kwargs)
+
+    def A_adjoint(self, y, **kwargs):
+        return super().A(y, **kwargs)
+
+    def prox_l2(self, z, y, gamma, **kwargs):
+        return super().prox_l2(z, y, gamma, **kwargs)
+
+
 class Blur(LinearPhysics):
     r"""
 
@@ -385,23 +441,24 @@ class Blur(LinearPhysics):
 def coarse_blur_filter(fine_filter, downsampling_filter):
     in_filt = fine_filter
 
-    # ensure filter is at least 3x3
-    if in_filt.shape[-2] <= 3:
-        in_filt = torch.nn.functional.pad(in_filt, (0, 0, 1, 1))
-    if in_filt.shape[-1] <= 3:
-        in_filt = torch.nn.functional.pad(in_filt, (1, 1, 0, 0))
+    # pad in_filter to make sure it is at least as big as downsampling_filter
+    diff_h = max(downsampling_filter.shape[-2] - in_filt.shape[-2], 0)
+    diff_w = max(downsampling_filter.shape[-1] - in_filt.shape[-1], 0)
 
-    # left, right, top, bottom padding to perform valid convolution
+    pad_left = diff_w // 2
+    pad_top = diff_h // 2
+    in_filt = F.pad(in_filt, (pad_left, diff_w - pad_left, pad_top, diff_h - pad_top))
+
+    # pad in_filter in order to perform a "valid" convolution
     df_shape = downsampling_filter.shape
-    pad_size = (df_shape[-2] // 2,) * 2 + (df_shape[-1] // 2,) * 2
+    pad_size = (df_shape[-1] // 2,) * 2 + (df_shape[-2] // 2,) * 2
     pf = torch.nn.functional.pad(in_filt, pad_size)
 
     # downsample the blur filter
     df_groups = downsampling_filter.repeat([pf.shape[1]] + [1] * (len(pf.shape) - 1))
     coarse_filter = torch.nn.functional.conv2d(
-        pf, df_groups, groups=pf.shape[1], padding="valid"
+        pf, df_groups, groups=pf.shape[1], stride=2, padding="valid"
     )
-    coarse_filter = coarse_filter[:, :, ::2, ::2]
     coarse_filter = coarse_filter / torch.sum(coarse_filter) * torch.sum(in_filt)
 
     return coarse_filter
@@ -534,8 +591,8 @@ class SpaceVaryingBlur(LinearPhysics):
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
 
-    :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
+    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+    :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -585,8 +642,8 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters  :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
@@ -604,8 +661,8 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
@@ -628,8 +685,8 @@ class SpaceVaryingBlur(LinearPhysics):
         r"""
         Updates the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if filters is not None and isinstance(filters, Tensor):

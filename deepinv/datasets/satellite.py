@@ -1,17 +1,12 @@
 from typing import Union, Callable
+from types import MappingProxyType
 from pathlib import Path
 import os
 
-try:
-    from natsort import natsorted
-except ImportError:  # pragma: no cover
-    natsorted = ImportError(
-        "natsort is not installed. Please install it with `pip install natsort`."
-    )  # pragma: no cover
+from natsort import natsorted
 
 import numpy as np
 
-from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
 
 from deepinv.datasets.utils import (
@@ -22,9 +17,11 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.compat import zip_strict
+from deepinv.datasets.base import ImageDataset
 
 
-class NBUDataset(Dataset):
+class NBUDataset(ImageDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
@@ -45,9 +42,9 @@ class NBUDataset(Dataset):
 
     .. note::
 
-        Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
+        Returns images as :class:`torch.Tensor` normalized to 0-1 over the whole dataset.
 
-    See :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` for example using
+    See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using
     this dataset with remote sensing inverse problems.
 
     |sep|
@@ -76,14 +73,16 @@ class NBUDataset(Dataset):
 
     """
 
-    satellites = {
-        "ikonos": "cf6fdb64ca5fbbf7050b8e27b2f9399d",
-        "gaofen-1": "ea1525b7bd5342f0177d898e3c44bb51",
-        "quickbird": "47163aec0a0be2c98ee267166d8aa5d3",
-        "worldview-2": "11310cee5a8dd5ee0dc3b79b6b3c3203",
-        "worldview-3": "85e5f7027fb7bde8592284b060fe145e",
-        "worldview-4": "3a3ade874e0095978648132501edfc01",
-    }
+    _satellites = MappingProxyType(
+        {
+            "ikonos": "cf6fdb64ca5fbbf7050b8e27b2f9399d",
+            "gaofen-1": "ea1525b7bd5342f0177d898e3c44bb51",
+            "quickbird": "47163aec0a0be2c98ee267166d8aa5d3",
+            "worldview-2": "11310cee5a8dd5ee0dc3b79b6b3c3203",
+            "worldview-3": "85e5f7027fb7bde8592284b060fe145e",
+            "worldview-4": "3a3ade874e0095978648132501edfc01",
+        }
+    )
 
     def __init__(
         self,
@@ -94,13 +93,13 @@ class NBUDataset(Dataset):
         transform_pan: Callable = None,
         download: bool = False,
     ):
-        if satellite not in self.satellites:
+        if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
 
         self.data_dir = Path(root_dir) / "nbu" / satellite
-        self.normalise = lambda x: (
+        self.normalize = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)
         self.transform_ms = transform_ms
@@ -123,12 +122,10 @@ class NBUDataset(Dataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
-        if isinstance(natsorted, ImportError):
-            raise natsorted
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
+        self.image_paths = list(zip_strict(self.ms_paths, self.pan_paths))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
@@ -147,7 +144,7 @@ class NBUDataset(Dataset):
             os.path.isdir(self.data_dir)
             and len(list(self.data_dir.glob("MS_256/*.mat"))) > 0
             and calculate_md5_for_folder(str(self.data_dir / "MS_256"))
-            == self.satellites[self.data_dir.stem]
+            == self._satellites[self.data_dir.stem]
         )
 
     def __len__(self):
@@ -157,17 +154,17 @@ class NBUDataset(Dataset):
         """Load satellite image and convert to tensor.
 
         :param int idx: image index
-        :return: torch.Tensor: normalised image to the range [0,1]
+        :return: torch.Tensor: normalized image to the range [0,1]
         """
         paths = self.image_paths[idx]
         ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
 
         transform_ms = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_ms] if self.transform_ms is not None else [])
         )
         transform_pan = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_pan] if self.transform_pan is not None else [])
         )
 

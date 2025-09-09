@@ -1,10 +1,13 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, Optional, TYPE_CHECKING
 
 import torch
 import torch.nn as nn
 from deepinv.loss.loss import Loss
-from deepinv.loss.metric.metric import Metric
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.transform.base import Transform
 
 
 class EILoss(Loss):
@@ -43,13 +46,15 @@ class EILoss(Loss):
     def __init__(
         self,
         transform: Transform,
-        metric: Union[Metric, nn.Module] = torch.nn.MSELoss(),
+        metric: Optional[Union[Metric, nn.Module]] = None,
         apply_noise=True,
         weight=1.0,
         no_grad=False,
         *args,
         **kwargs,
     ):
+        if metric is None:
+            metric = nn.MSELoss()
         super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
         self.metric = metric

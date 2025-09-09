@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.utils import get_timestamp
@@ -10,12 +10,14 @@ from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
-
+from deepinv.datasets.base import ImageDataset
+from deepinv.utils.compat import zip_strict
 from unittest.mock import patch
 import math
 import io
 import contextlib
 import re
+import typing
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -60,7 +62,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
 
 def get_dummy_dataset(imsize, N, value):
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         r"""
         Defines a constant value image dataset
         """
@@ -131,7 +133,7 @@ def test_get_samples(
     tmpdir,
 ):
     # Dummy constant GT dataset
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __len__(self):
             return 2
 
@@ -287,8 +289,8 @@ def test_trainer_physics_generator_params(
 
     class SkeletonTrainer(Trainer):
         # hijack the step method to output samples to list
-        ys = []
-        fs = []
+        ys: typing.ClassVar = []
+        fs: typing.ClassVar = []
 
         def step(self, *args, **kwargs):
             x, y, physics_cur = self.get_samples(self.current_train_iterators, 0)
@@ -317,29 +319,21 @@ def test_trainer_physics_generator_params(
     if loop_random_online_physics:
         # Test measurements random but repeat every epoch
         assert len(set(trainer.ys)) == len(set(trainer.fs)) == N
-        assert all(
-            [a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:], strict=True)]
-        )
-        assert all(
-            [a == b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:], strict=True)]
-        )
+        assert all([a == b for (a, b) in zip_strict(trainer.ys[:N], trainer.ys[N:])])
+        assert all([a == b for (a, b) in zip_strict(trainer.fs[:N], trainer.fs[N:])])
     else:
         # Test measurements random but don't repeat
         # This is ok for supervised training but not self-supervised!
         assert len(set(trainer.ys)) == len(set(trainer.fs)) == N * 2
-        assert all(
-            [a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:], strict=True)]
-        )
-        assert all(
-            [a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:], strict=True)]
-        )
+        assert all([a != b for (a, b) in zip_strict(trainer.ys[:N], trainer.ys[N:])])
+        assert all([a != b for (a, b) in zip_strict(trainer.fs[:N], trainer.fs[N:])])
 
 
 def test_trainer_identity(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we check that a model can learn the identity function on several datasets simultaneously.
     """
@@ -406,7 +400,7 @@ def test_trainer_multidatasets(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we train a model to learn the average of two datasets.
     """
@@ -570,7 +564,7 @@ def test_dataloader_formats(
         img_size=imsize, split_ratio=0.1, rng=rng, device=device
     )
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __len__(self):
             return 10
 

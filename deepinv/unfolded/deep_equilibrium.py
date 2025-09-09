@@ -3,7 +3,8 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import create_iterator
-from deepinv.optim.data_fidelity import L2
+from deepinv.optim.data_fidelity import DataFidelity, L2
+from typing import Optional
 
 
 class BaseDEQ(BaseUnfold):
@@ -144,8 +145,8 @@ class BaseDEQ(BaseUnfold):
 
 def DEQ_builder(
     iteration,
-    params_algo={"lambda": 1.0, "stepsize": 1.0},
-    data_fidelity=L2(),
+    params_algo: Optional[dict] = None,
+    data_fidelity: Optional[DataFidelity] = None,
     prior=None,
     F_fn=None,
     g_first=False,
@@ -176,9 +177,13 @@ def DEQ_builder(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
+    if params_algo is None:
+        params_algo = {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.03}
+    if data_fidelity is None:
+        data_fidelity = L2()
     iterator = create_iterator(
         iteration,
         prior=prior,

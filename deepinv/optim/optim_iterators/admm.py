@@ -10,7 +10,7 @@ class ADMMIteration(OptimIterator):
     minimising :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default),
-    the iteration is (`see :footcite:t:`boyd2011distributed`):
+    the iteration is (see :footcite:t:`boyd2011distributed`):
 
     .. math::
         \begin{equation*}

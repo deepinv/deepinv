@@ -56,7 +56,7 @@ class SplittingLoss(Loss):
     .. seealso::
 
         :class:`deepinv.loss.mri.Artifact2ArtifactLoss`, :class:`deepinv.loss.mri.Phase2PhaseLoss`, :class:`deepinv.loss.mri.WeightedSplittingLoss`, :class:`deepinv.loss.mri.RobustSplittingLoss`
-            Specialised splitting losses and their extensions for MRI applications.
+            Specialized splitting losses and their extensions for MRI applications.
 
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
@@ -93,7 +93,7 @@ class SplittingLoss(Loss):
 
     def __init__(
         self,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Union[Metric, torch.nn.Module, None] = None,
         split_ratio: float = 0.9,
         mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
         eval_n_samples: int = 5,
@@ -102,6 +102,8 @@ class SplittingLoss(Loss):
         pixelwise: bool = True,
         normalize_loss: bool = True,
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "ms"
         self.metric = metric
@@ -322,7 +324,7 @@ class SplittingLoss(Loss):
             Perform splitting at model output too, only at eval time
             """
             out = 0
-            normaliser = torch.zeros_like(y)
+            normalizer = torch.zeros_like(y)
 
             for _ in range(self.eval_n_samples):
                 # Perform input masking
@@ -337,9 +339,9 @@ class SplittingLoss(Loss):
                 # Output masking
                 mask2 = getattr(physics, "mask", 1.0) - mask
                 out += self.split(mask2, x_hat)
-                normaliser += mask2
+                normalizer += mask2
 
-            out[normaliser != 0] /= normaliser[normaliser != 0]
+            out[normalizer != 0] /= normalizer[normalizer != 0]
 
             return out
 
@@ -379,9 +381,9 @@ class Neighbor2Neighbor(Loss):
 
     """
 
-    def __init__(
-        self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(), gamma=2.0
-    ):
+    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None, gamma=2.0):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "neigh2neigh"
         self.metric = metric
