@@ -174,18 +174,20 @@ class DeepImagePrior(Reconstructor):
         self.generator.requires_grad_(True)
         if z is None:
             z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
-        if shape is None:
-            raise ValueError("shape must be provided.")
 
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
         z.requires_grad_(True)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y=y, x_net=x.view(shape), physics=physics)
+            if shape is not None:
+                x = x.view(shape)
+            error = self.loss(y=y, x_net=x, physics=physics)
             if self.regul_param is not None:
                 error += self.regul_param * self.prior(x, z)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
 
-        return self.generator(z).view(shape)
+        if shape is not None:
+            return self.generator(z).view(shape)
+        return self.generator(z)
