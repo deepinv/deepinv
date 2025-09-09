@@ -126,7 +126,7 @@ class XrayTransform:
                 return self.projection_geometry["DistanceOriginDetector"]
 
     @property
-    def magnitude(self) -> float:
+    def magnification_factor(self) -> float:
         """The magnification factor induced by the fan/cone geometry."""
         if "cone" in self.projection_geometry["type"]:
             return (self.detector_radius + self.source_radius) / self.source_radius
@@ -196,7 +196,7 @@ class XrayTransform:
                 parent._backprojection(x, out)
                 if self.is_2d:
                     # necessary scaling in fanbeam to obtain decent approximated adjoint
-                    out /= parent.magnitude
+                    out /= parent.magnification_factor
 
                 return out
 
