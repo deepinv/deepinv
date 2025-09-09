@@ -117,7 +117,7 @@ model = dinv.optim.optim_builder(
     custom_init=lambda y, physics: {"est": (x_zf, x_zf.clone())},
     params_algo={"stepsize": 1/physics.E.get_lipschitz_cst(), "lambda": 1e-2},
     data_fidelity=dinv.optim.data_fidelity.L2(),
-    show_progress_bar=True,
+    verbose=True,
 )
 x_hat = model(kspace_data.to(device), physics=physics)
 
