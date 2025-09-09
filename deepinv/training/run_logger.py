@@ -237,12 +237,18 @@ class WandbRunLogger(RunLogger):
 
         # process images
         for name_img, img in images.items():
-            wandb_images = wandb.Image(img, caption=name_img)
+            shape = img.shape
+            if len(shape) == 2 or len(shape) == 3:
+                wandb_images = wandb.Image(img)
 
-            # log images
-            logs = {}
-            logs[f"{phase} samples"] = wandb_images
-            self.wandb_run.log(logs, step=epoch)
+                # log images
+                self.wandb_run.log({f'{phase} samples: {name_img}': wandb_images}, step=epoch)
+            elif len(shape) == 4:
+                for j in range(len(img)):
+                    wandb_images = wandb.Image(img[j])
+
+                    # log images
+                    self.wandb_run.log({f'{phase} samples: {name_img}_{j}': wandb_images}, step=epoch)
 
     def log_checkpoint(self, epoch, state=None):
         """
