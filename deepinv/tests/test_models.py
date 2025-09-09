@@ -784,7 +784,7 @@ def test_dip_like(model_kind, imsize, device):
             generator=dinv.models.ConvDecoder(
                 img_size=imsize, layers=3, channels=channels
             ).to(device),
-            input_size=(channels, imsize[1], imsize[2]),
+            img_size=(channels, imsize[1], imsize[2]),
             iterations=30,
         )
     elif model_kind == "Poisson2Sparse":
@@ -793,16 +793,17 @@ def test_dip_like(model_kind, imsize, device):
         )
         backbone = dinv.models.ConvLista(
             in_channels=imsize[0],
+            out_channels=imsize[0],
             kernel_size=3,
             num_filters=512,
-            num_iter=5,
-            stride=1,
+            num_iter=10,
+            stride=2,
             threshold=0.01,
         )
         f = dinv.models.Poisson2Sparse(
             backbone=backbone,
             lr=1e-4,
-            num_iter=10,
+            num_iter=100,
             weight_n2n=2.0,
             weight_l1_regularization=1e-5,
             verbose=True,
