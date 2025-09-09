@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
 
 Changed
 ^^^^^^^
@@ -444,3 +445,4 @@ Authors
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
+.. _Louise Friot Giroux: https://github.com/Louisefg

@@ -567,7 +567,7 @@ class GammaNoise(NoiseModel):
     Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`
 
     Follows the (shape, scale) parameterization of the Gamma distribution,
-    where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
+    where the mean is given by :math:`x` and the variance is given by :math:`x^2/\ell`,
     see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 
     Distribution for modelling speckle noise (e.g. SAR images),
