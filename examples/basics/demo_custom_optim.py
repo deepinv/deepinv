@@ -225,13 +225,9 @@ prior = dinv.optim.PnP(denoiser=denoiser)  # prior with prox via denoising step
 def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
     """
     Custom initialization function for the optimization algorithm.
-    The function should return a dictionary with the key "est" containing a tuple
-    with the initial guess (the TV solution in this case)
-    and the dual variables (None in this case).
+    The function should return the initial guess (the TV solution in this case).
     """
-    primal = tv_algo(y, physics)
-    dual = None  #  No dual variables in this case
-    return {"est": (primal, dual)}
+    return tv_algo(y, physics)
 
 
 model = dinv.optim.optim_builder(

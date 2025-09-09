@@ -304,7 +304,7 @@ prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 def custom_init(y, physics):
     x_init = torch.clamp(physics.A_dagger(y), 0)
-    return {"est": (x_init, x_init)}
+    return x_init
 
 
 # %%

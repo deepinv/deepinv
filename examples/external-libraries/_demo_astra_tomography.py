@@ -124,9 +124,7 @@ model = ProximalGradientDescent(
     verbose=verbose,
     stepsize=stepsize,
     lambda_reg=lamb,
-    custom_init=lambda observation, physics: {
-        "est": (physics.A_dagger(observation), physics.A_dagger(observation))
-    },  # initialize the optimization with FBP reconstruction
+    custom_init=lambda observation, physics: physics.A_dagger(observation)  # initialize the optimization with FBP reconstruction
 )
 
 # %%

@@ -182,7 +182,7 @@ trainable_params = ["g_param", "stepsize"]
 def custom_init_CP(y, physics):
     x_init = physics.A_adjoint(y)
     u_init = y
-    return {"est": (x_init, x_init, u_init)}
+    return (x_init, x_init, u_init)
 
 
 # Define the unfolded trainable model.

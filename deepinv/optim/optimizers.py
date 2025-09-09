@@ -46,7 +46,7 @@ class BaseOptim(Reconstructor):
 
 
     where :math:`x_k` is a variable converging to the solution of the minimization problem, and
-    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
+    :math:`z_k` is an additional "dual" variable that may be required in the computation of the fixed point operator.
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
@@ -150,13 +150,14 @@ class BaseOptim(Reconstructor):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
-    :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
+    :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),
-        the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param Callable get_output: get the image output given the current dictionary update containing primal
         and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
@@ -422,7 +423,15 @@ class BaseOptim(Reconstructor):
             self.init_params_algo.copy()
         )  # reset parameters to initial values
         if self.custom_init:
-            init_X = self.custom_init(y, physics)
+            init = self.custom_init(y, physics)
+            if isinstance(init, torch.Tensor):
+                init_X = {"est": (init,)}
+            elif isinstance(init, tuple):
+                init_X = {"est": init}
+            elif isinstance(init, dict):
+                init_X = init
+            else:
+                raise ValueError(f"Custom initial iterate must be a torch.Tensor, a tuple, or a dict. Got {type(self.custom_init)}.")
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
@@ -862,7 +871,10 @@ class ADMM(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` ADMM iterates. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a tuple :math:`(x_0, z_0)` or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+        If ``None`` (default value), the primal and dual variables are initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -976,8 +988,10 @@ class DRS(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (z_0)}`` where ``z_0``is the initial DRS iterate. Default: ``None``.
-    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1085,7 +1099,10 @@ class GradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
@@ -1214,7 +1231,10 @@ class HQS(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1342,7 +1362,10 @@ class ProximalGradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1469,7 +1492,10 @@ class FISTA(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` iterates. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1572,7 +1598,10 @@ class MirrorDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1673,7 +1702,10 @@ class ProximalMirrorDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1797,7 +1829,10 @@ class PrimalDualCP(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}`` where ``x_0``, ``z_0`` and ``u_0`` are the initial ``x``, ``z`` and ``u`` iterates. Default: ``None``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+        The function should return either a tuple :math:`(x_0, z_0, u_0)` or a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}``. Default: ``None``.
+        If ``None`` (default value), the primal and dual variables are initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
