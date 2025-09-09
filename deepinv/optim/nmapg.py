@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import warnings
 
+
 def nonmonotone_accelerated_proximal_gradient(
     x0,
     f,
@@ -27,25 +28,25 @@ def nonmonotone_accelerated_proximal_gradient(
         \begin{equation*}
         F(x)=f(x)+\lambda g(x)
         \end{equation*}
-    
+
     for differentiable :math:`f` (with known locally Lipschitz gradient) and possibly non-smooth :math:`g` (with known proximal operator).
-    The algorithm admits convergence guarantees towards a stationary point also in the case of non-convex functions 
+    The algorithm admits convergence guarantees towards a stationary point also in the case of non-convex functions
     :math:`f` and :math:`g`.
     It combines the proximal gradient algorithm with momentum and a line search.
 
-    In our implementation, the functions :math:`F`, :math:`f` and :math:`g` depends on some additional parameter :math:`y\in\mathbb{R}^d`. 
+    In our implementation, the functions :math:`F`, :math:`f` and :math:`g` depends on some additional parameter :math:`y\in\mathbb{R}^d`.
     Moreover, the implementation uses batching over the parameters :math:`y` such that several problems of the form
-    
+
     .. math::
         \begin{equation*}
         \min_y F(x,y_i)=f(x,y_i)+\lambda g(x,y_i),\quad i=1,...,\mathrm{batch size}
         \end{equation*}
-    
+
     can be solved simultanously.
     To this end, the function takes a tensor `y` containing the paramters, where the first dimension is the batch dimension
     and an initialization tensor `x0` with the same first dimension as batch dimension.
 
-    
+
 
     Reference:
 
@@ -57,16 +58,16 @@ def nonmonotone_accelerated_proximal_gradient(
     supplementary material of the paper.
 
     :param torch.Tensor x0: Initialization :math:`x_0` of the algorithm. The first dimension is a batch dimension (with `y.shape[0]==x0.shape[0]` if `y is not None`).
-    :param Callable f: Differentiable part :math:`f(x,y)` of the objective function. It takes two inputs: the argument `x` (we are minimizing over `x`) 
+    :param Callable f: Differentiable part :math:`f(x,y)` of the objective function. It takes two inputs: the argument `x` (we are minimizing over `x`)
         and the parmeters `y` (which remains fixed over the optimization).
-    :param torch.Tensor y: Parameter `y` from the objective function. The first dimension is a batch dimension with `y.shape[0]==x0.shape[0]`. Can be set to `None`, in which case :math:`f`, :math:`g`, :math:`\nabla f` 
+    :param torch.Tensor y: Parameter `y` from the objective function. The first dimension is a batch dimension with `y.shape[0]==x0.shape[0]`. Can be set to `None`, in which case :math:`f`, :math:`g`, :math:`\nabla f`
         and :math:`\mathrm{prox}_g` should not take `y` as an input argument.
     :param Callable nabla_f: gradient :math:`\nabla_x f(x,y)` of :math:`f`. `None` for computing the gradient via autodiff. Default: `None`
     :param Callable f_and_nabla: A function computing both, the function value and the gradient of :math:`f`. Set to `None` to call `f` and `nabla_f` separately
         (which might be inefficient). Default: `None`
-    :param Callable g: Possibly non-smooth part :math:`g(x,y)` of the objective function It takes two inputs: the argument `x` (we are minimizing over `x`) 
+    :param Callable g: Possibly non-smooth part :math:`g(x,y)` of the objective function It takes two inputs: the argument `x` (we are minimizing over `x`)
         and the parmeters `y` (which remains fixed over the optimization). Default: `lambda x, y: 0` (i.e. choose :math:`g(x,y)=0`).
-    :param Callable prox_g: Proximal operator :math:`\mathrm{prox}_{\gamma g(\cdot,y)}(x)` of :math:`g`. It takes three inputs: the argument `x` (we are minimizing over `x`), 
+    :param Callable prox_g: Proximal operator :math:`\mathrm{prox}_{\gamma g(\cdot,y)}(x)` of :math:`g`. It takes three inputs: the argument `x` (we are minimizing over `x`),
         the parmeters `y` (which remains fixed over the optimization) and the step size :math:`gamma` of the proximal operator. `None` for using the identity.
         Note that `prox_g` must not be `None` if `g is not None`. Default: `None`.
     :param float weighting: Parameter :math:`\lambda` from the objective value. Default: `1.0`
@@ -76,39 +77,41 @@ def nonmonotone_accelerated_proximal_gradient(
     :param float rho: Decrease ratio of the step size if the line search fails. Default: `0.9`
     :param float delta: Quadratic decay parameter for the line search. Should be :math:`>0`. Default: `0.1`
     :param float eta: Non-monotonicity parameter for the line search. Should be in :math:`[0,1)`. Default: `0.8`
-    :param bool verbose: Set to `True` to print the number of iterations used in the algorithm. Default: `False`.  
-    :return: Tuple out of the approximated minimizer `x` of :math:`F`, the estimated local Lipschitz constant `L`, the number `i` of used iterations and 
+    :param bool verbose: Set to `True` to print the number of iterations used in the algorithm. Default: `False`.
+    :return: Tuple out of the approximated minimizer `x` of :math:`F`, the estimated local Lipschitz constant `L`, the number `i` of used iterations and
         a bool `converged` indicating whether the algorithm reached the convergence criterion or not.
     """
     if y is None:
-        y=x.clone()
-        f_=f
-        f=lambda x,y: f_(x)
+        y = x.clone()
+        f_ = f
+        f = lambda x, y: f_(x)
         if nabla_f is not None:
-            nabla_f_=nabla_f
-            nabla_f=lambda x,y: nabla_f_(x,y)
+            nabla_f_ = nabla_f
+            nabla_f = lambda x, y: nabla_f_(x, y)
         if g is not None:
-            g_=g
-            g=lambda x,y: g_(x)
+            g_ = g
+            g = lambda x, y: g_(x)
         if prox_g is not None:
-            prox_g_=prox_g
-            prox_g=lambda x,y,param: prox_g(x,param)
+            prox_g_ = prox_g
+            prox_g = lambda x, y, param: prox_g(x, param)
     if f_and_nabla is None:
         if nabla_f is None:
-            def f_and_nabla(x,y):
+
+            def f_and_nabla(x, y):
                 with torch.enable_grad():
                     x_ = x.clone()
                     x_.requires_grad_(True)
-                    z = torch.sum(f(x_,y))
+                    z = torch.sum(f(x_, y))
                     grad = torch.autograd.grad(z, x_)[0]
                 return z.detach(), grad.detach()
+
         else:
-            f_and_nabla = lambda x,y: (f(x,y), nabla_f(x,y))
+            f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
     if g is None:
-        g=lambda x,y: 0
-        prox_g=lambda x, y, param: x
+        g = lambda x, y: 0
+        prox_g = lambda x, y, param: x
     elif prox_g is None:
-            raise ValueError("If g is used, prox_g has to be defined (given: prox_g=None)!")
+        raise ValueError("If g is used, prox_g has to be defined (given: prox_g=None)!")
 
     # initialize variables
     x = x0.clone()  # Noation of the paper: x1
@@ -119,7 +122,7 @@ def nonmonotone_accelerated_proximal_gradient(
     q = 1.0  # q1
     c = f(x, y) + weighting * g(x, y)  # c1
     L = torch.full((x.shape[0],), L_init, dtype=torch.float32, device=x.device)
-    while len(L.shape)<len(x0.shape):
+    while len(L.shape) < len(x0.shape):
         L = L.unsqueeze(-1)
     L_old = L.clone()
     res = (tol + 1) * torch.ones(x.shape[0], device=x.device, dtype=x.dtype)
@@ -147,11 +150,11 @@ def nonmonotone_accelerated_proximal_gradient(
         # Lipschitz Update (Barzilai-Borwein style step)
         if i > 0:
             dx = grad_f[idx] - grad_f_old[idx]  # r in the paper
-            s = (dx * dx).sum(list(range(1,len(x0.shape))), keepdim=True)  # r^Tr
+            s = (dx * dx).sum(list(range(1, len(x0.shape))), keepdim=True)  # r^Tr
             L[idx] = torch.clip(
                 s
                 / (dx * (x_bar[idx] - x_bar_old[idx]))
-                .sum(list(range(1,len(x0.shape)), keepdim=True)
+                .sum(list(range(1, len(x0.shape))), keepdim=True)
                 .abs()
                 .clip(min=0.0, max=None),  # alpha_y = <s,r>/<r,r> in paper, Eq 150
                 min=1.0,
@@ -171,7 +174,9 @@ def nonmonotone_accelerated_proximal_gradient(
             dx[idx_sub] = z[idx_search] - x_bar[idx_search]
             bound = torch.max(
                 energy[idx_sub, None, None, None], c[idx_search, None, None, None]
-            ) - delta * (dx[idx_sub] * dx[idx_sub]).sum(list(range(1,len(x0.shape)), keepdim=True)
+            ) - delta * (dx[idx_sub] * dx[idx_sub]).sum(
+                list(range(1, len(x0.shape))), keepdim=True
+            )
 
             energy_new_ = f(z[idx_search], y[idx_search]) + weighting * g(
                 z[idx_search], y[idx_search]
@@ -185,7 +190,10 @@ def nonmonotone_accelerated_proximal_gradient(
             L[idx_search] = L[idx_search] / rho
         # If for Eq 153-158
         idx2 = (
-            (energy_new[:] >= (c[idx] - delta * (dx * dx).sum(list(range(1,len(x0.shape)))))
+            (
+                energy_new[:]
+                >= (c[idx] - delta * (dx * dx).sum(list(range(1, len(x0.shape)))))
+            )
             .nonzero()
             .view(-1)
         )
@@ -195,11 +203,11 @@ def nonmonotone_accelerated_proximal_gradient(
 
             if i > 0:
                 dx = grad_fx - grad_f_old[idx_idx2]
-                s = (dx * dx).sum(list(range(1,len(x0.shape)), keepdim=True)
+                s = (dx * dx).sum(list(range(1, len(x0.shape))), keepdim=True)
                 L[idx_idx2] = torch.clip(
                     s
                     / (dx * (x[idx_idx2] - x_bar_old[idx_idx2]))
-                    .sum(list(range(1,len(x0.shape)), keepdim=True)
+                    .sum(list(range(1, len(x0.shape))), keepdim=True)
                     .clip(min=0, max=None),
                     min=1.0,
                     max=None,
@@ -215,7 +223,7 @@ def nonmonotone_accelerated_proximal_gradient(
                 )
                 dx = v - x[idx_idx2]
                 bound = c[idx_idx2, None, None, None] - delta * (dx * dx).sum(
-                    list(range(1,len(x0.shape)), keepdim=True
+                    list(range(1, len(x0.shape))), keepdim=True
                 )
                 energy_new2 = f(v, y[idx_idx2]) + weighting * g(v, y[idx_idx2])
                 if torch.all(energy_new2 <= bound.view(-1) * (1 + 1e-4)):
@@ -233,9 +241,9 @@ def nonmonotone_accelerated_proximal_gradient(
             x[idx] = z[idx]
 
         if i > 0:
-            res[idx] = torch.norm(x[idx] - x_old[idx], p=2, dim=list(range(1,len(x0.shape))) / torch.norm(
-                x[idx], p=2, dim=list(range(1,len(x0.shape))
-            )
+            res[idx] = torch.norm(
+                x[idx] - x_old[idx], p=2, dim=list(range(1, len(x0.shape)))
+            ) / torch.norm(x[idx], p=2, dim=list(range(1, len(x0.shape))))
         assert not torch.any(
             torch.isnan(res)
         ), "Numerical errors! Some values became NaN!"
