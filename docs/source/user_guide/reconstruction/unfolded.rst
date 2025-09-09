@@ -56,6 +56,34 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>> y = physics(x)
     >>> x_hat = model(y, physics)
 
+Memory-efficient back-propagation
+-------------------------------------------
+The unfolded architectures can be trained using standard backpropagation or using a custom implementation of the backward pass. 
+We provide a memory-efficient back-propagation strategy that reduces the memory footprint during training. 
+This is particularly useful when training deep unfolded architectures with many iterations. 
+To enable this feature, set the argument ``implicit_backward_solver=True`` (default is `True`) when creating the physics. It is supported for all linear physics
+(:class:`deepinv.physics.LinearPhysics`).  
+Note that when setting ``implicit_backward_solver=True``, we need to use a large enough number of iterations in the physics solver to ensure convergence, otherwise the gradient might be inaccurate.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>>
+    >>> # Create a trainable unfolded architecture
+    >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
+    ...     iteration="HQS",
+    ...     data_fidelity=dinv.optim.L2(),
+    ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
+    ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
+    ...     trainable_params=["stepsize", "g_param"]
+    ... )
+    >>> # Forward pass
+    >>> x = torch.randn(1, 3, 16, 16)
+    >>> physics = dinv.physics.Blur(filter=torch.ones(1, 1, 3, 3) / 9., implicit_backward_solver=True, max_iter=50)
+    >>> y = physics(x)
+    >>> x_hat = model(y, physics)
+
 
 .. _deep-equilibrium:
 

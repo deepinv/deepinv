@@ -12,6 +12,7 @@ from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -434,6 +435,11 @@ class LinearPhysics(Physics):
         self.img_size = img_size
         self.implicit_backward_solver = implicit_backward_solver
 
+        if self.implicit_backward_solver and self.max_iter < 20:
+            warnings.warn(
+                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. Consider increasing max_iter for better training accuracy."
+            )
+
     def A_adjoint(self, y, **kwargs):
         r"""
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
@@ -667,7 +673,7 @@ class LinearPhysics(Physics):
             return least_squares_implicit_backward(
                 self,
                 y,
-                z,
+                z=z,
                 init=z,
                 solver=solver,
                 gamma=gamma,
@@ -697,7 +703,6 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
-
         if not self.implicit_backward_solver:
             return least_squares(
                 self.A,
@@ -716,8 +721,10 @@ class LinearPhysics(Physics):
             return least_squares_implicit_backward(
                 self,
                 y,
+                z=None,
                 init=None,
                 parallel_dim=[0],
+                gamma=1e8,  # Large gamma to approximate A_dagger
                 verbose=verbose,
                 max_iter=self.max_iter,
                 tol=self.tol,

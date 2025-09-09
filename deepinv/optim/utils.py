@@ -4,10 +4,10 @@ from torch import Tensor
 from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Union
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
-
+import warnings
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -89,7 +89,6 @@ def least_squares(
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
-
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
@@ -115,7 +114,7 @@ def least_squares(
     else:
         Aty = AT(y)
         complete = Aty.shape == y.shape
-        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
+        overcomplete = Aty.numel() < y.numel()
 
         if complete and (solver == "BiCGStab" or solver == "minres"):
             H = lambda x: A(x)
@@ -173,7 +172,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if gamma is None and not overcomplete and not complete:
+        if (gamma is None or gamma == 0) and not overcomplete and not complete:
             x = AT(x)
     return x
 
@@ -219,7 +218,6 @@ def conjugate_gradient(
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
-
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
@@ -809,6 +807,7 @@ class LeastSquaresSolver(torch.autograd.Function):
     ):
 
         kwargs = extra_kwargs if extra_kwargs is not None else {}
+
         with torch.no_grad():
             solution = least_squares(
                 A=physics.A,
@@ -827,6 +826,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         # Save other non-tensor contexts
         ctx.physics = physics
         ctx.kwargs = kwargs
+
         return solution
 
     @staticmethod
@@ -897,7 +897,7 @@ def least_squares_implicit_backward(
     y: Tensor,
     z: Tensor = None,
     init: Tensor = None,
-    gamma: float = None,
+    gamma: Union[float, Tensor] = None,
     **kwargs,
 ) -> Tensor:
     r"""
@@ -918,6 +918,10 @@ def least_squares_implicit_backward(
 
         Implicit gradients can be incorrect if the least squares solver does not converge sufficiently. Make sure to set the `max_iter` and `tol` parameters of the least squares solver appropriately to ensure convergence. You can monitor the convergence by setting `verbose=True` in the least squares solver via `kwargs`. If the solver does not converge, the implicit gradients can be very inaccurate and lead to divergence of the training.
 
+    .. warning::
+
+        This function does not support :class:`deepinv.utils.TensorList` inputs yet. If you use :class:`deepinv.utils.TensorList` as inputs, the function will fall back to standard least squares with full backpropagation.
+
     .. tip::
 
         If you do not need gradients with respect to the physics parameters, you can set `requires_grad=False` for all parameters of the physics operator to avoid the additional backward pass. This can save some computation time.
@@ -930,12 +934,28 @@ def least_squares_implicit_backward(
     :param deepinv.physics.LinearPhysics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
-    :param Optional[torch.Tensor] init: Optional initial guess. Default is `None`, which corresponds to a zero initialization.
+    :param Optional[torch.Tensor] init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
     :param Optional[float, torch.Tensor] gamma: regularization parameter :math:`\gamma > 0`. Default is `None`.
     :param kwargs: additional arguments to be passed to the least squares solver.
 
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
     """
+    # NOTE: TensorList not supported by autograd function, we fall back to standard least_squares in this case for now
+    if isinstance(y, TensorList):
+        warnings.warn(
+            "Warning: least_squares_implicit_backward does not support TensorList inputs. Falling back to standard least_squares with full backpropagation."
+        )
+        return least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y,
+            z=z,
+            init=init,
+            gamma=gamma,
+            AAT=physics.A_A_adjoint,
+            ATA=physics.A_adjoint_A,
+            **kwargs,
+        )
 
     if z is None:
         # To get correct shape
@@ -946,6 +966,8 @@ def least_squares_implicit_backward(
     physics_requires_grad_params = any(
         p.requires_grad for p in getattr(physics, "buffers", lambda: [])()
     )
+    # NOTE: backward is triggered if any of the inputs require grad
+    # When input tensors (y, z, gamma) do not require grad and we want to do backward w.r.t physics parameters, we need to trigger it manually by a dummy tensor.
     trigger_backward = (
         y.requires_grad
         or z.requires_grad
@@ -959,9 +981,9 @@ def least_squares_implicit_backward(
     else:
         trigger = torch.ones(1, device=y.device, dtype=y.dtype)
     extra_kwargs = kwargs if kwargs else None
-    return LeastSquaresSolver.apply(
-        physics, y, z, init, gamma, trigger, extra_kwargs
-    )
+    if gamma is None:
+        gamma = torch.tensor(0, device=y.device, dtype=y.dtype)
+    return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)
 
 
 class GaussianMixtureModel(nn.Module):
