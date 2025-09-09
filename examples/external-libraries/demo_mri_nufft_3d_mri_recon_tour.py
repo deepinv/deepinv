@@ -109,6 +109,25 @@ physics.E.density = None # disable density compensation for iterations
 denoiser = dinv.models.complex.to_complex_denoiser(
     dinv.models.drunet.DRUNet(in_channels=2, out_channels=2, dim=3, pretrained="/volatile/drunet_3d_0303.pth").to(device)
 )
+prior = dinv.optim.PnP(denoiser)
+kwargs_optim["params_algo"] = dinv.optim.dpir.get_DPIR_params(
+    s1=start_sigma,
+    s2=end_sigma,
+    lamb=lamda,
+    n_iter=num_iterations,
+)
+algo = dinv.optim.optim_builder(
+    iteration="HQS",
+    prior=prior,
+    data_fidelity=dinv.optim.data_fidelity.L2(),
+    early_stop=False,
+    custom_init=lambda y, physics: {"est": (x_zf, x_zf.clone())},
+    max_iter=10,
+    verbose=False,
+    **kwargs_optim,
+)
+
+
 
 prior = dinv.optim.prior.WaveletPrior(level=3, wv="db8", wvdim=3, p=1, device=device, is_complex=True)
 
