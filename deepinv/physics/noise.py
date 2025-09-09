@@ -947,10 +947,7 @@ class SpeckleNoise(NoiseModel):
         """
         self.rng_manual_seed(seed)
         self.to(x.device)
-        phase = self.rand(
-            x.shape, dtype=x.dtype, device=x.device, seed=seed, generator=self.rng
-        )
-        phase = 2 * torch.pi * phase - torch.pi
+        phase = 2 * torch.pi * self.rand_like(x, seed=seed) - torch.pi
         x = x * torch.exp(1j * phase)
         return x
 
