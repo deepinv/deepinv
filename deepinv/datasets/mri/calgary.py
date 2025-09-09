@@ -116,15 +116,19 @@ class Calgary3DBrainMRIDataset(ImageDataset):
 
 
 class CalgaryDataTransformer:
-    def __init__(self, foward_model=None, noise_level=0.0, seed=0):
+    def __init__(self, foward_model=None, noise_level=0.0, scale_factor=1, seed=0):
         self.forward_model = foward_model
         self.noise_level = noise_level
         self.seed = seed
+        self.scale_factor = scale_factor
 
     def __call__(self, volumes, target=None):
         data = volumes
         if target is None:
             target = torch.linalg.norm(data, dim=0, keepdim=True)
+        if self.scale_factor != 1:
+            data = data * self.scale_factor
+            target = target * self.scale_factor
         if self.forward_model is not None:
             # Sample k-space data
             data = self.forward_model.A(data)
