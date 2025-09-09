@@ -83,7 +83,7 @@ class WaveletDenoiser(Denoiser):
         self.dimension = wvdim
         self.mode = mode
         self.is_complex = is_complex
-        self.axes = _get_axes(self.dimension, is_complex)
+        self.axes = _get_axes(is_complex, self.dimension)
 
     def dwt(self, x):
         r"""
