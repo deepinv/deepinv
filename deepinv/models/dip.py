@@ -153,7 +153,7 @@ class DeepImagePrior(Reconstructor):
         self.prior = TVPrior()
         self.regul_param = regul_param
 
-    def forward(self, y, physics, z_train=None, z_eval=None, shape_train=None, shape_eval=None, **kwargs):
+    def forward(self, y, physics, z=None, shape=None, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -165,10 +165,6 @@ class DeepImagePrior(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
-        :param torch.Tensor z_train: Input latent variable for training. If ``None``, a random noise is generated.
-        :param torch.Tensor z_eval: Input latent variable for evaluation. If ``None``, ``z_train`` is used.
-        :param torch.Tensor shape_train: Shape of the training data.
-        :param torch.Tensor shape_eval: Shape of the evaluation data. If ``None``, ``shape_train`` is used.
         """
         if self.re_init:
             for layer in self.generator.children():
@@ -176,24 +172,20 @@ class DeepImagePrior(Reconstructor):
                     layer.reset_parameters()
 
         self.generator.requires_grad_(True)
-        if z_train is None:
-            z_train = torch.randn(self.img_size, device=y.device).unsqueeze(0)
-        if z_eval is None:
-            z_eval = z_train
-        if shape_train is None:
-            raise ValueError("shape_train must be provided.")
-        if shape_eval is None:
-            shape_eval = shape_train
+        if z is None:
+            z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
+        if shape is None:
+            raise ValueError("shape must be provided.")
+        
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
-
-        z_train.requires_grad_(True)
+        z.requires_grad_(True)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            x = self.generator(z_train)
-            error = self.loss(y=y, x_net=x.view(shape_train), physics=physics) 
+            x = self.generator(z)
+            error = self.loss(y=y, x_net=x.view(shape), physics=physics) 
             if self.regul_param is not None:
-                error += self.regul_param * self.prior(x, z_train)
+                error += self.regul_param * self.prior(x, z)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
 
-        return self.generator(z_eval).view(shape_eval)
+        return self.generator(z).view(shape)

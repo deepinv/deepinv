@@ -162,7 +162,7 @@ class SinMLP(nn.Module):
 
 class SIREN(nn.Module):
     r"""
-    Sinusoidal Implicit Representation Network (SIREN).
+    Sinusoidal Implicit Representation Network (SIREN) proposed by :footcite:t:`sitzmann2020implicit`.
 
     Maps inputs through a Fourier positional encoding onto a SinMLP.
 
