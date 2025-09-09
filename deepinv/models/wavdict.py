@@ -19,9 +19,10 @@ def _complexify(x, is_complex):
 
 
 def _realify(x, dimension):
-    if x.is_complex():
+    is_complex = x.is_complex()
+    if is_complex:
         x = torch.view_as_real(x)
-    return x, _get_axes(x.is_complex(), dimension)
+    return x, _get_axes(is_complex, dimension)
 
 
 class WaveletDenoiser(Denoiser):
