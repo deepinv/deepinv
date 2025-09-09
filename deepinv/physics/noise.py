@@ -929,6 +929,8 @@ class SpeckleNoise(NoiseModel):
 
     Add a random phase to a real signal to add noise to the measurement.
     Distribution for modelling speckle noise (e.g. SAR intensities).
+
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, rng: torch.Generator = None):
