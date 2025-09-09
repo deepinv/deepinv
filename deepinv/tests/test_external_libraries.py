@@ -141,3 +141,24 @@ class TestTomographyWithAstra:
             loss = torch.linalg.norm(physics.A(pred) - Ax)
             loss.backward()
             assert pred.grad is not None
+        
+        ## --- Test geometry properties ---
+        if is_2d:
+            assert physics.measurement_shape == (32, 32)
+            assert physics.xray_transform.domain_shape == (1, 16, 16)
+            assert physics.xray_transform.range_shape == (1, 32, 32)
+        else:
+            assert physics.measurement_shape == (32, 32, 32)
+            assert physics.xray_transform.domain_shape == (16, 16, 16)
+            assert physics.xray_transform.range_shape == (32, 32, 32)
+        assert physics.num_angles == 32
+        assert physics.xray_transform.object_cell_volume == pytest.approx(1.0)
+        assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
+        assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)
+        assert physics.xray_transform.detector_cell_area == pytest.approx(1.0)
+        if geometry_type in ["fanbeam", "conebeam"]:
+            assert physics.xray_transform.source_radius == pytest.approx(80.0)
+            assert physics.xray_transform.detector_radius == pytest.approx(20.0)
+            assert physics.xray_transform.magnification_factor == pytest.approx(1.25)
+        else:
+            assert physics.xray_transform.magnification_factor == pytest.approx(1.0)
