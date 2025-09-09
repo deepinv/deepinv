@@ -39,8 +39,8 @@ repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR). When preparing the PR, please make sure to
 check the following points:
 
-- **Code quality**: your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and a partial `ruff <https://docs.astral.sh/ruff/>`_ checker. This can be done easily
-  by installing the ``black`` and ``ruff`` libraries and running ``black .`` and ``ruff check --fix`` in the root directory of the repository after
+- **Code quality**: your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers. This can be done easily
+  by installing the ``black`` and ``ruff`` libraries and running ``black .`` and ``ruff check`` in the root directory of the repository after
   making the desired changes.
 - **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using ruff.
 - **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,

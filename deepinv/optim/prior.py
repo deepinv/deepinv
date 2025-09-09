@@ -269,9 +269,7 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        return torch.sign(x) * torch.max(
-            torch.abs(x) - ths * gamma, torch.zeros_like(x)
-        )
+        return (x.abs() - ths * gamma).clamp(min=0.0) * x.sign()
 
 
 class WaveletPrior(Prior):
