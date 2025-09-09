@@ -204,6 +204,9 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("with_titles", [False, True])
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
+@pytest.mark.parametrize("with_subtitles", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize("return_axs", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -213,29 +216,46 @@ def test_plot(
     with_titles,
     dict_img_list,
     suptitle,
+    with_subtitles,
+    batched,
+    return_axs,
 ):
-    shape = (1, C, 2, 2)
+    if batched:
+        shape = (1, C, 2, 2)
+    else:
+        shape = (C, 2, 2)
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
+    subtitles = ["subtitle"] * n_images
     img_list = {k: v for k, v in zip_strict(titles, img_list)}
     if not with_titles:
         titles = None
+    if not with_subtitles:
+        subtitles = None
     if not dict_img_list:
         img_list = list(img_list.values())
+    else:
+        titles = None
     save_dir = tmp_path if save_plot else None
     with (
         pytest.raises(AssertionError)
         if titles is not None and isinstance(img_list, dict)
         else nullcontext()
     ):
-        deepinv.utils.plot(
+        axs = deepinv.utils.plot(
             img_list,
             titles=titles,
             save_dir=save_dir,
             cbar=cbar,
             suptitle=suptitle,
+            subtitles=subtitles,
+            return_axs=return_axs,
         )
+        if return_axs:
+            assert axs is not None
+        else:
+            assert axs is None
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
@@ -243,14 +263,23 @@ def test_plot(
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
-def test_scatter_plot(tmp_path, n_plots, titles, save_plot, show, suptitle):
+@pytest.mark.parametrize("with_subtitles", [False, True])
+def test_scatter_plot(
+    tmp_path, n_plots, titles, save_plot, show, suptitle, with_subtitles
+):
     xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
     xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
     if titles is not None:
         titles = [titles] * n_plots if n_plots > 1 else titles
+    subtitles = ["subtitle"] * n_plots if with_subtitles else None
     save_dir = tmp_path if save_plot else None
     deepinv.utils.scatter_plot(
-        xy_list, titles=titles, suptitle=suptitle, save_dir=save_dir, show=show
+        xy_list,
+        titles=titles,
+        suptitle=suptitle,
+        save_dir=save_dir,
+        show=show,
+        subtitles=subtitles,
     )
 
 
@@ -793,6 +822,33 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
         raise ValueError(
             f"Unknown mode '{mode}'. Supported modes are 'min_max' and 'clip'."
         )
+
+
+@pytest.mark.parametrize("x", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("y", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_net", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_nl", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("rescale_mode", ["min_max", "clip"])
+def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
+    imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
+        x, y, x_net, x_nl, rescale_mode=rescale_mode
+    )
+
+    # Checks for empty inputs
+    if all(v is None for v in [x, y, x_net, x_nl]):
+        assert imgs == [], "Images list should be empty when all inputs are None."
+        assert titles == [], "Titles list should be empty when all inputs are None."
+        assert (
+            grid_image == None
+        ), "Grid image list should be empty when all inputs are None."
+
+    else:
+        assert all(
+            isinstance(img, torch.Tensor) for img in imgs
+        ), "All images should be torch tensors."
+        assert all(
+            isinstance(title, str) for title in titles
+        ), "All titles should be strings."
 
 
 # Module-level fixtures

@@ -620,7 +620,6 @@ class SequentialMRI(DynamicMRI):
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )
 
-
 class NonCartesianMRI(LinearPhysics):
     """
     DeepInv physics for non-Cartesian multi-coil MRI driven by an external NUFFT.
