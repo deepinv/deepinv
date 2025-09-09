@@ -28,6 +28,7 @@ Key fixes for NCCL errors:
 
 import os
 import sys
+from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent / "utils.py"))
 
@@ -38,7 +39,6 @@ import matplotlib.pyplot as plt
 import deepinv as dinv
 from torchvision.transforms import ToTensor, Compose, CenterCrop
 
-from pathlib import Path
 
 from utils import *
 
