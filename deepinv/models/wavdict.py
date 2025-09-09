@@ -3,21 +3,24 @@ import torch.nn as nn
 from .base import Denoiser
 from typing import Union, Sequence  # noqa: F401
 
+def _get_axes(dimension, is_complex):
+    axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
+    if is_complex:
+        axes = tuple(a - 1 for a in axes)
+    return axes
 
-def _complexify(x, iscomplex):
+def _complexify(x, is_complex):
     """If the input was complex, convert back to complex."""
-    if iscomplex:
+    if is_complex:
         return torch.view_as_complex(x.contiguous())
     return x
 
 def _realify(x, dimension):
     if x.is_complex():
         x = torch.view_as_real(x)
-        axes = (-4, -3, -2) if dimension == 3 else (-3, -2)
-    else:
-        axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
-    return x, axes
-        
+    return x, _get_axes(x.is_complex(), dimension)
+
+
 class WaveletDenoiser(Denoiser):
     r"""
     Orthogonal Wavelet denoising with the :math:`\ell_1` norm.
@@ -50,6 +53,7 @@ class WaveletDenoiser(Denoiser):
         If ``"topk"``, only the top-k wavelet coefficients are kept.
     :param str mode: padding mode for the wavelet transform (default: "zero").
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
+    :param bool is_complex: whether the input is complex-valued (default: False).
     :param str device: cpu or gpu
 
     .. note::
@@ -66,7 +70,7 @@ class WaveletDenoiser(Denoiser):
         non_linearity: str = "soft",
         mode: str = "zero",
         wvdim: int = 2,
-        complex_input: bool = False,
+        is_complex: bool = False,
     ):
         super().__init__()
         self.level = level
@@ -75,10 +79,8 @@ class WaveletDenoiser(Denoiser):
         self.non_linearity = non_linearity
         self.dimension = wvdim
         self.mode = mode
-        self.complex_input = complex_input
-        self.axes = (-3, -2, -1) if self.dimension == 3 else (-2, -1)
-        if self.complex_input:
-            self.axes = tuple(a - 1 for a in self.axes)
+        self.is_complex = is_complex
+        self.axes = _get_axes(self.dimension, is_complex)
         
 
     def dwt(self, x):
@@ -88,7 +90,7 @@ class WaveletDenoiser(Denoiser):
         import pywt
         import ptwt
 
-        if self.complex_input:
+        if self.is_complex:
             x = torch.view_as_real(x)
         if self.dimension == 2:
             dec = ptwt.wavedec2(
@@ -99,6 +101,7 @@ class WaveletDenoiser(Denoiser):
                 x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level, axes=self.axes
             )
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
+        dec[0] = _complexify(dec[0], self.is_complex)
         return dec
 
     def flatten_coeffs(self, dec):
@@ -107,13 +110,13 @@ class WaveletDenoiser(Denoiser):
         """
         if self.dimension == 2:
             flat = torch.hstack(
-                [_complexify(dec[0], self.complex_input).flatten()]
-                + [_complexify(decl, self.complex_input).flatten() for l in range(1, len(dec)) for decl in dec[l]]
+                [_complexify(dec[0], self.is_complex).flatten()]
+                + [_complexify(decl, self.is_complex).flatten() for l in range(1, len(dec)) for decl in dec[l]]
             )
         elif self.dimension == 3:
             flat = torch.hstack(
-                [_complexify(dec[0], self.complex_input).flatten()]
-                + [_complexify(dec[l][key], self.complex_input).flatten() for l in range(1, len(dec)) for key in dec[l]]
+                [_complexify(dec[0], self.is_complex).flatten()]
+                + [_complexify(dec[l][key], self.is_complex).flatten() for l in range(1, len(dec)) for key in dec[l]]
             )
         return flat
 
@@ -150,12 +153,15 @@ class WaveletDenoiser(Denoiser):
         """
         import pywt
         import ptwt
+        if isinstance(coeffs, tuple):
+            coeffs = list(coeffs)
+        coeffs[0] = _realify(coeffs[0], self.dimension)[0]
         coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:
             rec = ptwt.waverec2(coeffs, pywt.Wavelet(self.wv), axes=self.axes)
         elif self.dimension == 3:
             rec = ptwt.waverec3(coeffs, pywt.Wavelet(self.wv), axes=self.axes)
-        rec = _complexify(rec, self.complex_input)
+        rec = _complexify(rec, self.is_complex)
         return rec
 
     def prox_l1(self, x, ths=0.1):
@@ -482,7 +488,7 @@ class WaveletDictDenoiser(Denoiser):
                     non_linearity=non_linearity,
                     wvdim=wvdim,
                     device=device,
-                    complex_input=complex_input,
+                    is_complex=complex_input,
                 )
                 for wv in list_wv
             ]

@@ -543,14 +543,15 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
-def test_wavelet_decomposition(channels, dimension, batch_size, device):
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, device):
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
+    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension, is_complex=is_complex).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
         if dimension == 2
@@ -558,6 +559,10 @@ def test_wavelet_decomposition(channels, dimension, batch_size, device):
     )
     # Test the wavelet decomposition and reconstruction
     x = torch.randn(img_size, dtype=torch.float32).to(device)
+    if is_complex:
+        x = torch.view_as_complex(
+            torch.stack((x, torch.randn_like(x)), dim=-1)
+        )
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
