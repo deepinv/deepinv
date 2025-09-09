@@ -308,6 +308,7 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
+        complex_input=False,
         mode="zero",
         clamp_min=None,
         clamp_max=None,
@@ -342,6 +343,7 @@ class WaveletPrior(Prior):
                 device=self.device,
                 non_linearity=self.non_linearity,
                 wvdim=self.wvdim,
+                complex_input=complex_input,
             )
         elif type(self.wv) == list:
             self.WaveletDenoiser = WaveletDictDenoiser(
@@ -350,6 +352,7 @@ class WaveletPrior(Prior):
                 max_iter=10,
                 non_linearity=self.non_linearity,
                 wvdim=self.wvdim,
+                complex_input=complex_input,
             )
         else:
             raise ValueError(

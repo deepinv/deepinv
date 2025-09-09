@@ -107,7 +107,7 @@ class Calgary3DBrainMRIDataset(ImageDataset):
                             else "reconstruction_rss"
                         )
                     ]
-                ).unsqueeze(0)
+                )
         else:
             target = None
         if self.transform is not None:

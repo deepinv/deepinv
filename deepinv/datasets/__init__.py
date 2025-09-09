@@ -10,7 +10,7 @@ from .mri.fastmri import (
     MRISliceTransform,
 )
 from .mri.calgary import Calgary3DBrainMRIDataset, CalgaryDataTransformer
-from .cmrxrecon import CMRxReconSliceDataset
+from .mri.cmrxrecon import CMRxReconSliceDataset
 from .lidc_idri import LidcIdriSliceDataset
 from .flickr2k import Flickr2kHR
 from .lsdir import LsdirHR
