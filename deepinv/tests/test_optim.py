@@ -296,8 +296,8 @@ def test_data_fidelity_amplitude_loss(device):
         jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
-
-def test_itoh_fidelity(device):
+@pytest.mark.parametrize("mode", ["floor", "round"])
+def test_itoh_fidelity(device, mode):
     r"""
     Tests if the gradient computed with grad_d method of Itoh fidelity is consistent with the autograd gradient.
 
@@ -306,15 +306,16 @@ def test_itoh_fidelity(device):
     """
     # essential to enable autograd
     with torch.enable_grad():
-        x = torch.zeros(
+        x = torch.randn(
             (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
         )
-        physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor")
+        physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode=mode)
         loss = ItohFidelity()
-        func = lambda x: loss(x, torch.ones_like(physics(x)) * 0.1, physics)[0]
-        grad_value = torch.func.grad(func)(x)
-        jvp_value = loss.grad(x, torch.ones_like(physics(x)) * 0.1, physics)
-    assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
+        y = torch.ones_like(physics(x)) * 0.1
+        _, vjp_func = torch.func.vjp(physics.D, x)
+        vjp_value  = vjp_func(loss.grad_d(physics.D(x), y, physics))[0]
+        grad_value = loss.grad(x, y, physics)
+    assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)

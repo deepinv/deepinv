@@ -334,11 +334,11 @@ class ItohFidelity(L2):
         WDy = physics.WD(y)
         return physics.A_vjp(x, self.d.grad(physics.D(x), WDy, *args, **kwargs))
 
-    def grad_d(self, u, y, *args, **kwargs):
+    def grad_d(self, u, y, physics, *args, **kwargs):
         WDy = physics.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
 
-    def prox_d(self, u, y, *args, **kwargs):
+    def prox_d(self, u, y, physics, *args, **kwargs):
         WDy = physics.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
 

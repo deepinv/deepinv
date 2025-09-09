@@ -94,8 +94,8 @@ class SpatialUnwrapping(Physics):
 
         Dh_x, Dv_x = torch.unbind(v, dim=-1)
         rho = -(
-            torch.diff(F.pad(Dh_x, (0, 1)), 1, dim=-1)
-            + torch.diff(F.pad(Dv_x, (0, 0, 0, 1)), 1, dim=-2)
+            torch.diff(F.pad(Dh_x, (1, 0)), 1, dim=-1)
+            + torch.diff(F.pad(Dv_x, (0, 0, 1, 0)), 1, dim=-2)
         )
         return rho
 
