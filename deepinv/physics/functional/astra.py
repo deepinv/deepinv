@@ -82,9 +82,9 @@ class XrayTransform:
     def detector_cell_v_length(self) -> float:
         """The vertical length of a detector cell."""
         if "vec" in self.projection_geometry["type"]:
-            return np.sqrt(
-                (self.projection_geometry["Vectors"][0, [9, 10, 11]] ** 2).sum()
-            )
+            return np.linalg.norm(
+                self.projection_geometry["Vectors"][0, [9, 10, 11]],
+            ).item()
         else:
             return self.projection_geometry["DetectorSpacingY"]
 
@@ -92,9 +92,9 @@ class XrayTransform:
     def detector_cell_u_length(self) -> float:
         """The horizontal length of a detector cell."""
         if "vec" in self.projection_geometry["type"]:
-            return np.sqrt(
-                (self.projection_geometry["Vectors"][0, [6, 7, 8]] ** 2).sum()
-            )
+            return np.linalg.norm(
+                self.projection_geometry["Vectors"][0, [6, 7, 8]]
+            ).item()
         else:
             return self.projection_geometry["DetectorSpacingX"]
 
@@ -106,44 +106,24 @@ class XrayTransform:
     @property
     def source_radius(self) -> float:
         """The distance between the source and the axis of rotation."""
-        import astra
-
         if not hasattr(self, "_source_radius"):
             if "vec" in self.projection_geometry["type"]:
-                self._source_radius = np.sqrt(
-                    (
-                        astra.geom_2vec(self.projection_geometry)["Vectors"][
-                            :, [0, 1, 2]
-                        ]
-                        ** 2
-                    ).sum(axis=1)
-                ).mean()
+                return np.linalg.norm(
+                    self.projection_geometry["Vectors"][0, [0, 1, 2]],
+                ).item()
             else:
-                self._source_radius = self.projection_geometry["DistanceOriginSource"]
-
-        return self._source_radius
+                return self.projection_geometry["DistanceOriginSource"]
 
     @property
     def detector_radius(self) -> float:
         """The distance between the center of the detector and the axis of rotation."""
-        import astra
-
         if not hasattr(self, "_detector_radius"):
             if "vec" in self.projection_geometry["type"]:
-                self._detector_radius = np.sqrt(
-                    (
-                        astra.geom_2vec(self.projection_geometry)["Vectors"][
-                            :, [3, 4, 5]
-                        ]
-                        ** 2
-                    ).sum(axis=1)
-                ).mean()
+                return np.linalg.norm(
+                    self.projection_geometry["Vectors"][0, [3, 4, 5]],
+                ).item()
             else:
-                self._detector_radius = self.projection_geometry[
-                    "DistanceOriginDetector"
-                ]
-
-        return self._detector_radius
+                return self.projection_geometry["DistanceOriginDetector"]
 
     @property
     def magnitude(self) -> float:
