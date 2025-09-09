@@ -17,8 +17,6 @@ from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 import time
-import psutil, os
-import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
