@@ -7,7 +7,6 @@ This example shows how to train an unfolded neural network with a memory complex
 """
 
 # %%
-import tracemalloc
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -17,6 +16,9 @@ from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
+import time
+import psutil, os
+import matplotlib.pyplot as plt
 
 # %%
 # Setup paths for data loading and results.
@@ -25,16 +27,11 @@ from deepinv.utils.demo import load_dataset
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
-RESULTS_DIR = BASE_DIR / "results"
-CKPT_DIR = BASE_DIR / "ckpts"
-
-# Set the global random seed from pytorch to ensure reproducibility of the example.
-torch.manual_seed(0)
 
 device = (
     dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
 )
-
+device = torch.device("cpu")
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
@@ -42,15 +39,12 @@ device = (
 
 img_size = 64 if torch.cuda.is_available() else 32
 n_channels = 3  # 3 for color images, 1 for gray-scale images
-operation = "super-resolution"
 
 # %%
 # Generate a dataset of low resolution images and load it.
 # ----------------------------------------------------------------------------------------
-# We use the Downsampling class from the physics module to generate a dataset of low resolution images.
-
+# We use the Blur class from the physics module to generate a dataset of blurry images.
 # For simplicity, we use a small dataset for training.
-# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
 train_dataset_name = "CBSD500"
 test_dataset_name = "set3c"
 # Specify the  train and test transforms to be applied to the input images.
@@ -85,7 +79,7 @@ my_dataset_name = "demo_unfolded_memory"
 n_images_max = (
     1000 if torch.cuda.is_available() else 10
 )  # maximal number of images used for training
-measurement_dir = DATA_DIR / train_dataset_name / operation
+measurement_dir = DATA_DIR / train_dataset_name / "deblurring"
 generated_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_base_dataset,
     test_dataset=test_base_dataset,
@@ -98,28 +92,16 @@ generated_datasets_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
 
 # %%
-# Define the unfolded PnP algorithm.
+# Define the unfolded parameters.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
-# The chosen algorithm is here DRS (Douglas-Rachford Splitting).
-# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
-# then a distinct model (resp. parameter) is trained for each iteration.
-# For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
 
 # Select the data fidelity term
 data_fidelity = L2()
-
-# Set up the trainable denoising prior
-# Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
-
-# The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
 stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 beta = 1  # relaxation parameter of the Douglas-Rachford splitting
@@ -134,28 +116,13 @@ trainable_params = [
     "beta",
 ]  # define which parameters from 'params_algo' are trainable
 
-# Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="HQS",
-    params_algo=params_algo.copy(),
-    trainable_params=trainable_params,
-    data_fidelity=data_fidelity,
-    max_iter=max_iter,
-    prior=prior,
-)
 
 # %%
 # Define the training parameters.
 # ----------------------------------------------------------------------------------------
-# We use the Adam optimizer and the StepLR scheduler.
 
-
-# training parameters
 learning_rate = 5e-4
-train_batch_size = 32 if torch.cuda.is_available() else 1
-
-# choose optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+train_batch_size = 32 if torch.cuda.is_available() else 2
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
 )
@@ -179,34 +146,40 @@ def reset_memory():
     if use_cuda:
         torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
-        sync()
-    else:
-        tracemalloc.stop()
-        tracemalloc.start()
 
 
 def peak_memory():
     if use_cuda:
         peak_bytes = int(torch.cuda.max_memory_allocated(device=device))
-    else:
-        current, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        peak_bytes = int(peak)
+    else:  # Stats on CPU is not very accurate
+        peak_bytes = 0
     return peak_bytes
 
 
+# %%
 # We first train the model will full backpropagation to compare the memory usage.
-model.to(device)
+# Define the unfolded trainable model.
+torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
+model = unfolded_builder(
+    iteration="HQS",
+    params_algo=params_algo.copy(),
+    trainable_params=trainable_params,
+    data_fidelity=data_fidelity,
+    max_iter=max_iter,
+    prior=prior,
+).to(device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 model.train()
 
 # Setting this parameter to False to use full backpropagation
 physics.implicit_backward_solver = False
 
-sync()
 reset_memory()
-start = torch.cuda.Event(enable_timing=True)
-end = torch.cuda.Event(enable_timing=True)
-start.record()
+sync()
+start = time.perf_counter()
+avg_loss = 0.0
 for batch in train_dataloader:
     x, y = batch
     x = x.to(device)
@@ -214,21 +187,37 @@ for batch in train_dataloader:
     optimizer.zero_grad()
     x_hat = model(physics=physics, y=y)
     loss = torch.nn.functional.mse_loss(x_hat, x)
+    avg_loss += loss.item()
     loss.backward()
     optimizer.step()
 sync()
-end.record()
-auto_peak_memory_bytes = peak_memory()
-auto_time_per_iter = start.elapsed_time(end) / len(train_dataloader)
-
+end = time.perf_counter()
+auto_peak_memory_mb = peak_memory() / (10**6)
+auto_time_per_iter = (end - start) / len(train_dataloader)
+auto_avg_loss = avg_loss / len(train_dataloader)
+# %%
 # Setting this parameter to True to use implicit differentiation
 physics.implicit_backward_solver = True
 
-sync()
+# Define the unfolded trainable model.
+torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
+model = unfolded_builder(
+    iteration="HQS",
+    params_algo=params_algo.copy(),
+    trainable_params=trainable_params,
+    data_fidelity=data_fidelity,
+    max_iter=max_iter,
+    prior=prior,
+).to(device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+model.train()
+
 reset_memory()
-start = torch.cuda.Event(enable_timing=True)
-end = torch.cuda.Event(enable_timing=True)
-start.record()
+sync()
+start = time.perf_counter()
+avg_loss = 0.0
 for batch in train_dataloader:
     x, y = batch
     x = x.to(device)
@@ -236,18 +225,29 @@ for batch in train_dataloader:
     optimizer.zero_grad()
     x_hat = model(physics=physics, y=y)
     loss = torch.nn.functional.mse_loss(x_hat, x)
+    avg_loss += loss.item()
     loss.backward()
     optimizer.step()
 sync()
-end.record()
-implicit_peak_memory_bytes = peak_memory()
-implicit_time_per_iter = start.elapsed_time(end) / len(train_dataloader)
-
-# %% Compare the memory usage
+end = time.perf_counter()
+implicit_peak_memory_mb = peak_memory() / (10**6)
+implicit_time_per_iter = (end - start) / len(train_dataloader)
+implicit_avg_loss = avg_loss / len(train_dataloader)
+# %%
+# Compare the memory usage
 # ----------------------------------------------------------------------------------------
 print(
-    f"Full backpropagation: time per iteration: {auto_time_per_iter:.2f} ms, peak memory: {auto_peak_memory_bytes / 1e6:.2f} MB"
+    f"Full backpropagation: time per iteration: {auto_time_per_iter:.2f} ms, avg loss: {auto_avg_loss:.6f}"
 )
 print(
-    f"Implicit differentiation: time per iteration: {implicit_time_per_iter:.2f} ms, peak memory: {implicit_peak_memory_bytes / 1e6:.2f} MB"
+    f"Implicit differentiation: time per iteration: {implicit_time_per_iter:.2f} ms, avg loss: {implicit_avg_loss:.6f}"
 )
+
+if use_cuda:
+    print(f"Full backpropagation: peak memory usage: {auto_peak_memory_mb:.1f} MB")
+    print(
+        f"Implicit differentiation: peak memory usage: {implicit_peak_memory_mb:.1f} MB"
+    )
+    print(
+        f"Memory reduction factor: {auto_peak_memory_mb/implicit_peak_memory_mb:.1f}x"
+    )
