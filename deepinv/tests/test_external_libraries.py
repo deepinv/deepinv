@@ -45,14 +45,14 @@ class TestTomographyWithAstra:
         ## Test 2d transforms
         if is_2d:
             img_size = (16, 16)
-            num_detectors = 2 * img_size[0]
+            n_detector_pixels = 2 * img_size[0]
             num_angles = 2 * img_size[0]
             physics = dinv.physics.TomographyWithAstra(
                 img_size=img_size,
-                num_detectors=num_detectors,
-                num_angles=num_angles,
+                n_detector_pixels=n_detector_pixels,
+                angles=num_angles,
                 angular_range=(
-                    (0, torch.pi) if geometry_type == "parallel" else (0, 2 * torch.pi)
+                    (0, 180) if geometry_type == "parallel" else (0, 360)
                 ),
                 geometry_type=geometry_type,
                 normalize=normalize,
@@ -62,18 +62,18 @@ class TestTomographyWithAstra:
         else:
             ## Test 3d transforms
             img_size = (16, 16, 16)
-            num_detectors = (32, 32)
+            n_detector_pixels = (32, 32)
             num_angles = 2 * img_size[0]
             physics = dinv.physics.TomographyWithAstra(
                 img_size=img_size,
-                num_angles=num_angles,
+                angles=num_angles,
                 angular_range=(
-                    (0, torch.pi) if geometry_type == "parallel" else (0, 2 * torch.pi)
+                    (0, 180) if geometry_type == "parallel" else (0, 360)
                 ),
-                num_detectors=num_detectors,
+                n_detector_pixels=n_detector_pixels,
                 geometry_type=geometry_type,
                 detector_spacing=(1.0, 1.0),
-                object_spacing=(1.0, 1.0, 1.0),
+                pixel_spacing=(1.0, 1.0, 1.0),
                 normalize=normalize,
                 device=device,
             )

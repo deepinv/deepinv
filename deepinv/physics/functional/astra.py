@@ -351,7 +351,7 @@ def create_projection_geometry(
 
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D.
     :param int | tuple[int, int]: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
-    :param torch.Tensor angles: Tensor containing angular positions in radii.
+    :param torch.Tensor angles: Tensor containing angular positions in degrees.
     :param bool is_2d: Boolean specifying if the parameters define a 2D slice or a 3D volume.
     :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
@@ -397,7 +397,7 @@ def create_projection_geometry(
         source_radius = geometry_parameters.get("source_radius", 80.0)
         detector_radius = geometry_parameters.get("detector_radius", 20.0)
 
-    angles = angles.tolist()
+    angles = torch.deg2rad(-angles).tolist()
 
     # The astra-toolbox does not support GPU linking for 2D data. Thus, when creating a projection geometry in 2D, we actually create a flat 3D geometry, i.e. a 2D detector with only one row of cells.
     # GPULink python API for 2D data:  https://github.com/astra-toolbox/astra-toolbox/discussions/391
@@ -484,7 +484,7 @@ def create_object_geometry(
     n_cols: int,
     n_slices: int = 1,
     is_2d: bool = True,
-    spacing: tuple[float, ...] = (1.0, 1.0),
+    pixel_spacing: tuple[float, ...] = (1.0, 1.0),
     bounding_box: Optional[tuple[float, ...]] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
@@ -494,7 +494,7 @@ def create_object_geometry(
     :param int n_cols: Number of columns.
     :param int n_slices: Number of slices. It is automatically set to 1 when ``is_2d=True``.
     :param bool is_2D: Boolean specifying if the parameters define a 2D slice or a 3D volume.
-    :param tuple[float, ...] spacing: Dimensions of reconstruction cell along the axis [x,y,...].
+    :param tuple[float, ...] pixel_spacing: Dimensions of reconstruction cell along the axis [x,y,...].
     :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
     """
     import astra
@@ -506,9 +506,9 @@ def create_object_geometry(
                     f"For 2D geometry, argument `bounding_box` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
-            if len(spacing) != 2:
+            if len(pixel_spacing) != 2:
                 raise ValueError(
-                    f"For 2D geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)={len(spacing)}"
+                    f"For 2D geometry, `pixel_spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
     else:
         if bounding_box is not None:
@@ -517,9 +517,9 @@ def create_object_geometry(
                     f"For 3D geometry, argument `bounding_box` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
-            if len(spacing) != 3:
+            if len(pixel_spacing) != 3:
                 raise ValueError(
-                    f"For 23 geometry, `spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(spacing)={len(spacing)}"
+                    f"For 23 geometry, `pixel_spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
 
     if is_2d:
@@ -527,8 +527,8 @@ def create_object_geometry(
         if bounding_box is not None:
             min_x, max_x, min_y, max_y = bounding_box
         else:
-            min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
-            min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
+            min_x, max_x = -n_cols / 2 * pixel_spacing[0], n_cols / 2 * pixel_spacing[0]
+            min_y, max_y = -n_rows / 2 * pixel_spacing[1], n_rows / 2 * pixel_spacing[1]
 
         # assume the slice dimension is unit length to avoid scaling issues with ASTRA
         min_z, max_z = -0.5, 0.5
@@ -537,11 +537,11 @@ def create_object_geometry(
         if bounding_box is not None:
             min_x, max_x, min_y, max_y, min_z, max_z = bounding_box
         else:
-            min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
-            min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
-            min_z, max_z = -n_slices / 2 * spacing[2], n_slices / 2 * spacing[2]
+            min_x, max_x = -n_cols / 2 * pixel_spacing[0], n_cols / 2 * pixel_spacing[0]
+            min_y, max_y = -n_rows / 2 * pixel_spacing[1], n_rows / 2 * pixel_spacing[1]
+            min_z, max_z = -n_slices / 2 * pixel_spacing[2], n_slices / 2 * pixel_spacing[2]
 
-    spacing = [
+    pixel_spacing = [
         (max_x - min_x) / n_cols,
         (max_y - min_y) / n_rows,
         (max_z - min_z) / n_slices,
