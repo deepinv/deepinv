@@ -15,6 +15,7 @@ import warnings
 import os
 from logging import getLogger
 from deepinv.utils import AverageMeter
+from deepinv.loss import Loss, Metric
 
 
 class RunLogger(ABC):
@@ -202,11 +203,10 @@ class LocalLogger(RunLogger):
         phase: str = "train",
     ):
 
-        # Determine which phase dictionary to use
         if phase == "train":
             meters = self.losses_train
             total_meter = self.total_loss_train
-        elif phase == "eval":
+        elif phase == "val":
             meters = self.losses_val
             total_meter = self.total_loss_val
         elif phase == "test":
@@ -237,8 +237,8 @@ class LocalLogger(RunLogger):
         )
 
         # JSON logging
-        # Load existing log data if file exists
         log_file = self.loss_dir / "losses.json"
+
         if log_file.exists():
             try:
                 with open(log_file, "r") as f:
@@ -248,7 +248,6 @@ class LocalLogger(RunLogger):
         else:
             all_logs = {}
 
-        # Update the log data for this phase
         if phase not in all_logs:
             all_logs[phase] = {}
 
@@ -256,7 +255,6 @@ class LocalLogger(RunLogger):
         all_logs[phase]["step"] = step
         all_logs[phase]["losses"] = {name: meter.avg for name, meter in meters.items()}
 
-        # Write the updated log data back to the file
         with open(log_file, "w") as f:
             json.dump(all_logs, f, indent=2)
 
@@ -267,55 +265,82 @@ class LocalLogger(RunLogger):
         epoch: int,
         phase: str = "train",
     ):
-        metric_str = "| ".join(
-            [f"{name}: {value:.6f}" for name, value in metrics.items()]
-        )
+        if phase == "train":
+            meters = self.metrics_train
+        elif phase == "eval":
+            meters = self.metrics_val
+        elif phase == "test":
+            meters = self.metrics_test
+        else:
+            raise ValueError(f"Unknown phase: {phase}")
 
+        # Initialize meters for each metric if this is the first time
+        for name, value in metrics.items():
+            if name not in meters:
+                meters[name] = AverageMeter(f"{phase} {name}", ":.6f")
+
+        for name, value in metrics.items():
+            meters[name].update(value)
+
+        # Human readable logging
+        metric_str = "| ".join(
+            [f"{meter.name}: {meter.avg:.6f}" for meter in meters.values()]
+        )
         self.stdout_logger.info(
             f"{phase} - epoch: {epoch} | step: {step} | metrics: {metric_str}"
         )
 
+        # JSON logging
+        log_file = self.metrics_dir / "metrics.json"
+
+        if log_file.exists():
+            try:
+                with open(log_file, "r") as f:
+                    all_logs = json.load(f)
+            except json.JSONDecodeError:
+                all_logs = {}
+        else:
+            all_logs = {}
+
+        if phase not in all_logs:
+            all_logs[phase] = {}
+
+        all_logs[phase]["epoch"] = epoch
+        all_logs[phase]["step"] = step
+        all_logs[phase]["metrics"] = {name: meter.avg for name, meter in meters.items()}
+
+        with open(log_file, "w") as f:
+            json.dump(all_logs, f, indent=2)
+
     def log_images(
         self,
         images: dict[str, Union[torch.Tensor, np.ndarray]],
+        epoch: int = 0,
         step: Optional[int] = None,
-        epoch: Optional[int] = None,
         phase: str = "train",
     ):
-        for k, img in enumerate(images.values()):
+        dir_path = self.images_dir / phase / f"epoch_{epoch}"
+        if step is not None:
+            dir_path = dir_path / f"step_{step}"
+        os.makedirs(dir_path, exist_ok=True)
+
+        for k, (name, img) in enumerate(images.items()):
             for i in range(img.size(0)):
-                img_name = (
-                    f"{self.images_dir}/{phase}/epoch_{epoch}_step_{step}/img_{k}_"
-                )
-                # make dir
-                Path(img_name).mkdir(parents=True, exist_ok=True)
-                save_image(img, img_name + f"{self.img_counter + i}.png")
+                img_name = f"{dir_path}/{name}_{k}_{self.img_counter + i}.png"
+                save_image(img[i], img_name)
 
-            self.img_counter += len(img[0])
-
-    def log_model_checkpoint(
+    def log_checkpoint(
         self,
-        checkpoint_path: str,
         epoch: Optional[int] = None,
+        state: dict[str, Any] = {},
     ):
-        state = state | {
-            "epoch": epoch,
-            "state_dict": self.model.state_dict(),
-            "loss": self.loss_history,
-            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
-            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-        }
-        state["eval_metrics"] = self.eval_metrics_history
-        if self.wandb_vis:
-            import wandb
-
-            state["wandb_id"] = wandb.run.id
+        ckpt_path = self.checkpoints_dir / f"checkpoint_epoch_{epoch}.pth.tar"
 
         torch.save(
             state,
-            Path(self.save_path) / Path(filename),
+            ckpt_path,
         )
-        self.stdout_logger.info(f"Checkpoint saved at epoch {epoch}: {checkpoint_path}")
+        self.stdout_logger.info(f"Checkpoint saved at epoch {epoch}: {ckpt_path}")
 
     def finish_run(self):
         self.stdout_logger.info(f"Run finished: {self.run_name}")
