@@ -156,11 +156,11 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self, **kwargs):
+    def setup(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train(**kwargs)
+        super().setup(**kwargs)
 
         if self.optimizer_step_multi_dataset:
             warnings.warn(
@@ -240,7 +240,7 @@ class AdversarialTrainer(Trainer):
                     logs[l.__class__.__name__] = cur_loss
 
             current_log = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
+                self.meter_total_loss_train if train else self.meter_total_loss_val
             )
             current_log.update(loss_total.item())
 
@@ -316,6 +316,6 @@ class AdversarialTrainer(Trainer):
             self.check_grad_val_D.update(norm_grads.item())
             return norm_grads.item()
 
-    def save_model(self, epoch, eval_psnr=None):
+    def save_ckpt(self, epoch, eval_psnr=None):
         r"""Save discriminator model parameters alongside other models."""
-        super().save_model(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})
+        super().save_ckpt(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})

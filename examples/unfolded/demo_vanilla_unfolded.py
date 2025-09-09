@@ -180,7 +180,7 @@ trainer = dinv.Trainer(
     model,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,

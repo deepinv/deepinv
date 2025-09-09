@@ -112,6 +112,7 @@ class RunLogger(ABC):
         """
         pass
 
+
 class WandbRunLogger(RunLogger):
     """
     TODO
@@ -250,25 +251,31 @@ class WandbRunLogger(RunLogger):
                 wandb_images = wandb.Image(img.numpy())
 
                 # log images
-                self.wandb_run.log({f'{phase} samples: {name_img}': wandb_images}, step=epoch)
+                self.wandb_run.log(
+                    {f"{phase} samples: {name_img}": wandb_images}, step=epoch
+                )
             elif len(shape) == 3:
-                wandb_images = wandb.Image(img.permute(1,2,0).numpy())
+                wandb_images = wandb.Image(img.permute(1, 2, 0).numpy())
 
                 # log images
-                self.wandb_run.log({f'{phase} samples: {name_img}': wandb_images}, step=epoch)
+                self.wandb_run.log(
+                    {f"{phase} samples: {name_img}": wandb_images}, step=epoch
+                )
             elif len(shape) == 4:
                 for j in range(len(img)):
-                    wandb_images = wandb.Image(img[j].permute(1,2,0).numpy())
+                    wandb_images = wandb.Image(img[j].permute(1, 2, 0).numpy())
 
                     # log images
-                    self.wandb_run.log({f'{phase} samples: {name_img}_{j}': wandb_images}, step=epoch)
+                    self.wandb_run.log(
+                        {f"{phase} samples: {name_img}_{j}": wandb_images}, step=epoch
+                    )
 
     def load_from_checkpoint(self, checkpoint: dict[str, Any]):
         """
         TODO
         """
-        if 'resume_id' in checkpoint:
-            self.resume_id = checkpoint['resume_id']
+        if "resume_id" in checkpoint:
+            self.resume_id = checkpoint["resume_id"]
 
     def log_checkpoint(self, epoch, state=None):
         """
@@ -307,8 +314,8 @@ class LocalLogger(RunLogger):
     def __init__(
         self,
         log_dir: str = "logs",
-        project_name: Optional[str] = None,
-        run_name: Optional[str] = None,
+        project_name: Optional[str] = "default_project",
+        run_name: Optional[str] = "default_run",
         config: Optional[dict[str, Any]] = None,
     ):
         super().__init__(run_name, config)
@@ -349,11 +356,6 @@ class LocalLogger(RunLogger):
         self.metrics_val = {}
         self.metrics_test = {}
 
-        # Initialize total loss meters for each phase
-        self.total_loss_train = AverageMeter("train total_loss", ":.6f")
-        self.total_loss_val = AverageMeter("val total_loss", ":.6f")
-        self.total_loss_test = AverageMeter("test total_loss", ":.6f")
-
         self.loss_history = []
 
         self.stdout_logger.info(f"Run started: {self.run_name}")
@@ -365,36 +367,11 @@ class LocalLogger(RunLogger):
         epoch: Optional[int] = None,
         phase: str = "train",
     ):
-
         if phase == "train":
-            meters = self.losses_train
-            total_meter = self.total_loss_train
-        elif phase == "val":
-            meters = self.losses_val
-            total_meter = self.total_loss_val
-        elif phase == "test":
-            meters = self.losses_test
-            total_meter = self.total_loss_test
-        else:
-            raise ValueError(f"Unknown phase: {phase}")
-
-        # Initialize meters for each loss if this is the first time
-        for name, value in losses.items():
-            if name not in meters:
-                meters[name] = AverageMeter(f"{phase} {name}", ":.6f")
-
-        for name, value in losses.items():
-            meters[name].update(value)
-
-        total_meter.update(losses["total_loss"])
-
-        if phase == "train":
-            self.loss_history.append(total_meter.avg)
+            self.loss_history.append(["total_loss_avg"])
 
         # Human readable logging
-        loss_str = "| ".join(
-            [f"{meter.name}: {meter.avg:.6f}" for meter in meters.values()]
-        )
+        loss_str = "| ".join([f"{name}: {value:.6f}" for name, value in losses.items()])
         self.stdout_logger.info(
             f"{phase} - epoch: {epoch} | step: {step} | losses: {loss_str}"
         )
@@ -416,7 +393,9 @@ class LocalLogger(RunLogger):
 
         all_logs[phase]["epoch"] = epoch
         all_logs[phase]["step"] = step
-        all_logs[phase]["losses"] = {name: meter.avg for name, meter in meters.items()}
+        all_logs[phase]["losses"] = {
+            name: float(value) for name, value in losses.items()
+        }
 
         with open(log_file, "w") as f:
             json.dump(all_logs, f, indent=2)
@@ -428,26 +407,9 @@ class LocalLogger(RunLogger):
         epoch: Optional[int] = None,
         phase: str = "train",
     ):
-        if phase == "train":
-            meters = self.metrics_train
-        elif phase == "eval":
-            meters = self.metrics_val
-        elif phase == "test":
-            meters = self.metrics_test
-        else:
-            raise ValueError(f"Unknown phase: {phase}")
-
-        # Initialize meters for each metric if this is the first time
-        for name, value in metrics.items():
-            if name not in meters:
-                meters[name] = AverageMeter(f"{phase} {name}", ":.6f")
-
-        for name, value in metrics.items():
-            meters[name].update(value)
-
         # Human readable logging
         metric_str = "| ".join(
-            [f"{meter.name}: {meter.avg:.6f}" for meter in meters.values()]
+            [f"{name}: {value:.6f}" for name, value in metrics.items()]
         )
         self.stdout_logger.info(
             f"{phase} - epoch: {epoch} | step: {step} | metrics: {metric_str}"
@@ -470,7 +432,9 @@ class LocalLogger(RunLogger):
 
         all_logs[phase]["epoch"] = epoch
         all_logs[phase]["step"] = step
-        all_logs[phase]["metrics"] = {name: meter.avg for name, meter in meters.items()}
+        all_logs[phase]["metrics"] = {
+            name: float(value) for name, value in metrics.items()
+        }
 
         with open(log_file, "w") as f:
             json.dump(all_logs, f, indent=2)

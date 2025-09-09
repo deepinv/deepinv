@@ -240,7 +240,7 @@ trainer.model.load_state_dict(ckpt["state_dict"])  # load the state dict
 trainer.optimizer.load_state_dict(ckpt["optimizer"])  # load the optimizer state dict
 
 model = trainer.train()  # train the model
-trainer.plot_images = True
+trainer.log_images = True
 
 
 # %%

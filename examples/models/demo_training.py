@@ -114,12 +114,12 @@ trainer = dinv.Trainer(
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=5,
     losses=dinv.loss.SupLoss(metric=dinv.metric.MSE()),
     metrics=dinv.metric.PSNR(),
     device=device,
-    plot_images=True,
+    log_images=True,
     show_progress_bar=False,
 )
 

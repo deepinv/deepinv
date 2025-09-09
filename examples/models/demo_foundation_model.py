@@ -240,7 +240,7 @@ trainer = dinv.Trainer(
     epochs=max_epochs,
     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
     train_dataloader=train_dataloader,
-    eval_dataloader=eval_dataloader,
+    val_dataloader=eval_dataloader,
 )
 
 finetuned_model = trainer.train()

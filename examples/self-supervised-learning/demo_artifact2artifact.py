@@ -239,7 +239,7 @@ model = trainer.train()
 # ==============
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader)
 
 # %%

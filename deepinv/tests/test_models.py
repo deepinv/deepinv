@@ -841,7 +841,7 @@ def test_varnet(varnet_type, device):
         train_dataloader=DataLoader(DummyMRIDataset()),
         epochs=50,
         save_path=None,
-        plot_images=False,
+        log_images=False,
         compare_no_learning=True,
         device=device,
         optimizer_step_multi_dataset=True,
