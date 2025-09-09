@@ -83,7 +83,7 @@ class XrayTransform:
         """The vertical length of a detector cell."""
         if "vec" in self.projection_geometry["type"]:
             return np.sqrt(
-                (self.projection_geometry["Vectors"][1, [6, 7, 8]] ** 2).sum()
+                (self.projection_geometry["Vectors"][0, [9, 10, 11]] ** 2).sum()
             )
         else:
             return self.projection_geometry["DetectorSpacingY"]
