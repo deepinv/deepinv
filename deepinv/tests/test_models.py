@@ -551,7 +551,9 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension, is_complex=is_complex).to(device)
+    model = dinv.models.WaveletDenoiser(
+        level=1, wvdim=dimension, is_complex=is_complex
+    ).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
         if dimension == 2
@@ -560,9 +562,7 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
     # Test the wavelet decomposition and reconstruction
     x = torch.randn(img_size, dtype=torch.float32).to(device)
     if is_complex:
-        x = torch.view_as_complex(
-            torch.stack((x, torch.randn_like(x)), dim=-1)
-        )
+        x = torch.view_as_complex(torch.stack((x, torch.randn_like(x)), dim=-1))
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)

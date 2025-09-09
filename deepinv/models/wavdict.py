@@ -3,17 +3,20 @@ import torch.nn as nn
 from .base import Denoiser
 from typing import Union, Sequence  # noqa: F401
 
+
 def _get_axes(dimension, is_complex):
     axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
     if is_complex:
         axes = tuple(a - 1 for a in axes)
     return axes
 
+
 def _complexify(x, is_complex):
     """If the input was complex, convert back to complex."""
     if is_complex:
         return torch.view_as_complex(x.contiguous())
     return x
+
 
 def _realify(x, dimension):
     if x.is_complex():
@@ -81,7 +84,6 @@ class WaveletDenoiser(Denoiser):
         self.mode = mode
         self.is_complex = is_complex
         self.axes = _get_axes(self.dimension, is_complex)
-        
 
     def dwt(self, x):
         r"""
@@ -94,11 +96,19 @@ class WaveletDenoiser(Denoiser):
             x = torch.view_as_real(x)
         if self.dimension == 2:
             dec = ptwt.wavedec2(
-                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level, axes=self.axes
+                x,
+                pywt.Wavelet(self.wv),
+                mode=self.mode,
+                level=self.level,
+                axes=self.axes,
             )
         elif self.dimension == 3:
             dec = ptwt.wavedec3(
-                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level, axes=self.axes
+                x,
+                pywt.Wavelet(self.wv),
+                mode=self.mode,
+                level=self.level,
+                axes=self.axes,
             )
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
         dec[0] = _complexify(dec[0], self.is_complex)
@@ -111,12 +121,20 @@ class WaveletDenoiser(Denoiser):
         if self.dimension == 2:
             flat = torch.hstack(
                 [_complexify(dec[0], self.is_complex).flatten()]
-                + [_complexify(decl, self.is_complex).flatten() for l in range(1, len(dec)) for decl in dec[l]]
+                + [
+                    _complexify(decl, self.is_complex).flatten()
+                    for l in range(1, len(dec))
+                    for decl in dec[l]
+                ]
             )
         elif self.dimension == 3:
             flat = torch.hstack(
                 [_complexify(dec[0], self.is_complex).flatten()]
-                + [_complexify(dec[l][key], self.is_complex).flatten() for l in range(1, len(dec)) for key in dec[l]]
+                + [
+                    _complexify(dec[l][key], self.is_complex).flatten()
+                    for l in range(1, len(dec))
+                    for key in dec[l]
+                ]
             )
         return flat
 
@@ -136,14 +154,24 @@ class WaveletDenoiser(Denoiser):
         iscomplex = x.is_complex()
         x, axes = _realify(x, dimension)
         if dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level, axes=axes)
-            dec = list(dec)
-            vec = [_complexify(decl, iscomplex).flatten(1, -1) for l in range(1, len(dec)) for decl in dec[l]]
-        elif dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode=mode, level=level, axes=axes)
+            dec = ptwt.wavedec2(
+                x, pywt.Wavelet(wavelet), mode=mode, level=level, axes=axes
+            )
             dec = list(dec)
             vec = [
-                _complexify(dec[l][key], iscomplex).flatten(1, -1) for l in range(1, len(dec)) for key in dec[l]
+                _complexify(decl, iscomplex).flatten(1, -1)
+                for l in range(1, len(dec))
+                for decl in dec[l]
+            ]
+        elif dimension == 3:
+            dec = ptwt.wavedec3(
+                x, pywt.Wavelet(wavelet), mode=mode, level=level, axes=axes
+            )
+            dec = list(dec)
+            vec = [
+                _complexify(dec[l][key], iscomplex).flatten(1, -1)
+                for l in range(1, len(dec))
+                for key in dec[l]
             ]
         return vec
 
@@ -153,6 +181,7 @@ class WaveletDenoiser(Denoiser):
         """
         import pywt
         import ptwt
+
         if isinstance(coeffs, tuple):
             coeffs = list(coeffs)
         coeffs[0] = _realify(coeffs[0], self.dimension)[0]

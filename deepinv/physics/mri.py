@@ -549,7 +549,6 @@ class DynamicMRI(MRI, TimeMixin):
         )
 
 
-
 class SequentialMRI(DynamicMRI):
     r"""
     Single-coil accelerated magnetic resonance imaging using sequential sampling.
@@ -641,7 +640,7 @@ class NonCartesianMRI(LinearPhysics):
           adjoint (non-Cartesian backprojection). If ``samples`` is [C, M],
           the adjoint usually returns a [C, H, W, D] per-coil image; if it is
           [M], it returns [H, W, D]
-          
+
     **kwargs :
         Ignored here (placeholder to match other DeepInv physics signatures).
 
@@ -701,12 +700,10 @@ class NonCartesianMRI(LinearPhysics):
 
     """
 
-
-    def __init__(self,
-                 E,
-                 **kwargs):
+    def __init__(self, E, **kwargs):
         super().__init__()
         self.E = E
+
     # ---------------- required by DeepInv data-fidelity ---------------
     @torch.no_grad()
     def A(self, x: torch.Tensor) -> torch.Tensor:
