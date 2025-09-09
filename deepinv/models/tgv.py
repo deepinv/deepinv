@@ -53,7 +53,6 @@ class TGVDenoiser(Denoiser):
         self.tau = 0.01  # > 0
 
         self.rho = 1.99  # in 1,2
-        self.sigma = 1 / self.tau / 72
 
         self.x2 = x2
         self.r2 = r2
@@ -85,7 +84,7 @@ class TGVDenoiser(Denoiser):
         r"""
         Computes the proximity operator of the TGV norm.
 
-        :param torch.Tensor y: Noisy image.
+        :param torch.Tensor y: Noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: Regularization parameter.
         :return: Denoised image.
         """
@@ -98,12 +97,17 @@ class TGVDenoiser(Denoiser):
         if restart:
             self.x2 = y.clone()
             self.r2 = torch.zeros(
-                (*self.x2.shape, 2), device=self.x2.device, dtype=self.x2.dtype
+                (*self.x2.shape, y.ndim - 2), device=self.x2.device, dtype=self.x2.dtype
             )
             self.u2 = torch.zeros(
-                (*self.x2.shape, 4), device=self.x2.device, dtype=self.x2.dtype
+                (*self.x2.shape, (y.ndim - 2) ** 2),
+                device=self.x2.device,
+                dtype=self.x2.dtype,
             )
             self.restart = False
+
+        f = 3 if (y.ndim - 2) == 3 else 1
+        self.sigma = 1 / self.tau / (72 * f)
 
         if ths is not None:
             lambda1 = (
@@ -155,7 +159,8 @@ class TGVDenoiser(Denoiser):
                     print("TGV prox reached convergence")
                 break
 
-            if self.verbose and _ % 100 == 0:
+            # if self.verbose and _ % 100 == 0:
+            if True:
                 primalcost = (
                     torch.linalg.norm(x.flatten() - y.flatten()) ** 2
                     + lambda1 * torch.sum(torch.sqrt(torch.sum(r**2, axis=-1)))
@@ -179,7 +184,8 @@ class TGVDenoiser(Denoiser):
                     / 2.0
                 )  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
-                if self.verbose:
+                # if self.verbose:
+                if True:
                     print(
                         "Iter: ",
                         _,
@@ -214,20 +220,61 @@ class TGVDenoiser(Denoiser):
         return TVDenoiser.nabla_adjoint(x)
 
     @staticmethod
-    def epsilon(I):  # Simplified
+    def epsilon(I):
         r"""
         Applies the jacobian of a vector field.
         """
-        b, c, h, w, _ = I.shape
-        G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
-        G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
-        G[..., 0] = G[..., 0] + I[..., 0]
-        G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
-        G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
-        G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
-        G[..., 2] = G[..., 2] + I[..., 1]
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
+        if I.ndim == 5:  # 2D case
+            b, c, h, w, _ = I.shape
+            G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
+            G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # du/dy
+            G[..., 0] = G[..., 0] + I[..., 0]
+            G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # du/dx
+            G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
+            G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # dv/dx
+            G[..., 2] = G[..., 2] + I[..., 1]
+            G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # dv/dy
+            G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
+        elif I.ndim == 6:  # 3D case
+            b, c, d, h, w, _ = I.shape
+            G = torch.zeros((b, c, d, h, w, 9), device=I.device, dtype=I.dtype)
+
+            # du/dz (component 0)
+            G[:, :, 1:, :, :, 0] = G[:, :, 1:, :, :, 0] - I[:, :, :-1, :, :, 0]
+            G[:, :, 1:, :, :, 0] = G[:, :, 1:, :, :, 0] + I[:, :, 1:, :, :, 0]
+
+            # du/dy (component 1)
+            G[:, :, :, 1:, :, 1] = G[:, :, :, 1:, :, 1] - I[:, :, :, :-1, :, 0]
+            G[:, :, :, 1:, :, 1] = G[:, :, :, 1:, :, 1] + I[:, :, :, 1:, :, 0]
+
+            # du/dx (component 2)
+            G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 0]
+            G[..., 1:, 2] = G[..., 1:, 2] + I[..., 1:, 0]
+
+            # dv/dz (component 3)
+            G[:, :, 1:, :, :, 3] = G[:, :, 1:, :, :, 3] - I[:, :, :-1, :, :, 1]
+            G[:, :, 1:, :, :, 3] = G[:, :, 1:, :, :, 3] + I[:, :, 1:, :, :, 1]
+
+            # dv/dy (component 4)
+            G[:, :, :, 1:, :, 4] = G[:, :, :, 1:, :, 4] - I[:, :, :, :-1, :, 1]
+            G[:, :, :, 1:, :, 4] = G[:, :, :, 1:, :, 4] + I[:, :, :, 1:, :, 1]
+
+            # dv/dx (component 5)
+            G[..., 1:, 5] = G[..., 1:, 5] - I[..., :-1, 1]
+            G[..., 1:, 5] = G[..., 1:, 5] + I[..., 1:, 1]
+
+            # dw/dz (component 6)
+            G[:, :, 1:, :, :, 6] = G[:, :, 1:, :, :, 6] - I[:, :, :-1, :, :, 2]
+            G[:, :, 1:, :, :, 6] = G[:, :, 1:, :, :, 6] + I[:, :, 1:, :, :, 2]
+
+            # dw/dy (component 7)
+            G[:, :, :, 1:, :, 7] = G[:, :, :, 1:, :, 7] - I[:, :, :, :-1, :, 2]
+            G[:, :, :, 1:, :, 7] = G[:, :, :, 1:, :, 7] + I[:, :, :, 1:, :, 2]
+
+            # dw/dx (component 8)
+            G[..., 1:, 8] = G[..., 1:, 8] - I[..., :-1, 2]
+            G[..., 1:, 8] = G[..., 1:, 8] + I[..., 1:, 2]
+
         return G
 
     @staticmethod
@@ -235,14 +282,55 @@ class TGVDenoiser(Denoiser):
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """
-        b, c, h, w, _ = G.shape
-        I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
-        I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
-        I[..., 0] = I[..., 0] + G[..., 0]
-        I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
-        I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
-        I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
-        I[..., 1] = I[..., 1] + G[..., 2]
-        I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
-        I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
+        if G.ndim == 5:  # 2D case
+            b, c, h, w, _ = G.shape
+            I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
+            I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
+            I[..., 0] = I[..., 0] + G[..., 0]
+            I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
+            I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
+            I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
+            I[..., 1] = I[..., 1] + G[..., 2]
+            I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
+            I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
+        elif G.ndim == 6:  # 3D case
+            b, c, d, h, w, _ = G.shape
+            I = torch.zeros((b, c, d, h, w, 3), device=G.device, dtype=G.dtype)
+
+            # Adjoint of du/dz (from component 0)
+            I[:, :, :-1, :, :, 0] = I[:, :, :-1, :, :, 0] - G[:, :, 1:, :, :, 0]
+            I[:, :, 1:, :, :, 0] = I[:, :, 1:, :, :, 0] + G[:, :, 1:, :, :, 0]
+
+            # Adjoint of du/dy (from component 1)
+            I[:, :, :, :-1, :, 0] = I[:, :, :, :-1, :, 0] - G[:, :, :, 1:, :, 1]
+            I[:, :, :, 1:, :, 0] = I[:, :, :, 1:, :, 0] + G[:, :, :, 1:, :, 1]
+
+            # Adjoint of du/dx (from component 2)
+            I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 2]
+            I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 2]
+
+            # Adjoint of dv/dz (from component 3)
+            I[:, :, :-1, :, :, 1] = I[:, :, :-1, :, :, 1] - G[:, :, 1:, :, :, 3]
+            I[:, :, 1:, :, :, 1] = I[:, :, 1:, :, :, 1] + G[:, :, 1:, :, :, 3]
+
+            # Adjoint of dv/dy (from component 4)
+            I[:, :, :, :-1, :, 1] = I[:, :, :, :-1, :, 1] - G[:, :, :, 1:, :, 4]
+            I[:, :, :, 1:, :, 1] = I[:, :, :, 1:, :, 1] + G[:, :, :, 1:, :, 4]
+
+            # Adjoint of dv/dx (from component 5)
+            I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 5]
+            I[..., 1:, 1] = I[..., 1:, 1] + G[..., 1:, 5]
+
+            # Adjoint of dw/dz (from component 6)
+            I[:, :, :-1, :, :, 2] = I[:, :, :-1, :, :, 2] - G[:, :, 1:, :, :, 6]
+            I[:, :, 1:, :, :, 2] = I[:, :, 1:, :, :, 2] + G[:, :, 1:, :, :, 6]
+
+            # Adjoint of dw/dy (from component 7)
+            I[:, :, :, :-1, :, 2] = I[:, :, :, :-1, :, 2] - G[:, :, :, 1:, :, 7]
+            I[:, :, :, 1:, :, 2] = I[:, :, :, 1:, :, 2] + G[:, :, :, 1:, :, 7]
+
+            # Adjoint of dw/dx (from component 8)
+            I[..., :-1, 2] = I[..., :-1, 2] - G[..., 1:, 8]
+            I[..., 1:, 2] = I[..., 1:, 2] + G[..., 1:, 8]
+
         return I

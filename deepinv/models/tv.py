@@ -59,7 +59,6 @@ class TVDenoiser(Denoiser):
 
         self.tau = tau
         self.rho = rho
-        self.sigma = 1 / self.tau / 8
 
         self.x2 = x2
         self.u2 = u2
@@ -84,7 +83,7 @@ class TVDenoiser(Denoiser):
         r"""
         Computes the proximity operator of the TV norm.
 
-        :param torch.Tensor y: Noisy image.
+        :param torch.Tensor y: Noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: Regularization parameter :math:`\gamma`.
         :return: Denoised image.
         """
@@ -102,11 +101,15 @@ class TVDenoiser(Denoiser):
 
         if restart:
             x2 = y.clone()
-            u2 = torch.zeros((*y.shape, 2), device=y.device).type(y.dtype)
+            u2 = torch.zeros((*y.shape, y.ndim - 2), device=y.device).type(y.dtype)
             self.restart = False
         else:
             x2 = self.x2.clone()
             u2 = self.u2.clone()
+
+        self.sigma = (
+            1 / self.tau / 2 ** (y.ndim - 1)
+        )  # square of the Lipschitz constant of nabla
 
         if ths is not None:
             lambd = self._handle_sigma(
@@ -138,14 +141,24 @@ class TVDenoiser(Denoiser):
     @staticmethod
     def nabla(x):
         r"""
-        Applies the finite differences operator associated with tensors of the same shape as x.
+        Applies the finite differences operator associated with tensors of the same shape as x, in either 2D or 3D.
         """
-        b, c, h, w = x.shape
-        u = torch.zeros((b, c, h, w, 2), device=x.device).type(x.dtype)
-        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] - x[:, :, :-1]
-        u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] + x[:, :, 1:]
-        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] - x[..., :-1]
-        u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
+        if x.ndim == 4:
+            b, c, h, w = x.shape
+            u = torch.zeros((b, c, h, w, 2), device=x.device).type(x.dtype)
+            u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] - x[:, :, :-1]
+            u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] + x[:, :, 1:]
+            u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] - x[..., :-1]
+            u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] + x[..., 1:]
+        elif x.ndim == 5:
+            b, c, d, h, w = x.shape
+            u = torch.zeros((b, c, d, h, w, 3), device=x.device).type(x.dtype)
+            u[:, :, :-1, :, :, 0] = u[:, :, :-1, :, :, 0] - x[:, :, :-1]
+            u[:, :, :-1, :, :, 0] = u[:, :, :-1, :, :, 0] + x[:, :, 1:]
+            u[:, :, :, :-1, :, 1] = u[:, :, :, :-1, :, 1] - x[:, :, :, :-1]
+            u[:, :, :, :-1, :, 1] = u[:, :, :, :-1, :, 1] + x[:, :, :, 1:]
+            u[:, :, :, :, :-1, 2] = u[:, :, :, :, :-1, 2] - x[..., :-1]
+            u[:, :, :, :, :-1, 2] = u[:, :, :, :, :-1, 2] + x[..., 1:]
         return u
 
     @staticmethod
@@ -153,12 +166,24 @@ class TVDenoiser(Denoiser):
         r"""
         Applies the adjoint of the finite difference operator.
         """
-        b, c, h, w = x.shape[:-1]
-        u = torch.zeros((b, c, h, w), device=x.device).type(
-            x.dtype
-        )  # note that we just reversed left and right sides of each line to obtain the transposed operator
-        u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, 0]
-        u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, 0]
-        u[..., :-1] = u[..., :-1] - x[..., :-1, 1]
-        u[..., 1:] = u[..., 1:] + x[..., :-1, 1]
+        if x.ndim == 5:
+            b, c, h, w = x.shape[:-1]
+            u = torch.zeros((b, c, h, w), device=x.device).type(
+                x.dtype
+            )  # note that we just reversed left and right sides of each line to obtain the transposed operator
+            u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, 0]
+            u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, 0]
+            u[..., :-1] = u[..., :-1] - x[..., :-1, 1]
+            u[..., 1:] = u[..., 1:] + x[..., :-1, 1]
+        elif x.ndim == 6:
+            b, c, d, h, w = x.shape[:-1]
+            u = torch.zeros((b, c, d, h, w), device=x.device).type(
+                x.dtype
+            )  # note that we just reversed left and right sides of each line to obtain the transposed operator
+            u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, :, 0]
+            u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, :, 0]
+            u[:, :, :, :-1] = u[:, :, :, :-1] - x[:, :, :, :-1, :, 1]
+            u[:, :, :, 1:] = u[:, :, :, 1:] + x[:, :, :, :-1, :, 1]
+            u[..., :-1] = u[..., :-1] - x[:, :, :, :, :-1, 2]
+            u[..., 1:] = u[..., 1:] + x[:, :, :, :, :-1, 2]
         return u
