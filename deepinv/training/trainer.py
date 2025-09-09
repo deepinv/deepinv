@@ -15,6 +15,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
+from deepinv.training.run_logger import RunLogger, LocalLogger
 import inspect
 
 
@@ -198,7 +199,6 @@ class Trainer:
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
     """
 
     model: torch.nn.Module
@@ -225,12 +225,10 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
-    wandb_vis: bool = False
-    wandb_setup: dict = field(default_factory=dict)
+    loggers: list[RunLogger] = [LocalLogger(log_dir="./logs")]
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
-    freq_plot: int = None
     plot_images: bool = False
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
@@ -266,21 +264,6 @@ class Trainer:
 
         self.G = len(self.train_dataloader)
 
-        if self.freq_plot is not None:
-            warnings.warn(
-                "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
-            )
-            self.plot_interval = self.freq_plot
-
-        if (
-            self.wandb_setup != {}
-            and self.wandb_setup is not None
-            and not self.wandb_vis
-        ):
-            warnings.warn(
-                "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
-            )
-
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
@@ -297,12 +280,6 @@ class Trainer:
         self.epoch_start = 0
 
         self.conv_metrics = None
-        # wandb initialization
-        if self.wandb_vis:
-            import wandb
-
-            if wandb.run is None:
-                wandb.init(**self.wandb_setup)
 
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
@@ -314,37 +291,37 @@ class Trainer:
             self.metrics = [self.metrics]
 
         # losses
-        self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
-        self.logs_losses_train = [
+        self.meter_total_loss_train = AverageMeter("Training loss", ":.2e")
+        self.meters_losses_train = [
             AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
             for l in self.losses
         ]
 
-        self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
-        self.logs_losses_eval = [
+        self.meter_total_loss_val = AverageMeter("Validation loss", ":.2e")
+        self.meters_losses_val = [
             AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
             for l in self.losses
         ]
 
         # metrics
-        self.logs_metrics_train = [
+        self.meters_metrics_train = [
             AverageMeter("Training metric " + l.__class__.__name__, ":.2e")
             for l in self.metrics
         ]
 
-        self.logs_metrics_eval = [
+        self.meters_metrics_val = [
             AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
             for l in self.metrics
         ]
         if self.compare_no_learning:
-            self.logs_metrics_no_learning = [
+            self.meters_metrics_no_learning = [
                 AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
                 for l in self.metrics
             ]
 
-        self.eval_metrics_history = {}
+        self.val_metrics_history_per_epoch = {}
         for l in self.metrics:
-            self.eval_metrics_history[l.__class__.__name__] = []
+            self.val_metrics_history_per_epoch[l.__class__.__name__] = []
 
         # gradient clipping
         if train and self.check_grad:
@@ -382,6 +359,12 @@ class Trainer:
 
         _ = self.load_model()
 
+        # Init loggers
+        for logger in self.loggers:
+            if not isinstance(logger, RunLogger):
+                raise ValueError("loggers should be a list of RunLogger instances.")
+            logger.start_run(hyperparams={})
+
     def load_model(
         self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
     ) -> dict:
@@ -406,33 +389,13 @@ class Trainer:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             if "scheduler" in checkpoint and self.scheduler is not None:
                 self.scheduler.load_state_dict(checkpoint["scheduler"])
-            if "wandb_id" in checkpoint and self.wandb_vis:
-                self.wandb_setup["id"] = checkpoint["wandb_id"]
-                self.wandb_setup["resume"] = "allow"
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
+
+            for logger in self.loggers:
+                logger.load_from_checkpoint(checkpoint)
+
             return checkpoint
-
-    def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
-        r"""
-        Log the metrics to wandb.
-
-        It logs the metrics to wandb.
-
-        :param dict logs: Dictionary containing the metrics to log.
-        :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
-        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
-        """
-        if step is None:
-            raise ValueError("wandb logging step must be specified.")
-
-        if not train:
-            logs = {"Eval " + str(key): val for key, val in logs.items()}
-
-        if self.wandb_vis:
-            import wandb
-
-            wandb.log(logs, step=step)
 
     def check_clip_grad(self):
         r"""
@@ -651,12 +614,14 @@ class Trainer:
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     meters = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                        self.meters_losses_train[k]
+                        if train
+                        else self.meters_losses_val[k]
                     )
                     meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
-            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters = self.meter_total_loss_train if train else self.meter_total_loss_val
             meters.update(loss_total.item())
             logs[f"TotalLoss"] = meters.avg
         else:  # TODO question: what do we want to do at test time?
@@ -703,7 +668,9 @@ class Trainer:
                 )
 
                 current_log = (
-                    self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
+                    self.meters_metrics_train[k]
+                    if train
+                    else self.meters_metrics_val[k]
                 )
                 current_log.update(metric.detach().cpu().numpy())
                 logs[l.__class__.__name__] = current_log.avg
@@ -711,11 +678,11 @@ class Trainer:
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
                     metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
-                    self.logs_metrics_no_learning[k].update(
+                    self.meters_metrics_no_learning[k].update(
                         metric.detach().cpu().numpy()
                     )
                     logs[f"{l.__class__.__name__} no learning"] = (
-                        self.logs_metrics_no_learning[k].avg
+                        self.meters_metrics_no_learning[k].avg
                     )
         return logs
 
@@ -794,7 +761,7 @@ class Trainer:
             )
 
             # Compute loss and perform backprop
-            loss_cur, x_net, logs = self.compute_loss(
+            loss_cur, x_net, log_losses = self.compute_loss(
                 physics_cur,
                 x,
                 y,
@@ -808,41 +775,39 @@ class Trainer:
             x_net = x_net.detach()
 
             # Log metrics
-            logs = self.compute_metrics(
-                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+            log_metrics = self.compute_metrics(
+                x, x_net, y, physics_cur, {}, train=train, epoch=epoch
             )
 
             # Update the progress bar
-            progress_bar.set_postfix(logs)
+            progress_bar.set_postfix(log_metrics)
 
         if self.log_train_batch and train:
-            self.log_metrics_wandb(logs, step=train_ite, train=train)
+            for logger in self.loggers:
+                logger.log_metrics(
+                    log_metrics, step=train_ite, epoch=epoch, phase="train"
+                )
+                logger.log_losses(
+                    log_losses, step=train_ite, epoch=epoch, phase="train"
+                )
 
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
 
         if last_batch:
-            if self.verbose and not self.show_progress_bar:
-                if self.verbose_individual_losses:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
-                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
-                    )
-                else:
-                    print(
-                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
-                    )
-
             if self.log_train_batch and train:
-                logs["step"] = train_ite
+                for logger in self.loggers:
+                    logger.log_metrics(log_metrics, step=train_ite, phase="train")
+                    logger.log_losses(log_losses, step=train_ite, phase="train")
             elif train:
-                logs["step"] = epoch
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                for logger in self.loggers:
+                    logger.log_metrics(log_metrics, epoch=epoch, phase="train")
             elif self.log_train_batch:  # train=False
-                logs["step"] = train_ite
-                self.log_metrics_wandb(logs, step=train_ite, train=train)
+                for logger in self.loggers:
+                    logger.log_metrics(log_metrics, step=train_ite, phase="val")
             else:
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                for logger in self.loggers:
+                    logger.log_metrics(log_metrics, epoch=epoch, phase="val")
 
             self.plot(
                 epoch,
@@ -888,36 +853,19 @@ class Trainer:
                 rescale_mode=self.rescale_mode,
             )
 
-            if self.wandb_vis:
-                import wandb
-
-                log_dict_post_epoch = {}
-                images = wandb.Image(
-                    grid_image,
-                    caption=caption,
+            dict_imgs = {t: im for t, im in zip(titles, imgs)}
+            for logger in self.loggers:
+                logger.log_images(
+                    dict_imgs, epoch=epoch, phase="train" if train else "val"
                 )
-                log_dict_post_epoch[post_str + " samples"] = images
-                log_dict_post_epoch["step"] = epoch
-                wandb.log(log_dict_post_epoch, step=epoch)
 
-        if save_images:
-            # save images
-            for k, img in enumerate(imgs):
-                for i in range(img.size(0)):
-                    img_name = f"{self.save_folder_im}/{titles[k]}/"
-                    # make dir
-                    Path(img_name).mkdir(parents=True, exist_ok=True)
-                    save_image(img, img_name + f"{self.img_counter + i}.png")
-
-                self.img_counter += len(imgs[0])
-
-        if self.conv_metrics is not None:
-            plot_curves(
-                self.conv_metrics,
-                save_dir=f"{self.save_folder_im}/convergence_metrics/",
-                show=True,
-            )
-            self.conv_metrics = None
+        # if self.conv_metrics is not None:
+        #     plot_curves(
+        #         self.conv_metrics,
+        #         save_dir=f"{self.save_folder_im}/convergence_metrics/",
+        #         show=True,
+        #     )
+        #     self.conv_metrics = None
 
     def save_model(self, filename, epoch, state=None):
         r"""
@@ -943,16 +891,10 @@ class Trainer:
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
         }
-        state["eval_metrics"] = self.eval_metrics_history
-        if self.wandb_vis:
-            import wandb
+        state["eval_metrics"] = self.val_metrics_history_per_epoch
 
-            state["wandb_id"] = wandb.run.id
-
-        torch.save(
-            state,
-            Path(self.save_path) / Path(filename),
-        )
+        for logger in self.loggers:
+            logger.log_checkpoint(epoch=epoch, state=state)
 
     def reset_metrics(self):
         r"""
@@ -960,19 +902,19 @@ class Trainer:
         """
         self.img_counter = 0
 
-        self.logs_total_loss_train.reset()
-        self.logs_total_loss_eval.reset()
+        self.meter_total_loss_train.reset()
+        self.meter_total_loss_val.reset()
 
-        for l in self.logs_losses_train:
+        for l in self.meters_losses_train:
             l.reset()
 
-        for l in self.logs_losses_eval:
+        for l in self.meters_losses_val:
             l.reset()
 
-        for l in self.logs_metrics_train:
+        for l in self.meters_metrics_train:
             l.reset()
 
-        for l in self.logs_metrics_eval:
+        for l in self.meters_metrics_val:
             l.reset()
 
         if hasattr(self, "check_grad_val"):
@@ -989,7 +931,7 @@ class Trainer:
             number of batches) + current batch within epoch
         """
         k = 0  # index of the first metric
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+        history = self.val_metrics_history_per_epoch[self.metrics[k].__class__.__name__]
         lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
@@ -1036,7 +978,7 @@ class Trainer:
         """
         k = 0  # use first metric
 
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+        history = self.val_metrics_history_per_epoch[self.metrics[k].__class__.__name__]
         lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
@@ -1150,8 +1092,8 @@ class Trainer:
                         )
 
                     for k in range(len(self.metrics)):
-                        metric = self.logs_metrics_eval[k].avg
-                        self.eval_metrics_history[
+                        metric = self.meters_metrics_val[k].avg
+                        self.val_metrics_history_per_epoch[
                             self.metrics[k].__class__.__name__
                         ].append(
                             metric
@@ -1168,7 +1110,7 @@ class Trainer:
                     progress_bar.close()
                     break
 
-            self.loss_history.append(self.logs_total_loss_train.avg)
+            self.loss_history.append(self.meter_total_loss_train.avg)
 
             if self.scheduler:
                 self.scheduler.step()
@@ -1181,11 +1123,8 @@ class Trainer:
             if stop_flag:
                 break
 
-        if self.wandb_vis:
-            import wandb
-
-            wandb.save("model.h5")
-            wandb.finish()
+        for logger in self.loggers:
+            logger.finish_run()
 
         return self.model
 
@@ -1210,8 +1149,6 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = (self.wandb_vis, self.log_train_batch)
-        self.wandb_vis = False
         self.log_train_batch = False
 
         self.reset_metrics()
@@ -1237,22 +1174,20 @@ class Trainer:
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        self.wandb_vis, self.log_train_batch = aux
-
         if self.verbose:
             print("Test results:")
 
         out = {}
-        for k, l in enumerate(self.logs_metrics_eval):
+        for k, l in enumerate(self.meters_metrics_val):
             if compare_no_learning:
                 name = self.metrics[k].__class__.__name__ + " no learning"
-                out[name] = self.logs_metrics_no_learning[k].avg
-                out[name + "_std"] = self.logs_metrics_no_learning[k].std
+                out[name] = self.meters_metrics_no_learning[k].avg
+                out[name + "_std"] = self.meters_metrics_no_learning[k].std
                 if log_raw_metrics:
-                    out[name + "_vals"] = self.logs_metrics_no_learning[k].vals
+                    out[name + "_vals"] = self.meters_metrics_no_learning[k].vals
                 if self.verbose:
                     print(
-                        f"{name}: {self.logs_metrics_no_learning[k].avg:.3f} +- {self.logs_metrics_no_learning[k].std:.3f}"
+                        f"{name}: {self.meters_metrics_no_learning[k].avg:.3f} +- {self.meters_metrics_no_learning[k].std:.3f}"
                     )
 
             name = self.metrics[k].__class__.__name__
