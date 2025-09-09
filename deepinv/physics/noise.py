@@ -921,3 +921,62 @@ def _infer_device(
         )
 
     return input_devices.pop() if input_devices else default
+
+
+class SpeckleNoise(NoiseModel):
+    r"""
+    Speckle noise :math:`y = x\mathrm{e}^{i\phi}` where :math:`\phi\sim \mathcal{U}(-\pi, \pi)`.
+
+    Add a random phase to a real signal to add noise to the measurement.
+    Distribution for modelling speckle noise (e.g. SAR intensities).
+    """
+
+    def __init__(self, rng: torch.Generator = None):
+        super().__init__(rng=rng)
+
+    def forward(self, x, seed: int = None, **kwargs):
+        r"""
+        Adds the noise to measurements x, by adding a random phase drawn according a
+        uniform distribution in :math:`[-\pi, \pi]`.
+
+        :param torch.Tensor x: real measurements
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+        :returns: complex noisy measurements
+        """
+        self.rng_manual_seed(seed)
+        self.to(x.device)
+        phase = 2 * torch.pi * self.rand_like(x, seed=seed) - torch.pi
+        x = x * torch.exp(1j * phase)
+        return x
+
+
+class FisherTippettNoise(NoiseModel):
+    r"""
+    Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+    Distribution for modelling the noise of log-intensities images in SAR imaging.
+
+    .. warning:: This noise model does not support the random number generator.
+
+    :param float, torch.Tensor l: noise level.
+    """
+
+    def __init__(self, l=1.0):
+        super().__init__(rng=None)
+        if isinstance(l, int):
+            l = float(l)
+        self.register_buffer("l", self._float_to_tensor(l))
+
+    def forward(self, x, l=None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements (log-intensities)
+        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :returns: noisy measurements (log-intensities)
+        """
+        self.update_parameters(l=l, **kwargs)
+        self.to(x.device)
+        x = torch.exp(x)
+        gamma = GammaNoise(self.l)
+        return torch.log(gamma(x))

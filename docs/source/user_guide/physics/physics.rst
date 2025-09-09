@@ -174,5 +174,11 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
    * - :class:`deepinv.physics.SaltPepperNoise`
      - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
 
-   * - :class:`deepinv.physics.ZeroNoise`
-     - :math:`y = z`
+   * - :class:`deepinv.physics.GammaNoise`
+     - :math:`y = \mathcal{G}(\ell, x/\ell)`
+  
+   * - :class:`deepinv.physics.SpeckleNoise`
+     - :math:`y = x\mathrm{e}^{i\phi}`, :math:`\phi\sim \mathcal{U}(-\pi, \pi)`
+
+   * - :class:`deepinv.physics.FisherTippettNoise`
+     - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
