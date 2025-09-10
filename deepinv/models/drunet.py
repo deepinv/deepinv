@@ -2,6 +2,7 @@
 
 import torch
 from .utils import get_weights_url, test_onesplit, test_pad
+from ..physics.mri import MRIMixin
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
 
@@ -39,6 +40,7 @@ class DRUNet(torch.nn.Module):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode.
     :param str device: gpu or cpu.
+    :param int dim: dimension of the input data, can be either 2 or 3.
 
     """
 
@@ -59,7 +61,6 @@ class DRUNet(torch.nn.Module):
         super(DRUNet, self).__init__()
         in_channels = in_channels + 1  # accounts for the input noise channel
         self.dim = dim
-
         self.m_head = conv(in_channels, nc[0], bias=False, mode="C", dim=dim)
 
         # downsample
@@ -219,6 +220,9 @@ class DRUNet(torch.nn.Module):
                     )
                     * sigma
                 )
+        complex_input = False
+        if x.is_complex():
+            x =  MRIMixin.from_torch_complex(x)
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
             x.size(2) % 8 == 0
@@ -231,6 +235,8 @@ class DRUNet(torch.nn.Module):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)
+        if complex_input:
+            x = MRIMixin.to_torch_complex(x)
         return x
 
 
