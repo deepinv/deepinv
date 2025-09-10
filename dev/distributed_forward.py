@@ -98,16 +98,27 @@ def init_distributed():
     # Check if running in distributed mode
     if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
         if not dist.is_initialized():
-            dist.init_process_group(backend="nccl")
+            # Choose backend based on availability
+            if torch.cuda.is_available() and torch.distributed.is_nccl_available():
+                backend = "nccl"
+            else:
+                backend = "gloo"  # Fallback for CPU or systems without NCCL
+
+            print(f"Initializing distributed training with backend: {backend}")
+            dist.init_process_group(backend=backend)
 
         rank = dist.get_rank()
         world_size = dist.get_world_size()
         local_rank = int(os.environ.get("LOCAL_RANK", rank))
 
-        torch.cuda.set_device(local_rank)
-        device = torch.device(f"cuda:{local_rank}")
+        # Set device based on availability
+        if torch.cuda.is_available():
+            torch.cuda.set_device(local_rank)
+            device = torch.device(f"cuda:{local_rank}")
+        else:
+            device = torch.device("cpu")
     else:
-        # Single GPU mode
+        # Single GPU/CPU mode
         rank = 0
         world_size = 1
         local_rank = 0
@@ -203,16 +214,15 @@ def load_real_data_unified(data_dir, device, rank, world_size, num_operators=Non
     # Load UV coordinates
     uv = np.load(uv_file, allow_pickle=True)
     uv = torch.from_numpy(uv).to(device).float()  # Ensure float32
-
-    # Ensure UV coordinates are in shape (2, N)
-    if uv.shape[0] != 2:
-        uv = uv.permute(1, 0)
+    # UV coordinates need to be transposed to (2, N) for RadioInterferometry
+    if uv.shape[1] == 2:
+        uv = uv.transpose(0, 1)  # Convert from (N, 2) to (2, N)
 
     # Load Briggs weights
     briggs_weight = np.load(weights_file, allow_pickle=True)
     briggs_weight = (
-        torch.from_numpy(briggs_weight).reshape(1, 1, -1).to(device).float()
-    )  # Ensure float32
+        torch.from_numpy(briggs_weight).to(device).float().squeeze()
+    )  # Remove singleton dimensions
 
     # Noise parameters from the demo
     tau = 0.5976 * 2e-3
@@ -235,14 +245,14 @@ def load_real_data_unified(data_dir, device, rank, world_size, num_operators=Non
     y_full = y_full + tau * noise.to(y_full.dtype)  # Ensure same dtype
 
     # Apply weighting (following the demo)
-    y_full *= briggs_weight.squeeze() / tau
-    weights_full = (briggs_weight.squeeze() / tau).to(y_full.dtype)  # Ensure same dtype
+    y_full *= briggs_weight / tau
+    weights_full = (briggs_weight / tau).to(y_full.dtype)  # Ensure same dtype
 
     # Determine number of operators to create
     if num_operators is None:
         num_operators = world_size
 
-    total_measurements = uv.shape[1]
+    total_measurements = uv.shape[1]  # UV coords are (2, N), so N is uv.shape[1]
     measurements_per_operator = total_measurements // num_operators
 
     if rank == 0:
@@ -264,10 +274,10 @@ def load_real_data_unified(data_dir, device, rank, world_size, num_operators=Non
             end_idx = (i + 1) * measurements_per_operator
 
         # Extract subset of UV coordinates and measurements
-        uv_subset = uv[:, start_idx:end_idx]
-        y_subset = y_full.squeeze()[
-            start_idx:end_idx
-        ]  # Remove batch/channel dims and slice
+        uv_subset = uv[:, start_idx:end_idx]  # UV coords are (2, N)
+        y_subset = y_full[
+            :, :, start_idx:end_idx
+        ]  # Keep batch+channel dimension, subset measurements
         weights_subset = weights_full[start_idx:end_idx]
 
         # Create physics operator for this subset
@@ -468,16 +478,15 @@ def main():
 
     # Problem configuration
     img_shape = (256, 256)  # Image size
-    num_operators = 10  # Total number of physics operators (for synthetic data)
+    num_operators = 4  # Total number of physics operators (for synthetic data)
     use_real_data = True  # Set to True to load real data
     use_unified_data = (
         True  # Set to True to use unified data loading (load_real_data_unified)
     )
-    data_dir = "radio_data"  # Directory containing real data files
+    data_dir = "./"  # Directory containing real data files
 
     if rank == 0:
         print(f"Running distributed radio interferometry with {world_size} GPUs")
-        print(f"Image shape: {img_shape}")
         if use_real_data:
             if use_unified_data:
                 print(f"Loading unified real data from: {data_dir}")
@@ -496,8 +505,13 @@ def main():
                 physics_list, y_list, x_true = load_real_data_unified(
                     data_dir, device, rank, world_size, num_operators
                 )
+                # Update img_shape from loaded data
+                img_shape = x_true.shape[-2:]
             else:
                 physics_list, y_list, x_true = load_real_data(data_dir, device, rank)
+                # Update img_shape from loaded data
+                if x_true is not None:
+                    img_shape = x_true.shape[-2:]
         except (FileNotFoundError, ValueError) as e:
             if rank == 0:
                 print(f"Error loading real data: {e}")
@@ -511,6 +525,7 @@ def main():
         )
 
     if rank == 0:
+        print(f"Image shape: {img_shape}")
         print(f"Total physics operators: {len(physics_list)}")
 
     # Distribute data across GPUs
@@ -525,37 +540,36 @@ def main():
 
     # Wrap with DDP only in distributed mode
     if world_size > 1:
-        ddp_model = DDP(
-            model,
-            device_ids=[local_rank],
-            output_device=local_rank,
-            broadcast_buffers=False,  # Don't sync physics operators/measurements
-            find_unused_parameters=False,
-            static_graph=True,
-        )
+        if torch.cuda.is_available():
+            # GPU mode: specify device_ids and output_device
+            ddp_model = DDP(
+                model,
+                device_ids=[local_rank],
+                output_device=local_rank,
+                broadcast_buffers=False,  # Don't sync physics operators/measurements
+                find_unused_parameters=False,
+                static_graph=True,
+            )
+        else:
+            # CPU mode: don't specify device_ids
+            ddp_model = DDP(
+                model,
+                broadcast_buffers=False,  # Don't sync physics operators/measurements
+                find_unused_parameters=False,
+                static_graph=True,
+            )
     else:
-        # Single GPU mode - no DDP needed
+        # Single GPU/CPU mode - no DDP needed
         ddp_model = model
 
-    # Initialize x with a simple guess (e.g., zeros or backprojection)
+    # Initialize x with a simple guess (e.g., zeros)
     with torch.no_grad():
-        if len(local_physics) > 0:
-            # Initialize with average backprojection from local data
-            if world_size > 1:
-                backproj_sum = torch.zeros_like(ddp_model.module.x)
-                for physics, y in zip(local_physics, local_y):
-                    backproj_sum += physics.A_adjoint(y)
-                ddp_model.module.x.data = backproj_sum / len(local_physics)
-            else:
-                backproj_sum = torch.zeros_like(ddp_model.x)
-                for physics, y in zip(local_physics, local_y):
-                    backproj_sum += physics.A_adjoint(y)
-                ddp_model.x.data = backproj_sum / len(local_physics)
+        # Skip backprojection initialization for now due to weight size issues
+        # Just initialize with zeros
+        if world_size > 1:
+            ddp_model.module.x.data.zero_()
         else:
-            if world_size > 1:
-                ddp_model.module.x.data.zero_()
-            else:
-                ddp_model.x.data.zero_()
+            ddp_model.x.data.zero_()
 
     # Ensure x is synchronized across all ranks (only in distributed mode)
     if world_size > 1:
@@ -564,12 +578,14 @@ def main():
 
     # Optimizer (only optimizes x, the shared parameter)
     if world_size > 1:
-        optimizer = torch.optim.SGD([ddp_model.module.x], lr=1e-3)
+        optimizer = torch.optim.SGD(
+            [ddp_model.module.x], lr=1e-3
+        )  # Lower LR for real data
     else:
-        optimizer = torch.optim.SGD([ddp_model.x], lr=1e-3)
+        optimizer = torch.optim.SGD([ddp_model.x], lr=1e-3)  # Lower LR for real data
 
     # Training loop
-    num_iterations = 100
+    num_iterations = 50  # Quick test
 
     for iteration in range(num_iterations):
         optimizer.zero_grad()
@@ -579,6 +595,12 @@ def main():
 
         # Backward pass: DDP automatically reduces gradients
         loss.backward()
+
+        # Gradient clipping for numerical stability
+        if world_size > 1:
+            torch.nn.utils.clip_grad_norm_(ddp_model.module.x, max_norm=1.0)
+        else:
+            torch.nn.utils.clip_grad_norm_(ddp_model.x, max_norm=1.0)
 
         # Optimization step
         optimizer.step()
@@ -635,77 +657,6 @@ def main():
     # Cleanup
     if world_size > 1 and dist.is_initialized():
         dist.destroy_process_group()
-
-
-if __name__ == "__main__":
-    main()
-import os
-import torch
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.nn as nn
-import deepinv as dinv
-import numpy as np
-
-from deepinv.physics.radio import RadioInterferometry
-
-# ----- Option A: explicit matrices (dense example) -----
-# Each A_i: [m_i, n] ; each y_i: [m_i]
-# If you have operators as callables, see Option B below.
-
-
-class LocalLeastSquares(nn.Module):
-    """
-    Holds a shared parameter x and a *local* pool of (A_i, y_i) that live on this GPU.
-    Only x is a parameter -> only x is synchronized/reduced by DDP.
-    A_i, y_i are registered as buffers and will NOT be broadcast because we set broadcast_buffers=False in DDP.
-    """
-
-    def __init__(self, n, A_list, y_list, device):
-        super().__init__()
-        self.x = nn.Parameter(
-            torch.zeros(n, device=device)
-        )  # shared across all ranks via DDP
-        # Keep local operators/data as buffers (no grad, persistent on device, reused every step)
-
-        # Use buffers so DDP doesn't treat them as params; they won’t be synced.
-        # We keep simple Python lists and register each tensor as a buffer.
-        self.A_list = nn.ModuleList()  # container to keep them attached to module
-        for A, y in zip(A_list, y_list):
-            mod = nn.Module()
-            mod.register_buffer("A", A.to(device, non_blocking=True))
-            mod.register_buffer("y", y.to(device, non_blocking=True))
-            self.A_list.append(mod)
-
-    def forward(self):
-        # 1/2 * sum_i ||A_i x - y_i||^2   -> grad wrt x is sum_i A_i^T(A_i x - y_i)
-        loss = torch.zeros((), device=self.x.device)
-        x = self.x
-        for mod in self.A_list:
-            r = mod.A @ x - mod.y
-            loss = loss + 0.5 * (r @ r)
-        return loss / len(self.A_list)  # optional scaling
-
-
-def init_distributed():
-    dist.init_process_group(backend="nccl")
-    rank = dist.get_rank()
-    world_size = dist.get_world_size()
-    torch.cuda.set_device(rank % torch.cuda.device_count())
-    device = torch.device("cuda", rank % torch.cuda.device_count())
-    return rank, world_size, device
-
-
-def shard_operators_globally(A_all, y_all, rank, world_size):
-    # Simple static sharding: each rank gets a contiguous slice
-
-    # Split dataset!
-
-    N = len(A_all)
-    per = (N + world_size - 1) // world_size
-    i0 = rank * per
-    i1 = min((rank + 1) * per, N)
-    return A_all[i0:i1], y_all[i0:i1]
 
 
 if __name__ == "__main__":
