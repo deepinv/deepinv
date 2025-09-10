@@ -1,5 +1,5 @@
 import torch
-import torch_dct as dct
+
 
 from deepinv.physics.forward import Physics
 import torch.nn.functional as F
@@ -58,90 +58,5 @@ class SpatialUnwrapping(Physics):
     def A(self, x):
         return self.B(x, self.threshold)
 
-    def finite_differences(self, x):
-        # apply spatial finite differences
-        Dh_x = F.pad(torch.diff(x, 1, dim=-1), (0, 1))
-        Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
-        return Dh_x, Dv_x
-
-    def D(self, x):
-        Dh_x, Dv_x = self.finite_differences(x)
-        out = torch.stack((Dh_x, Dv_x), dim=-1)
-        return out
-
-    def WD(self, x):
-        Dx = self.D(x)
-        WDx = modulo_round(Dx, self.threshold)
-        return WDx
-
-    def A_dagger(self, y):
-        phi = self.prox_l2(None, y, self.threshold)
-        return phi
-
     def A_adjoint(self, y):
-
-        out = self.WD(y)
-        out = self.A_transpose(out)
-
-        return out
-
-    def A_transpose(self, y):
-
-        tmp = torch.zeros_like(y)[..., 0]
-        return self.A_vjp(tmp, y)
-
-    def A_vjp(self, x, v):
-
-        Dh_x, Dv_x = torch.unbind(v, dim=-1)
-        rho = -(
-            torch.diff(F.pad(Dh_x, (1, 0)), 1, dim=-1)
-            + torch.diff(F.pad(Dv_x, (0, 0, 1, 0)), 1, dim=-2)
-        )
-        return rho
-
-    def prox_l2(self, z, y, rho):
-        r"""
-        Compute the proximal operator of the :class:`deepinv.optim.ItohFidelity` term
-        using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
-
-        .. math::
-            \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
-            \frac{\texttt{DCT}(D^{\top}W_t(Dy) + \frac{\rho}{2} z)_{i,j}}
-            { \frac{\rho}{2} + 4 - (2\cos(\pi i / M) + 2\cos(\pi j / N))}
-            \right)
-
-        where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
-        """
-
-        psi = self.A_adjoint(y)
-
-        if z is not None:
-            psi = psi + (rho / 2) * z
-
-        NX, MX = psi.shape[-1], psi.shape[-2]
-        I, J = torch.meshgrid(torch.arange(0, MX), torch.arange(0, NX), indexing="ij")
-        I, J = I.to(psi.device), J.to(psi.device)
-
-        I, J = I.unsqueeze(0).unsqueeze(0), J.unsqueeze(0).unsqueeze(0)
-
-        if z is None:
-            denom = 2 * (
-                2 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
-            )
-        else:
-            denom = 2 * (
-                (rho / 4)
-                + 2
-                - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
-            )
-
-        dct_psi = dct.dct_2d(psi, norm="ortho")
-
-        denom = denom.to(psi.device)
-        denom[..., 0, 0] = 1  # avoid division by zero
-
-        dct_phi = dct_psi / denom
-
-        phi = dct.idct_2d(dct_phi, norm="ortho")
-
-        return phi
+        return y  # Adjoint is identity for wrapping operator

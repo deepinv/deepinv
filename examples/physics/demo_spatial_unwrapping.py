@@ -68,12 +68,13 @@ blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 
 
-# %%
+# %%s
 # Add Gaussian noise and wrap phase
 # -------------------------------------------------------
 # Include Gaussian noise and wrap phase using SpatialUnwrapping physics
+threshold = 1.0
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
-physics = SpatialUnwrapping(threshold=1.0, mode=mode, noise_model=noise_model)
+physics = SpatialUnwrapping(threshold=threshold, mode=mode, noise_model=noise_model)
 phase_map = x_rgb
 wrapped_phase = physics(phase_map)
 
@@ -83,14 +84,16 @@ wrapped_phase = physics(phase_map)
 # We provide two inversion methods: a simple DCT-based inversion and an ADMM-based inversion using the Itoh fidelity term and TV prior.
 
 
-# DCT-based inversion
-x_est = physics.A_dagger(wrapped_phase)
-
 # ADMM-based inversion with TV prior and Itoh fidelity
 stepsize = 1e-4
 lam = 2.0 / stepsize
 prior = dinv.optim.TVPrior(n_it_max=10)
-fidelity = dinv.optim.ItohFidelity()
+fidelity = dinv.optim.ItohFidelity(threshold=threshold)
+
+# DCT-based inversion
+x_est = fidelity.D_dagger(wrapped_phase)
+
+
 params_algo = {"stepsize": stepsize, "lambda": lam, "g_param": 1.0}
 model = dinv.optim.optim_builder(
     iteration="ADMM",

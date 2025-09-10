@@ -311,10 +311,10 @@ def test_itoh_fidelity(device, mode):
             (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
         )
         physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode=mode)
-        loss = ItohFidelity()
+        loss = ItohFidelity(threshold=1.0)
         y = torch.ones_like(physics(x)) * 0.1
-        _, vjp_func = torch.func.vjp(physics.D, x)
-        vjp_value = vjp_func(loss.grad_d(physics.D(x), y, physics))[0]
+        _, vjp_func = torch.func.vjp(loss.D, x)
+        vjp_value = vjp_func(loss.grad_d(loss.D(x), y, physics))[0]
         grad_value = loss.grad(x, y, physics)
     assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
 

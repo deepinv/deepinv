@@ -1,4 +1,7 @@
 import torch
+import torch.nn.functional as F
+import torch_dct as dct
+
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
@@ -295,6 +298,7 @@ class ItohFidelity(L2):
     where :math:`D` denotes the spatial finite differences operator and :math:`W_t` denotes the wrapping operator.
 
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
+    :param float threshold: Threshold value used in the wrapping operator (default: 1.0).
 
     |sep|
 
@@ -313,11 +317,12 @@ class ItohFidelity(L2):
 
     """
 
-    def __init__(self, sigma=1.0):
+    def __init__(self, sigma=1.0, threshold=1.0):
         super().__init__()
 
         self.d = L2Distance(sigma=sigma)
         self.norm = 1 / (sigma**2)
+        self.modulo_round = lambda x: x - threshold * torch.round(x / threshold)
 
     def fn(self, x, y, physics, *args, **kwargs):
         # add warning for spatial unwrapping
@@ -326,21 +331,97 @@ class ItohFidelity(L2):
                 "Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics."
             )
 
-        Dx = physics.D(x)
-        WDy = physics.WD(y)
+        Dx = self.D(x)
+        WDy = self.WD(y)
         return super().fn(Dx, WDy, physics, *args, **kwargs)
 
-    def grad(self, x, y, physics, *args, **kwargs):
-        WDy = physics.WD(y)
-        return physics.A_vjp(x, self.d.grad(physics.D(x), WDy, *args, **kwargs))
+    def grad(self, x, y, *args, **kwargs):
+        WDy = self.WD(y)
+        return self.D_transpose(self.d.grad(self.D(x), WDy, *args, **kwargs))
 
-    def grad_d(self, u, y, physics, *args, **kwargs):
-        WDy = physics.WD(y)
+    def grad_d(self, u, y, *args, **kwargs):
+        WDy = self.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
 
-    def prox_d(self, u, y, physics, *args, **kwargs):
-        WDy = physics.WD(y)
+    def prox_d(self, u, y, *args, **kwargs):
+        WDy = self.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
+
+    def D(self, x):
+        # apply spatial finite differences
+        Dh_x = F.pad(torch.diff(x, 1, dim=-1), (0, 1))
+        Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
+        out = torch.stack((Dh_x, Dv_x), dim=-1)
+        return out
+
+    def WD(self, x):
+        # apply spatial finite differences and wrapping
+        Dx = self.D(x)
+        WDx = self.modulo_round(Dx)
+        return WDx
+
+    def D_transpose(self, x):
+        # apply adjoint of spatial finite differences
+        Dh_x, Dv_x = torch.unbind(x, dim=-1)
+        rho = -(
+            torch.diff(F.pad(Dh_x, (1, 0)), 1, dim=-1)
+            + torch.diff(F.pad(Dv_x, (0, 0, 1, 0)), 1, dim=-2)
+        )
+        return rho
+
+    def D_dagger(self, y):
+        # fast initialization using DCT
+        return self.prox(None, y, physics=None, gamma=None)
+
+    def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
+        r"""
+        Proximal operator of :math:`\gamma \datafid{Ax}{y} = \frac{\gamma}{2\sigma^2}\|D x - W_t(D y)\|^2`.
+
+        Computes :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|D u - W_t(D y)\|_2^2+\frac{1}{2}\|u-x\|_2^2
+
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
+        """
+        psi = self.D_transpose(self.WD(y))
+
+        if x is not None:
+            psi = psi + (gamma / 2) * x
+
+        NX, MX = psi.shape[-1], psi.shape[-2]
+        I, J = torch.meshgrid(torch.arange(0, MX), torch.arange(0, NX), indexing="ij")
+        I, J = I.to(psi.device), J.to(psi.device)
+
+        I, J = I.unsqueeze(0).unsqueeze(0), J.unsqueeze(0).unsqueeze(0)
+
+        if x is None:
+            denom = 2 * (
+                2 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+            )
+        else:
+            denom = 2 * (
+                (gamma / 4)
+                + 2
+                - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+            )
+
+        dct_psi = dct.dct_2d(psi, norm="ortho")
+
+        denom = denom.to(psi.device)
+        denom[..., 0, 0] = 1  # avoid division by zero
+
+        dct_phi = dct_psi / denom
+
+        phi = dct.idct_2d(dct_phi, norm="ortho")
+
+        return phi
 
 
 class IndicatorL2(DataFidelity):
