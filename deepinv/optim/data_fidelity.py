@@ -348,20 +348,56 @@ class ItohFidelity(L2):
         return self.d.prox(u, WDy, *args, **kwargs)
 
     def D(self, x):
-        # apply spatial finite differences
+        r"""
+        Apply spatial finite differences to the input tensor.
+
+        Computes the horizontal and vertical finite differences of the input tensor `x`
+        using first-order differences along the last two spatial dimensions. The result
+        is a tensor containing both the horizontal and vertical gradients stacked along
+        a new dimension.
+
+        :param torch.Tensor x: Input tensor of shape (..., H, W), where H and W are spatial dimensions.
+        :return: torch.Tensor of shape (..., H, W, 2), where the last dimension contains
+            the horizontal and vertical finite differences, respectively.
+        """
+
         Dh_x = F.pad(torch.diff(x, 1, dim=-1), (0, 1))
         Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
         out = torch.stack((Dh_x, Dv_x), dim=-1)
         return out
 
     def WD(self, x):
-        # apply spatial finite differences and wrapping
+        r"""
+        Applies spatial finite differences to the input and wraps the result.
+
+        This method computes the spatial finite differences of the input tensor :param torch.Tensor x: using the :meth:`D` operator,
+        then applies modular rounding to the result using :meth:`modulo_round`. This is typically used in
+        applications where periodic boundary conditions or phase wrapping are required.
+
+        :param torch.Tensor x: Input tensor to which the spatial finite differences and wrapping are applied.
+        :return: (:class:`torch.Tensor`) The wrapped finite differences of the input tensor.
+        """
+
         Dx = self.D(x)
         WDx = self.modulo_round(Dx)
         return WDx
 
     def D_transpose(self, x):
-        # apply adjoint of spatial finite differences
+        r"""
+        Applies the adjoint (transpose) of the spatial finite difference operator to the input tensor.
+
+        This function computes the adjoint operation corresponding to spatial finite differences,
+        typically used in image processing and variational optimization problems. The input `x`
+        is expected to have its last dimension of size 2, representing the horizontal and vertical
+        finite differences (Dh_x, Dv_x).
+
+        :param torch.Tensor x: Input tensor of shape (..., 2), where the last dimension contains
+            the horizontal and vertical finite differences.
+
+        :return: (:class:`torch.Tensor`) The result of applying the adjoint finite difference operator, with the
+            same shape as the input except for the last dimension (which is removed).
+        """
+
         Dh_x, Dv_x = torch.unbind(x, dim=-1)
         rho = -(
             torch.diff(F.pad(Dh_x, (1, 0)), 1, dim=-1)
@@ -375,21 +411,18 @@ class ItohFidelity(L2):
 
     def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
         r"""
-        Proximal operator of :math:`\gamma \datafid{Ax}{y} = \frac{\gamma}{2\sigma^2}\|D x - W_t(D y)\|^2`.
-
-        Computes :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+        Compute the proximal operator of the fidelity term
+        using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
 
         .. math::
+            \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
+            \frac{\texttt{DCT}(D^{\top}W_t(Dy) + \frac{\rho}{2} z)_{i,j}}
+            { \frac{\rho}{2} + 4 - (2\cos(\pi i / M) + 2\cos(\pi j / N))}
+            \right)
 
-           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|D u - W_t(D y)\|_2^2+\frac{1}{2}\|u-x\|_2^2
-
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :param deepinv.physics.Physics physics: physics model.
-        :param float gamma: stepsize of the proximity operator.
-        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
+        where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
         """
+
         psi = self.D_transpose(self.WD(y))
 
         if x is not None:
