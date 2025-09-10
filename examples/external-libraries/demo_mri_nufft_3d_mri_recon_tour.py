@@ -100,16 +100,15 @@ physics = dinv.physics.mri.NonCartesianMRI(
     img_size,
     n_coils=12,
     density=True,
-    backend="cufinufft",
+    backend="gpunufft",
+    squeeze_dims=False,
     smaps={"name": "low_frequency", "kspace_data": kspace_data}, # use low-res kspace to estimate maps
 )
 x_zf = physics.A_adjoint(kspace_data.to(device))
 physics.E.density = None # disable density compensation for iterations 
 #dinv.utils.plot(get_mid_planes(x_zf))
 
-denoiser = dinv.models.complex.to_complex_denoiser(
-    dinv.models.drunet.DRUNet(in_channels=2, out_channels=2, dim=3, pretrained="/volatile/drunet_3d_0303.pth").to(device)
-)
+denoiser = dinv.models.drunet.DRUNet(in_channels=2, out_channels=2, dim=3, pretrained="/volatile/drunet_3d_0303.pth").to(device)
 prior = dinv.optim.PnP(denoiser)
 sigma_iterations, lamb, max_iter = dinv.optim.dpir.get_DPIR_params(0.01, 0.1)
 model = dinv.optim.optim_builder(
