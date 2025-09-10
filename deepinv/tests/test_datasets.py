@@ -448,7 +448,7 @@ def download_bsds500(download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "BSDS500"
 
-    # Download CBSD raw dataset from huggingface
+    # Download BSDS500 raw dataset from github
     try:
         BSDS500(tmp_data_dir, download=download)
     except ImportError:
@@ -463,7 +463,7 @@ def download_bsds500(download=True):
 
 
 def test_load_bsds500_dataset(download_bsds500):
-    """Check that dataset contains 68 PIL images."""
+    """Check that dataset contains 400 + 100 PIL images."""
 
     pytest.importorskip(
         "datasets",
