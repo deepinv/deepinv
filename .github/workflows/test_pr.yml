@@ -8,7 +8,6 @@ on:
     branches:
     - main
 
-
 # Cancel in-progress runs when pushing a new commit on the PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -41,16 +40,8 @@ jobs:
           cache: 'pip' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
-        if: matrix.version_python != '3.9'
         run: |
           pip install -e .[${{ matrix.extra }}]
-
-      - name: Install deepinv and its dependencies for Python 3.9
-        if: matrix.version_python == '3.9'
-        run: |
-          pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
-          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-          pip install --ignore-requires-python -e .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version
@@ -59,18 +50,14 @@ jobs:
       - name: Check installed packages
         run: pip list
 
-      # ----------------------------
-
-      - name: Test with pytest and generate coverage report 
+      - name: Test with pytest and generate coverage report
         run: |
           python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
 
       - name: Upload coverage to Codecov
-        # Only upload coverage on Linux
-        if: ${{ runner.os == 'Linux' && matrix.version_python == '3.12' }}
+        if: ${{ runner.os == 'Linux' }}
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
-        # NOTE: do we need the test results on both Linux and Windows sending to Codecov?
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
