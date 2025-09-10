@@ -217,7 +217,7 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
-    loggers: list[RunLogger] = [LocalLogger(log_dir="./logs")]
+    loggers: list[RunLogger] = field(default_factory=[LocalLogger()])
     ckp_interval: int = 1
     log_images: bool = False
     plot_convergence_metrics: bool = False
