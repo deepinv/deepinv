@@ -16,6 +16,7 @@ from deepinv.datasets import (
     Urban100HR,
     Set14HR,
     CBSD68,
+    BSDS500,
     LsdirHR,
     FMD,
     Kohler,
@@ -437,6 +438,48 @@ def test_load_cbsd68_dataset(download_cbsd68):
         check_dataset_format(
             CBSD68(download_cbsd68, download=False, transform=totensor),
             length=68,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
+        )
+
+
+@pytest.fixture
+def download_bsds500(download=True):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "BSDS500"
+
+    # Download CBSD raw dataset from huggingface
+    try:
+        BSDS500(tmp_data_dir, download=download)
+    except ImportError:
+        download = False
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    if download:
+        shutil.rmtree(tmp_data_dir)
+
+
+def test_load_bsds500_dataset(download_bsds500):
+    """Check that dataset contains 68 PIL images."""
+
+    pytest.importorskip(
+        "datasets",
+        reason="This test requires datasets. It should be "
+        "installed with `pip install datasets`",
+    )
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            BSDS500(download_bsds500, download=False, transform=totensor),
+            length=400,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
+        )
+        check_dataset_format(
+            BSDS500(download_bsds500, download=False, transform=totensor, train=False),
+            length=100,
             dtype=Tensor if totensor else PIL_Image,
             allow_non_tensor=not totensor,
         )

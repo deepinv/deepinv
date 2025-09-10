@@ -113,14 +113,10 @@ class BSDS500(ImageDataset):
 
     def __getitem__(self, IDX):
         img = Image.open(self.file_list[IDX]).convert("RGB")
-        img = np.array(img) / 255.0
+        if self.rotate:
+            width, height = img.size
+            if width > height:
+                img = img.transpose(Image.ROTATE_90)
         if self.transforms is not None:
             img = self.transforms(img)
-        if self.rotate:
-            if isinstance(img, (tuple, list)):
-                img = [
-                    i.transpose(-2, -1) if i.shape[-1] > i.shape[-2] else i for i in img
-                ]
-            else:
-                img = img.transpose(-2, -1) if img.shape[-1] > img.shape[-2] else img
         return img
