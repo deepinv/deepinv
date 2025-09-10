@@ -70,7 +70,7 @@ class DistributedRadioModel(nn.Module):
         self.local_physics.extend(physics_list)
         self.local_measurements.extend(y_list)
 
-    def forward(self):
+    def forward(self, dummy=None):
         """
         Compute local loss: sum_i ||A_i(x) - y_i||^2
         DDP will automatically sum gradients across all GPUs.
@@ -593,7 +593,7 @@ def main():
         optimizer.zero_grad()
 
         # Forward pass: compute local loss
-        loss = ddp_model()
+        loss = ddp_model(0)
 
         # Backward pass: DDP automatically reduces gradients
         loss.backward()
