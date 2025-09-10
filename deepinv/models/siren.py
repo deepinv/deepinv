@@ -146,12 +146,10 @@ class SinMLP(nn.Module):
         self.output_dim = output_dim
         self.bias = bias
 
+        dims = [input_dim] + hidden_dims + [output_dim]
+
         self.layers = nn.ModuleList(
-            nn.Linear(in_dim, out_dim, bias=bias)
-            for in_dim, out_dim in zip(
-                [input_dim] + hidden_dims[:-1],
-                hidden_dims[1:] + [output_dim],
-            )
+            nn.Linear(dims[i], dims[i + 1], bias=bias) for i in range(len(dims) - 1)
         )
         self.activation = Sin(omega0=omega0)
 
