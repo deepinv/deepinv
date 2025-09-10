@@ -1,8 +1,5 @@
 import torch
-
-
 from deepinv.physics.forward import Physics
-import torch.nn.functional as F
 
 modulo_floor = lambda x, t: x - t * torch.floor(x / t)
 modulo_round = lambda x, t: x - t * torch.round(x / t)
