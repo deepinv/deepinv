@@ -104,8 +104,12 @@ if __name__ == "__main__":
         save_dir, download=False, transform=Compose([ToTensor()])
     )
 
+    # Artificially increase image size for demonstration
+    scale_factor = 2.0  # Increase size by factor of 2
     image = dataset[0]
-    image = torch.nn.functional.interpolate(image[None], scale_factor=2.0).squeeze()
+    image = torch.nn.functional.interpolate(
+        image[None], scale_factor=scale_factor
+    ).squeeze()
 
     # Finally, create a noisy version of the image with a fixed noise level sigma.
     sigma = 0.2
@@ -126,7 +130,7 @@ if __name__ == "__main__":
     print(f"Receptive field radius: {receptive_field_radius}")
 
     # Define patch size (smaller than image for demonstration)
-    patch_size = 1024
+    patch_size = 128
 
     # Test creating windows and masks
     windows, masks, patch_positions = create_tiled_windows_and_masks(
@@ -178,9 +182,11 @@ if __name__ == "__main__":
             drunet = drunet.to("cuda" if torch.cuda.is_available() else "cpu")
             noisy_image = noisy_image.to("cuda" if torch.cuda.is_available() else "cpu")
             with torch.no_grad():
-                direct_result = drunet(noisy_image.unsqueeze(0), sigma=sigma).squeeze(0).to('cpu')
+                direct_result = (
+                    drunet(noisy_image.unsqueeze(0), sigma=sigma).squeeze(0).to("cpu")
+                )
             direct_time = time.time() - start_time
-            noisy_image = noisy_image.to('cpu')
+            noisy_image = noisy_image.to("cpu")
             print(f"Direct processing time: {direct_time:.2f} seconds")
 
             # Calculate difference between tiled and direct processing
