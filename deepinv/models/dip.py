@@ -165,6 +165,8 @@ class DeepImagePrior(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
+        :param torch.Tensor z: Input latent variable. If ``None``, a random noise is generated.
+        :param tuple shape: If provided, the output is reshaped to this shape.
         """
         if self.re_init:
             for layer in self.generator.children():
