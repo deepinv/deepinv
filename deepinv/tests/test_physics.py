@@ -2172,10 +2172,12 @@ MULTISCALE_EXCLUSION = set(
 
 @pytest.mark.parametrize("name", list(set(OPERATORS).difference(MULTISCALE_EXCLUSION)))
 def test_coarse_physics_adjointness(name, device):
-    if ("MRI" in name
+    if (
+        "MRI" in name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
-        or "composition2" == name):
+        or "composition2" == name
+    ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
         # make sure the imsize is large enough for multiscale tests

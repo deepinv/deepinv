@@ -138,7 +138,9 @@ def coarse_blur_filter(in_filter, downsampling_filter, scale=2):
 
     pad_left = diff_w // 2
     pad_top = diff_h // 2
-    new_filt = F.pad(in_filter, (pad_left, diff_w - pad_left, pad_top, diff_h - pad_top))
+    new_filt = F.pad(
+        in_filter, (pad_left, diff_w - pad_left, pad_top, diff_h - pad_top)
+    )
 
     # pad in_filter in order to perform a "valid" convolution
     df_shape = downsampling_filter.shape
@@ -146,7 +148,9 @@ def coarse_blur_filter(in_filter, downsampling_filter, scale=2):
     new_filt = torch.nn.functional.pad(new_filt, pad_size)
 
     # downsample the blur filter
-    df_groups = downsampling_filter.repeat([new_filt.shape[1]] + [1] * (len(new_filt.shape) - 1))
+    df_groups = downsampling_filter.repeat(
+        [new_filt.shape[1]] + [1] * (len(new_filt.shape) - 1)
+    )
     coarse_filter = torch.nn.functional.conv2d(
         new_filt, df_groups, groups=new_filt.shape[1], stride=scale, padding="valid"
     )
@@ -167,6 +171,7 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
     :param list[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
+
     def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
         super().__init__(
             physics=physics,
@@ -220,6 +225,7 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
     :param list[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
+
     def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
         super().__init__(
             physics=physics,
@@ -235,7 +241,9 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
             filt = coarse_blur_filter(self.filter, upsampling.filter, factor)
             coarse_shape = [int(torch.ceil(s / factor)) for s in self.img_size]
             coarse_shape[0] = self.img_size[0]  # keep the same nb of channels
-            p = BlurFFT(filter=filt, img_size=coarse_shape, device=physics.filter.device)
+            p = BlurFFT(
+                filter=filt, img_size=coarse_shape, device=physics.filter.device
+            )
             self.scaled_physics.append(p)
 
     def downsample_measurement(self, y, scale=None):
@@ -276,6 +284,7 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
     :param list[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
+
     def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
         super().__init__(
             physics=physics,
@@ -289,7 +298,9 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         for upsampling in self.Upsamplings:
             coarse_data = upsampling.downsample_signal(physics.mask.data)
             p = Inpainting(
-                tensor_size=coarse_data.shape[1:], mask=coarse_data, device=physics.mask.device
+                tensor_size=coarse_data.shape[1:],
+                mask=coarse_data,
+                device=physics.mask.device,
             )
             self.scaled_physics.append(p)
 
