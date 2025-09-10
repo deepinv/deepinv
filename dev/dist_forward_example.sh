@@ -22,7 +22,7 @@
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-task=1
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --account=fio@v100
 #SBATCH --hint=nomultithread
 
@@ -48,6 +48,7 @@ module purge
 module load pytorch-gpu/py3/2.7.0
 
 # Verify PyTorch installation
+python -c "print('hello')"
 python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
 # Set up distributed training environment variables
