@@ -38,8 +38,6 @@ class Trainer:
 
     ::
 
-        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
-
     where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
@@ -157,7 +155,6 @@ class Trainer:
 
     :Model Saving:
 
-    :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
     :param int ckpt_interval: The model is saved every ``ckpt_interval`` epochs. Default is ``1``.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
 
@@ -225,7 +222,6 @@ class Trainer:
 
     ## Checkpointing & Persistence
     ckpt_pretrained: str = None
-    save_path: Union[str, Path] = "."
     ckpt_interval: int = 1
 
     ## Logging & Monitoring
@@ -258,8 +254,6 @@ class Trainer:
         ):
             if loader is not None:
                 check_dataset(loader.dataset)
-
-        self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
 
@@ -326,17 +320,6 @@ class Trainer:
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        if self.save_path:
-            # NOTE: Two separate training should not write to the same
-            # directory. For this reason, we make sure the directory does not
-            # already exist.
-            dir_path = f"{self.save_path}/{get_timestamp()}"
-            # Acquire the output directory (might fail with an exception)
-            os.makedirs(dir_path, exist_ok=False)
-            self.save_path = dir_path
-        else:
-            self.save_path = None
-
         # count the overall training parameters
         if self.verbose and train:
             params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
@@ -354,7 +337,6 @@ class Trainer:
 
         if train:
             self.loss_history = []
-        self.save_folder_im = None
 
         self._load_ckpt()
 
@@ -1078,7 +1060,6 @@ class Trainer:
     def test(
         self,
         test_dataloader,
-        save_path: Union[str, Path] = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
@@ -1087,7 +1068,6 @@ class Trainer:
 
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
             for how we expect data to be provided.
-        :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :returns: dict of metrics results with means and stds.
@@ -1095,7 +1075,6 @@ class Trainer:
         self.compare_no_learning = compare_no_learning
         self.setup(train=False)
 
-        self.save_folder_im = save_path
         self.log_every_step = False
 
         self.reset_metrics()
