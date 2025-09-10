@@ -142,7 +142,7 @@ class DRUNet(torch.nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 if dim == 3:
-                    name = "drunet_3d.pth"
+                    name = "drunet_3d_complex_denoise.pth"
                 else:
                     if in_channels == 4:
                         name = "drunet_deepinv_color_finetune_22k.pth"
@@ -234,8 +234,10 @@ class DRUNet(torch.nn.Module):
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 or x.size(3) < 32:
+        elif self.dim ==2 and (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
+        elif self.dim==3:
+            x = test_pad(self.forward_unet, x, dim=3, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)
         if complex_input:
@@ -682,24 +684,6 @@ def downsample_avgpool(
     )
     return sequential(pool, pool_tail)
 
-
-
-def test_pad(model, L, modulo=16, sigma: float = 0.0):
-    """
-    Pads the image to fit the model's expected image size.
-
-    Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
-    """
-    d, h, w = L.size()[-3:]
-    padding_d = int(np.ceil(d / modulo) * modulo - d)
-    padding_h = int(np.ceil(h / modulo) * modulo - h)
-    padding_w = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad3d(
-        (0, padding_w, 0, padding_h, 0, padding_d)
-    )(L)
-    E = model(L, sigma)
-    E = E[..., :d, :h, :w]
-    return E
 
 def weights_init_drunet(m):
     classname = m.__class__.__name__
