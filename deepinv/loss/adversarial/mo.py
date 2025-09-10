@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable
-from copy import deepcopy
+from typing import TYPE_CHECKING
 
 from torch.utils.data import DataLoader
 from torch import Tensor
@@ -42,7 +41,7 @@ class MultiOperatorMixin:
         :return deepinv.physics.Physics: new physics.
         """
         if self.physics_generator is not None:
-            physics_cur = deepcopy(physics)
+            physics_cur = physics.clone()
             params = self.physics_generator.step(batch_size=batch_size)
             physics_cur.update(**params)
             return physics_cur
@@ -54,7 +53,7 @@ class MultiOperatorMixin:
         :param deepinv.physics.Physics physics: input physics.
         :return deepinv.physics.Physics: new physics with fully-sampled mask of ones.
         """
-        physics_new = deepcopy(physics)
+        physics_new = physics.clone()
         if hasattr(physics, "mask"):
             if isinstance(physics.mask, Tensor):
                 physics_new.update(mask=torch.ones_like(physics.mask))

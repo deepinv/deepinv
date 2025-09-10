@@ -13,6 +13,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Adversarial losses can be cleanly trained in normal Trainer (:gh:`409` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

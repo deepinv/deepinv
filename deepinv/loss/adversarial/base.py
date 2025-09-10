@@ -1,10 +1,14 @@
-from contextlib import nullcontext
+from __future__ import annotations
+from contextlib import nullcontext, contextmanager
 
 import torch.nn as nn
 import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class DiscriminatorMetric:
@@ -58,8 +62,8 @@ class DiscriminatorMetric:
             return self.metric(pred, target)
 
 
-class GeneratorLoss(Loss):
-    r"""Base generator adversarial loss.
+class AdversarialLoss(Loss):
+    r"""Base adversarial loss.
 
     Override the forward function to call :func:`adversarial_loss <deepinv.loss.adversarial.GeneratorLoss.adversarial_loss>`
     with quantities depending on your specific GAN model.
@@ -70,7 +74,8 @@ class GeneratorLoss(Loss):
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
-
+    :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
+        If `None` (default), do not train discriminator model.
     :param str device: torch device, defaults to `"cpu"`
     """
 
@@ -79,6 +84,7 @@ class GeneratorLoss(Loss):
         weight_adv: float = 1.0,
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
+        optimizer_D: torch.optim.Optimizer = None,
         device="cpu",
         **kwargs,
     ):
@@ -88,77 +94,70 @@ class GeneratorLoss(Loss):
         )
         self.weight_adv = weight_adv
         self.D = D
+        self.optimizer_D = optimizer_D
 
-    def adversarial_loss(
-        self, real: Tensor, fake: Tensor, D: nn.Module = None
-    ) -> torch.Tensor:
-        r"""Typical adversarial loss in GAN generators.
+    def adversarial_gen(self, real: Tensor, fake: Tensor) -> torch.Tensor:
+        r"""Adversarial penalty mechanism in GAN generators.
 
         :param torch.Tensor real: image labelled as real, typically one originating from training set
         :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
-        :param torch.nn.Module D: discriminator/critic/classifier model. If `None`, then `D` passed from `__init__` used.
-            Defaults to `None`.
         :return: generator adversarial loss
         """
-        D = self.D if D is None else D
-
-        pred_fake = D(fake)
+        pred_fake = self.D(fake)
         return self.metric_gan(pred_fake, real=True) * self.weight_adv
 
-    def forward(self, *args, D: nn.Module = None, **kwargs) -> torch.Tensor:
-        return NotImplementedError()
-
-
-class DiscriminatorLoss(Loss):
-    r"""
-    Base discriminator adversarial loss.
-
-    Override the forward function to
-    call ``adversarial_loss`` with quantities depending on your specific GAN model.
-
-    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`,
-    :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
-
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formula.
-
-    :param float weight_adv: weight for adversarial loss, defaults to 1.
-    :param torch.nn.Module D: discriminator network.
-        If not specified, ``D`` must be provided in ``forward``, defaults to ``None``.
-    :param str device: torch device, defaults to `"cpu"`.
-    """
-
-    def __init__(
-        self,
-        weight_adv: float = 1.0,
-        D: nn.Module = None,
-        metric_gan: DiscriminatorMetric = None,
-        device="cpu",
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.metric_gan = (
-            DiscriminatorMetric(device=device) if metric_gan is None else metric_gan
-        )
-        self.weight_adv = weight_adv
-        self.D = D
-
-    def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module = None):
-        r"""Typical adversarial loss in GAN discriminators.
+    def adversarial_discrim(self, real: Tensor, fake: Tensor):
+        r"""Adversarial penalty mechanism in GAN discriminators.
 
         :param torch.Tensor real: image labelled as real, typically one originating from training set
         :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
-        :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
         :return: (:class:`torch.Tensor`) discriminator adversarial loss
         """
-        D = self.D if D is None else D
-
-        pred_real = D(real)
-        pred_fake = D(fake.detach())
+        pred_real = self.D(real)
+        pred_fake = self.D(fake.detach())
 
         adv_loss_real = self.metric_gan(pred_real, real=True)
         adv_loss_fake = self.metric_gan(pred_fake, real=False)
 
         return (adv_loss_real + adv_loss_fake) * self.weight_adv
 
-    def forward(self, *args, D: nn.Module = None, **kwargs) -> torch.Tensor:
-        return NotImplementedError()
+    @contextmanager
+    def step_discrim(self):
+        # TODO multiple d steps
+        if self.optimizer_D is None:
+            yield lambda loss: None
+            return
+
+        self.optimizer_D.zero_grad()
+        try:
+
+            def backward(loss: torch.Tensor):
+                loss.backward(retain_graph=True)
+
+            yield backward
+        finally:
+            self.optimizer_D.step()
+
+    def forward(
+        self,
+        x_net: Tensor,
+        x: Tensor,
+        y: Tensor,
+        physics: Physics,
+        model: nn.Module,
+        **kwargs,
+    ) -> torch.Tensor:
+        """
+        Full forward pass. Must calculate loss for discriminator, step the
+        discriminator optimizer, then return the generator loss. For example:
+
+        ::
+
+            with self.step_discrim() as step:
+                loss_d = ...
+                step(loss_d)
+
+            loss_g = ...
+            return loss_g
+        """
+        raise NotImplementedError()

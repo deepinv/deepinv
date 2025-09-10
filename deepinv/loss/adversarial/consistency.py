@@ -5,18 +5,14 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from deepinv.loss.adversarial.base import (
-    GeneratorLoss,
-    DiscriminatorLoss,
-    DiscriminatorMetric,
-)
+from deepinv.loss.adversarial.base import DiscriminatorMetric, AdversarialLoss
 from deepinv.loss.adversarial.mo import MultiOperatorMixin
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
 
 
-class SupAdversarialGeneratorLoss(GeneratorLoss):
+class SupAdversarialLoss(AdversarialLoss):
     r"""Supervised adversarial consistency loss for generator.
 
     This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
@@ -49,68 +45,25 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
+    :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
+        If `None` (default), do not train discriminator model.
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(
-        self,
-        weight_adv: float = 0.01,
-        D: nn.Module = None,
-        metric_gan: DiscriminatorMetric = None,
-        device="cpu",
-        **kwargs,
-    ):
-        super().__init__(
-            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
-        )
-        self.name = "SupAdversarialGenerator"
-
-    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
+    def forward(self, x: Tensor, x_net: Tensor, *args, **kwargs):
         r"""Forward pass for supervised adversarial generator loss.
 
         :param torch.Tensor x: ground truth image
         :param torch.Tensor x_net: reconstructed image
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
-        return self.adversarial_loss(x, x_net, D)
+        with self.step_discrim() as step:
+            step(self.adversarial_discrim(x, x_net) * 0.5)
+
+        return self.adversarial_gen(x, x_net)
 
 
-class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
-    r"""Supervised adversarial consistency loss for discriminator.
-
-    For details, see :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`.
-
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
-    :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
-        :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
-    :param str device: torch device, defaults to "cpu"
-    """
-
-    def __init__(
-        self,
-        weight_adv: float = 1.0,
-        D: nn.Module = None,
-        metric_gan: DiscriminatorMetric = None,
-        device="cpu",
-        **kwargs,
-    ):
-        super().__init__(
-            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
-        )
-        self.name = "SupAdversarialDiscriminator"
-
-    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
-        r"""Forward pass for supervised adversarial discriminator loss.
-
-        :param torch.Tensor x: ground truth image
-        :param torch.Tensor x_net: reconstructed image
-        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
-        """
-        return self.adversarial_loss(x, x_net, D) * 0.5
-
-
-class UnsupAdversarialGeneratorLoss(GeneratorLoss):
+class UnsupAdversarialLoss(AdversarialLoss):
     r"""Unsupervised adversarial consistency loss for generator.
 
     This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
@@ -148,6 +101,8 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     :param str domain: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
     :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
+    :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
+        If `None` (default), do not train discriminator model.
     """
 
     def __init__(
@@ -156,13 +111,17 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         D: nn.Module = None,
         domain: str = None,
         metric_gan: DiscriminatorMetric = None,
+        optimizer_D: torch.optim.Optimizer = None,
         device="cpu",
         **kwargs,
     ):
         super().__init__(
-            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device
+            weight_adv=weight_adv,
+            D=D,
+            metric_gan=metric_gan,
+            device=device,
+            optimizer_D=optimizer_D,
         )
-        self.name = "UnsupAdversarialGenerator"
         self.domain = domain
         if domain is not None and domain not in ("A_adjoint", "A_dagger"):
             raise ValueError("domain must be either None, A_adjoint or A_dagger.")
@@ -170,77 +129,36 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     def forward(
         self,
         y: Tensor,
-        y_hat: Tensor,
-        D: nn.Module = None,
+        x_net: Tensor,
         physics: Physics = None,
+        *args,
         **kwargs,
     ):
         r"""Forward pass for unsupervised adversarial generator loss.
 
         :param torch.Tensor y: input measurement
-        :param torch.Tensor y_hat: re-measured reconstruction
         :param torch.Tensor x_net: reconstructed image
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         :param deepinv.physics.Physics physics: measurement operator.
         """
+        y_hat = physics.A(x_net)
+
         if self.domain is not None:
             x_tilde = getattr(physics, self.domain)(y)
             x_hat = getattr(physics, self.domain)(y_hat)
-            return self.adversarial_loss(x_tilde, x_hat, D)
+
+            with self.step_discrim() as step:
+                step(self.adversarial_discrim(x_tilde, x_hat))
+
+            return self.adversarial_gen(x_tilde, x_hat)
         else:
-            return self.adversarial_loss(y, y_hat, D)
+            with self.step_discrim() as step:
+                step(self.adversarial_discrim(y, y_hat))
+
+            return self.adversarial_gen(y, y_hat)
 
 
-class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
-    r"""Unsupervised adversarial consistency loss for discriminator.
-
-    For details and parameters, see :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
-    """
-
-    def __init__(
-        self,
-        weight_adv: float = 1.0,
-        D: nn.Module = None,
-        domain: str = None,
-        metric_gan: DiscriminatorMetric = None,
-        device="cpu",
-        **kwargs,
-    ):
-        super().__init__(
-            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device
-        )
-        self.name = "UnsupAdversarialDiscriminator"
-        self.domain = domain
-        if domain is not None and domain not in ("A_adjoint", "A_dagger"):
-            raise ValueError("domain must be either None, A_adjoint or A_dagger.")
-
-    def forward(
-        self,
-        y: Tensor,
-        y_hat: Tensor,
-        D: nn.Module = None,
-        physics: Physics = None,
-        **kwargs,
-    ):
-        r"""Forward pass for unsupervised adversarial discriminator loss.
-
-        :param torch.Tensor y: input measurement
-        :param torch.Tensor y_hat: re-measured reconstruction
-        :param torch.Tensor x_net: reconstructed image
-        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
-        :param deepinv.physics.Physics physics: measurement operator.
-        """
-        if self.domain is not None:
-            x_tilde = getattr(physics, self.domain)(y)
-            x_hat = getattr(physics, self.domain)(y_hat)
-            return self.adversarial_loss(x_tilde, x_hat, D)
-        else:
-            return self.adversarial_loss(y, y_hat, D)
-
-
-class MultiOperatorUnsupAdversarialGeneratorLoss(
-    MultiOperatorMixin, UnsupAdversarialGeneratorLoss
-):
+class MultiOperatorUnsupAdversarialLoss(MultiOperatorMixin, UnsupAdversarialLoss):
     r"""Multi-operator unsupervised adversarial loss for generator.
 
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
@@ -329,21 +247,24 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
     :param str domain: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
     :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
+    :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
+        If `None` (default), do not train discriminator model.
     """
 
     def forward(
         self,
-        y: Tensor,
         x_net: Tensor,
         physics: Physics,
-        D: nn.Module = None,
         epoch=None,
+        *args,
         **kwargs,
     ):
         self.reset_iter(epoch=epoch)
 
+        # Step data and physics
         y_tilde = self.next_data()[1].to(x_net.device)
         physics_new = self.next_physics(physics, batch_size=len(x_net))
+
         y_hat = physics_new.A(x_net)
 
         if y_tilde.shape != y_hat.shape:
@@ -358,38 +279,13 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
             physics_full = self.physics_like(physics)
             x_tilde = getattr(physics_full, self.domain)(y_tilde)
             x_hat = getattr(physics_new, self.domain)(y_hat)
-            return self.adversarial_loss(x_tilde, x_hat, D)
+
+            with self.step_discrim() as step:
+                step(self.adversarial_discrim(x_tilde, x_hat))
+
+            return self.adversarial_gen(x_tilde, x_hat)
         else:
-            return self.adversarial_loss(y_tilde, y_hat, D)
+            with self.step_discrim() as step:
+                step(self.adversarial_discrim(y_tilde, y_hat))
 
-
-class MultiOperatorUnsupAdversarialDiscriminatorLoss(
-    MultiOperatorMixin, UnsupAdversarialDiscriminatorLoss
-):
-    r"""Multi-operator unsupervised adversarial loss for discriminator.
-
-    For details and parameters, see :class:`deepinv.loss.adversarial.MultiOperatorUnsupAdversarialGeneratorLoss`
-    """
-
-    def forward(
-        self,
-        y: Tensor,
-        x_net: Tensor,
-        physics: Physics,
-        D: nn.Module = None,
-        epoch=None,
-        **kwargs,
-    ):
-        self.reset_iter(epoch=epoch)
-
-        y_tilde = self.next_data()[1].to(x_net.device)
-        physics_new = self.next_physics(physics, batch_size=len(x_net))
-        y_hat = physics_new.A(x_net)
-
-        if self.domain is not None:
-            physics_full = self.physics_like(physics)
-            x_tilde = getattr(physics_full, self.domain)(y_tilde)
-            x_hat = getattr(physics_new, self.domain)(y_hat)
-            return self.adversarial_loss(x_tilde, x_hat, D)
-        else:
-            return self.adversarial_loss(y_tilde, y_hat, D)
+            return self.adversarial_gen(y_tilde, y_hat)

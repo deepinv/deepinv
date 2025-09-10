@@ -177,7 +177,7 @@ class AdversarialTrainer(Trainer):
             self.losses_d = [self.losses_d]
 
         self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e")
+            AverageMeter("Training discrim loss " + l.name, ":.2e")  # REMOVE .name
             for l in self.losses_d
         ]
 

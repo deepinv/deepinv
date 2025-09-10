@@ -3,18 +3,15 @@ from typing import TYPE_CHECKING, Optional
 
 import torch.nn as nn
 from torch import Tensor
-from deepinv.loss.adversarial.base import (
-    GeneratorLoss,
-    DiscriminatorLoss,
-    DiscriminatorMetric,
-)
+from torch.optim import Optimizer
+from deepinv.loss.adversarial.base import DiscriminatorMetric, AdversarialLoss
 from deepinv.loss.adversarial.mo import MultiOperatorMixin
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
 
 
-class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
+class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
     r"""Reimplementation of UAIR generator's adversarial loss.
 
     The loss, introduced by :footcite:t:`pajot2019unsupervised`, is defined as follows, to be minimized by the generator:
@@ -59,6 +56,8 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
     :param str device: torch device, defaults to "cpu"
     :param deepinv.loss.adversarial.DiscriminatorMetric metric_gan: GAN metric :math:`q`. Defaults to
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
+    :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
+        If `None` (default), do not train discriminator model.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
         If `None`, uses same physics every forward pass.
 
@@ -89,17 +88,21 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         domain: str = None,
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
+        optimizer_D: Optimizer = None,
         device="cpu",
         **kwargs,
     ):
         super().__init__(
-            weight_adv=weight_adv, device=device, metric_gan=metric_gan, **kwargs
+            weight_adv=weight_adv,
+            device=device,
+            metric_gan=metric_gan,
+            optimizer_D=optimizer_D,
+            **kwargs,
         )
 
         if metric is None:
             metric = nn.MSELoss()
 
-        self.name = "UAIRGenerator"
         self.metric = metric
         self.domain = domain
         self.weight_mc = weight_mc
@@ -114,7 +117,7 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         x_net: Tensor,
         physics: Physics,
         model: nn.Module,
-        D: nn.Module = None,
+        *args,
         **kwargs,
     ):
         r"""Forward pass for UAIR generator's adversarial loss.
@@ -125,8 +128,6 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         :param torch.nn.Module model: reconstruction network
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
-        D = self.D if D is None else D
-
         physics_new = self.next_physics(physics, batch_size=len(y))
         y_hat = physics_new(x_net)
         x_tilde = model(y_hat, physics_new)
@@ -137,50 +138,10 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
             y_hat = getattr(physics_new, self.domain)(y_hat)
             y_tilde = getattr(physics_new, self.domain)(y_tilde)
 
-        adv_loss = self.adversarial_loss(y, y_hat, D)
+        with self.step_discrim() as step:
+            step(self.adversarial_discrim(y, y_hat))
+
+        adv_loss = self.adversarial_gen(y, y_hat)
         mc_loss = self.metric(y_tilde, y_hat)
 
         return adv_loss + mc_loss * self.weight_mc
-
-
-class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
-    """UAIR Discriminator's adversarial loss.
-
-    For details and parameters, see :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`
-    """
-
-    def __init__(
-        self,
-        weight_adv: float = 1.0,
-        domain: str = None,
-        D: nn.Module = None,
-        metric_gan: DiscriminatorMetric = None,
-        device="cpu",
-        **kwargs,
-    ):
-        super().__init__(
-            weight_adv=weight_adv, D=D, metric_gan=metric_gan, device=device, **kwargs
-        )
-        self.name = "UAIRDiscriminator"
-        self.domain = domain
-
-        if domain is not None and domain not in ("A_adjoint", "A_dagger"):
-            raise ValueError("domain must be either None, A_adjoint or A_dagger.")
-
-    def forward(
-        self,
-        y: Tensor,
-        x_net: Tensor,
-        physics: Physics,
-        model: nn.Module,
-        D: nn.Module = None,
-        **kwargs,
-    ):
-        physics_new = self.next_physics(physics, batch_size=len(y))
-        y_hat = physics_new(x_net)
-
-        if self.domain is not None:
-            y = getattr(physics, self.domain)(y)
-            y_hat = getattr(physics_new, self.domain)(y_hat)
-
-        return self.adversarial_loss(y, y_hat, D)

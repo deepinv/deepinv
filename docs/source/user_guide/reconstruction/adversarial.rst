@@ -4,8 +4,8 @@ Adversarial Networks
 ====================
 There are two types of adversarial networks for imaging: conditional and unconditional.
 See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
-Adversarial training can be done using the :class:`deepinv.training.AdversarialTrainer` class,
-which is a subclass of :class:`deepinv.Trainer`.
+Adversarial training can be done directly using :class:`deepinv.Trainer`. Note that
+any reconstruction network may be used as a generator.
 
 Conditional GAN
 ---------------

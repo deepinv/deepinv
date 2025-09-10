@@ -1,12 +1,12 @@
-from typing import Tuple, Optional
+from typing import Optional
 from math import prod
 
 import numpy as np
 from tqdm import tqdm
 
+import torch
 import torch.nn as nn
 from torch import Tensor
-from torch import rand
 from torch.optim import Adam
 
 from deepinv.physics.forward import Physics
@@ -121,11 +121,10 @@ class ESRGANDiscriminator(nn.Module):
     """
 
     @_deprecated_alias(input_shape="img_size")
-    def __init__(
-        self, img_size: tuple, hidden_dims=[64, 128, 256, 512], batch_norm=True
-    ):
+    def __init__(self, img_size: tuple, hidden_dims=None, batch_norm=True):
         super().__init__()
         self.img_size = img_size
+        hidden_dims = hidden_dims if hidden_dims is not None else [64, 128, 256, 512]
         in_channels, in_height, in_width = self.img_size
         patch_h, patch_w = int(in_height / 2 ** len(hidden_dims)), int(
             in_width / 2 ** len(hidden_dims)
@@ -333,7 +332,7 @@ class CSGMGenerator(Reconstructor):
         :param bool requires_grad: whether to require gradient, defaults to True.
         """
         return (
-            rand(
+            torch.rand(
                 1,
                 self.backbone_generator.nz,
                 1,
@@ -355,14 +354,16 @@ class CSGMGenerator(Reconstructor):
         :param Physics physics: forward model
         :return: optimized latent z
         """
-        z = nn.Parameter(z)
+        z = nn.Parameter(z, requires_grad=True)
         optimizer = Adam([z], lr=self.inf_lr)
         err_prev = 999
 
         pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
         for i in pbar:
-            x_hat = self.backbone_generator(z)
-            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+            with torch.enable_grad():
+                x_hat = self.backbone_generator(z)
+                error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
@@ -412,7 +413,7 @@ class SkipConvDiscriminator(nn.Module):
 
     def __init__(
         self,
-        img_size: Tuple[int, int] = (320, 320),
+        img_size: tuple[int, int] = (320, 320),
         d_dim: int = 128,
         d_blocks: int = 4,
         in_channels: int = 2,
