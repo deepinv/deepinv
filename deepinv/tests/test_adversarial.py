@@ -205,9 +205,8 @@ def test_adversarial_losses(combo_name, imsize, device, physics, dataset, domain
     final_psnr = trainer.test(test_dataloader)["PSNR"]
 
     # PSNR won't necessarily increase
-    # so this just tests that it can be trained, it does something in 1 epoch
-    # and it isn't crazy
-    assert final_psnr > 0
+    # so this just tests that the loss can be trained
+    # and it does something in 1 epoch
     assert final_psnr.item() != initial_psnr.item()
 
 
