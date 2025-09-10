@@ -100,6 +100,7 @@ physics = dinv.physics.mri.NonCartesianMRI(
     img_size,
     n_coils=12,
     density=True,
+    backend="cufinufft",
     smaps={"name": "low_frequency", "kspace_data": kspace_data}, # use low-res kspace to estimate maps
 )
 x_zf = physics.A_adjoint(kspace_data.to(device))
@@ -110,22 +111,20 @@ denoiser = dinv.models.complex.to_complex_denoiser(
     dinv.models.drunet.DRUNet(in_channels=2, out_channels=2, dim=3, pretrained="/volatile/drunet_3d_0303.pth").to(device)
 )
 prior = dinv.optim.PnP(denoiser)
-kwargs_optim["params_algo"] = dinv.optim.dpir.get_DPIR_params(
-    s1=start_sigma,
-    s2=end_sigma,
-    lamb=lamda,
-    n_iter=num_iterations,
-)
-algo = dinv.optim.optim_builder(
+sigma_iterations, lamb, max_iter = dinv.optim.dpir.get_DPIR_params(0.01, 0.1)
+model = dinv.optim.optim_builder(
     iteration="HQS",
     prior=prior,
     data_fidelity=dinv.optim.data_fidelity.L2(),
     early_stop=False,
     custom_init=lambda y, physics: {"est": (x_zf, x_zf.clone())},
-    max_iter=10,
+    max_iter=max_iter,
     verbose=False,
-    **kwargs_optim,
+    params_algo={"stepsize": lamb, "g_param": sigma_iterations},
 )
+model.fixed_point.show_progress_bar = True
+x_hat = model(kspace_data.to(device), physics=physics)
+dinv.utils.plot(get_mid_planes(x_hat))
 
 
 

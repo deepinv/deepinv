@@ -116,7 +116,7 @@ class Calgary3DBrainMRIDataset(ImageDataset):
 
 
 class CalgaryDataTransformer:
-    def __init__(self, foward_model=None, noise_level=0.0, scale_factor=1, seed=0):
+    def __init__(self, foward_model=None, noise_level=0.0, scale_factor=1e-5, seed=0):
         self.forward_model = foward_model
         self.noise_level = noise_level
         self.seed = seed
