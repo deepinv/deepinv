@@ -1,0 +1,108 @@
+name: Test
+
+on:
+  schedule:
+    # run test every day at 3:30 AM
+    - cron: "30 3 */1 * *"
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+
+# Cancel in-progress runs when pushing a new commit on the PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test deep inverse ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Ubuntu tests
+          - os: ubuntu-latest
+            version_python: "3.9"
+            extra: test
+            name: "ubuntu py3.9 no optional dependencies"
+          - os: ubuntu-latest
+            version_python: "3.10"
+            extra: dataset,denoisers,test,training
+            name: "ubuntu py3.10 all dependencies"
+          - os: ubuntu-latest
+            version_python: "3.12"
+            extra: test
+            name: "ubuntu py3.12 no optional dependencies"
+          - os: ubuntu-latest
+            version_python: "3.11"
+            extra: dataset,denoisers,test,training
+            name: "ubuntu py3.11 all optional dependencies"
+          - os: ubuntu-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test,training
+            name: "ubuntu py3.12 all optional dependencies"
+          # Windows tests
+          - os: windows-latest
+            version_python: "3.10"
+            extra: dataset,denoisers,test,training
+            name: "windows py3.10 all optional dependencies"
+          - os: windows-latest
+            version_python: "3.11"
+            extra: dataset,denoisers,test,training
+            name: "windows py3.11 all optional dependencies"
+          - os: windows-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test,training
+            name: "windows py3.12 all optional dependencies"
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.version_python }}
+          cache: 'pip' # caching pip dependencies
+
+      - name: Install deepinv and its dependencies
+        if: matrix.version_python != '3.9'
+        run: |
+          pip install -e .[${{ matrix.extra }}]
+
+      - name: Install deepinv and its dependencies for Python 3.9
+        if: matrix.version_python == '3.9'
+        run: |
+          pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
+          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --ignore-requires-python -e .[${{ matrix.extra }}]
+
+      # For debugging purposes
+      - name: Check Python version
+        run: python3 --version
+
+      - name: Check installed packages
+        run: pip list
+      
+      - name: Python 3.9 check import warning
+        if: matrix.version_python == '3.9'
+        run: |
+          python -c "import deepinv"
+
+      # ----------------------------
+
+      - name: Test with pytest and generate coverage report 
+        run: |
+          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+
+      - name: Upload coverage to Codecov
+        # Only upload coverage on Linux
+        if: ${{ runner.os == 'Linux' && matrix.version_python == '3.10' }}    
+        uses: codecov/codecov-action@v5
+
+      - name: Upload test results to Codecov
+        # NOTE: do we need the test results on both Linux and Windows sending to Codecov?
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1

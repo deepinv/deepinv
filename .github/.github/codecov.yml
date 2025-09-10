@@ -1,0 +1,8 @@
+# Coverage configuration from https://gist.github.com/doaa-altarawy/9e324f2486e53d38de817e0e38e58175
+# ----------------------
+coverage:
+  status:
+    patch: false
+
+  round: down       # up, down, or nearest
+  precision: 2      # Number of decimal places, between 0 and 5
