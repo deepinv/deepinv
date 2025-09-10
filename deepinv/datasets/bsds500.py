@@ -1,0 +1,126 @@
+import urllib.request
+import zipfile
+import os
+import os.path
+from PIL import Image
+import numpy as np
+from deepinv.datasets.utils import calculate_md5
+from deepinv.datasets.base import ImageDataset
+
+
+class BSDS500(ImageDataset):
+    def __init__(
+        self,
+        root,
+        download=False,
+        train=True,
+        splits=None,
+        transform=None,
+        rotate=False,
+    ):
+        r"""Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
+
+        BSDS500 dataset for image restoration benchmarks. BSDS stands for The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
+        Originally, BSDS500 was used for image segmentation. However, this dataset only loads the ground truth images.
+        The dataset consists of RGB color images of size 481 x 321 or 321 x 481 and is divided into three splits:
+
+        - "train": contains 200 training images
+        - "val": contains 100 validation images
+        - "test": contains 200 test images
+
+        Despite the name, the "val" split is often used for testing (e.g., it is a superset of CBSD68), while the "train" and "test" splits are used for training.
+
+        This dataset uses the file structure from the github repository `https://github.com/BIDS/BSDS500 <https://github.com/BIDS/BSDS500>`_ 
+        from the institute which published the dataset.
+
+        **Raw data file structure:** ::
+
+                self.root --- BSDS500-master --- (all files from the github repo)
+
+
+        :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
+        :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
+            If dataset is already downloaded, it is not downloaded again. Default at False.
+        :param bool train: If ``True``, the standard training dataset (containing the splits "train" and "test") will be loaded. If ``False``, 
+            the standard test set (containing the "val" split) is loaded (which is a superset of CBSD68). Default at True
+        :param list of str splits: Alternatively to the `train` parameter, the precise splits used can be defined. E.g., pass `["train", "val"]` 
+            to load the "train" and "val" splits. None for using the splits defined by the `train` parameter. Default None.
+        :param Callable transform: (optional) A function/transform that takes in a PIL image
+            and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``. 
+        :param bool rotate: If set to ``True`` images are rotated to have all shape 481 x 321. This can be important to use a torch dataloader. 
+            Default at False.
+        """
+        checksum = "7bfe17302a219367694200a61ce8256c"
+        if splits is None:
+            if train:
+                splits = ["train", "test"]
+            else:
+                splits = ["val"]
+        self.base_path = root
+        self.rotate = rotate
+        self.transforms = transform
+        if not os.path.exists(self.base_path):
+            os.makedirs(self.base_path)
+        zip_path = os.path.join(self.base_path, "download.zip")
+        if download and not os.path.exists(zip_path):
+            urllib.request.urlretrieve(
+                "https://github.com/BIDS/BSDS500/archive/refs/heads/master.zip",
+                zip_path,
+            )
+            download_sum = calculate_md5(fpath=zip_path)
+            if not download_sum == checksum:
+                return ValueError(
+                    "Verification of the dataset failed (unexpected md5 checksum of the downloaded zip-file)"
+                )
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(self.base_path)
+        if not download and not os.path.exists(zip_path):
+            raise NameError(
+                "Dataset does not exist. Set download=True for downloading it or choose root correctly."
+            )
+        image_path_train = os.path.join(
+            self.base_path, "BSDS500-master/BSDS500/data/images/train"
+        )
+        image_path_test = os.path.join(
+            self.base_path, "BSDS500-master/BSDS500/data/images/test"
+        )
+        image_path_val = os.path.join(
+            self.base_path, "BSDS500-master/BSDS500/data/images/val"
+        )
+        self.file_list = []
+        if "train" in splits:
+            file_list = os.listdir(image_path_train)
+            self.file_list = self.file_list + [
+                os.path.join(image_path_train, f)
+                for f in file_list
+                if f.endswith("jpg")
+            ]
+        if "test" in splits:
+            file_list = os.listdir(image_path_test)
+            self.file_list = self.file_list + [
+                os.path.join(image_path_test, f) for f in file_list if f.endswith("jpg")
+            ]
+        if "val" in splits:
+            file_list = os.listdir(image_path_val)
+            self.file_list = self.file_list + [
+                os.path.join(image_path_val, f) for f in file_list if f.endswith("jpg")
+            ]
+
+        self.file_list.sort()
+
+    def __len__(self):
+        return len(self.file_list)
+
+    def __getitem__(self, IDX):
+        img = Image.open(self.file_list[IDX]).convert("RGB")
+        img = np.array(img) / 255.0
+        if self.transforms is not None:
+            img = self.transforms(img)
+        if self.rotate:
+            if isinstance(img, (tuple, list)):
+                img = [
+                    i.transpose(-2, -1) if i.shape[-1] > i.shape[-2] else i for i in img
+                ]
+            else:
+                img = img.transpose(-2, -1) if img.shape[-1] > img.shape[-2] else img
+        return img
