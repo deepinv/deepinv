@@ -371,7 +371,7 @@ class ItohFidelity(L2):
         Applies spatial finite differences to the input and wraps the result.
 
         This method computes the spatial finite differences of the input tensor :param torch.Tensor x: using the :meth:`D` operator,
-        then applies modular rounding to the result using :meth:`modulo_round`. This is typically used in
+        then applies modular rounding to the result. This is typically used in
         applications where periodic boundary conditions or phase wrapping are required.
 
         :param torch.Tensor x: Input tensor to which the spatial finite differences and wrapping are applied.
