@@ -902,3 +902,66 @@ def test_zip_strict_behavior(force_polyfill):
     assert (
         list(zip_strict(force_polyfill=force_polyfill)) == []
     ), "Empty input should yield empty output."
+
+
+@pytest.mark.parametrize("latex_exists", [True, False])
+def test_default_tex(latex_exists, monkeypatch):
+    import matplotlib.pyplot as plt
+    import shutil
+
+    monkeypatch.setattr(
+        "shutil.which", lambda cmd: ("/usr/bin/latex" if latex_exists else None)
+    )
+
+    # Test default
+    assert deepinv.utils.plotting.get_enable_tex()
+
+    # Check latex only called when latex installed
+    if shutil.which("latex"):
+        deepinv.utils.plotting.set_checked_tex(False)
+        deepinv.utils.enable_tex()
+        with patch(
+            "matplotlib.texmanager.TexManager.get_text_width_height_descent"
+        ) as mock_func:
+            # Test the tex checking allows other non-latex errors through
+            mock_func.side_effect = RuntimeError("something non-latex related")
+            with pytest.raises(RuntimeError, match="something non-latex related"):
+                deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            assert not deepinv.utils.plotting.get_checked_tex()  # not checked
+            assert deepinv.utils.plotting.get_enable_tex()  # still enabled
+
+            # Test the tex checking happens
+            mock_func.reset_mock()
+            mock_func.side_effect = RuntimeError("latex was not able to process")
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            # The check should now have disabled tex
+            assert not deepinv.utils.plotting.get_enable_tex()
+            assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
+
+            # Test that the check no longer happens
+            mock_func.reset_mock()
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_not_called()
+
+    # Test disabling works
+    deepinv.utils.disable_tex()
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Test enabling works, even with plotting
+    deepinv.utils.enable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert deepinv.utils.plotting.get_enable_tex()
+    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+
+    # Test plot has no side effect
+    deepinv.utils.disable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Finish test by resetting to default values
+    deepinv.utils.plotting.set_checked_tex(False)
+    deepinv.utils.plotting.enable_tex()
