@@ -2,7 +2,7 @@
 
 import torch
 from .utils import get_weights_url, test_onesplit, test_pad
-from ..physics.mri import MRIMixin
+from ..utils.mixins import MRIMixin
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
 
@@ -141,10 +141,13 @@ class DRUNet(torch.nn.Module):
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
             if pretrained == "download":
-                if in_channels == 4:
-                    name = "drunet_deepinv_color_finetune_22k.pth"
-                elif in_channels == 2:
-                    name = "drunet_deepinv_gray_finetune_26k.pth"
+                if dim == 3:
+                    name = "drunet_3d.pth"
+                else:
+                    if in_channels == 4:
+                        name = "drunet_deepinv_color_finetune_22k.pth"
+                    elif in_channels == 2:
+                        name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -186,6 +189,9 @@ class DRUNet(torch.nn.Module):
         :param float, torch.Tensor sigma: noise level. If ``sigma`` is a float, it is used for all images in the batch.
             If ``sigma`` is a tensor, it must be of shape ``(batch_size,)``.
         """
+        complex_input = False
+        if x.is_complex():
+            x =  MRIMixin.from_torch_complex(x)
         if isinstance(sigma, torch.Tensor):
             if self.dim == 2:
                 if sigma.ndim > 0:
@@ -220,9 +226,6 @@ class DRUNet(torch.nn.Module):
                     )
                     * sigma
                 )
-        complex_input = False
-        if x.is_complex():
-            x =  MRIMixin.from_torch_complex(x)
         x = torch.cat((x, noise_level_map), 1)
         if self.training or (
             x.size(2) % 8 == 0
