@@ -146,6 +146,9 @@ class MRIMixin:
     @staticmethod
     def from_torch_complex(x: Tensor):
         """[B,...,H,W] complex -> [B,2,...,H,W] real"""
+        if x.ndim == 5:
+            # We already have a channel dim
+            return torch.cat([x.real, x.imag], dim=1)
         return torch.view_as_real(x).moveaxis(-1, 1)
 
     @staticmethod
