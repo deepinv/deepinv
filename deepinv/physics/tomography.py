@@ -55,7 +55,7 @@ class Tomography(LinearPhysics):
     :param bool fbp_interpolate_boundary: the :func:`filtered back-projection <deepinv.physics.Tomography.A_dagger>` usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
-    :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``False``)
+    :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``False``)
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
     :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
 
