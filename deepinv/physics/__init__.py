@@ -51,6 +51,6 @@ from .phase_retrieval import (
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
-
+from .radar import NearFieldMIMO
 from . import generator
 from . import functional

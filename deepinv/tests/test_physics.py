@@ -76,6 +76,7 @@ OPERATORS = [
     "structured_random",
     "cassi",
     "ptychography_linear",
+    "radarmimo"
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -252,6 +253,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
         params = []
+    elif name == "radarmimoa":
+        p = dinv.physics.NearFieldMIMO()
+    elif name == "radarmimo":
+        p = dinv.physics.NearFieldMIMO()
+    elif name == "radarmimo":
+        p = dinv.physics.NearFieldMIMO()
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
