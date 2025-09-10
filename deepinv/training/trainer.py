@@ -225,7 +225,7 @@ class Trainer:
     ckpt_interval: int = 1
 
     ## Logging & Monitoring
-    loggers: Union[RunLogger, list[RunLogger]] = [LocalLogger(log_dir="./logs")]
+    loggers: Union[RunLogger, list[RunLogger]] = field(default_factory=[LocalLogger("./logs")])
     log_every_step: bool = False
     log_images: bool = False
     rescale_mode: str = "clip"
