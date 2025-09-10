@@ -111,6 +111,8 @@ def init_distributed():
         world_size = dist.get_world_size()
         local_rank = int(os.environ.get("LOCAL_RANK", rank))
 
+        print(f"Distributed setup: rank {rank}/{world_size}, local_rank {local_rank}")
+
         # Set device based on availability
         if torch.cuda.is_available():
             torch.cuda.set_device(local_rank)
