@@ -101,11 +101,9 @@ srun \
         nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader,nounits | head -n 1
     fi
     
-    # Change to the script directory
-    cd $(dirname "$0")
     
     # Execute the distributed radio interferometry script
-    exec python -u "distributed_forward.py"
+    exec python -u "/lustre/fswork/projects/rech/fio/ulx23va/projects/deepinv_PR/repos/deepinv/dev/distributed_forward.py"
   '
 
 echo "Distributed radio interferometry processing completed."
