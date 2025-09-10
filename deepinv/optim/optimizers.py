@@ -155,7 +155,7 @@ class BaseOptim(Reconstructor):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         The function should return either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
@@ -431,7 +431,9 @@ class BaseOptim(Reconstructor):
             elif isinstance(init, dict):
                 init_X = init
             else:
-                raise ValueError(f"Custom initial iterate must be a torch.Tensor, a tuple, or a dict. Got {type(self.custom_init)}.")
+                raise ValueError(
+                    f"Custom initial iterate must be a torch.Tensor, a tuple, or a dict. Got {type(self.custom_init)}."
+                )
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
@@ -1099,7 +1101,7 @@ class GradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
@@ -1362,7 +1364,7 @@ class ProximalGradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. 
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
         The function should return either a torch.Tensor :math:`x_0` or a dictionary of the form ``X = {'est': (x_0,)}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
