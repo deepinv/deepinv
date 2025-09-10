@@ -21,6 +21,7 @@ from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
+from deepinv.physics.wrappers import to_multiscale
 from deepinv.training import test
 from deepinv.utils.demo import load_dataset
 from deepinv.physics import Inpainting, GaussianNoise
@@ -66,7 +67,7 @@ physics = Inpainting(
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # set values of the PnP parameters
-max_iter = 10
+max_iter_pnp = 24
 params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
 
@@ -80,7 +81,7 @@ model = optim_builder(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
-    max_iter=max_iter,
+    max_iter=max_iter_pnp,
     params_algo=params_algo,
 )
 
@@ -107,11 +108,13 @@ test(
 # This estimate is then upsampled and used as initialization in the fine scale.
 # As shown in the result, the reconstruction quality significantly improves.
 
+max_iter_ml_pnp = 8
 
 # define the function which will be used to initialize the fine setting.
 def custom_init(y, physics, F_fn=None):
-    p_coarse = physics.to_coarse()
-    y_coarse = physics.downsample_measurement(y, p_coarse)
+    p_multiscale = to_multiscale(physics, y.shape[1:], factors=(2,))
+    p_multiscale.set_scale(1)
+    y_coarse = p_multiscale.downsample_measurement(y)
     params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
     model = optim_builder(
@@ -119,14 +122,14 @@ def custom_init(y, physics, F_fn=None):
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=False,
-        max_iter=8,
+        max_iter=16,
         params_algo=params_algo,
     )
 
-    x_coarse = model(y_coarse, p_coarse)
+    x_coarse = model(y, p_multiscale)
 
     # upsample coarse estimation
-    x_up = physics.upsample_signal(x_coarse)
+    x_up = p_multiscale.upsample(x_coarse)
     return {"est": [x_up]}
 
 
@@ -136,7 +139,7 @@ model = optim_builder(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
-    max_iter=max_iter,
+    max_iter=max_iter_ml_pnp,
     params_algo=params_algo,
     custom_init=custom_init,
 )
