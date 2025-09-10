@@ -36,6 +36,10 @@ mkdir -p "$LOGDIR"
 exec >"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.out" \
      2>"$LOGDIR/${SLURM_JOB_NAME}-${SLURM_JOB_ID}.err"
 
+# Load required modules
+module purge
+module load pytorch-gpu/py3/2.7.0
+
 echo "SLURM Job Information:"
 echo "  Job ID: $SLURM_JOB_ID"
 echo "  Nodes: $SLURM_NNODES"
@@ -43,13 +47,8 @@ echo "  Tasks per node: $SLURM_NTASKS_PER_NODE"
 echo "  Total tasks: $SLURM_NTASKS"
 echo "  Node list: $SLURM_NODELIST"
 
-# Load required modules
-module purge
-module load pytorch-gpu/py3/2.7.0
-
 # Verify PyTorch installation
 python -c "print('hello')"
-python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
 # Set up distributed training environment variables
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_NODELIST" | head -n1)
