@@ -560,9 +560,8 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    x = torch.randn(img_size, dtype=torch.float32).to(device)
-    if is_complex:
-        x = torch.view_as_complex(torch.stack((x, torch.randn_like(x)), dim=-1))
+    dtype = torch.complex64 if is_complex else torch.float32
+    x = torch.randn(img_size, dtype=dtype, device=device)
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
