@@ -1015,8 +1015,7 @@ def test_siren_net(device):
         encoding_dim=32,
         out_channels=1,
         siren_dims=[32],
-        output_shape=(1, 1, 32, 32),
-        bias=False,
+        bias={"encoding": False, "siren": False},
         device=device,
     )
     x = dinv.models.siren.get_mgrid((32, 32)).to(device)
