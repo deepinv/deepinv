@@ -63,7 +63,7 @@ class ReducedResolutionLoss(SupLoss):
         :math:`y`, such as blur or downsampling. The physics must be defined without an `img_size` so it can be applied
         to the measurements :math:`y`.
 
-    .. info::
+    .. hint::
 
         During training, consider using the `disable_train_metrics` option in :class:`deepinv.Trainer` to prevent a shape
         mismatch during metric computation since the reduced resolution output will smaller than ground truth.
