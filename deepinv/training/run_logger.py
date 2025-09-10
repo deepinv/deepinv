@@ -318,7 +318,9 @@ class LocalLogger(RunLogger):
         run_name: Optional[str] = "default_run",
         config: Optional[dict[str, Any]] = None,
     ):
-        super().__init__(run_name, config)
+        self.run_name = run_name
+        self.stdout_logger = getLogger("stdout_logger")
+        self.stdout_logger.setLevel("INFO")
         self.log_dir = Path(log_dir) / Path(project_name) / self.run_name
         self.loss_dir = self.log_dir / "losses"
         self.metrics_dir = self.log_dir / "metrics"
@@ -339,8 +341,6 @@ class LocalLogger(RunLogger):
                 json.dump(hyperparams, f, indent=4)
 
         # Setup logging to file
-        self.stdout_logger = getLogger("stdout_logger")
-        self.stdout_logger.setLevel("INFO")
         fh = logging.FileHandler(self.log_dir / "training.log")
         fh.setLevel("INFO")
         self.stdout_logger.addHandler(fh)
@@ -455,6 +455,12 @@ class LocalLogger(RunLogger):
             for i in range(img.size(0)):
                 img_name = f"{dir_path}/{name}_{k}_{self.img_counter + i}.png"
                 save_image(img[i], img_name)
+
+    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+        """
+        TODO
+        """
+        pass
 
     def log_checkpoint(
         self,
