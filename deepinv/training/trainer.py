@@ -34,7 +34,7 @@ class Trainer:
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
 
-    Training details are saved every ``ckp_interval`` epochs in the following format
+    Training details are saved every ``ckpt_interval`` epochs in the following format
 
     ::
 
@@ -158,7 +158,7 @@ class Trainer:
     :Model Saving:
 
     :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
-    :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
+    :param int ckpt_interval: The model is saved every ``ckpt_interval`` epochs. Default is ``1``.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
 
     |sep|
@@ -192,39 +192,51 @@ class Trainer:
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     """
-
+    ## Core Components
     model: torch.nn.Module
     physics: Union[Physics, list[Physics]]
-    optimizer: Union[torch.optim.Optimizer, None]
-    train_dataloader: torch.utils.data.DataLoader
-    epochs: int = 100
-    max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
-        SupLoss()
-    )
-    val_dataloader: torch.utils.data.DataLoader = None
-    early_stop: bool = False
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
+
+    ## Data Loading
+    train_dataloader: Union[torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]] = None
+    val_dataloader: Union[torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]] = None
+
+    ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
+
+    ## Training Control
+    optimizer: torch.optim.Optimizer = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler = None
+    grad_clip: float = None
     optimizer_step_multi_dataset: bool = True
+
+    ## Training Duration & Stopping
+    epochs: int = 100
+    max_batch_steps: int = 10**10
+    early_stop: bool = False
+
+    ## Loss & Metrics
+    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = SupLoss()
     metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
-    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_pretrained: Union[str, None] = None
-    save_path: Union[str, Path] = "."
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
-    grad_clip: float = None
-    check_grad: bool = False
-    loggers: list[RunLogger] = field(default_factory=[LocalLogger()])
-    ckp_interval: int = 1
-    log_images: bool = False
-    plot_convergence_metrics: bool = False
-    rescale_mode: str = "clip"
+
+    ## Checkpointing & Persistence
+    ckpt_pretrained: str = None
+    save_path: Union[str, Path] = "."
+    ckpt_interval: int = 1
+
+    ## Logging & Monitoring
+    loggers: Union[RunLogger, list[RunLogger]] = [LocalLogger(log_dir="./logs")]
     log_every_step: bool = False
-    verbose: bool = True
+    log_images: bool = False
+    rescale_mode: str = "clip"
+    check_grad: bool = False
+    plot_convergence_metrics: bool = False
     show_progress_bar: bool = True
+    verbose: bool = True
 
     def setup(self, train=True, **kwargs):
         r"""
@@ -235,7 +247,7 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if type(self.train_dataloader) is not list:
+        if self.train_dataloader is not None and type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
         if self.val_dataloader is not None and type(self.val_dataloader) is not list:
@@ -363,7 +375,7 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckpt_interval`` epochs.
 
         :param int epoch: Current epoch.
         :param dict state: custom objects to save with model
@@ -371,10 +383,6 @@ class Trainer:
         if state is None:
             state = {}
 
-        if not self.save_path:
-            return
-
-        os.makedirs(str(self.save_path), exist_ok=True)
         state = state | {
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
@@ -1056,7 +1064,7 @@ class Trainer:
             if self.scheduler:
                 self.scheduler.step()
 
-            if (epoch % self.save_ckp_interval == 0) or epoch + 1 == self.epochs:
+            if (epoch % self.save_ckpt_interval == 0) or epoch + 1 == self.epochs:
                 self.save_ckpt(f"ckp_{epoch}.pth.tar", epoch)
 
             if stop_flag:
