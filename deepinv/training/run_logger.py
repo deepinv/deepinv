@@ -389,13 +389,16 @@ class LocalLogger(RunLogger):
             all_logs = {}
 
         if phase not in all_logs:
-            all_logs[phase] = {}
+            all_logs[phase] = []
 
-        all_logs[phase]["epoch"] = epoch
-        all_logs[phase]["step"] = step
-        all_logs[phase]["losses"] = {
-            name: float(value) for name, value in losses.items()
+        entry = {
+            "epoch": epoch,
+            "step": step,
+            "losses": {name: float(value) for name, value in losses.items()},
         }
+
+        # Add the new entry to the list
+        all_logs[phase].append(entry)
 
         with open(log_file, "w") as f:
             json.dump(all_logs, f, indent=2)
