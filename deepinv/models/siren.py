@@ -183,8 +183,8 @@ class SIREN(nn.Module):
     :param int encoding_dim: Output dimension of the positional encoding.
     :param int out_channels: Number of channels for the output image. 1 for grayscale, 3 for RGB.
     :param List[int] siren_dims: Hidden‐layer sizes for the SIREN.
-    :param dict omega0: Frequency factors for the positional encoding and SIREN, respectively. Default is {"encoding": 20.0, "siren": 1.0}.
-    :param dict bias: If True, the positional encoding and SIREN include a bias term, respectively. Default is {"encoding": False, "siren": False}.
+    :param dict omega0: Frequency factors for the positional encoding and SIREN, respectively. If None, defaults to {"encoding": 20.0, "siren": 1.0}.
+    :param dict bias: Whether the positional encoding and SIREN include a bias term, respectively. If None, defaults to {"encoding": False, "siren": False}.
     :param str device: Device to run the model on. Default is "cpu".
     """
 
@@ -194,13 +194,17 @@ class SIREN(nn.Module):
         encoding_dim: int,
         out_channels: int,
         siren_dims: list[int],
-        omega0: dict = {"encoding": 20.0, "siren": 1.0},
-        bias: dict = {"encoding": True, "siren": False},
+        omega0: Optional[dict] = None,
+        bias: Optional[dict] = None,
         device: str = "cpu",
     ) -> None:
 
         super().__init__()
 
+        if omega0 is None:
+            omega0 = {"encoding": 20.0, "siren": 1.0}
+        if bias is None:
+            bias = {"encoding": True, "siren": False}
         self.pe = FourierPE(
             input_dim=input_dim,
             output_dim=encoding_dim,
