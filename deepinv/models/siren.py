@@ -151,7 +151,6 @@ class SinMLP(nn.Module):
             for in_dim, out_dim in zip(
                 [input_dim] + hidden_dims[:-1],
                 hidden_dims[1:] + [output_dim],
-                strict=True,
             )
         )
         self.activation = Sin(omega0=omega0)
