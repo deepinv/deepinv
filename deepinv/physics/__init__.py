@@ -33,7 +33,6 @@ from .noise import (
     GammaNoise,
     SaltPepperNoise,
     ZeroNoise,
-    SpeckleNoise,
     FisherTippettNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI

@@ -176,9 +176,6 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.GammaNoise`
      - :math:`y = \mathcal{G}(\ell, x/\ell)`
-  
-   * - :class:`deepinv.physics.SpeckleNoise`
-     - :math:`y = x\mathrm{e}^{i\phi}`, :math:`\phi\sim \mathcal{U}(-\pi, \pi)`
-
+     
    * - :class:`deepinv.physics.FisherTippettNoise`
      - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
