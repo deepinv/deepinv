@@ -286,7 +286,7 @@ class ItohFidelity(L2):
     Itoh data-fidelity term for spatial unwrapping problems.
 
     This class implements a data-fidelity term based on the normalized :math:`\ell_2` norm, but applied to the spatial finite differences of the variable and the wrapped differences of the data.
-    This is based on the Itoh condition for phase unwrapping :footcite:t:`itoh1982analysis`.
+    This is based on the Itoh condition for phase unwrapping :footcite:p:`itoh1982analysis`.
     It is designed to be used in conjunction with the :class:`deepinv.physics.SpatialUnwrapping` class for spatial unwrapping tasks.
 
     The data-fidelity term is defined as:
