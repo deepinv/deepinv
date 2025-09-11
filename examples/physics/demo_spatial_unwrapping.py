@@ -1,5 +1,5 @@
 r"""
-Spatial Unwrapping Demo
+Spatial unwrapping and modulo imaging
 ====================================
 
 This demo shows the use of the :class:`deepinv.physics.SpatialUnwrapping` forward model and the :class:`deepinv.optim.ItohFidelity` for phase unwrapping problems.
