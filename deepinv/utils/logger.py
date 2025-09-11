@@ -89,7 +89,6 @@ class ProgressMeter:
         return "[" + fmt + "/" + fmt.format(num_epochs) + "]"
 
 
-@_deprecated_func
 def get_timestamp() -> str:
     """Get current timestamp string.
 
