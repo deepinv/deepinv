@@ -77,6 +77,7 @@ autodoc_inherit_docstrings = False
 bibtex_footbibliography_backrefs = True
 # for sitemap
 html_baseurl = "https://deepinv.github.io/deepinv/"
+html_extra_path = ["robots.txt"]
 # the default scheme makes for wrong urls so we specify it properly here
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
