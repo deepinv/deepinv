@@ -10,12 +10,12 @@ class AverageMeter:
     """Compute and store aggregates online from a stream of scalar values
 
     The supported aggregates are:
+    - vals: the list of all processed values
     - val: the last value processed
     - avg: the average of all processed values
     - sum: the sum of all processed values
     - count: the number of processed values
     - std: the standard deviation of all processed values
-    - vals: the list of all processed values
     - sum2: the sum of squares of all processed values
 
     :param str name: meter name for printing

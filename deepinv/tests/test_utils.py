@@ -991,7 +991,7 @@ def test_AverageMeter_aggregates_types(to_float):
             type(attr_val) == float
         ), f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
 
-    # Vector aggregates should have entries that are instances of the builtin float type
+    # The list of retained values should only contain (exact) float instances
     for val in meter.vals:
         assert (
             type(val) == float
