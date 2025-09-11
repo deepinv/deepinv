@@ -4,6 +4,7 @@ import csv
 from datetime import datetime
 import platform
 import numpy as np
+from deepinv.utils.decorators import _deprecated_class, _deprecated_func
 
 
 class AverageMeter:
@@ -66,6 +67,7 @@ class AverageMeter:
         return fmtstr.format(**self.__dict__)
 
 
+@_deprecated_class
 class ProgressMeter:
     def __init__(self, num_epochs, meters, surfix="", prefix=""):
         self.epoch_fmtstr = self._get_epoch_fmtstr(num_epochs)
@@ -87,6 +89,7 @@ class ProgressMeter:
         return "[" + fmt + "/" + fmt.format(num_epochs) + "]"
 
 
+@_deprecated_func
 def get_timestamp() -> str:
     """Get current timestamp string.
 
@@ -96,6 +99,7 @@ def get_timestamp() -> str:
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
 
+@_deprecated_class
 class LOG:
     def __init__(self, filepath, filename, field_name):
         self.filepath = filepath
@@ -120,6 +124,7 @@ class LOG:
         logT(msg)
 
 
+@_deprecated_func
 def csv_log(file_name, field_name):
     assert file_name is not None
     assert field_name is not None
@@ -128,5 +133,6 @@ def csv_log(file_name, field_name):
     return logfile, logwriter
 
 
+@_deprecated_func
 def logT(*args, **kwargs):
     print(get_timestamp(), *args, **kwargs)
