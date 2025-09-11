@@ -23,7 +23,7 @@ class SpatialUnwrapping(Physics):
 
 
     :param float threshold: The threshold :math:`t` value for the modulo operation (default: 1.0).
-    :param str mode: Wrapping mode, either 'round' or 'floor' (default: 'round').
+    :param str mode: Wrapping function :math:`q(\cdot)`, either 'round' or 'floor' (default: 'round').
     :param kwargs: Additional arguments passed to the base Physics class.
 
     |sep|
