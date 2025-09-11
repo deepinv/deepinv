@@ -10,6 +10,18 @@ from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 from copy import deepcopy
 
+class _WrapperDenoiserMinusOneOne(nn.Module):
+    def __init__(self, denoiser: nn.Module):
+        super().__init__()
+        self.denoiser = denoiser
+
+    def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
+        # Scale from [-1, 1] to [0, 1]
+        x = (x + 1) / 2
+        denoised_01 = self.denoiser(x, sigma / 2, *args, **kwargs)
+        # Scale back to [-1, 1]
+        denoised = denoised_01 * 2 - 1
+        return denoised
 
 class BaseSDE(nn.Module):
     r"""
@@ -134,6 +146,7 @@ class DiffusionSDE(BaseSDE):
         alpha: float = 1.0,
         denoiser: nn.Module = None,
         solver: BaseSDESolver = None,
+        minus_one_one: bool = False,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -160,7 +173,8 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = deepcopy(denoiser)
+        self.denoiser = deepcopy(denoiser) if not minus_one_one else _WrapperDenoiserMinusOneOne(deepcopy(denoiser))
+        self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         r"""
@@ -479,6 +493,7 @@ class PosteriorDiffusion(Reconstructor):
         dtype=torch.float64,
         device=torch.device("cpu"),
         verbose: bool = False,
+        minus_one_one: bool = False,
         *args,
         **kwargs,
     ):
@@ -490,10 +505,14 @@ class PosteriorDiffusion(Reconstructor):
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
-        if denoiser is not None:
-            self.sde.denoiser = deepcopy(denoiser)
+        if denoiser is None:
+            denoiser = deepcopy(sde.denoiser)
+        if minus_one_one:
+            denoiser = _WrapperDenoiserMinusOneOne(denoiser) 
+        
+        self.sde.denoiser = denoiser
         if hasattr(self.data_fidelity, "denoiser"):
-            self.data_fidelity.denoiser = deepcopy(denoiser)
+            self.data_fidelity.denoiser = denoiser
 
         assert (
             solver is not None or sde.solver is not None
