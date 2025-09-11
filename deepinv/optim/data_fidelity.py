@@ -293,7 +293,7 @@ class ItohFidelity(L2):
 
     .. math::
 
-        f(x) = \frac{1}{2\sigma^2} \| D x - W_t(D y) \|^2
+        f(x,y) = \frac{1}{2\sigma^2} \| D x - W_t(D y) \|^2
 
     where :math:`D` denotes the spatial finite differences operator, :math:`W_t` denotes the wrapping operator, and :math:`\sigma` denotes the noise level.
 
