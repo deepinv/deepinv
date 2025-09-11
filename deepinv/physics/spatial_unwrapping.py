@@ -60,7 +60,6 @@ class SpatialUnwrapping(Physics):
         """
         return self.sensor(self.A(self.noise(x, **kwargs), **kwargs))
 
-
     def A(self, x):
         r"""
         Applies the modulo operator to the input tensor.
