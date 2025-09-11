@@ -389,7 +389,7 @@ class ItohFidelity(L2):
         This function computes the adjoint operation corresponding to spatial finite differences,
         typically used in image processing and variational optimization problems. The input `x`
         is expected to have its last dimension of size 2, representing the horizontal and vertical
-        finite differences (Dh_x, Dv_x).
+        finite differences :math:`(D_h x, D_v x)`.
 
         :param torch.Tensor x: Input tensor of shape (..., 2), where the last dimension contains
             the horizontal and vertical finite differences.
