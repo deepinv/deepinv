@@ -50,10 +50,31 @@ class SpatialUnwrapping(Physics):
         self.B = modulo_floor if mode == "floor" else modulo_round
 
     def forward(self, x, **kwargs):
+        r"""
+        Applies the forward model for spatial unwrapping.
+
+        In spatial unwrapping, the noise model is first applied to the input, followed by the modulo operator.
+
+        :param torch.Tensor x: Input tensor.
+        :return: (:class:`torch.Tensor`) The result after applying noise, modulo operator, and sensor.
+        """
         return self.sensor(self.A(self.noise(x, **kwargs), **kwargs))
 
+
     def A(self, x):
+        r"""
+        Applies the modulo operator to the input tensor.
+
+        :param torch.Tensor x: Input tensor.
+        :return: (:class:`torch.Tensor`) Modulo tensor.
+        """
         return self.B(x, self.threshold)
 
     def A_adjoint(self, y):
-        return y  # Adjoint is identity for wrapping operator
+        r"""
+        Adjoint operator for the modulo operator. For the modulo operator, the adjoint is the identity.
+
+        :param torch.Tensor y: Input tensor.
+        :return: (:class:`torch.Tensor`) Output tensor (identity).
+        """
+        return y
