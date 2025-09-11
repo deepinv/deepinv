@@ -965,3 +965,27 @@ def test_default_tex(latex_exists, monkeypatch):
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
     deepinv.utils.plotting.enable_tex()
+
+
+@pytest.mark.parametrize("to_float", [
+    float, np.float32, np.float64
+])
+def test_AverageMeter_aggregates_types(to_float):
+    rng = torch.Generator().manual_seed(0)
+    vals = torch.randn(10, generator=rng)
+
+    meter = deepinv.utils.AverageMeter("DummyValue", fmt=":f")
+    for val in vals:
+        meter.update(to_float(val.item()))
+
+    # Scalar aggregates should be instances of the builtin float type
+    scalar_attr_names = [
+        "val", "avg", "sum", "count", "std", "sum2",
+    ]
+    for attr_name in scalar_attr_names:
+        attr_val = getattr(meter, attr_name)
+        assert type(attr_val) == float, f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
+
+    # Vector aggregates should have entries that are instances of the builtin float type
+    for val in meter.vals:
+        assert type(val) == float, f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."

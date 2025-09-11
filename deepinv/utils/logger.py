@@ -6,8 +6,17 @@ import platform
 import numpy as np
 
 
-class AverageMeter(object):
-    """Stores values and keeps track of averages and standard deviations.
+class AverageMeter:
+    """Compute and store aggregates online from a stream of scalar values
+
+    The supported aggregates are:
+    - val: the last value processed
+    - avg: the average of all processed values
+    - sum: the sum of all processed values
+    - count: the number of processed values
+    - std: the standard deviation of all processed values
+    - vals: the list of all processed values
+    - sum2: the sum of squares of all processed values
 
     :param str name: meter name for printing
     :param str fmt: meter format for printing
@@ -18,8 +27,8 @@ class AverageMeter(object):
         self.fmt = fmt
         self.reset()
 
-    def reset(self):
-        """Reset meter values."""
+    def reset(self) -> None:
+        """Reset the stored aggregates."""
         self.vals = []
         self.val = 0.0
         self.avg = 0.0
@@ -29,34 +38,35 @@ class AverageMeter(object):
         self.sum2 = 0.0
 
     def update(self, val: Union[np.ndarray, float, int], n: int = 1) -> None:
-        """Update average meter.
+        """Process new scalar value(s) and update the stored aggregates.
 
         :param numpy.ndarray, float, int val: either array (i.e. batch) of values or single value
         :param int n: weight, defaults to 1
         """
         if isinstance(val, np.ndarray):
-            self.val = np.mean(val)
+            # NOTE: numpy.ndarray.tolist converts values to native Python types
             self.vals += val.tolist() if val.ndim > 0 else [val.tolist()]
-            self.sum += np.sum(val) * n
-            self.sum2 += np.sum(val**2) * n
-            self.count += n * np.prod(val.shape)
+            self.val = float(np.mean(val))
+            self.sum += float(np.sum(val) * n)
+            self.sum2 += float(np.sum(val**2) * n)
+            self.count += float(n * np.prod(val.shape))
         else:
-            self.val = val
-            self.vals += [val]
-            self.sum += val * n
-            self.sum2 += val**2 * n
-            self.count += n
+            self.vals += [float(val)]
+            self.val = float(val)
+            self.sum += float(val * n)
+            self.sum2 += float(val**2 * n)
+            self.count += float(n)
 
-        self.avg = self.sum / self.count
+        self.avg = float(self.sum / self.count)
         var = self.sum2 / self.count - self.avg**2
-        self.std = np.sqrt(var) if var > 0 else 0
+        self.std = float(np.sqrt(var) if var > 0 else 0)
 
     def __str__(self):
         fmtstr = "{name}={avg" + self.fmt + "}"
         return fmtstr.format(**self.__dict__)
 
 
-class ProgressMeter(object):
+class ProgressMeter:
     def __init__(self, num_epochs, meters, surfix="", prefix=""):
         self.epoch_fmtstr = self._get_epoch_fmtstr(num_epochs)
         self.meters = meters
@@ -86,7 +96,7 @@ def get_timestamp() -> str:
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
 
-class LOG(object):
+class LOG:
     def __init__(self, filepath, filename, field_name):
         self.filepath = filepath
         self.filename = filename
