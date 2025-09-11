@@ -38,7 +38,7 @@ def channel_norm(x):
 # %%
 # Load image and preprocess
 # -------------------------------------------------------
-# Load example image from deepinv and preprocess
+# Load example image and preprocess
 size = 256
 dr = 2  # dynamic range
 dtype = torch.float32
