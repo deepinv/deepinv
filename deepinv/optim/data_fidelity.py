@@ -308,7 +308,7 @@ class ItohFidelity(L2):
         >>> from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
         >>> from deepinv.optim.data_fidelity import ItohFidelity
         >>> x = torch.ones(1, 1, 3, 3)
-        >>> y = torch.ones(1, 1, 3, 3)
+        >>> y = x
         >>> physics = SpatialUnwrapping(threshold=1.0, mode="round")
         >>> fidelity = ItohFidelity(sigma=1.0)
         >>> f = fidelity(x, y, physics)
