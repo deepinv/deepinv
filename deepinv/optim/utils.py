@@ -4,11 +4,10 @@ from torch import Tensor
 from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
-from typing import Callable, Union
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
-from typing import TYPE_CHECKING
+from typing import Callable, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from deepinv.physics import LinearPhysics
@@ -91,14 +90,11 @@ def least_squares(
     """
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
+    if gamma is None:
+        gamma = 0.0
 
     if solver == "lsqr":  # rectangular solver
-
-        if gamma is not None and gamma > 0:  # prevent division by zero
-            eta = 1 / gamma
-        else:
-            eta = 0
-
+        eta = 1 / gamma if gamma > 0 else 0
         x, _ = lsqr(
             A,
             AT,
@@ -125,7 +121,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if gamma is not None and gamma > 0:
+            if gamma > 0:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -172,7 +168,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if (gamma is None or gamma == 0) and not overcomplete and not complete:
+        if gamma == 0 and not overcomplete and not complete:
             x = AT(x)
     return x
 
@@ -808,18 +804,18 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
-        with torch.no_grad():
-            solution = least_squares(
-                A=physics.A,
-                AT=physics.A_adjoint,
-                y=y,
-                z=z,
-                init=init,
-                gamma=gamma,
-                AAT=physics.A_A_adjoint,
-                ATA=physics.A_adjoint_A,
-                **kwargs,
-            )
+        solution = least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y,
+            z=z,
+            init=init,
+            gamma=gamma,
+            AAT=physics.A_A_adjoint,
+            ATA=physics.A_adjoint_A,
+            **kwargs,
+        )
+
         # Save tensors only
         gamma = torch.as_tensor(gamma, dtype=y.dtype, device=y.device)
         ctx.save_for_backward(solution, y, z, gamma)

@@ -25,7 +25,7 @@ New Features
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 - Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
-- O(1) memory backprop for linear solver (:gh:`TODO` by `Minh Hai Nguyen`_)
+- O(1) memory backprop for linear solver and example (:gh:`739` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^

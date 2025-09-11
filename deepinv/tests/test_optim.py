@@ -10,6 +10,10 @@ from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
+from deepinv.optim.utils import least_squares_implicit_backward
+
+from functools import partial
+import copy
 
 
 def custom_init_CP(y, physics):
@@ -880,7 +884,12 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+least_squares_physics = [
+    "deblur_constant",
+    "inpainting",
+    "MRI",
+    "super_resolution_circular",
+]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
@@ -987,11 +996,6 @@ def test_condition_number(device):
     gt_cond = c.max() / c.min()
     rel_error = (cond - gt_cond).abs() / gt_cond
     assert rel_error < 0.1
-
-
-from deepinv.optim.utils import least_squares_implicit_backward
-from functools import partial
-import copy
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
