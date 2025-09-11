@@ -118,6 +118,7 @@ def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     :return: dict with str keys and array values.
     """
     from scipy.io import loadmat as scipy_loadmat
+
     if mat73:
         try:
             from mat73 import loadmat as loadmat73
