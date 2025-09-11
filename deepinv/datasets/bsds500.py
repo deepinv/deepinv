@@ -3,7 +3,6 @@ import zipfile
 import os
 import os.path
 from PIL import Image
-import numpy as np
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
 
