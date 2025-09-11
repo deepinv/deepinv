@@ -337,7 +337,7 @@ class ItohFidelity(L2):
 
     def grad(self, x, y, *args, **kwargs):
         WDy = self.WD(y)
-        return self.D_transpose(self.d.grad(self.D(x), WDy, *args, **kwargs))
+        return self.D_adjoint(self.d.grad(self.D(x), WDy, *args, **kwargs))
 
     def grad_d(self, u, y, *args, **kwargs):
         WDy = self.WD(y)
@@ -423,7 +423,7 @@ class ItohFidelity(L2):
         where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
         """
 
-        psi = self.D_transpose(self.WD(y))
+        psi = self.D_adjoint(self.WD(y))
 
         if x is not None:
             psi = psi + (gamma / 2) * x
