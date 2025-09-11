@@ -30,7 +30,6 @@ dependencies = [
     "torchvision",
     "torchmetrics",
     "einops",
-    "scipy",
     "requests",
     "h5py",
     "natsort",
@@ -98,6 +97,7 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
+    "scipy",
 ]
 
 # optional dependencies for training
