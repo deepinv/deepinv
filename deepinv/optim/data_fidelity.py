@@ -382,7 +382,7 @@ class ItohFidelity(L2):
         WDx = self.modulo_round(Dx)
         return WDx
 
-    def D_transpose(self, x):
+    def D_adjoint(self, x):
         r"""
         Applies the adjoint (transpose) of the spatial finite difference operator to the input tensor.
 
