@@ -326,7 +326,15 @@ class ItohFidelity(L2):
         self.modulo_round = lambda x: x - threshold * torch.round(x / threshold)
 
     def fn(self, x, y, physics, *args, **kwargs):
-        # add warning for spatial unwrapping
+        r"""
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Dx}{w_{t}(Dy)}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{Dx}{w_{t}(Dy)}`.
+        """
+
         if physics.__class__.__name__ != "SpatialUnwrapping":
             print(
                 "Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics."
@@ -371,6 +379,17 @@ class ItohFidelity(L2):
         return self.d.grad(u, WDy, *args, **kwargs)
 
     def prox_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{w_{t}(Dy)}}(u)`, computed in :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
+        specific distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+        """
         WDy = self.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
 
