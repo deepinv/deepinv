@@ -1,6 +1,3 @@
-import deepinv as dinv
-from .signal import normalize_signal
-
 import os
 import shutil
 from pathlib import Path
@@ -16,14 +13,13 @@ from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from matplotlib.animation import FuncAnimation
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 from PIL import Image
 
+from deepinv.utils.signal import normalize_signal, complex_abs
+
 _DEFAULT_PLOT_FONTSIZE = 17
+_ENABLE_TEX = True  # Force enable/disable
+_CHECKED_TEX = False  # Whether checked tex problems
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -37,19 +33,69 @@ def get_default_plot_fontsize() -> int:
     return _DEFAULT_PLOT_FONTSIZE
 
 
+def disable_tex():
+    """Globally disable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = False
+
+
+def enable_tex():
+    """Globally enable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = True
+
+
+def get_enable_tex() -> bool:
+    """Get whether LaTeX is globally enabled"""
+    return _ENABLE_TEX
+
+
+def set_checked_tex(checked: bool):
+    """Set whether tex has been globally checked already."""
+    global _CHECKED_TEX
+    _CHECKED_TEX = checked
+
+
+def get_checked_tex() -> bool:
+    """Get whether tex has been globally checked already."""
+    return _CHECKED_TEX
+
+
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
+    import matplotlib.pyplot as plt
+    from matplotlib.texmanager import TexManager
+
+    global _CHECKED_TEX
+    global _ENABLE_TEX
+
     if fontsize is None:
         fontsize = get_default_plot_fontsize()
-
     plt.rcParams["font.size"] = fontsize
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
-    plt.rcParams["text.latex.preamble"] = (
-        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
-    )
+
+    # If plot gives TeX errors, force disable TeX globally
+    # If no latex, then skip check
+    if not get_checked_tex() and shutil.which("latex"):
+        try:
+            TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
+        except RuntimeError as e:
+            if "latex was not able to process" in str(e).lower():
+                disable_tex()
+            else:
+                raise
+
+    # If no errors, don't check again
+    set_checked_tex(True)
+
+    if shutil.which("latex") and get_enable_tex():
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    else:
+        plt.rcParams["text.usetex"] = False
+        plt.rcParams["text.latex.preamble"] = ""
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -105,12 +151,13 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         imgs = []
         titles = []
         caption = "From left to right: "
+
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
 
-        if y is not None and y.shape == x_net.shape:
+        if y is not None and x is not None and y.shape == x.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
@@ -129,8 +176,11 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         for img in imgs:
             out = preprocess_img(img, rescale_mode=rescale_mode)
             vis_array.append(out)
-        vis_array = torch.cat(vis_array)
-        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
+        if vis_array != []:
+            vis_array = torch.cat(vis_array)
+            grid_image = make_grid(vis_array, nrow=vis_array[0].shape[0])
+        else:
+            grid_image = None
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
@@ -159,7 +209,7 @@ def preprocess_img(im, rescale_mode="min_max"):
     """
     # Apply the modulus function if the image is inferred to be complex
     if torch.is_complex(im) or im.shape[1] == 2:
-        im = dinv.loss.metric.functional.complex_abs(im, dim=1, keepdim=True)
+        im = complex_abs(im, dim=1, keepdim=True)
 
     # Cast image values to float32 numbers
     # NOTE: Why is it needed?
@@ -210,6 +260,7 @@ def plot(
     show=True,
     close=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
     fontsize=None,
@@ -263,6 +314,7 @@ def plot(
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images.
@@ -274,6 +326,8 @@ def plot(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -284,7 +338,8 @@ def plot(
     if isinstance(img_list, torch.Tensor):
         img_list = [img_list]
     elif isinstance(img_list, dict):
-        assert titles is None, "titles should be None when img_list is a dictionary"
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
         titles, img_list = list(img_list.keys()), list(img_list.values())
 
     for i, img in enumerate(img_list):
@@ -324,13 +379,27 @@ def plot(
         for r, img in enumerate(row_imgs):
             im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if cbar:
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
+
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
-            axs[r, i].axis("off")
+            if subtitles is not None:
+                sub = (
+                    subtitles[i]
+                    if all(isinstance(s, str) for s in subtitles)
+                    else subtitles[r][i]
+                )
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
 
     if cbar:
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -370,6 +439,7 @@ def scatter_plot(
     show=True,
     return_fig=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
     fontsize=None,
@@ -390,6 +460,7 @@ def scatter_plot(
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
     :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
@@ -403,6 +474,8 @@ def scatter_plot(
     :param float linewidths: width of the lines. Default: 1.5
     :param str color: color of the points. Default: blue
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -438,7 +511,19 @@ def scatter_plot(
             )
             if titles and r == 0:
                 axs[r, i].set_title(titles[i])
-            axs[r, i].axis("off")
+
+            if subtitles is not None:
+                if all(isinstance(s, str) for s in subtitles):
+                    sub = subtitles[i]
+                else:
+                    sub = subtitles[r][i]
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
 
@@ -465,6 +550,8 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib()
 
@@ -506,6 +593,8 @@ def plot_curves(metrics, save_dir=None, show=True):
                     axs[i].plot(metric_val[b], "-o", label=f"batch {b+1}")
                 else:
                     axs[i].semilogy(metric_val[b], "-o", label=f"batch {b+1}")
+            from matplotlib.ticker import MaxNLocator
+
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
             # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
@@ -528,6 +617,7 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
     :param bool show: whether to show the plot. Defaults to ``True``.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -590,6 +680,7 @@ def plot_inset(
     show: bool = True,
     figsize: tuple[int] = None,
     suptitle=None,
+    subtitles=None,
     cmap: str = "gray",
     fontsize=17,
     interpolation="none",
@@ -625,6 +716,7 @@ def plot_inset(
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param int fontsize: fontsize for the plot. Default: 17
@@ -644,10 +736,17 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(img_list, dict):
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
+
+        titles, img_list = list(img_list.keys()), list(img_list.values())
 
     fig, axs = plot(
         img_list=img_list,
@@ -659,6 +758,7 @@ def plot_inset(
         show=False,
         close=False,
         figsize=figsize,
+        subtitles=subtitles,
         suptitle=suptitle,
         cmap=cmap,
         fontsize=fontsize,
@@ -858,6 +958,8 @@ def plot_videos(
     # plt.gcf().set_visible(not plt.gcf().get_visible())
     # fig, axs = plt.subplots()
 
+    from matplotlib.animation import FuncAnimation
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
@@ -922,6 +1024,8 @@ def save_videos(
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
     :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
+    import matplotlib.pyplot as plt
+
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
 
@@ -1004,6 +1108,8 @@ def plot_ortho3D(
     :param int fontsize: fontsize for the titles. Default: 17
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -1079,6 +1185,8 @@ def plot_ortho3D(
                 img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
             )
             # ax_XY.set_aspect(1.)
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY

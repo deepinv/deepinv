@@ -2,6 +2,7 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils.compat import zip_strict
 import warnings
 import numpy as np
 import contextlib
@@ -18,6 +19,7 @@ import PIL
 import io
 import copy
 import math
+import sys
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -180,11 +182,11 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x, strict=True)
+            for hi, xi in zip_strict(h, x)
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y, strict=True):
+    for xi, hi, yi in zip_strict(x, h, y):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -202,6 +204,9 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("with_titles", [False, True])
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
+@pytest.mark.parametrize("with_subtitles", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize("return_axs", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -211,29 +216,46 @@ def test_plot(
     with_titles,
     dict_img_list,
     suptitle,
+    with_subtitles,
+    batched,
+    return_axs,
 ):
-    shape = (1, C, 2, 2)
+    if batched:
+        shape = (1, C, 2, 2)
+    else:
+        shape = (C, 2, 2)
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
-    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
+    subtitles = ["subtitle"] * n_images
+    img_list = {k: v for k, v in zip_strict(titles, img_list)}
     if not with_titles:
         titles = None
+    if not with_subtitles:
+        subtitles = None
     if not dict_img_list:
         img_list = list(img_list.values())
+    else:
+        titles = None
     save_dir = tmp_path if save_plot else None
     with (
         pytest.raises(AssertionError)
         if titles is not None and isinstance(img_list, dict)
         else nullcontext()
     ):
-        deepinv.utils.plot(
+        axs = deepinv.utils.plot(
             img_list,
             titles=titles,
             save_dir=save_dir,
             cbar=cbar,
             suptitle=suptitle,
+            subtitles=subtitles,
+            return_axs=return_axs,
         )
+        if return_axs:
+            assert axs is not None
+        else:
+            assert axs is None
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
@@ -241,14 +263,23 @@ def test_plot(
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
-def test_scatter_plot(tmp_path, n_plots, titles, save_plot, show, suptitle):
+@pytest.mark.parametrize("with_subtitles", [False, True])
+def test_scatter_plot(
+    tmp_path, n_plots, titles, save_plot, show, suptitle, with_subtitles
+):
     xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
     xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
     if titles is not None:
         titles = [titles] * n_plots if n_plots > 1 else titles
+    subtitles = ["subtitle"] * n_plots if with_subtitles else None
     save_dir = tmp_path if save_plot else None
     deepinv.utils.scatter_plot(
-        xy_list, titles=titles, suptitle=suptitle, save_dir=save_dir, show=show
+        xy_list,
+        titles=titles,
+        suptitle=suptitle,
+        save_dir=save_dir,
+        show=show,
+        subtitles=subtitles,
     )
 
 
@@ -519,9 +550,7 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             ), f"Selected GPU index should be {freer_gpu_index}."
 
 
-@pytest.mark.parametrize(
-    "fn_name", ["norm", "cal_angle", "cal_mse", "complex_abs", "norm_psnr"]
-)
+@pytest.mark.parametrize("fn_name", ["norm", "cal_angle", "cal_mse", "norm_psnr"])
 def test_deprecated_metric_functions(fn_name):
     f = getattr(deepinv.utils.metric, fn_name)
     with pytest.raises(NotImplementedError, match="deprecated"):
@@ -629,6 +658,57 @@ def test_get_GSPnP_params(operation, noise_level_img):
         assert stepsize > 0, "Stepsize should be positive."
         assert isinstance(max_iter, int), "Max iterations should be an integer."
         assert max_iter > 0, "Max iterations should be positive."
+
+
+@pytest.mark.parametrize("to_float", [float, np.float32, np.float64])
+def test_AverageMeter(to_float):
+    rng = torch.Generator().manual_seed(0)
+    vals = torch.randn(10, generator=rng)
+
+    meter = deepinv.utils.AverageMeter("DummyValue", fmt=":f")
+    for val in vals:
+        meter.update(to_float(val.item()))
+
+    # Check that the aggregates are correct
+    assert math.isclose(meter.val, vals[-1].item()), "Current value is incorrect."
+    assert math.isclose(
+        meter.avg, vals.mean().item(), rel_tol=1e-5
+    ), "Average value is incorrect."
+    assert math.isclose(
+        meter.sum, vals.sum().item(), rel_tol=1e-5
+    ), "Sum value is incorrect."
+    assert meter.count == len(vals), "Count value is incorrect."
+    assert math.isclose(
+        meter.std, vals.std(correction=0).item(), rel_tol=1e-5
+    ), "Std value is incorrect."
+    assert math.isclose(
+        meter.sum2, (vals**2).sum().item(), rel_tol=1e-5
+    ), "Sum2 value is incorrect."
+    assert all(
+        math.isclose(a, b, rel_tol=1e-10)
+        for a, b in zip_strict(meter.vals, vals.tolist())
+    ), "Retained values are incorrect."
+
+    # Scalar aggregates should be instances of the builtin float type
+    scalar_attr_names = [
+        "val",
+        "avg",
+        "sum",
+        "count",
+        "std",
+        "sum2",
+    ]
+    for attr_name in scalar_attr_names:
+        attr_val = getattr(meter, attr_name)
+        assert (
+            type(attr_val) == float
+        ), f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
+
+    # The list of retained values should only contain (exact) float instances
+    for val in meter.vals:
+        assert (
+            type(val) == float
+        ), f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."
 
 
 @pytest.mark.parametrize("rng", [random.Random(0)])
@@ -764,7 +844,7 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     # Tests specific to min-max normalization
     if mode == "min_max":
         # Test the edge case of constant signals
-        for inp_s, out_s in zip(inp, out, strict=True):
+        for inp_s, out_s in zip_strict(inp, out):
             inp_unique = torch.unique(inp_s)
             is_inp_constant = inp_unique.numel() == 1
             if is_inp_constant:
@@ -795,5 +875,144 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
         )
 
 
+@pytest.mark.parametrize("x", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("y", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_net", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_nl", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("rescale_mode", ["min_max", "clip"])
+def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
+    imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
+        x, y, x_net, x_nl, rescale_mode=rescale_mode
+    )
+
+    # Checks for empty inputs
+    if all(v is None for v in [x, y, x_net, x_nl]):
+        assert imgs == [], "Images list should be empty when all inputs are None."
+        assert titles == [], "Titles list should be empty when all inputs are None."
+        assert (
+            grid_image == None
+        ), "Grid image list should be empty when all inputs are None."
+
+    else:
+        assert all(
+            isinstance(img, torch.Tensor) for img in imgs
+        ), "All images should be torch tensors."
+        assert all(
+            isinstance(title, str) for title in titles
+        ), "All titles should be strings."
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
+
+
+@pytest.mark.parametrize("force_polyfill", [False, True])
+def test_zip_strict_behavior(force_polyfill):
+    # Test correct pairing
+    a = [1, 2, 3]
+    b = ["x", object(), "z"]
+    c = [True, False, object()]
+
+    result = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
+
+    # If Python >= 3.10, compare with zip(strict=True)
+    if sys.version_info >= (3, 10):
+        expected = list(zip(a, b, c, strict=True))  # novermin
+        assert result == expected
+
+    # Test ValueError for different lengths
+    d = [1, 2]
+    with pytest.raises(ValueError):
+        list(zip_strict(a, d, force_polyfill=force_polyfill))
+
+    # If Python >= 3.10, confirm zip(strict=True) also raises
+    if sys.version_info >= (3, 10):
+        with pytest.raises(ValueError):
+            list(zip(a, d, strict=True))  # novermin
+
+    # Test consumption behavior
+    def spy(iterable):
+        it = iter(iterable)
+        for x in it:
+            yield x
+
+    a = spy([1, 2, 3])
+    b = spy([10, 20, 30, 40])
+    c = spy([100, 200, 300, 400])
+
+    try:
+        _ = list(zip_strict(a, b, c, force_polyfill=force_polyfill))
+    except ValueError:
+        pass
+
+    assert next(a, None) is None, "Iterator a should be fully consumed."
+    assert next(b, None) is None, "Iterator b should be fully consumed."
+    assert next(c, None) == 400, "Iterator c should have one item left."
+
+    # Test empty input
+    assert (
+        list(zip_strict(force_polyfill=force_polyfill)) == []
+    ), "Empty input should yield empty output."
+
+
+@pytest.mark.parametrize("latex_exists", [True, False])
+def test_default_tex(latex_exists, monkeypatch):
+    import matplotlib.pyplot as plt
+    import shutil
+
+    monkeypatch.setattr(
+        "shutil.which", lambda cmd: ("/usr/bin/latex" if latex_exists else None)
+    )
+
+    # Test default
+    assert deepinv.utils.plotting.get_enable_tex()
+
+    # Check latex only called when latex installed
+    if shutil.which("latex"):
+        deepinv.utils.plotting.set_checked_tex(False)
+        deepinv.utils.enable_tex()
+        with patch(
+            "matplotlib.texmanager.TexManager.get_text_width_height_descent"
+        ) as mock_func:
+            # Test the tex checking allows other non-latex errors through
+            mock_func.side_effect = RuntimeError("something non-latex related")
+            with pytest.raises(RuntimeError, match="something non-latex related"):
+                deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            assert not deepinv.utils.plotting.get_checked_tex()  # not checked
+            assert deepinv.utils.plotting.get_enable_tex()  # still enabled
+
+            # Test the tex checking happens
+            mock_func.reset_mock()
+            mock_func.side_effect = RuntimeError("latex was not able to process")
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            # The check should now have disabled tex
+            assert not deepinv.utils.plotting.get_enable_tex()
+            assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
+
+            # Test that the check no longer happens
+            mock_func.reset_mock()
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_not_called()
+
+    # Test disabling works
+    deepinv.utils.disable_tex()
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Test enabling works, even with plotting
+    deepinv.utils.enable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert deepinv.utils.plotting.get_enable_tex()
+    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+
+    # Test plot has no side effect
+    deepinv.utils.disable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Finish test by resetting to default values
+    deepinv.utils.plotting.set_checked_tex(False)
+    deepinv.utils.plotting.enable_tex()
