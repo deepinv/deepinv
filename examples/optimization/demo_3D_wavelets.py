@@ -1,9 +1,10 @@
 """
-3D wavelet denoising
+3D denoising
 ====================================================================================================
 
-This example shows how to use a 3D wavelet denoiser for denoising a 3D image. We first apply a standard soft-thresholding
-wavelet denoiser to a 3D brain MRI volume. We then extend the denoiser objective to a redundant dictionary of wavelet
+This example shows how to use variational 3D denoisers for denoising a 3D image. We first apply a standard soft-thresholding
+wavelet denoiser to a 3D brain MRI volume, as well as a 3D TV denoiser.
+We then extend the wavelet denoiser objective to a redundant dictionary of wavelet
 bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm.
 """
 
@@ -106,7 +107,8 @@ denoiser = dinv.models.wavdict.WaveletDenoiser(
 
 # Apply the denoiser to the volume
 ths = noise_level_img * 2  # thresholding parameter
-x_hat = denoiser(y, ths)  # denoised volume
+with torch.no_grad():
+    x_hat = denoiser(y, ths)  # denoised volume
 psnr = dinv.metric.PSNR()(x, x_hat).item()  # compute PSNR
 
 # Plot
@@ -114,12 +116,50 @@ list_images = [x_hat[0, :, 90, :, :], x_hat[0, :, :, 108, :], x_hat[0, :, :, :, 
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume. PSNR = {:.2f}dB".format(psnr),
+    suptitle="Denoised brain volume, wavelet prior. PSNR = {:.2f}dB".format(psnr),
     cmap="viridis",
     tight=False,
     fontsize=12,
 )
 
+# %%
+# Other variational priors do also support 3D implementation. For instance, this is the case with TV or TGV priors.
+# Below, we illustrate the use of a TV denoiser, that solves the problem
+#
+# .. math::
+#     \widehat{x} = \arg\min_{x} \frac{1}{2} \|y - x\|_2^2 + \lambda \|x\|_\text{TV} = \operatorname{prox}_{\lambda \|\cdot\|_{\text{TV}}}(y)
+#
+# where :math:`\|\cdot\|_\text{TV}` is the total variation norm and :math:`\lambda` is a regularization parameter.
+
+
+denoiser_tv = dinv.models.TVDenoiser(n_it_max=10)
+
+# Apply the denoiser to the volume
+ths_tv = noise_level_img * 5.0  # thresholding parameter
+with torch.no_grad():
+    x_hat_tv = denoiser_tv(y, ths_tv)  # denoised volume
+
+psnr_tv = dinv.metric.PSNR()(x, x_hat_tv).item()  # compute PSNR
+
+# Plot
+list_images = [
+    x_hat_tv[0, :, 90, :, :],
+    x_hat_tv[0, :, :, 108, :],
+    x_hat_tv[0, :, :, :, 90],
+]
+dinv.utils.plot(
+    list_images,
+    figsize=(6, 2),
+    suptitle="Denoised brain volume, TV prior. PSNR = {:.2f}dB".format(psnr_tv),
+    cmap="viridis",
+    tight=False,
+    fontsize=12,
+)
+
+# %%
+# One can extend the above denoisers to more general denoisers.
+# For instance, we can extend the wavelet denoiser to a redundant dictionary of wavelet bases.
+# This is the purpose of the next section.
 
 # %%
 # Extension to multiple wavelet bases.
