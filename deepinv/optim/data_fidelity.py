@@ -293,9 +293,9 @@ class ItohFidelity(L2):
 
     .. math::
 
-        f(x,y) = \frac{1}{2\sigma^2} \| D x - W_t(D y) \|^2
+        f(x,y) = \frac{1}{2\sigma^2} \| D x - w_{t}(Dy) \|^2
 
-    where :math:`D` denotes the spatial finite differences operator, :math:`W_t` denotes the wrapping operator, and :math:`\sigma` denotes the noise level.
+    where :math:`D` denotes the spatial finite differences operator, :math:`w_t` denotes the wrapping operator, and :math:`\sigma` denotes the noise level.
 
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
     :param float threshold: Threshold value used in the wrapping operator (default: 1.0).
@@ -336,10 +336,36 @@ class ItohFidelity(L2):
         return super().fn(Dx, WDy, physics, *args, **kwargs)
 
     def grad(self, x, y, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{Dx}{w_{t}(Dy)} = \left. \frac{\partial D}{\partial x} \right|_x^\top \nabla_u \distance{u}{w_{t}(Dy)},
+
+        where :math:`\left. \frac{\partial D}{\partial x} \right|_x` is the Jacobian of :math:`D` at :math:`x`, and :math:`\nabla_u \distance{u}{w_{t}(Dy)}` is computed using ``grad_d`` with :math:`u = Dx`. The multiplication is computed using the ``D_adjoint`` method of the class.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
         WDy = self.WD(y)
         return self.D_adjoint(self.d.grad(self.D(x), WDy, *args, **kwargs))
 
     def grad_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the gradient :math:`\nabla_u\distance{u}{w_{t}(Dy)}`, computed in :math:`u`.
+
+        Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
+        specific distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+        """
         WDy = self.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
 
@@ -365,22 +391,6 @@ class ItohFidelity(L2):
         Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
         out = torch.stack((Dh_x, Dv_x), dim=-1)
         return out
-
-    def WD(self, x, **kwargs):
-        r"""
-        Applies spatial finite differences to the input and wraps the result.
-
-        This method computes the spatial finite differences of the input tensor :math:`x` using the :math:`D` operator,
-        then applies modular rounding to the result. This is typically used in
-        applications where periodic boundary conditions or phase wrapping are required.
-
-        :param torch.Tensor x: Input tensor to which the spatial finite differences and wrapping are applied.
-        :return: (:class:`torch.Tensor`) The wrapped finite differences of the input tensor.
-        """
-
-        Dx = self.D(x)
-        WDx = self.modulo_round(Dx)
-        return WDx
 
     def D_adjoint(self, x, **kwargs):
         r"""
@@ -408,6 +418,22 @@ class ItohFidelity(L2):
     def D_dagger(self, y, **kwargs):
         # fast initialization using DCT
         return self.prox(None, y, physics=None, gamma=None)
+
+    def WD(self, x, **kwargs):
+        r"""
+        Applies spatial finite differences to the input and wraps the result.
+
+        This method computes the spatial finite differences of the input tensor :math:`x` using the :math:`D` operator,
+        then applies modular rounding to the result. This is typically used in
+        applications where periodic boundary conditions or phase wrapping are required.
+
+        :param torch.Tensor x: Input tensor to which the spatial finite differences and wrapping are applied.
+        :return: (:class:`torch.Tensor`) The wrapped finite differences of the input tensor.
+        """
+
+        Dx = self.D(x)
+        WDx = self.modulo_round(Dx)
+        return WDx
 
     def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
         r"""
