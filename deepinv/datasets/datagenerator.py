@@ -320,7 +320,7 @@ class HDF5Dataset(ImageDataset):
             attr_name="stacked",
             attr_underscore_name="_stacked",
             attr_initial_value=0 if isinstance(self.y, h5py.Dataset) else len(self.y),
-            deprecation_message="The attribute 'stacked' is deprecated and will be removed in future versions. Use the attribute 'y' instead."
+            deprecation_message="The attribute 'stacked' is deprecated and will be removed in future versions. Use the attribute 'y' instead.",
         )
 
         # The attribute data_info is used nowhere.
