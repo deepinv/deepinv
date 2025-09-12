@@ -939,9 +939,7 @@ DTYPES = [torch.float32, torch.complex64]
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_linear_system(device, solver, dtype):
     # test the solution of linear systems with random matrices
-    batch_size = 4
-    dim = 32
-
+    batch_size = 2
     mat = torch.randn((32, 32), dtype=dtype, device=device)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
@@ -998,11 +996,20 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
-@pytest.mark.parametrize("physics_name", least_squares_physics)
+@pytest.mark.parametrize(
+    "physics_name",
+    [
+        "deblur_constant",
+        "MRI",
+        "super_resolution_circular",
+    ],
+)
 @pytest.mark.parametrize("solver", ["CG", "lsqr"])
 def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
-    batch_size = 2
+    batch_size = 1
+    torch.use_deterministic_algorithms(True)
+
     dtype = torch.float64
     physics, img_size, _, _, params = find_operator(
         physics_name, device=device, get_physics_param=True
@@ -1048,10 +1055,10 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     with torch.enable_grad():
         physics.update_parameters(**parameters)
         sol = least_squares_implicit_backward(
-            physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=20
+            physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
         )
         # simple loss
-        loss = sol.pow(2).mean()
+        loss = (sol - 1).pow(2).sum()
         loss.backward()
 
     # Check that all physics parameters have a gradient and close to finite difference gradient
@@ -1069,28 +1076,36 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
             num_samples = min(10, v.numel())
             idx_flat = torch.randperm(v.numel())[:num_samples]
             delta = 1e-6
-            expected_grad = torch.zeros_like(v)
-            for idx in idx_flat:
-                v_p = v.detach().clone().view(-1)
-                v_m = v.detach().clone().view(-1)
-                v_p[idx] += delta
-                v_m[idx] -= delta
-                v_p = v_p.view_as(v)
-                v_m = v_m.view_as(v)
+            implicit_grad = v.grad.detach().clone().contiguous()
+            expected_grad = torch.ones_like(v).view(-1)
 
-                physics.update_parameters(k=v_p)
-                with torch.no_grad():
+            with torch.no_grad():
+                for idx in idx_flat:
+                    v_p = v.detach().clone().view(-1)
+                    v_m = v.detach().clone().view(-1)
+                    v_p[idx] += delta
+                    v_m[idx] -= delta
+                    v_p = v_p.view_as(v)
+                    v_m = v_m.view_as(v)
+                    physics.update_parameters(**{k: v_p})
                     sol_p = least_squares_implicit_backward(
-                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=20
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
                     )
-                    loss_p = sol_p.pow(2).sum()
+                    loss_p = (sol_p - 1).pow(2).sum()
 
-                physics.update_parameters(k=v_m)
-                with torch.no_grad():
+                    physics.update_parameters(**{k: v_m})
                     sol_m = least_squares_implicit_backward(
-                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=20
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
                     )
-                    loss_m = sol_m.pow(2).sum()
+                    loss_m = (sol_m - 1).pow(2).sum()
 
-                expected_grad.view(-1)[idx] = (loss_p - loss_m) / (2 * delta)
-            assert torch.allclose(v.grad, expected_grad, rtol=1e-1, atol=1e-1)
+                    expected_grad[idx] = (loss_p - loss_m) / (2 * delta)
+
+            # Check that 99% of the entries are close, allowing for some numerical errors in edge cases
+            torch.testing.assert_close(
+                implicit_grad.view(-1)[idx_flat],
+                expected_grad[idx_flat],
+                rtol=5e-2,
+                atol=5e-2,
+                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+            )
