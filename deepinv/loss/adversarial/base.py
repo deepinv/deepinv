@@ -1,11 +1,13 @@
 from __future__ import annotations
 from contextlib import nullcontext, contextmanager
-
+from typing import Optional, TYPE_CHECKING, Union
+from pathlib import Path
 import torch.nn as nn
 import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
-from typing import Optional, TYPE_CHECKING
+from deepinv.utils import AverageMeter
+
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
@@ -65,10 +67,9 @@ class DiscriminatorMetric:
 class AdversarialLoss(Loss):
     r"""Base adversarial loss.
 
-    Override the forward function to call :func:`adversarial_loss <deepinv.loss.adversarial.GeneratorLoss.adversarial_loss>`
-    with quantities depending on your specific GAN model.
-    For examples, see :class:`SupAdversarialGeneratorLoss <deepinv.loss.adversarial.SupAdversarialGeneratorLoss>`
-    and :class:`UnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss>`
+    Override the forward function to call the adversarial loss with quantities depending on your specific GAN model.
+    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialLoss`
+    and :class:`deepinv.loss.adversarial.UnsupAdversarialLoss`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formula.
 
@@ -96,6 +97,9 @@ class AdversarialLoss(Loss):
         self.D = D
         self.optimizer_D = optimizer_D
 
+        self.log_loss_D_train = AverageMeter("Training discrim loss", ":.2e")
+        self.log_loss_D_eval = AverageMeter("Validation discrim loss", ":.2e")
+
     def adversarial_gen(self, real: Tensor, fake: Tensor) -> torch.Tensor:
         r"""Adversarial penalty mechanism in GAN generators.
 
@@ -122,21 +126,33 @@ class AdversarialLoss(Loss):
         return (adv_loss_real + adv_loss_fake) * self.weight_adv
 
     @contextmanager
-    def step_discrim(self):
-        # TODO multiple d steps
+    def step_discrim(self, model: nn.Module = None):
+        """
+        Context manager that steps discriminator optimizer
+        that wraps a loss calculation.
+
+        If discriminator optimizer does not exist, then this does nothing.
+
+        :param nn.Module model: generator model, used to detect if the loss is being
+            used in training or evaluation mode. If it is in evaluation mode, then this
+            function does nothing.
+        """
         if self.optimizer_D is None:
             yield lambda loss: None
             return
 
-        self.optimizer_D.zero_grad()
+        if model.training:
+            self.optimizer_D.zero_grad()
         try:
 
             def backward(loss: torch.Tensor):
-                loss.backward(retain_graph=True)
+                if model.training:
+                    loss.backward(retain_graph=True)
 
             yield backward
         finally:
-            self.optimizer_D.step()
+            if model.training:
+                self.optimizer_D.step()
 
     def forward(
         self,
@@ -161,3 +177,32 @@ class AdversarialLoss(Loss):
             return loss_g
         """
         raise NotImplementedError()
+
+    def load_model(self, filename, device=None, strict: bool = True) -> dict:
+        """Load discriminator from checkpoint.
+
+        :param str ckpt_pretrained: checkpoint filename.
+        :param torch.device, str device: device to load model onto.
+        :param bool strict: strict load weights to model.
+        """
+        ckpt = torch.load(filename, map_location=device, weights_only=False)
+        self.D.load_state_dict(ckpt["state_dict"], strict=strict)
+        if "optimizer" in ckpt and self.optimizer_D is not None:
+            self.optimizer_D.load_state_dict(ckpt["optimizer"])
+        return ckpt
+
+    def save_model(self, filename: Union[str, Path]):
+        r"""
+        Save the discriminator.
+
+        :param str, Path filename: filename to save to
+        """
+        torch.save(
+            {
+                "state_dict": self.D.state_dict(),
+                "optimizer": (
+                    self.optimizer_D.state_dict() if self.optimizer_D else None
+                ),
+            },
+            filename,
+        )

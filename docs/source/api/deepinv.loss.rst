@@ -81,7 +81,6 @@ Adversarial Learning
     deepinv.loss.adversarial.AdversarialLoss
     deepinv.loss.adversarial.SupAdversarialLoss
     deepinv.loss.adversarial.UnsupAdversarialLoss
-    deepinv.loss.adversarial.MultiOperatorMixin
     deepinv.loss.adversarial.MultiOperatorUnsupAdversarialLoss
     deepinv.loss.adversarial.UAIRLoss
 

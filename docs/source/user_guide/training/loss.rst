@@ -164,7 +164,7 @@ See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for e
      - Unsupervised adversarial loss
    * - :class:`MultiOperatorUnsupAdversarialLoss <deepinv.loss.adversarial.MultiOperatorUnsupAdversarialLoss>`
      - Multi-operator unsupervised adversarial loss
-   * - :class:`UAIRGeneratorLoss <deepinv.loss.adversarial.UAIRLoss>`
+   * - :class:`UAIRLoss <deepinv.loss.adversarial.UAIRLoss>`
      - Unsupervised reconstruction & adversarial loss.
 
 

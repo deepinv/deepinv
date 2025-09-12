@@ -29,26 +29,6 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
-    |sep|
-
-    :Examples:
-
-        Simple example (assuming a pretrained discriminator):
-
-        >>> y, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
-        >>>
-        >>> from deepinv.models import DCGANDiscriminator
-        >>> D = DCGANDiscriminator() # assume pretrained discriminator
-        >>>
-        >>> from deepinv.physics import Inpainting
-        >>> physics = Inpainting((3, 64, 64))
-        >>>
-        >>> loss = UAIRGeneratorLoss(D=D)
-        >>> model = lambda y, physics: physics.A_adjoint(y)
-        >>> l = loss(y, x_net, physics, model)
-        >>> l.backward()
-
-
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
     :param torch.nn.Module metric: metric for measurement consistency, defaults to :class:`torch.nn.MSELoss`
@@ -64,20 +44,39 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
 
     .. warning::
 
-        When using `physics_generator is not None`, and generator loss in parallel with discriminator loss, the physics generators cannot share the same random number generator,
-        otherwise both losses will step the same random number generators, meaning that the
-        data seen by each loss will be different. A simple solution uses factories:
+        The physics generator cannot share the same random number generator as that of any previous physics generators,
+        and the dataloader cannot be the same object as that of any previous dataloaders, otherwise
+        this loss will affect data outside the loss.
 
-        ::
+    |sep|
 
-            rng_factory = lambda: torch.Generator(seed)
-            physics_generator_factory = lambda: PhysicsGenerator(..., rng=rng_factory())
-            gen_loss = UAIRGeneratorLoss(
-                physics_generator = physics_generator_factory(),
-            )
-            dis_loss = UAIRDiscriminatorLoss(
-                physics_generator = physics_generator_factory(),
-            )
+    :Examples:
+
+        Simple example (assuming a pretrained discriminator):
+
+        >>> y, x_net = torch.randn(2, 1, 2, 64, 64) # B,C,H,W
+        >>>
+        >>> from deepinv.physics import Inpainting
+        >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+        >>>
+        >>> from deepinv.models import DCGANDiscriminator
+        >>> D = DCGANDiscriminator() # assume pretrained discriminator
+        >>>
+        >>> # Assume physics is random masking
+        >>> physics_generator = BernoulliSplittingMaskGenerator((64, 64), split_ratio=0.8)
+        >>>
+        >>> physics = Inpainting((2, 64, 64), mask=0.8)
+        >>>
+        >>> # Dataloader takes exact same form as input data
+        >>> dataloader = DataLoader([(torch.randn(2, 64, 64), torch.randn(2, 64, 64)) for _ in range(2)]) # x, y
+        >>>
+        >>> loss = UAIRLoss(
+        ...     D=D,
+        ...     physics_generator=physics_generator,
+        ... )
+        >>>
+        >>> l = loss(y, x_net, physics)
+        >>> l.backward()
 
     """
 
@@ -129,7 +128,6 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         :param torch.Tensor y_hat: re-measured reconstruction
         :param deepinv.physics.Physics physics: forward physics
         :param torch.nn.Module model: reconstruction network
-        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         physics_new = self.next_physics(
             physics, physics_generator=self.physics_generator, batch_size=len(y)
@@ -143,7 +141,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
             y_hat = getattr(physics_new, self.domain)(y_hat)
             y_tilde = getattr(physics_new, self.domain)(y_tilde)
 
-        with self.step_discrim() as step:
+        with self.step_discrim(model) as step:
             step(self.adversarial_discrim(y, y_hat))
 
         adv_loss = self.adversarial_gen(y, y_hat)
