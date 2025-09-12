@@ -5,10 +5,11 @@ import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from deepinv.loss.adversarial.base import DiscriminatorMetric, AdversarialLoss
-from deepinv.loss.adversarial.mo import MultiOperatorMixin
+from deepinv.utils.mixins import MultiOperatorMixin
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
+    from deepinv.physics.generator.base import PhysicsGenerator
 
 
 class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
@@ -89,6 +90,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: Optimizer = None,
+        physics_generator: PhysicsGenerator = None,
         device="cpu",
         **kwargs,
     ):
@@ -107,6 +109,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         self.domain = domain
         self.weight_mc = weight_mc
         self.D = D
+        self.physics_generator = physics_generator
 
         if domain is not None and domain not in ("A_adjoint", "A_dagger"):
             raise ValueError("domain must be either None, A_adjoint or A_dagger.")
@@ -128,7 +131,9 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         :param torch.nn.Module model: reconstruction network
         :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
-        physics_new = self.next_physics(physics, batch_size=len(y))
+        physics_new = self.next_physics(
+            physics, physics_generator=self.physics_generator, batch_size=len(y)
+        )
         y_hat = physics_new(x_net)
         x_tilde = model(y_hat, physics_new)
         y_tilde = physics_new.A(x_tilde)  # use same operator as y_hat

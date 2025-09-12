@@ -4,12 +4,14 @@ from typing import TYPE_CHECKING
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 from deepinv.loss.adversarial.base import DiscriminatorMetric, AdversarialLoss
-from deepinv.loss.adversarial.mo import MultiOperatorMixin
+from deepinv.utils.mixins import MultiOperatorMixin
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
+    from deepinv.physics.generator.base import PhysicsGenerator
 
 
 class SupAdversarialLoss(AdversarialLoss):
@@ -158,7 +160,7 @@ class UnsupAdversarialLoss(AdversarialLoss):
             return self.adversarial_gen(y, y_hat)
 
 
-class MultiOperatorUnsupAdversarialLoss(MultiOperatorMixin, UnsupAdversarialLoss):
+class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin):
     r"""Multi-operator unsupervised adversarial loss for generator.
 
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
@@ -249,7 +251,46 @@ class MultiOperatorUnsupAdversarialLoss(MultiOperatorMixin, UnsupAdversarialLoss
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
+    :param torch.utils.data.DataLoader dataloader: dataloader that returns new samples
     """
+
+    def __init__(
+        self,
+        weight_adv: float = 1.0,
+        D: nn.Module = None,
+        domain: str = None,
+        metric_gan: DiscriminatorMetric = None,
+        optimizer_D: torch.optim.Optimizer = None,
+        physics_generator: PhysicsGenerator = None,
+        dataloader: DataLoader = None,
+        device="cpu",
+        **kwargs,
+    ):
+        super().__init__(
+            weight_adv=weight_adv,
+            D=D,
+            domain=domain,
+            metric_gan=metric_gan,
+            optimizer_D=optimizer_D,
+            device=device,
+        )
+        self.physics_generator = physics_generator
+        self.dataloader = dataloader
+
+        if dataloader is None:
+            raise ValueError("Dataloader must not be None.")
+
+        self.prev_epoch = -1
+        self.reset_iter(epoch=0)
+
+    def reset_iter(self, epoch: int) -> None:
+        """Reset data iterator every epoch (to prevent `StopIteration`).
+        :param int epoch: Epoch.
+        """
+        if epoch == self.prev_epoch + 1:
+            self.iterator = iter(self.dataloader)
+            self.prev_epoch += 1
 
     def forward(
         self,
@@ -262,8 +303,10 @@ class MultiOperatorUnsupAdversarialLoss(MultiOperatorMixin, UnsupAdversarialLoss
         self.reset_iter(epoch=epoch)
 
         # Step data and physics
-        y_tilde = self.next_data()[1].to(x_net.device)
-        physics_new = self.next_physics(physics, batch_size=len(x_net))
+        y_tilde = next(self.iterator)[1].to(x_net.device)
+        physics_new = self.next_physics(
+            physics, physics_generator=self.physics_generator, batch_size=len(x_net)
+        )
 
         y_hat = physics_new.A(x_net)
 
@@ -276,7 +319,14 @@ class MultiOperatorUnsupAdversarialLoss(MultiOperatorMixin, UnsupAdversarialLoss
             )
 
         if self.domain is not None:
-            physics_full = self.physics_like(physics)
+            # Convert to domain, setting any masks to ones
+            physics_full = physics.clone()
+            if hasattr(physics, "mask"):
+                if isinstance(physics.mask, Tensor):
+                    physics_new.update(mask=torch.ones_like(physics.mask))
+                elif isinstance(physics.mask, float):
+                    physics_new.update(mask=1.0)
+
             x_tilde = getattr(physics_full, self.domain)(y_tilde)
             x_hat = getattr(physics_new, self.domain)(y_hat)
 

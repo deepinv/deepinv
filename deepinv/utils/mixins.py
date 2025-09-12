@@ -1,9 +1,15 @@
-from typing import Callable
+from __future__ import annotations
+from typing import Callable, TYPE_CHECKING, Union
 import numpy as np
 import torch
-from torch import Tensor, zeros_like
+from torch import Tensor
 from torch.nn import Module
+from torch.utils.data import DataLoader
 from torchvision.transforms import CenterCrop, Resize
+
+if TYPE_CHECKING:
+    from deepinv.physics.generator.base import PhysicsGenerator
+    from deepinv.physics.forward import Physics
 
 
 class TimeMixin:
@@ -84,7 +90,7 @@ class TimeMixin:
         :return: flattened tensor with time dim removed of shape `(B,C,H,W)`
         """
         _x = x.sum(dim)
-        out = zeros_like(_x)
+        out = torch.zeros_like(_x)
         m = mask if mask is not None else (x != 0)
         m = m.sum(dim)
         out[m != 0] = _x[m != 0] / m[m != 0]
@@ -267,3 +273,41 @@ class MRIMixin:
 
         ss = x.pow(2).sum(dim=1, keepdim=True)
         return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+
+
+class MultiOperatorMixin:
+    """Mixin for multi-operator loss functions."""
+
+    def next_physics(
+        self,
+        physics: Union[Physics, list[Physics]],
+        physics_generator: PhysicsGenerator = None,
+        batch_size=1,
+    ) -> Physics:
+        """Return physics with new physics params.
+
+        Pass in physics generator or a list of physics to return new physics.
+
+        :param list[Physics], Physics physics: list of physics containing the :math:`G` different forward operators
+                associated with the measurements, or single physics. If single physics, physics generator must be used.
+        :param PhysicsGenerator physics_generator: random physics generator that generates new params, if physics is not a list.
+            If `None`, a list of `physics` must be used.
+        :param int batch_size: batch size, defaults to 1
+        :return Physics: new physics.
+        """
+        if physics_generator is None:
+            if isinstance(physics, (list, tuple)):
+                j = torch.randint(0, len(physics), (1,), generator=self.rng).item()
+                physics_cur = physics[j]
+            else:
+                physics_cur = physics.clone()
+        else:
+            if isinstance(physics, (list, tuple)):
+                raise ValueError("physics must be physics, not a list or tuple.")
+
+            physics_cur = physics.clone()
+            params = physics_generator.step(batch_size=batch_size)
+            physics_cur.update(**params)
+            return physics_cur
+
+        return physics
