@@ -16,7 +16,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Fixed spectral method for phase retrieval throwing errors for physics.dtype = torch.float 
 
 v0.3.4
 ------
