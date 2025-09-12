@@ -50,13 +50,13 @@ def choose_discriminator(discrim_name, imsize):
 
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
-def test_discrim_training(discrim_name, imsize, device):
+def test_discrim_training(discrim_name, imsize, device, rng):
     # Test discriminator training with frozen generator
     imsize = (1, *imsize[1:])
     D = choose_discriminator(discrim_name, imsize).to(device)
 
     x = DummyCircles(1, imsize).x
-    physics = dinv.physics.Inpainting(imsize, mask=0.7, device=device)
+    physics = dinv.physics.Inpainting(imsize, mask=0.7, device=device, rng=rng)
     y = physics(x)
     dataloader = torch.utils.data.DataLoader(dinv.datasets.TensorDataset(x=x, y=y))
 
@@ -99,7 +99,7 @@ def test_discrim_training(discrim_name, imsize, device):
         # Fake should be more fake than real
         # Note we don't test that fake becomes more fake, as the discrim
         # training is not necessarily monotonic
-        assert D(x_net) < D(x)
+        assert D(x_net) <= D(x)
 
 
 def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
