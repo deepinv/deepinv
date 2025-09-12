@@ -118,7 +118,7 @@ class HDF5Dataset(ImageDataset):
             if self.transform is not None:
                 x = self.transform(x)
         else:
-            x = torch.nan
+            x = torch.tensor(torch.nan, dtype=y.dtype, device=y.device)
 
         if self.load_physics_generator_params:
             params = {
