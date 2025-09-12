@@ -117,7 +117,8 @@ class Trainer:
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool disable_train_metrics: if `True`, do not compute metrics on train set. Useful if your model output during training
+    :param bool disable_train_metrics: if `False` (default), metrics are computed both during training and testing on their respective data.
+        If `True`, do not compute metrics during training on train set. Useful if your model output during training
         is in the wrong shape for metric computation.
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
@@ -694,8 +695,6 @@ class Trainer:
         :param int epoch: current epoch.
         :returns: The logs with the metrics.
         """
-        if train and self.disable_train_metrics:
-            return logs
 
         # Compute the metrics over the batch
         with torch.no_grad():
@@ -814,8 +813,12 @@ class Trainer:
             x_net = x_net.detach()
 
             # Log metrics
-            logs = self.compute_metrics(
-                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+            logs = (
+                logs
+                if self.disable_train_metrics and train
+                else self.compute_metrics(
+                    x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+                )
             )
 
             # Update the progress bar

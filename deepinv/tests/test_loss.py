@@ -706,12 +706,14 @@ def test_reducedresolution_shapes(physics_name, device):
             x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device
         )
     else:
-        raise ValueError()
+        raise ValueError(
+            "Physics must be downsampling, downsamplingmatlab, blur or blurFFT"
+        )
 
     y = physics(x)
 
     model.eval()
-    x_hat_eval = model(y, physics)  # just asjoint
+    x_hat_eval = model(y, physics)  # just adjoint
     assert x_hat_eval.shape == x.shape
     assert metric(x_hat_eval, x) < 50
 
