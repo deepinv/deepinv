@@ -1,15 +1,18 @@
+from typing import Optional
+from math import prod
+
 import numpy as np
 from tqdm import tqdm
 
+import torch
 import torch.nn as nn
 from torch import Tensor
-from torch import rand
 from torch.optim import Adam
-from deepinv.physics import Physics
-from deepinv.loss import MCLoss
-from .base import Reconstructor
+
+from deepinv.physics.forward import Physics
+from deepinv.loss.mc import MCLoss
+from deepinv.models.base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
-from typing import Optional
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -28,6 +31,8 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
+    :param bool original: use exact network from original paper. If `False`, modify network
+        to reduce spatial dims further.
     """
 
     def __init__(
@@ -38,11 +43,13 @@ class PatchGANDiscriminator(nn.Module):
         use_sigmoid: bool = False,
         batch_norm: bool = True,
         bias: bool = True,
+        original: bool = True,
     ):
         super().__init__()
 
         kw = 4  # kernel width
         padw = int(np.ceil((kw - 1) / 2))
+        padw -= 1 if not original else 0
         sequence = [
             nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True),
@@ -66,20 +73,21 @@ class PatchGANDiscriminator(nn.Module):
                 nn.LeakyReLU(0.2, True),
             ]
 
-        nf_mult_prev = nf_mult
-        nf_mult = min(2**n_layers, 8)
-        sequence += [
-            nn.Conv2d(
-                ndf * nf_mult_prev,
-                ndf * nf_mult,
-                kernel_size=kw,
-                stride=1,
-                padding=padw,
-                bias=bias,
-            ),
-            nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
-            nn.LeakyReLU(0.2, True),
-        ]
+        if original:
+            nf_mult_prev = nf_mult
+            nf_mult = min(2**n_layers, 8)
+            sequence += [
+                nn.Conv2d(
+                    ndf * nf_mult_prev,
+                    ndf * nf_mult,
+                    kernel_size=kw,
+                    stride=1,
+                    padding=padw,
+                    bias=bias,
+                ),
+                nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
+                nn.LeakyReLU(0.2, True),
+            ]
 
         sequence += [
             nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)
@@ -108,16 +116,19 @@ class ESRGANDiscriminator(nn.Module):
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
-
-
+    :param list[int] hidden_dims: number of channels in each hidden layer.
+    :param bool batch_norm: whether to have batchnorm layers.
     """
 
     @_deprecated_alias(input_shape="img_size")
-    def __init__(self, img_size: tuple):
+    def __init__(self, img_size: tuple, hidden_dims=None, batch_norm=True):
         super().__init__()
         self.img_size = img_size
+        hidden_dims = hidden_dims if hidden_dims is not None else [64, 128, 256, 512]
         in_channels, in_height, in_width = self.img_size
-        patch_h, patch_w = int(in_height / 2**4), int(in_width / 2**4)
+        patch_h, patch_w = int(in_height / 2 ** len(hidden_dims)), int(
+            in_width / 2 ** len(hidden_dims)
+        )
         self.output_shape = (1, patch_h, patch_w)
 
         def discriminator_block(in_filters, out_filters, first_block=False):
@@ -125,19 +136,20 @@ class ESRGANDiscriminator(nn.Module):
             layers.append(
                 nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
             )
-            if not first_block:
+            if not first_block and batch_norm:
                 layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             layers.append(
                 nn.Conv2d(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
             )
-            layers.append(nn.BatchNorm2d(out_filters))
+            if batch_norm:
+                layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
         layers = []
         in_filters = in_channels
-        for i, out_filters in enumerate([64, 128, 256, 512]):
+        for i, out_filters in enumerate(hidden_dims):
             layers.extend(
                 discriminator_block(in_filters, out_filters, first_block=(i == 0))
             )
@@ -320,7 +332,7 @@ class CSGMGenerator(Reconstructor):
         :param bool requires_grad: whether to require gradient, defaults to True.
         """
         return (
-            rand(
+            torch.rand(
                 1,
                 self.backbone_generator.nz,
                 1,
@@ -342,14 +354,16 @@ class CSGMGenerator(Reconstructor):
         :param Physics physics: forward model
         :return: optimized latent z
         """
-        z = nn.Parameter(z)
+        z = nn.Parameter(z, requires_grad=True)
         optimizer = Adam([z], lr=self.inf_lr)
         err_prev = 999
 
         pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
         for i in pbar:
-            x_hat = self.backbone_generator(z)
-            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+            with torch.enable_grad():
+                x_hat = self.backbone_generator(z)
+                error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
@@ -380,3 +394,62 @@ class CSGMGenerator(Reconstructor):
             z = self.optimize_z(z, y, physics)
 
         return self.backbone_generator(z)
+
+
+class SkipConvDiscriminator(nn.Module):
+    """Simple residual convolution discriminator architecture.
+
+    Architecture taken from `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
+
+    Consists of convolutional blocks with skip connections with a final dense layer followed by sigmoid.
+    It receives an image as input and outputs a scalar value (between 0 and 1 if sigmoid is used).
+
+    :param tuple img_size: tuple of ints of input image size
+    :param int d_dim: hidden dimension
+    :param int d_blocks: number of conv blocks
+    :param int in_channels: number of input channels
+    :param bool use_sigmoid: use sigmoid activation at output.
+    """
+
+    def __init__(
+        self,
+        img_size: tuple[int, int] = (320, 320),
+        d_dim: int = 128,
+        d_blocks: int = 4,
+        in_channels: int = 2,
+        use_sigmoid: bool = True,
+    ):
+        super().__init__()
+
+        def conv_block(c_in, c_out):
+            return nn.Sequential(
+                nn.Conv2d(c_in, c_out, kernel_size=3, padding=1, bias=False),
+                nn.LeakyReLU(),
+            )
+
+        self.initial_conv = conv_block(in_channels, d_dim)
+
+        self.blocks = nn.ModuleList()
+        for _ in range(d_blocks):
+            self.blocks.append(conv_block(d_dim, d_dim))
+            self.blocks.append(conv_block(d_dim, d_dim))
+
+        self.flatten = nn.Flatten()
+        self.final = nn.Linear(d_dim * prod(img_size), 1)
+        self.sigmoid = nn.Sigmoid()
+        self.use_sigmoid = use_sigmoid
+
+    def forward(self, x: Tensor) -> Tensor:
+        r"""Forward pass of discriminator model.
+
+        :param torch.Tensor x: input image
+        """
+        x = self.initial_conv(x)
+
+        for i in range(0, len(self.blocks), 2):
+            x1 = self.blocks[i](x)
+            x2 = x1 + self.blocks[i + 1](x)
+            x = x2
+
+        y = self.final(self.flatten(x))
+        return self.sigmoid(y).squeeze() if self.use_sigmoid else y.squeeze()

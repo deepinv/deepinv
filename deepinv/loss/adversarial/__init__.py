@@ -1,8 +1,7 @@
 from .consistency import (
-    SupAdversarialGeneratorLoss,
-    SupAdversarialDiscriminatorLoss,
-    UnsupAdversarialGeneratorLoss,
-    UnsupAdversarialDiscriminatorLoss,
+    SupAdversarialLoss,
+    UnsupAdversarialLoss,
+    MultiOperatorUnsupAdversarialLoss,
 )
-from .uair import UAIRGeneratorLoss
-from .base import DiscriminatorLoss, GeneratorLoss, DiscriminatorMetric
+from .uair import UAIRLoss
+from .base import DiscriminatorMetric, AdversarialLoss
