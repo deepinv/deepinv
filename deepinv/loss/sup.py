@@ -68,6 +68,9 @@ class ReducedResolutionLoss(SupLoss):
         During training, consider using the `disable_train_metrics` option in :class:`deepinv.Trainer` to prevent a shape
         mismatch during metric computation since the reduced resolution output will smaller than ground truth.
 
+    This loss was used in :footcite:t:`shocher2017zero-shot` for downsampling tasks, and is named Wald's protocol :footcite:p:`wald1997fusion`
+    for pan-sharpening tasks.
+
     :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     """
