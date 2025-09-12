@@ -4,7 +4,6 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.utils.data import DataLoader
 from torchvision.transforms import CenterCrop, Resize
 
 if TYPE_CHECKING:
