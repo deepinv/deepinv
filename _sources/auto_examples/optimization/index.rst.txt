@@ -1,0 +1,151 @@
+
+
+.. _sphx_glr_auto_examples_optimization:
+
+Optimization
+------------
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a 3D wavelet denoiser for denoising a 3D image. We first apply a standard soft-thresholding wavelet denoiser to a 3D brain MRI volume. We then extend the denoiser objective to a redundant dictionary of wavelet bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_3D_wavelets_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_3D_wavelets.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D wavelet denoising</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we use the expected patch log likelihood (EPLL) prior :footcitezoran2011learning. for denoising and inpainting of natural images. To this end, we consider the inverse problem y = Ax+\epsilon, where A is either the identity (for denoising) or a masking operator (for inpainting) and \epsilon\sim\mathcal{N}(0,\sigma^2 I) is white Gaussian noise with standard deviation \sigma.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_epll_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_epll.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \epsilon where A is a convolutional operator and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_TV_minimisation_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_TV_minimisation.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_custom_prior_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_custom_prior.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_wavelet_prior_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_wavelet_prior.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we use patch priors for limited angle computed tomography. More precisely, we consider the inverse problem y = \mathrm{noisy}(Ax), where A is the discretized Radon transform with 100 equispace angles between 20 and 160 degrees. For the reconstruction, we minimize the variational problem">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_patch_priors_CT_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_patch_priors_CT.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Patch priors for limited-angle computed tomography</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This code shows how to reconstruct a noisy and incomplete image using the deep image prior.">
+
+.. only:: html
+
+  .. image:: /auto_examples/optimization/images/thumb/sphx_glr_demo_dip_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_optimization_demo_dip.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Reconstructing an image using the deep image prior.</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/optimization/demo_3D_wavelets
+   /auto_examples/optimization/demo_epll
+   /auto_examples/optimization/demo_TV_minimisation
+   /auto_examples/optimization/demo_custom_prior
+   /auto_examples/optimization/demo_wavelet_prior
+   /auto_examples/optimization/demo_patch_priors_CT
+   /auto_examples/optimization/demo_dip
+

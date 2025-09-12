@@ -1,0 +1,645 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Contributing to DeepInverse &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'contributing';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/contributing.html" />
+    <link rel="icon" href="_static/logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Community" href="community.html" />
+    <link rel="prev" title="Finding Help" href="finding_help.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contributing to DeepInverse</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="contributing-to-deepinverse">
+<span id="contributing"></span><h1>Contributing to DeepInverse<a class="headerlink" href="#contributing-to-deepinverse" title="Link to this heading">#</a></h1>
+<p>DeepInverse is a community-driven project and welcomes contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there!</p>
+<p>View our active list of contributors <a class="reference external" href="https://github.com/deepinv/deepinv/graphs/contributors">here</a>.</p>
+<p>Learn more about our code philosophy in the paper:
+<a class="reference external" href="https://arxiv.org/abs/2505.20160">DeepInverse: A Python package for solving imaging inverse problems with deep learning</a>.</p>
+<section id="how-to-contribute">
+<h2>How to Contribute<a class="headerlink" href="#how-to-contribute" title="Link to this heading">#</a></h2>
+<p>To contribute, you must install <code class="code docutils literal notranslate"><span class="pre">deepinv</span></code> in editable mode
+so that all your changes are visible when you run workflows.
+Make sure that you download all the required dependencies for testing
+by running in the root directory of the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>test,dataset,denoisers,doc,lint,training<span class="o">]</span>
+
+<span class="c1"># or using `uv` for faster installation:</span>
+
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>test,dataset,denoisers,doc,lint,training<span class="o">]</span>
+</pre></div>
+</div>
+<p>We acknowledge all contributors in the documentation and in the source code. Significant contributions
+will also be taken into account when deciding on the authorship of future publications.</p>
+<p>Please contribute to <code class="docutils literal notranslate"><span class="pre">deepinv</span></code> by forking the <a class="reference external" href="https://github.com/deepinv/deepinv/">main
+repository</a> on GitHub,
+then submit a “Pull Request” (PR). When preparing the PR, please make sure to
+check the following points:</p>
+<ul class="simple">
+<li><p><strong>Code quality</strong>: your code is compliant with PEP8, the <a class="reference external" href="https://black.readthedocs.io">black</a> style and <a class="reference external" href="https://docs.astral.sh/ruff/">ruff</a> checkers. This can be done easily
+by installing the <code class="docutils literal notranslate"><span class="pre">black</span></code> and <code class="docutils literal notranslate"><span class="pre">ruff</span></code> libraries and running <code class="docutils literal notranslate"><span class="pre">black</span> <span class="pre">.</span></code> and <code class="docutils literal notranslate"><span class="pre">ruff</span> <span class="pre">check</span></code> in the root directory of the repository after
+making the desired changes.</p></li>
+<li><p><strong>Typing</strong>: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using ruff.</p></li>
+<li><p><strong>Tests</strong>: write tests in <code class="docutils literal notranslate"><span class="pre">deepinv/tests</span></code> to test your code’s intended functionality,
+including unit tests (e.g. checking each method’s return values) and integration tests (i.e. end-to-end behavior),
+following a test-driven development methodology. We use <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and <code class="docutils literal notranslate"><span class="pre">unittest.mock</span></code> to write our tests.
+All existing tests should pass on your local machine. This can be done by installing <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and running
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">deepinv/tests</span></code> in the root directory of the repository after making the desired changes.
+Learn more <a class="reference external" href="https://realpython.com/pytest-python-testing/">here</a>.
+Your code coverage will automatically be checked using <code class="docutils literal notranslate"><span class="pre">codecov</span></code>.</p></li>
+<li><p><strong>Docs</strong>: the documentation and docstrings are updated if necessary. Our documentation is written in <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html">reST</a>
+and built with <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/installation.html">sphinx</a>.
+Please refer to the docstring guidelines below.
+Your documentation should be added to: a) docstring, b) API reference, c) User Guide, d) Examples (optional).
+After making the desired changes, check the documentation by installing
+<code class="docutils literal notranslate"><span class="pre">sphinx</span></code> and building the docs by running one of the commands in the table below in the <code class="docutils literal notranslate"><span class="pre">docs</span></code> directory.
+Note that if the build process fails, supplementary additional libraries may need to be manually installed
+(e.g. <code class="docutils literal notranslate"><span class="pre">sphinx-gallery</span></code>): please follow instructions in the log.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Once the GitHub tests have been approved by a maintainer (only required for first-time contributors), and the <code class="code docutils literal notranslate"><span class="pre">Build</span> <span class="pre">Docs</span></code> GitHub action
+has run successfully, you can download the documentation as a zip file from the <a class="reference external" href="https://github.com/deepinv/deepinv/actions/workflows/documentation.yml">Actions page</a>. Look for the workflow run corresponding to your pull request.</p>
+</div>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 44.4%" />
+<col style="width: 55.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Description of command</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">html</span></code></p></td>
+<td><p>Generates all the documentation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">html-fast</span></code></p></td>
+<td><p>Generates documentation faster but without running the examples</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PATTERN=/path/to/file</span> <span class="pre">make</span> <span class="pre">html-pattern</span></code></p></td>
+<td><p>Generates documentation for files matching <code class="docutils literal notranslate"><span class="pre">$(PATTERN)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean</span></code></p></td>
+<td><p>Cleans the documentation files</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean-win</span></code></p></td>
+<td><p>Cleans the documentation files (Windows OS)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="finding-help">
+<h2>Finding Help<a class="headerlink" href="#finding-help" title="Link to this heading">#</a></h2>
+<p>If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
+<a class="reference external" href="https://github.com/deepinv/deepinv/issues">issue tracker</a> and also ask any question in our discord server
+<a class="reference external" href="https://discord.gg/qBqY5jKw3p">Discord server</a>. We will then try to address the issue as soon as possible.
+You can also send an email to any of the <a class="reference external" href="https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md">maintainers</a> with your questions or ideas.</p>
+</section>
+<section id="docstring-guidelines">
+<h2>Docstring Guidelines<a class="headerlink" href="#docstring-guidelines" title="Link to this heading">#</a></h2>
+<p>For class and function docstrings, we use the <strong>reStructuredText (reST)</strong> syntax.
+See the <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html">Sphinx documentation</a> for more details.</p>
+<p>Please follow these guidelines:</p>
+<ul>
+<li><p>Each parameter and return must be properly descreibed, along with a type annotations for each <code class="docutils literal notranslate"><span class="pre">:param</span></code> field, as shown below:</p>
+<div class="highlight-rest notranslate"><div class="highlight"><pre><span></span><span class="nc">:param &lt;type&gt; &lt;name&gt;:</span> Description of the parameter.
+<span class="nc">:return:</span> Description of the return value.
+</pre></div>
+</div>
+</li>
+<li><p>Docstrings can be split into multiple sections using the horizontal separator <code class="docutils literal notranslate"><span class="pre">|sep|</span></code>, with section titles introduced by <code class="docutils literal notranslate"><span class="pre">:Title:</span></code>.</p></li>
+<li><p>To provide usage examples, include an <code class="docutils literal notranslate"><span class="pre">:Example:</span></code> section. Code in this section will be executed during documentation generation.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">:math:</span></code> for inline LaTeX-style mathematics, and <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">math::</span></code> for block equations.</p></li>
+<li><p>To include remarks, warnings, or tips, use the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">note::</span></code> directive.</p></li>
+<li><p>To cite a paper:</p>
+<ol class="arabic simple">
+<li><p>Add the BibTeX entry to the <code class="docutils literal notranslate"><span class="pre">refs.bib</span></code> file.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">:footcite:t:`&lt;key&gt;`</span></code> to cite in the format <em>Author et al. [1]</em>.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">:footcite:p:`&lt;key&gt;`</span></code> to cite with only the reference number <em>[1]</em>.</p></li>
+</ol>
+<p>For details on citing references with Sphinx, see the <a class="reference external" href="https://sphinxcontrib-bibtex.readthedocs.io/en/latest/">sphinx-bibtex documentation</a>.</p>
+<p>All references will be compiled and listed automatically in the generated documentation.</p>
+</li>
+</ul>
+<p>Below is a minimal working example of a typical docstring that includes all these features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyDenoiser</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Denoiser denoiser from the paper :footcite:t:`my_paper`.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        y = \D_\sigma{x + \sigma \omega}</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        This is a note.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">    &gt;&gt;&gt; model = dinv.models.DRUNet()</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.ones((1, 1, 8, 8))</span>
+<span class="sd">    &gt;&gt;&gt; y = model(x)</span>
+
+<span class="sd">    :param int in_channels: number of input channels.</span>
+<span class="sd">    :param int out_channels: number of output channels.</span>
+<span class="sd">    :param str pretrained: path to pretrained weights or &#39;download&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pretrained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+</section>
+<section id="contributing-new-datasets">
+<h2>Contributing new datasets<a class="headerlink" href="#contributing-new-datasets" title="Link to this heading">#</a></h2>
+<p>In order to contribute a new dataset, you must provide tests alongisde it to check that it functions as expected. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets.</p>
+<p>We get around this by mocking datasets in the tests. First, write the tests and the implementation, and make sure that the tests pass locally, on the real data. Then, write <a class="reference external" href="https://en.wikipedia.org/wiki/Mock_object">mocking code</a>, code that intercepts calls to input/output (IO) related functions, e.g. <code class="code docutils literal notranslate"><span class="pre">os.listdir</span></code>, and make them return a hard coded value, thereby making execution go as if the data was there. For more details and examples, see <a class="reference external" href="https://github.com/deepinv/deepinv/pull/490">this pull request</a>.</p>
+<p>Once the implementation, the tests and the mocking code are written, that they pass locally and on the CI servers, the maintainers will be able to review the code and merge it into the main branch if everything goes well. You should bear in mind though that the maintainers won’t have the time to make sure the tests pass on the real data, so they will have to trust that you did things correctly.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="finding_help.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Finding Help</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="community.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Community</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

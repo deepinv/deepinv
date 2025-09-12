@@ -1,0 +1,832 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Training Losses &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/training/loss';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/training/loss.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Metrics" href="metric.html" />
+    <link rel="prev" title="Datasets" href="datasets.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Training Losses</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="training-losses">
+<span id="loss"></span><h1>Training Losses<a class="headerlink" href="#training-losses" title="Link to this heading">#</a></h1>
+<p>This module contains popular training losses for supervised and self-supervised learning,
+which are especially designed for inverse problems.</p>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h2>
+<p>All losses inherit from the base class <a class="reference internal" href="../../api/stubs/deepinv.loss.Loss.html#deepinv.loss.Loss" title="deepinv.loss.Loss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.Loss</span></code></a>, which is a <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></a>.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">SureGaussianLoss</span><span class="p">(</span><span class="mf">.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Denoising</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DnCNN</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_net</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">x_net</span><span class="o">=</span><span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span> <span class="c1"># self-supervised loss, doesn&#39;t require ground truth x</span>
+</pre></div>
+</div>
+</section>
+<section id="supervised-learning">
+<span id="supervised-losses"></span><h2>Supervised Learning<a class="headerlink" href="#supervised-learning" title="Link to this heading">#</a></h2>
+<p>Use a dataset of pairs of signals and measurements (and possibly information about the forward operator),
+i.e., they can be written as <span class="math notranslate nohighlight">\(\mathcal{L}(x,\inverse{y})\)</span>.
+The main loss function is <a class="reference internal" href="../../api/stubs/deepinv.loss.SupLoss.html#deepinv.loss.SupLoss" title="deepinv.loss.SupLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SupLoss</span></code></a> which can use any <a class="reference internal" href="metric.html#metric"><span class="std std-ref">distortion metric</span></a>.</p>
+</section>
+<section id="self-supervised-learning">
+<span id="self-supervised-losses"></span><h2>Self-Supervised Learning<a class="headerlink" href="#self-supervised-learning" title="Link to this heading">#</a></h2>
+<p>Use a dataset of measurement data alone (and possibly information about the forward operator),
+i.e., they can be written as <span class="math notranslate nohighlight">\(\mathcal{L}(y,\inverse{y})\)</span> and take into account information
+about the forward measurement process.</p>
+<p>Self-supervised losses can be roughly classified according to whether they are
+designed to take care of the noise in the measurements, or take care of the ill-posedness
+of the forward operator (e.g., incomplete operators with less measurements than pixels in the image)</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id2">
+<caption><span class="caption-number">Table 27 </span><span class="caption-text">Denoising Losses</span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Loss</p></th>
+<th class="head"><p>Assumptions on Noise</p></th>
+<th class="head"><p>Compatible with general forward operators</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.MCLoss.html#deepinv.loss.MCLoss" title="deepinv.loss.MCLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.MCLoss</span></code></a></p></td>
+<td><p>Small or no noise.</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.Neighbor2Neighbor.html#deepinv.loss.Neighbor2Neighbor" title="deepinv.loss.Neighbor2Neighbor"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.Neighbor2Neighbor</span></code></a></p></td>
+<td><p>Independent noise across pixels.</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss" title="deepinv.loss.SplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SplittingLoss</span></code></a></p></td>
+<td><p>Independent noise across measurements.</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss" title="deepinv.loss.SureGaussianLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SureGaussianLoss</span></code></a></p></td>
+<td><p>Gaussian noise</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SurePoissonLoss.html#deepinv.loss.SurePoissonLoss" title="deepinv.loss.SurePoissonLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SurePoissonLoss</span></code></a></p></td>
+<td><p>Poisson noise</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SurePGLoss.html#deepinv.loss.SurePGLoss" title="deepinv.loss.SurePGLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SurePGLoss</span></code></a></p></td>
+<td><p>Poisson-Gaussian noise</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss" title="deepinv.loss.R2RLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.R2RLoss</span></code></a></p></td>
+<td><p>Poisson, Gaussian or Gamma noise</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss" title="deepinv.loss.ScoreLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.ScoreLoss</span></code></a></p></td>
+<td><p>Poisson, Gaussian or Gamma noise</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss" title="deepinv.loss.SureGaussianLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SureGaussianLoss</span></code></a></p></td>
+<td><p>Gaussian noise and multiple forward operators</p></td>
+<td><p>No</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In order to learn from incomplete data, you can either:</p>
+<ol class="arabic simple">
+<li><p>Use multiple operators (e.g., different masking patterns or performing further measurement splitting)</p></li>
+<li><p>Use a single operator and leverage invariance to transformations (e.g., rotations, translations) using Equivariant Imaging.</p></li>
+</ol>
+<div class="pst-scrollable-table-container"><table class="table" id="id3">
+<caption><span class="caption-number">Table 28 </span><span class="caption-text">Other self-supervised losses</span><a class="headerlink" href="#id3" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Loss</p></th>
+<th class="head"><p>Assumptions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.EILoss.html#deepinv.loss.EILoss" title="deepinv.loss.EILoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.EILoss</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line">Assumes invariance of the signal distribution to transformations.</div>
+<div class="line">(i.e. Equivariant Imaging)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.MOILoss.html#deepinv.loss.MOILoss" title="deepinv.loss.MOILoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.MOILoss</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line">Assumes measurements observed through multiple operators.</div>
+<div class="line">(i.e. Multi-Operator Imaging)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.MOEILoss.html#deepinv.loss.MOEILoss" title="deepinv.loss.MOEILoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.MOEILoss</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line">Assumes measurements observed through multiple operators</div>
+<div class="line">and invariance of the signal distribution</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss" title="deepinv.loss.SplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SplittingLoss</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line">Assumes masks observe whole distribution.</div>
+<div class="line">(i.e. measurement splitting or data undersampling)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.TVLoss.html#deepinv.loss.TVLoss" title="deepinv.loss.TVLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.TVLoss</span></code></a></p></td>
+<td><p>Assumes images have piecewise smooth regions; based on Total Variation regularization</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.AugmentConsistencyLoss.html#deepinv.loss.AugmentConsistencyLoss" title="deepinv.loss.AugmentConsistencyLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.AugmentConsistencyLoss</span></code></a></p></td>
+<td><p>Assumes consistency to data augmentations.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Splitting losses such as <a class="reference internal" href="../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss" title="deepinv.loss.SplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">SplittingLoss</span></code></a>
+can also be used to train the network from incomplete measurements of <strong>multiple</strong> forward operators.</p>
+</div>
+<section id="specialized-self-supervised-losses-for-mri">
+<span id="mri-losses"></span><h3>Specialized self-supervised losses for MRI<a class="headerlink" href="#specialized-self-supervised-losses-for-mri" title="Link to this heading">#</a></h3>
+<p>Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These losses are specialized versions of <a class="reference internal" href="../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss" title="deepinv.loss.SplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">SplittingLoss</span></code></a> and <a class="reference internal" href="../../api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss" title="deepinv.loss.R2RLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">Recorrupted2Recorrupted</span></code></a> to accelerated MRI problems.</p>
+</div>
+<div class="pst-scrollable-table-container"><table class="table" id="id4">
+<caption><span class="caption-number">Table 29 </span><span class="caption-text">MRI specialized losses</span><a class="headerlink" href="#id4" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Loss</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html#deepinv.loss.mri.WeightedSplittingLoss" title="deepinv.loss.mri.WeightedSplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.mri.WeightedSplittingLoss</span></code></a></p></td>
+<td><p>Splitting loss for MRI with K-weighting</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.mri.RobustSplittingLoss.html#deepinv.loss.mri.RobustSplittingLoss" title="deepinv.loss.mri.RobustSplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.mri.RobustSplittingLoss</span></code></a></p></td>
+<td><p>Splitting loss for noisy MRI with additional Noisier2Noise</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.mri.Phase2PhaseLoss.html#deepinv.loss.mri.Phase2PhaseLoss" title="deepinv.loss.mri.Phase2PhaseLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.mri.Phase2PhaseLoss</span></code></a></p></td>
+<td><p>Splitting loss across time dimension for dynamic MRI</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.mri.Artifact2ArtifactLoss.html#deepinv.loss.mri.Artifact2ArtifactLoss" title="deepinv.loss.mri.Artifact2ArtifactLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.mri.Artifact2ArtifactLoss</span></code></a></p></td>
+<td><p>Splitting loss across time dimension for sequential MRI</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.mri.ENSURELoss.html#deepinv.loss.mri.ENSURELoss" title="deepinv.loss.mri.ENSURELoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.mri.ENSURELoss</span></code></a></p></td>
+<td><p>Gaussian SURE but for rank-deficient multiple operators.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="adversarial-learning">
+<span id="adversarial-losses"></span><h2>Adversarial Learning<a class="headerlink" href="#adversarial-learning" title="Link to this heading">#</a></h2>
+<p>Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game.
+These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN.
+We implement various popular (supervised and unsupervised) adversarial training frameworks below.
+See <a class="reference internal" href="../reconstruction/adversarial.html#adversarial"><span class="std std-ref">Adversarial Networks</span></a> for more details, and see <a class="reference internal" href="../../auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a> for examples.
+The base class for generators is <a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.GeneratorLoss.html#deepinv.loss.adversarial.GeneratorLoss" title="deepinv.loss.adversarial.GeneratorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.adversarial.GeneratorLoss</span></code></a>
+and for discriminators is <a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.DiscriminatorLoss.html#deepinv.loss.adversarial.DiscriminatorLoss" title="deepinv.loss.adversarial.DiscriminatorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.adversarial.DiscriminatorLoss</span></code></a>.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id5">
+<caption><span class="caption-number">Table 30 </span><span class="caption-text">Adversarial Losses Overview</span><a class="headerlink" href="#id5" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Generator Loss</p></th>
+<th class="head"><p>Discriminator Loss</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.SupAdversarialGeneratorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">SupAdversarialGeneratorLoss</span></code></a></p></td>
+<td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">SupAdversarialDiscriminatorLoss</span></code></a></p></td>
+<td><p>Supervised adversarial loss</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss" title="deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnsupAdversarialGeneratorLoss</span></code></a></p></td>
+<td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss" title="deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnsupAdversarialDiscriminatorLoss</span></code></a></p></td>
+<td><p>Unsupervised adversarial loss</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss" title="deepinv.loss.adversarial.UAIRGeneratorLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">UAIRGeneratorLoss</span></code></a></p></td>
+<td><p></p></td>
+<td><p>Unsupervised reconstruction &amp; adversarial loss.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="network-regularization">
+<span id="regularization-losses"></span><h2>Network Regularization<a class="headerlink" href="#network-regularization" title="Link to this heading">#</a></h2>
+<p>These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id6">
+<caption><span class="caption-number">Table 31 </span><span class="caption-text">Network Regularization Losses Overview</span><a class="headerlink" href="#id6" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Loss</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.JacobianSpectralNorm.html#deepinv.loss.JacobianSpectralNorm" title="deepinv.loss.JacobianSpectralNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.JacobianSpectralNorm</span></code></a></p></td>
+<td><p>Controls spectral norm of the Jacobian matrix</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.FNEJacobianSpectralNorm.html#deepinv.loss.FNEJacobianSpectralNorm" title="deepinv.loss.FNEJacobianSpectralNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.FNEJacobianSpectralNorm</span></code></a></p></td>
+<td><p>Promotes a firmly non-expansive network.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="loss-schedulers">
+<span id="id1"></span><h2>Loss schedulers<a class="headerlink" href="#loss-schedulers" title="Link to this heading">#</a></h2>
+<p>Loss schedulers can be used to control which losses are used when during more advanced training.
+The base class is <a class="reference internal" href="../../api/stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler" title="deepinv.loss.BaseLossScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.BaseLossScheduler</span></code></a>.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id7">
+<caption><span class="caption-number">Table 32 </span><span class="caption-text">Schedulers Overview</span><a class="headerlink" href="#id7" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Loss</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.RandomLossScheduler.html#deepinv.loss.RandomLossScheduler" title="deepinv.loss.RandomLossScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.RandomLossScheduler</span></code></a></p></td>
+<td><p>Schedule losses at random.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.InterleavedLossScheduler.html#deepinv.loss.InterleavedLossScheduler" title="deepinv.loss.InterleavedLossScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.InterleavedLossScheduler</span></code></a></p></td>
+<td><p>Schedule losses sequentially one-by-one.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.StepLossScheduler.html#deepinv.loss.StepLossScheduler" title="deepinv.loss.StepLossScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.StepLossScheduler</span></code></a></p></td>
+<td><p>Activate losses at specified epoch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.loss.InterleavedEpochLossScheduler.html#deepinv.loss.InterleavedEpochLossScheduler" title="deepinv.loss.InterleavedEpochLossScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.InterleavedEpochLossScheduler</span></code></a></p></td>
+<td><p>Schedule losses sequentially epoch-by-epoch.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="datasets.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Datasets</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="metric.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Metrics</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#introduction">Introduction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supervised-learning">Supervised Learning</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#self-supervised-learning">Self-Supervised Learning</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#specialized-self-supervised-losses-for-mri">Specialized self-supervised losses for MRI</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#adversarial-learning">Adversarial Learning</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#network-regularization">Network Regularization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#loss-schedulers">Loss schedulers</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/training/loss.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

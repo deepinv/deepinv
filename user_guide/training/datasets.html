@@ -1,0 +1,808 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Datasets &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/training/datasets';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/training/datasets.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Training Losses" href="loss.html" />
+    <link rel="prev" title="Trainer" href="trainer.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="trainer.html">Trainer</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Datasets</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="datasets">
+<span id="id1"></span><h1>Datasets<a class="headerlink" href="#datasets" title="Link to this heading">#</a></h1>
+<p>The datasets module lets you use datasets with DeepInverse, for testing and training.</p>
+<p>Datasets can be either:</p>
+<ul class="simple">
+<li><p>Loaded in from your own data, see <a class="reference internal" href="#base-datasets"><span class="std std-ref">base datasets</span></a> for desired format;</p></li>
+<li><p>Paired dataset generated synthetically from ground-truth, see <a class="reference internal" href="#generating-datasets"><span class="std std-ref">generating datasets</span></a>;</p></li>
+<li><p>A public dataset, such as DIV2K or FastMRI, see <a class="reference internal" href="#predefined-datasets"><span class="std std-ref">predefined datasets</span></a>.</p></li>
+</ul>
+<section id="base-datasets">
+<span id="id2"></span><h2>Base Datasets<a class="headerlink" href="#base-datasets" title="Link to this heading">#</a></h2>
+<p>Datasets can return optionally ground-truth images <code class="code docutils literal notranslate"><span class="pre">x</span></code>, measurements <code class="code docutils literal notranslate"><span class="pre">y</span></code>, or <a class="reference internal" href="../physics/intro.html#parameter-dependent-operators"><span class="std std-ref">physics parameters</span></a> <code class="code docutils literal notranslate"><span class="pre">params</span></code>,
+or any combination of these, in one of the following ways:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">x</span></code> i.e a dataset that returns only ground truth;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> i.e. a dataset that returns pairs of ground truth and measurement. <code class="code docutils literal notranslate"><span class="pre">x</span></code> can be equal to <code class="code docutils literal notranslate"><span class="pre">torch.nan</span></code> if your dataset is ground-truth-free.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">params)</span></code> i.e. a dataset of ground truth and dict of <a class="reference internal" href="../physics/intro.html#physics-generators"><span class="std std-ref">physics parameters</span></a>. Useful for training with online measurements.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">params)</span></code> i.e. a dataset that returns ground truth, measurements and dict of params.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you have a dataset of measurements only <code class="code docutils literal notranslate"><span class="pre">(y)</span></code> or <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">params)</span></code> you should modify it such that it returns <code class="code docutils literal notranslate"><span class="pre">(torch.nan,</span> <span class="pre">y)</span></code> or <code class="code docutils literal notranslate"><span class="pre">(torch.nan,</span> <span class="pre">y,</span> <span class="pre">params)</span></code></p>
+</div>
+<p>If you have your own dataset (e.g. a PyTorch <code class="code docutils literal notranslate"><span class="pre">Dataset</span></code>), check that it is compatible using the function <a class="reference internal" href="../../api/stubs/deepinv.datasets.check_dataset.html#deepinv.datasets.check_dataset" title="deepinv.datasets.check_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.datasets.check_dataset()</span></code></a>
+(e.g. to be used with <a class="reference internal" href="../../api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> or <a class="reference internal" href="../../api/stubs/deepinv.test.html#deepinv.test" title="deepinv.test"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.test</span></code></a>).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>See <a class="reference internal" href="../../auto_examples/basics/demo_custom_dataset.html#sphx-glr-auto-examples-basics-demo-custom-dataset-py"><span class="std std-ref">Bring your own dataset</span></a> for a simple example of how to use DeepInverse with your own dataset.</p>
+</div>
+<p>We provide dataset classes for you to easily load in your own data:</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id6">
+<caption><span class="caption-number">Table 24 </span><span class="caption-text">Base Datasets Overview</span><a class="headerlink" href="#id6" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Dataset</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.ImageDataset.html#deepinv.datasets.ImageDataset" title="deepinv.datasets.ImageDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.ImageDataset</span></code></a></p></td>
+<td><p>Base abstract dataset class</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.ImageFolder.html#deepinv.datasets.ImageFolder" title="deepinv.datasets.ImageFolder"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.ImageFolder</span></code></a></p></td>
+<td><p>Dataset that loads images (ground-truth, measurements or both) from a folder</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.TensorDataset.html#deepinv.datasets.TensorDataset" title="deepinv.datasets.TensorDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.TensorDataset</span></code></a></p></td>
+<td><p>Dataset that returns tensor(s) passed in at input: either tensor(s) for a single observation or a whole dataset of them</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.HDF5Dataset</span></code></a></p></td>
+<td><p>Dataset of measurements generated using <a class="reference internal" href="../../api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a>, see <a class="reference internal" href="#generating-datasets"><span class="std std-ref">below</span></a> for how to use.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="generating-datasets">
+<span id="id3"></span><h2>Generating Datasets<a class="headerlink" href="#generating-datasets" title="Link to this heading">#</a></h2>
+<p>You can generate a dataset associated with a certain forward operator using <a class="reference internal" href="../../api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a>
+using a base dataset.
+Your base dataset can be any dataset that returns ground truth, i.e. either one of our <a class="reference internal" href="#predefined-datasets"><span class="std std-ref">predefined datasets</span></a>,
+your own data in the format provided by one of our <a class="reference internal" href="#base-datasets"><span class="std std-ref">base datasets</span></a>,
+or other external datasets.</p>
+<p>For example, here we generate a dataset of inpainting measurements from the <a class="reference internal" href="../../api/stubs/deepinv.datasets.Set14HR.html#deepinv.datasets.Set14HR" title="deepinv.datasets.Set14HR"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.Set14HR</span></code></a> dataset:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We support all data types supported by <code class="docutils literal notranslate"><span class="pre">h5py</span></code>, including complex numbers.</p>
+</div>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToTensor</span><span class="p">,</span> <span class="n">Compose</span><span class="p">,</span> <span class="n">CenterCrop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">demo</span><span class="o">.</span><span class="n">get_data_home</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;set14&#39;</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define base train dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">Set14HR</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">Compose</span><span class="p">([</span><span class="n">CenterCrop</span><span class="p">(</span><span class="mi">128</span><span class="p">),</span> <span class="n">ToTensor</span><span class="p">()]))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define forward operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span><span class="n">img_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">.05</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate paired dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">path</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The datasets are saved in <code class="docutils literal notranslate"><span class="pre">.h5</span></code> (HDF5) format, and can be easily loaded to PyTorch’s standard
+<a class="reference external" href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch v2.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.DataLoader</span></code></a>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataloader</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(torch.Size([4, 3, 128, 128]), torch.Size([4, 3, 128, 128]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_dataset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We can also use physics generators to randomly generate physics <code class="code docutils literal notranslate"><span class="pre">params</span></code> for data,
+and save and load the physics <code class="code docutils literal notranslate"><span class="pre">params</span></code> into the dataset:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">physics_generator</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">SigmaGenerator</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">path</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">physics_generator</span><span class="o">=</span><span class="n">physics_generator</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">load_physics_generator_params</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataloader</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">torch.Size([4])</span>
+</pre></div>
+</div>
+</section>
+<section id="predefined-datasets">
+<span id="id4"></span><h2>Predefined Datasets<a class="headerlink" href="#predefined-datasets" title="Link to this heading">#</a></h2>
+<p>Multiple popular easy-to-download datasets are available, which all either return
+ground-truth only <code class="code docutils literal notranslate"><span class="pre">x</span></code>, paired data <code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> or with params (e.g. mask) <code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">params)</span></code>.</p>
+<p>All these datasets inherit from <a class="reference internal" href="../../api/stubs/deepinv.datasets.ImageDataset.html#deepinv.datasets.ImageDataset" title="deepinv.datasets.ImageDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.ImageDataset</span></code></a>.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id7">
+<caption><span class="caption-number">Table 25 </span><span class="caption-text">Datasets Overview</span><a class="headerlink" href="#id7" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Dataset</strong></p></th>
+<th class="head"><p><strong>Returns</strong></p></th>
+<th class="head"><p><strong>Dataset Size</strong></p></th>
+<th class="head"><p><strong>Tensor Sizes</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.DIV2K.html#deepinv.datasets.DIV2K" title="deepinv.datasets.DIV2K"><code class="xref py py-class docutils literal notranslate"><span class="pre">DIV2K</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>800 (train) + 100 (val) images</p></td>
+<td><p>RGB, up to 2040x2040 pixels (variable)</p></td>
+<td><p>A widely-used dataset for natural image restoration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR" title="deepinv.datasets.Urban100HR"><code class="xref py py-class docutils literal notranslate"><span class="pre">Urban100HR</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>100 images</p></td>
+<td><p>up to 1200x1280 pixels (variable)</p></td>
+<td><p>Contains diverse high-resolution urban scenes, typically used for testing super-resolution algorithms.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.Set14HR.html#deepinv.datasets.Set14HR" title="deepinv.datasets.Set14HR"><code class="xref py py-class docutils literal notranslate"><span class="pre">Set14HR</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>14 high-resolution images</p></td>
+<td><p>RGB, 248×248 to 512×768 pixels.</p></td>
+<td><p>A small benchmark dataset for super-resolution tasks, containing a variety of natural images.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68" title="deepinv.datasets.CBSD68"><code class="xref py py-class docutils literal notranslate"><span class="pre">CBSD68</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>68 images</p></td>
+<td><p>RGB, 481x321 pixels</p></td>
+<td><p>A subset of the color Berkeley Segmentation Dataset.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset" title="deepinv.datasets.FastMRISliceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastMRISliceDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> or <code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">{'mask':</span> <span class="pre">mask,</span> <span class="pre">'coil_maps':</span> <span class="pre">coil_maps})</span></code></p></td>
+<td><p>Over 100,000 MRI slices</p></td>
+<td><p>Complex, varying shape approx. 640x320</p></td>
+<td><p>Raw MRI knee and brain fully-sampled or undersampled k-space data and optional RSS targets from the FastMRI dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.SimpleFastMRISliceDataset.html#deepinv.datasets.SimpleFastMRISliceDataset" title="deepinv.datasets.SimpleFastMRISliceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFastMRISliceDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>973 (knee) and 455 (brain) images</p></td>
+<td><p>320x320 fully-sampled reconstructed slices</p></td>
+<td><p>Easy-to-use in-memory prepared subset of 2D slices from the full FastMRI slice dataset for knees and brains, padded to standard size.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.CMRxReconSliceDataset.html#deepinv.datasets.CMRxReconSliceDataset" title="deepinv.datasets.CMRxReconSliceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">CMRxReconSliceDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> or <code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">{'mask':</span> <span class="pre">mask})</span></code></p></td>
+<td><p>300 patients, each with 8-13 slices</p></td>
+<td><p>Padded to 512x256x12 time steps</p></td>
+<td><p>Dynamic MRI sequences of cardiac cine from short axis (5-10 slices) and long axis (3 views) split by patient, from the CMRxRecon challenge.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.SKMTEASliceDataset.html#deepinv.datasets.SKMTEASliceDataset" title="deepinv.datasets.SKMTEASliceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SKMTEASliceDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">{'mask':</span> <span class="pre">mask,</span> <span class="pre">'coil_maps':</span> <span class="pre">coil_maps})</span></code></p></td>
+<td><p>25,000 slices from 155 patients</p></td>
+<td><p>Complex double-echo with 8 coils of shape 512x160.</p></td>
+<td><p>Raw MRI knee multicoil undersampled k-space data and fully-sampled ground truth from the Stanford SKM-TEA dataset, with precomputed Poisson disc masks from 4x to 16x acceleration, and pre-estimated coil maps.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset" title="deepinv.datasets.LidcIdriSliceDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">LidcIdriSliceDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>Over 200,000 CT scan slices</p></td>
+<td><p>Slices 512x512 voxels</p></td>
+<td><p>A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.Flickr2kHR.html#deepinv.datasets.Flickr2kHR" title="deepinv.datasets.Flickr2kHR"><code class="xref py py-class docutils literal notranslate"><span class="pre">Flickr2kHR</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>2,650 images</p></td>
+<td><p>RGB, up to 2000x2000 pixels (variable)</p></td>
+<td><p>A dataset from Flickr containing high-resolution images for tasks like super-resolution and image restoration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.LsdirHR.html#deepinv.datasets.LsdirHR" title="deepinv.datasets.LsdirHR"><code class="xref py py-class docutils literal notranslate"><span class="pre">LsdirHR</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>84499 (train) + 1000 (val) images</p></td>
+<td><p>RGB, up to 2160x2160 pixels (variable)</p></td>
+<td><p>A dataset with high-resolution images, often used for training large reconstruction models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD" title="deepinv.datasets.FMD"><code class="xref py py-class docutils literal notranslate"><span class="pre">FMD</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p>12000 images</p></td>
+<td><p>512x512 pixels</p></td>
+<td><p>The Fluorescence Microscopy Dataset (FMD) is a dataset of real fluorescence microscopy images.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.Kohler.html#deepinv.datasets.Kohler" title="deepinv.datasets.Kohler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kohler</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code></p></td>
+<td><p>48 blurry + 9547 sharp images</p></td>
+<td><p>800x800 RGB</p></td>
+<td><p>A blind-deblurring dataset consists of blurry shots and sharp frames, each blurry shot being associated with about 200 sharp frames.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.NBUDataset.html#deepinv.datasets.NBUDataset" title="deepinv.datasets.NBUDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">NBUDataset</span></code></a></p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">x</span></code> Tensor or TensorList</p></td>
+<td><p>510 images across 6 satellites</p></td>
+<td><p>Cx256x256 multispectral (C=4 or 8) and 1x1024x1024 panchromatic</p></td>
+<td><p>Multispectral satellite images of urban scenes from 6 different satellites.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="data-transforms">
+<span id="id5"></span><h2>Data Transforms<a class="headerlink" href="#data-transforms" title="Link to this heading">#</a></h2>
+<p>We provide some torchvision-style transforms for use when loading data:</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id8">
+<caption><span class="caption-number">Table 26 </span><span class="caption-text">Data Transforms Overview</span><a class="headerlink" href="#id8" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Transform</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.utils.Rescale.html#deepinv.datasets.utils.Rescale" title="deepinv.datasets.utils.Rescale"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.utils.Rescale</span></code></a></p></td>
+<td><p>Min-max or clip value rescaling.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.utils.ToComplex.html#deepinv.datasets.utils.ToComplex" title="deepinv.datasets.utils.ToComplex"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.utils.ToComplex</span></code></a></p></td>
+<td><p>Add empty imaginary dimension to image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.utils.Crop.html#deepinv.datasets.utils.Crop" title="deepinv.datasets.utils.Crop"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.utils.Crop</span></code></a></p></td>
+<td><p>Crop image in corner or with arbitrary crop position and/or size.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform" title="deepinv.datasets.MRISliceTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.MRISliceTransform</span></code></a></p></td>
+<td><p>Transform raw FastMRI data by simulating masks and estimating coil maps.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="trainer.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Trainer</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="loss.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Training Losses</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#base-datasets">Base Datasets</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generating-datasets">Generating Datasets</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#predefined-datasets">Predefined Datasets</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-transforms">Data Transforms</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/training/datasets.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

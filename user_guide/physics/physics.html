@@ -1,0 +1,789 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Operators &amp; Noise &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/physics/physics';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/physics/physics.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Functional" href="functional.html" />
+    <link rel="prev" title="Introduction" href="intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Operators &amp; Noise</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="operators-noise">
+<span id="physics"></span><h1>Operators &amp; Noise<a class="headerlink" href="#operators-noise" title="Link to this heading">#</a></h1>
+<section id="operators">
+<span id="physics-list"></span><h2>Operators<a class="headerlink" href="#operators" title="Link to this heading">#</a></h2>
+<p>Operators describe the forward model <span class="math notranslate nohighlight">\(z = A(x,\theta)\)</span>, where
+<span class="math notranslate nohighlight">\(x\)</span> is the input image and <span class="math notranslate nohighlight">\(\theta\)</span> are the parameters of the operator.
+The parameters <span class="math notranslate nohighlight">\(\theta\)</span> can be sampled using random generators, which are available for some specific classes.
+Using automatic differentiation, we can compute derivatives w.r.t to both the input <span class="math notranslate nohighlight">\(x\)</span> or the parameters <span class="math notranslate nohighlight">\(\theta\)</span>.
+This is particular useful when dealing with blind inverse problems or parameter estimation.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The operator you are looking for is not on this list?
+<strong>See</strong> <a class="reference internal" href="../../auto_examples/basics/demo_custom_physics.html#sphx-glr-auto-examples-basics-demo-custom-physics-py"><span class="std std-ref">Bring your own physics</span></a> for how to implement your own physics operator.</p>
+</div>
+<div class="pst-scrollable-table-container"><table class="table" id="id1">
+<caption><span class="caption-number">Table 1 </span><span class="caption-text">Operators, Definitions, and Generators</span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Family</strong></p></th>
+<th class="head"><p><strong>Operators</strong></p></th>
+<th class="head"><p><strong>Generators</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Pixelwise</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Denoising.html#deepinv.physics.Denoising" title="deepinv.physics.Denoising"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Denoising</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Inpainting</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Demosaicing.html#deepinv.physics.Demosaicing" title="deepinv.physics.Demosaicing"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Demosaicing</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Decolorize.html#deepinv.physics.Decolorize" title="deepinv.physics.Decolorize"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Decolorize</span></code></a></div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator" title="deepinv.physics.generator.BernoulliSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">BernoulliSplittingMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator" title="deepinv.physics.generator.GaussianSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GaussianSplittingMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.html#deepinv.physics.generator.MultiplicativeSplittingMaskGenerator" title="deepinv.physics.generator.MultiplicativeSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiplicativeSplittingMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator" title="deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Phase2PhaseSplittingMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator" title="deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Artifact2ArtifactSplittingMaskGenerator</span></code></a></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Blur &amp; Super-Resolution</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Blur</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.BlurFFT.html#deepinv.physics.BlurFFT" title="deepinv.physics.BlurFFT"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.BlurFFT</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur" title="deepinv.physics.SpaceVaryingBlur"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SpaceVaryingBlur</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling" title="deepinv.physics.Downsampling"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Downsampling</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Upsampling.html#deepinv.physics.Upsampling" title="deepinv.physics.Upsampling"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Upsampling</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.DownsamplingMatlab.html#deepinv.physics.DownsamplingMatlab" title="deepinv.physics.DownsamplingMatlab"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DownsamplingMatlab</span></code></a></div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">MotionBlurGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator" title="deepinv.physics.generator.DownsamplingGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">DownsamplingGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.DiffractionBlurGenerator.html#deepinv.physics.generator.DiffractionBlurGenerator" title="deepinv.physics.generator.DiffractionBlurGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiffractionBlurGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html#deepinv.physics.generator.ProductConvolutionBlurGenerator" title="deepinv.physics.generator.ProductConvolutionBlurGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProductConvolutionBlurGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.ConfocalBlurGenerator3D.html#deepinv.physics.generator.ConfocalBlurGenerator3D" title="deepinv.physics.generator.ConfocalBlurGenerator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfocalBlurGenerator3D</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.blur.gaussian_blur.html#deepinv.physics.blur.gaussian_blur" title="deepinv.physics.blur.gaussian_blur"><code class="xref py py-class docutils literal notranslate"><span class="pre">gaussian_blur</span></code></a>, <a class="reference internal" href="../../api/stubs/deepinv.physics.blur.sinc_filter.html#deepinv.physics.blur.sinc_filter" title="deepinv.physics.blur.sinc_filter"><code class="xref py py-class docutils literal notranslate"><span class="pre">sinc_filter</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.blur.bilinear_filter.html#deepinv.physics.blur.bilinear_filter" title="deepinv.physics.blur.bilinear_filter"><code class="xref py py-class docutils literal notranslate"><span class="pre">bilinear_filter</span></code></a>, <a class="reference internal" href="../../api/stubs/deepinv.physics.blur.bicubic_filter.html#deepinv.physics.blur.bicubic_filter" title="deepinv.physics.blur.bicubic_filter"><code class="xref py py-class docutils literal notranslate"><span class="pre">bicubic_filter</span></code></a></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Magnetic Resonance Imaging (MRI)</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI" title="deepinv.physics.MRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.MRI</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI" title="deepinv.physics.MultiCoilMRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.MultiCoilMRI</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI" title="deepinv.physics.DynamicMRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.DynamicMRI</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.SequentialMRI.html#deepinv.physics.SequentialMRI" title="deepinv.physics.SequentialMRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SequentialMRI</span></code></a></div>
+<div class="line">The above all also natively support 3D MRI.</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator" title="deepinv.physics.generator.GaussianMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">GaussianMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator" title="deepinv.physics.generator.RandomMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RandomMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.EquispacedMaskGenerator.html#deepinv.physics.generator.EquispacedMaskGenerator" title="deepinv.physics.generator.EquispacedMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">EquispacedMaskGenerator</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.generator.PolyOrderMaskGenerator.html#deepinv.physics.generator.PolyOrderMaskGenerator" title="deepinv.physics.generator.PolyOrderMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">PolyOrderMaskGenerator</span></code></a></div>
+<div class="line">The above all also support k+t dynamic sampling.</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Tomography</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography" title="deepinv.physics.Tomography"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Tomography</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra" title="deepinv.physics.TomographyWithAstra"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.TomographyWithAstra</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Remote Sensing &amp; Multispectral</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen" title="deepinv.physics.Pansharpen"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Pansharpen</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing" title="deepinv.physics.HyperSpectralUnmixing"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.HyperSpectralUnmixing</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging" title="deepinv.physics.CompressiveSpectralImaging"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.CompressiveSpectralImaging</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Compressive</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.CompressedSensing.html#deepinv.physics.CompressedSensing" title="deepinv.physics.CompressedSensing"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.CompressedSensing</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.StructuredRandom.html#deepinv.physics.StructuredRandom" title="deepinv.physics.StructuredRandom"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.StructuredRandom</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Radio Interferometric Imaging</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry" title="deepinv.physics.RadioInterferometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.RadioInterferometry</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Single-Photon Lidar</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.SinglePhotonLidar.html#deepinv.physics.SinglePhotonLidar" title="deepinv.physics.SinglePhotonLidar"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePhotonLidar</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Dehazing</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Haze.html#deepinv.physics.Haze" title="deepinv.physics.Haze"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Haze</span></code></a></div>
+</div>
+</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Phase Retrieval</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.RandomPhaseRetrieval.html#deepinv.physics.RandomPhaseRetrieval" title="deepinv.physics.RandomPhaseRetrieval"><code class="xref py py-class docutils literal notranslate"><span class="pre">RandomPhaseRetrieval</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html#deepinv.physics.StructuredRandomPhaseRetrieval" title="deepinv.physics.StructuredRandomPhaseRetrieval"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructuredRandomPhaseRetrieval</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.Ptychography.html#deepinv.physics.Ptychography" title="deepinv.physics.Ptychography"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ptychography</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator" title="deepinv.physics.PtychographyLinearOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">PtychographyLinearOperator</span></code></a></div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.phase_retrieval.build_probe.html#deepinv.physics.phase_retrieval.build_probe" title="deepinv.physics.phase_retrieval.build_probe"><code class="xref py py-func docutils literal notranslate"><span class="pre">build_probe</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.phase_retrieval.generate_shifts.html#deepinv.physics.phase_retrieval.generate_shifts" title="deepinv.physics.phase_retrieval.generate_shifts"><code class="xref py py-func docutils literal notranslate"><span class="pre">generate_shifts</span></code></a></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="wrappers">
+<span id="wrapper-list"></span><h2>Wrappers<a class="headerlink" href="#wrappers" title="Link to this heading">#</a></h2>
+<p>Wrappers are operators that can be used to adapt existing operators to a new problem.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id2">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Wrappers</span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Family</strong></p></th>
+<th class="head"><p><strong>Operators</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Multiscale</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.PhysicsMultiScaler.html#deepinv.physics.PhysicsMultiScaler" title="deepinv.physics.PhysicsMultiScaler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PhysicsMultiScaler</span></code></a></div>
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysicsMultiScaler.html#deepinv.physics.LinearPhysicsMultiScaler" title="deepinv.physics.LinearPhysicsMultiScaler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysicsMultiScaler</span></code></a></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Padding/Cropping</p></td>
+<td><div class="line-block">
+<div class="line"><a class="reference internal" href="../../api/stubs/deepinv.physics.PhysicsCropper.html#deepinv.physics.PhysicsCropper" title="deepinv.physics.PhysicsCropper"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PhysicsCropper</span></code></a></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="noise-distributions">
+<span id="noise-list"></span><h2>Noise distributions<a class="headerlink" href="#noise-distributions" title="Link to this heading">#</a></h2>
+<p>Noise distributions describe the noise model <span class="math notranslate nohighlight">\(N\)</span>,
+where <span class="math notranslate nohighlight">\(y = N(z)\)</span> with <span class="math notranslate nohighlight">\(z=A(x)\)</span>. The noise models can be assigned
+to <strong>any</strong> operator in the list above, by setting the
+<a class="reference internal" href="../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.set_noise_model" title="deepinv.physics.Physics.set_noise_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_noise_model</span></code></a> attribute at initialization.
+By default, the noise model is set to <a class="reference internal" href="../../api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">ZeroNoise</span></code></a>.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id3">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Noise Distributions and Their Probability Distributions</span><a class="headerlink" href="#id3" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Noise</strong></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(y|z\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.ZeroNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y=z\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise" title="deepinv.physics.GaussianNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.GaussianNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\sim \mathcal{N}(z, I\sigma^2)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise" title="deepinv.physics.PoissonNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PoissonNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y \sim \mathcal{P}(z/\gamma)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise" title="deepinv.physics.PoissonGaussianNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PoissonGaussianNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y = \gamma z + \epsilon\)</span>, <span class="math notranslate nohighlight">\(z\sim\mathcal{P}(\frac{z}{\gamma})\)</span>, <span class="math notranslate nohighlight">\(\epsilon\sim\mathcal{N}(0, I \sigma^2)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise" title="deepinv.physics.LogPoissonNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LogPoissonNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise" title="deepinv.physics.UniformNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.UniformNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\sim \mathcal{U}(z-a, z+b)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise" title="deepinv.physics.SaltPepperNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SaltPepperNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y = \begin{cases} 0 &amp; \text{if } z &lt; p\\ x &amp; \text{if } z \in [p, 1-s]\\ 1 &amp; \text{if } z &gt; 1 - s\end{cases}\)</span> with <span class="math notranslate nohighlight">\(z\sim\mathcal{U}(0,1)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.ZeroNoise</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(y = z\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Introduction</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="functional.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Functional</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#operators">Operators</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrappers">Wrappers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#noise-distributions">Noise distributions</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/physics/physics.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

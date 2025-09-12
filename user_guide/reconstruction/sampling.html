@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Diffusion and MCMC Algorithms &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/reconstruction/sampling';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Unfolded Algorithms" href="unfolded.html" />
+    <link rel="prev" title="Iterative Reconstruction (PnP, RED, etc.)" href="iterative.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Diffusion and MCMC Algorithms</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="diffusion-and-mcmc-algorithms">
+<span id="sampling"></span><h1>Diffusion and MCMC Algorithms<a class="headerlink" href="#diffusion-and-mcmc-algorithms" title="Link to this heading">#</a></h1>
+<p>This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte Carlo (MCMC) methods.</p>
+<p>These methods build a Markov chain</p>
+<div class="math notranslate nohighlight">
+\[x_{t+1} \sim p(x_{t+1} | x_t, y)\]</div>
+<p>such that the samples <span class="math notranslate nohighlight">\(x_t\)</span> for large <span class="math notranslate nohighlight">\(t\)</span> are approximately sampled according to the posterior distribution <span class="math notranslate nohighlight">\(p(x|y)\)</span>.</p>
+<section id="diffusion-models">
+<span id="diffusion"></span><h2>Diffusion models<a class="headerlink" href="#diffusion-models" title="Link to this heading">#</a></h2>
+<p>We provide a unified framework for image generation using diffusion models.
+Diffusion models for posterior sampling are defined using <a class="reference internal" href="../../api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.PosteriorDiffusion</span></code></a>,
+which is a subclass of <a class="reference internal" href="../../api/stubs/deepinv.models.Reconstructor.html#deepinv.models.Reconstructor" title="deepinv.models.Reconstructor"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.Reconstructor</span></code></a>.
+Below, we explain the main components of the diffusion models, see <a class="reference internal" href="../../auto_examples/sampling/demo_diffusion_sde.html#sphx-glr-auto-examples-sampling-demo-diffusion-sde-py"><span class="std std-ref">Building your diffusion posterior sampling method using SDEs</span></a> for an example usage and visualizations.</p>
+<section id="stochastic-differential-equations">
+<h3>Stochastic Differential Equations<a class="headerlink" href="#stochastic-differential-equations" title="Link to this heading">#</a></h3>
+<p>We define diffusion models as Stochastic Differential Equations (SDEs).</p>
+<p>The <strong>forward-time SDE</strong> is defined as follows, from time <span class="math notranslate nohighlight">\(0\)</span> to <span class="math notranslate nohighlight">\(T\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[d x_t = f(t) x_t dt + g(t) d w_t.\]</div>
+<p>where <span class="math notranslate nohighlight">\(w_t\)</span> is a Brownian process.
+Let <span class="math notranslate nohighlight">\(p_t\)</span> denote the distribution of the random vector <span class="math notranslate nohighlight">\(x_t\)</span>.
+Under this forward process, we have that:</p>
+<div class="math notranslate nohighlight">
+\[x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),\]</div>
+<p>where the <strong>scaling</strong> over time is <span class="math notranslate nohighlight">\(s(t) = \exp\left( \int_0^t f(r) d\,r \right)\)</span> and
+the <strong>normalized noise level</strong> is <span class="math notranslate nohighlight">\(\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)^2} d\,r}\)</span>.</p>
+<p>The <strong>reverse-time SDE</strong> is defined as follows, running backwards in time (from <span class="math notranslate nohighlight">\(T\)</span> to <span class="math notranslate nohighlight">\(0\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[d x_{t} = \left( f(t) x_t - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_{t}(x_t) \right) dt + g(t) \sqrt{\alpha} d w_{t}.\]</div>
+<p>where <span class="math notranslate nohighlight">\(\alpha \in [0,1]\)</span> is a scalar weighting the diffusion term (<span class="math notranslate nohighlight">\(\alpha = 0\)</span> corresponds to the ordinary differential equation (ODE) sampling
+and <span class="math notranslate nohighlight">\(\alpha &gt; 0\)</span> corresponds to the SDE sampling), and <span class="math notranslate nohighlight">\(\nabla \log p_{t}(x_t)\)</span> is the score function that can be approximated by (a properly scaled version of)
+Tweedie’s formula:</p>
+<div class="math notranslate nohighlight">
+\[\nabla \log p_t(x_t) =  \frac{\mathbb{E}\left[ s(t)x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.\]</div>
+<p>where <span class="math notranslate nohighlight">\(\denoiser{\cdot}{\sigma}\)</span> is a denoiser trained to denoise images with noise level <span class="math notranslate nohighlight">\(\sigma\)</span>
+that is <span class="math notranslate nohighlight">\(\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma\omega ]\)</span> with <span class="math notranslate nohighlight">\(\omega\sim\mathcal{N}(0,\mathrm{I})\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Using a normalized noise levels <span class="math notranslate nohighlight">\(\sigma(t)\)</span> and scalings <span class="math notranslate nohighlight">\(s(t)\)</span> lets us use <a class="reference external" href="denoisers">any denoiser in the library</a>
+trained for multiple noise levels assuming pixel values are in the range <span class="math notranslate nohighlight">\([0,1]\)</span>.</p>
+</div>
+<p>Starting from a random point following the end-point distribution <span class="math notranslate nohighlight">\(p_T\)</span> of the forward process,
+solving the reverse-time SDE gives us a sample of the data distribution <span class="math notranslate nohighlight">\(p_0\)</span>.</p>
+<p>The base classes for defining a SDEs are <a class="reference internal" href="../../api/stubs/deepinv.sampling.BaseSDE.html#deepinv.sampling.BaseSDE" title="deepinv.sampling.BaseSDE"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.BaseSDE</span></code></a> and <a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE" title="deepinv.sampling.DiffusionSDE"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSDE</span></code></a>.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id1">
+<caption><span class="caption-number">Table 16 </span><span class="caption-text">Stochastic Differential Equations</span><a class="headerlink" href="#id1" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>SDE</strong></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(f(t)\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(g(t)\)</span></p></th>
+<th class="head"><p>Scaling <span class="math notranslate nohighlight">\(s(t)\)</span></p></th>
+<th class="head"><p>Noise level <span class="math notranslate nohighlight">\(\sigma(t)\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Variance</span> <span class="pre">Exploding</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion" title="deepinv.sampling.VariancePreservingDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Variance</span> <span class="pre">Preserving</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\frac{1}{2}\left(\beta_{\mathrm{min}}  + t \beta_d \right)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sqrt{\beta_{\mathrm{min}}  + t \beta_{d}}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1/\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}-1}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="solvers">
+<h3>Solvers<a class="headerlink" href="#solvers" title="Link to this heading">#</a></h3>
+<p>Once the SDE is defined, we can obtain an approximate sample with any of the following solvers:</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id2">
+<caption><span class="caption-number">Table 17 </span><span class="caption-text">SDE/ODE solvers</span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Method</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.EulerSolver</span></code></a></p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method">First order Euler solver</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.HeunSolver.html#deepinv.sampling.HeunSolver" title="deepinv.sampling.HeunSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.HeunSolver</span></code></a></p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/Heun%27s_method">Second order Heun solver</a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The base class for solvers is <a class="reference internal" href="../../api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver" title="deepinv.sampling.BaseSDESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.BaseSDESolver</span></code></a>, and <a class="reference internal" href="../../api/stubs/deepinv.sampling.SDEOutput.html#deepinv.sampling.SDEOutput" title="deepinv.sampling.SDEOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.SDEOutput</span></code></a>
+provides a container for storing the output of the solver.</p>
+</section>
+<section id="posterior-sampling">
+<h3>Posterior sampling<a class="headerlink" href="#posterior-sampling" title="Link to this heading">#</a></h3>
+<p>In the case of posterior sampling, we need simply to replace the (unconditional) score function <span class="math notranslate nohighlight">\(\nabla \log p_t(x_t)\)</span>
+by the conditional score function <span class="math notranslate nohighlight">\(\nabla \log p_t(x_t|y)\)</span>. The conditional score can be decomposed using the Bayes’ rule:</p>
+<div class="math notranslate nohighlight">
+\[\nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y \vert \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).\]</div>
+<p>The first term is the unconditional score function and can be approximated by using a denoiser as explained previously.
+The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
+We implement the following data-fidelity terms, which inherit from the <a class="reference internal" href="../../api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity" title="deepinv.sampling.NoisyDataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.NoisyDataFidelity</span></code></a> base class.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id3">
+<caption><span class="caption-number">Table 18 </span><span class="caption-text">Noisy data-fidelity terms</span><a class="headerlink" href="#id3" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Class</strong></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\nabla_x \log p_t(y|x + \epsilon\sigma(t))\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DPSDataFidelity</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="popular-posterior-samplers">
+<span id="diffusion-custom"></span><h3>Popular posterior samplers<a class="headerlink" href="#popular-posterior-samplers" title="Link to this heading">#</a></h3>
+<p>We also provide custom implementations of some popular diffusion methods for posterior sampling,
+which can be used directly without the need to define the SDE and the solvers.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id4">
+<caption><span class="caption-number">Table 19 </span><span class="caption-text">Popular diffusion methods</span><a class="headerlink" href="#id4" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Method</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+<th class="head"><p><strong>Limitations</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM" title="deepinv.sampling.DDRM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DDRM</span></code></a></p></td>
+<td><p>Diffusion Denoising Restoration Models</p></td>
+<td><p>Only for <a class="reference internal" href="../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">SVD</span> <span class="pre">decomposable</span> <span class="pre">operators</span></code></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR" title="deepinv.sampling.DiffPIR"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffPIR</span></code></a></p></td>
+<td><p>Diffusion PnP Image Restoration</p></td>
+<td><p>Only for <a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">linear</span> <span class="pre">operators</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS" title="deepinv.sampling.DPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DPS</span></code></a></p></td>
+<td><p>Diffusion Posterior Sampling</p></td>
+<td><p>Can be slow, requires backpropagation through the denoiser.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="uncertainty-quantification">
+<h3>Uncertainty quantification<a class="headerlink" href="#uncertainty-quantification" title="Link to this heading">#</a></h3>
+<p>Diffusion methods obtain a single sample per call. If multiple samples are required, the
+<a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler" title="deepinv.sampling.DiffusionSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSampler</span></code></a> can be used to convert a diffusion method into a sampler that
+obtains multiple samples to compute posterior statistics such as the mean or variance.
+It uses the helper class <a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffusionIterator.html#deepinv.sampling.DiffusionIterator" title="deepinv.sampling.DiffusionIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionIterator</span></code></a> to interface diffusion samplers with <a class="reference internal" href="../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling" title="deepinv.sampling.BaseSampling"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.BaseSampling</span></code></a>.</p>
+</section>
+</section>
+<section id="markov-chain-monte-carlo">
+<span id="mcmc"></span><h2>Markov Chain Monte Carlo<a class="headerlink" href="#markov-chain-monte-carlo" title="Link to this heading">#</a></h2>
+<p>Markov Chain Monte Carlo  (MCMC) methods build a chain of samples which aim at sampling the negative-log-posterior distribution:</p>
+<div class="math notranslate nohighlight">
+\[-\log p(x|y,A) \propto d(Ax,y) + \reg{x},\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is the image to be reconstructed, <span class="math notranslate nohighlight">\(y\)</span> are the measurements,
+<span class="math notranslate nohighlight">\(d(Ax,y) \propto - \log p(y|x,A)\)</span> is the negative log-likelihood and <span class="math notranslate nohighlight">\(\reg{x}  \propto - \log p_{\sigma}(x)\)</span>
+is the negative log-prior.</p>
+<p>The negative log likelihood can be chosen from <a class="reference internal" href="optimization.html#data-fidelity"><span class="std std-ref">this list</span></a>, and the negative log prior can be approximated using <a class="reference internal" href="../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior</span></code></a> with a
+<a class="reference internal" href="denoisers.html#denoisers"><span class="std std-ref">pretrained denoiser</span></a>, which leverages Tweedie’s formula with <span class="math notranslate nohighlight">\(\sigma\)</span> is typically set to a small value.
+Unlike diffusion sampling methods, MCMC methods generally use a fixed noise level <span class="math notranslate nohighlight">\(\sigma\)</span> during the sampling process, i.e.,
+<span class="math notranslate nohighlight">\(\nabla \log p_t(x_t) = \frac{\left(\denoiser{x_t}{\sigma} -  x_t \right)}{\sigma^2}\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The approximation of the prior obtained via
+<a class="reference internal" href="../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior</span></code></a> is also valid for maximum-a-posteriori (MAP) denoisers,
+but <span class="math notranslate nohighlight">\(p_{\sigma}(x)\)</span> is not given by the convolution with a Gaussian kernel, but rather
+given by the Moreau-Yosida envelope of <span class="math notranslate nohighlight">\(p(x)\)</span>, i.e.,</p>
+<div class="math notranslate nohighlight">
+\[p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.\]</div>
+</div>
+<p>All MCMC methods inherit from <a class="reference internal" href="../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling" title="deepinv.sampling.BaseSampling"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.BaseSampling</span></code></a>.
+The function <a class="reference internal" href="../../api/stubs/deepinv.sampling.sampling_builder.html#deepinv.sampling.sampling_builder" title="deepinv.sampling.sampling_builder"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.sampling.sampling_builder()</span></code></a> returns an instance of <a class="reference internal" href="../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling" title="deepinv.sampling.BaseSampling"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.BaseSampling</span></code></a> with the
+optimization algorithm of choice, either a predefined one (<code class="docutils literal notranslate"><span class="pre">&quot;SKRock&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ULA&quot;</span></code>),
+or with a user-defined one (an instance of <a class="reference internal" href="../../api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator" title="deepinv.sampling.SamplingIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.SamplingIterator</span></code></a>). For example, we can use ULA with a score prior:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">sampling_builder</span><span class="p">(</span><span class="n">iterator</span><span class="o">=</span><span class="s2">&quot;ULA&quot;</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span> <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+                                       <span class="n">params_algo</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;step_size&quot;</span><span class="p">:</span> <span class="n">step_size</span><span class="p">,</span> <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="n">sigma</span><span class="p">},</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span>
+<span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We provide a very flexible framework for MCMC algorithms, providing some predefined algorithms alongside making it easy to implement your own custom sampling algorithms.
+This is achieved by creating your own sampling iterator, which involves subclassing <a class="reference internal" href="../../api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator" title="deepinv.sampling.SamplingIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.SamplingIterator</span></code></a>. See <a class="reference internal" href="../../api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator" title="deepinv.sampling.SamplingIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.SamplingIterator</span></code></a> for a short example.</p>
+<p>A custom iterator needs to implement two methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">initialize_latent_variables(self,</span> <span class="pre">x_init,</span> <span class="pre">y,</span> <span class="pre">physics,</span> <span class="pre">data_fidelity,</span> <span class="pre">prior)</span></code>: This method sets up the initial state of your Markov chain. It receives the initial image estimate <span class="math notranslate nohighlight">\(x_{\text{init}}\)</span>, measurements <span class="math notranslate nohighlight">\(y\)</span>, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state <span class="math notranslate nohighlight">\(X_0\)</span>, which must include the image as <code class="docutils literal notranslate"><span class="pre">{&quot;x&quot;:</span> <span class="pre">x_init,</span> <span class="pre">...}</span></code> and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning <code class="docutils literal notranslate"><span class="pre">{&quot;x&quot;:x_init}</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forward(self,</span> <span class="pre">X,</span> <span class="pre">y,</span> <span class="pre">physics,</span> <span class="pre">data_fidelity,</span> <span class="pre">prior,</span> <span class="pre">iteration_number,</span> <span class="pre">**iterator_specific_params)</span></code>: This method defines a single step of your MCMC algorithm. It takes the previous state <span class="math notranslate nohighlight">\(X\)</span> (a dictionary containing at least the previous image <code class="docutils literal notranslate"><span class="pre">{&quot;x&quot;:</span> <span class="pre">x,</span> <span class="pre">...}</span></code>), measurements <span class="math notranslate nohighlight">\(y\)</span>, the data fidelity, the prior, and returns the new state <span class="math notranslate nohighlight">\(X_{next}\)</span> (again, a dictionary including <code class="docutils literal notranslate"><span class="pre">{&quot;x&quot;:</span> <span class="pre">x_next,</span> <span class="pre">...}</span></code>).</p></li>
+</ul>
+<p>Some predefined iterators are provided:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Algorithm</p></th>
+<th class="head"><p>Parameters</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.ULAIterator.html#deepinv.sampling.ULAIterator" title="deepinv.sampling.ULAIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ULA</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;step_size&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;alpha&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;sigma&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.SKRockIterator.html#deepinv.sampling.SKRockIterator" title="deepinv.sampling.SKRockIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SKROCK</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;step_size&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;alpha&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;inner_iter&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;eta&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;sigma&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffusionIterator.html#deepinv.sampling.DiffusionIterator" title="deepinv.sampling.DiffusionIterator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Diffusion</span></code></a></p></td>
+<td><p>No parameters, see the uncertainty quantification section above.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Some legacy predefined classes are also provided:</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id5">
+<caption><span class="caption-number">Table 20 </span><span class="caption-text">MCMC methods</span><a class="headerlink" href="#id5" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p><strong>Method</strong></p></th>
+<th class="head"><p><strong>Description</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.ULA.html#deepinv.sampling.ULA" title="deepinv.sampling.ULA"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.ULA</span></code></a></p></td>
+<td><p>Unadjusted Langevin algorithm.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.sampling.SKRock.html#deepinv.sampling.SKRock" title="deepinv.sampling.SKRock"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.SKRock</span></code></a></p></td>
+<td><p>Runge-Kutta-Chebyshev stochastic approximation to accelerate the standard Unadjusted Langevin Algorithm.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="iterative.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Iterative Reconstruction (PnP, RED, etc.)</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="unfolded.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Unfolded Algorithms</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#diffusion-models">Diffusion models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stochastic-differential-equations">Stochastic Differential Equations</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#solvers">Solvers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#posterior-sampling">Posterior sampling</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#popular-posterior-samplers">Popular posterior samplers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#uncertainty-quantification">Uncertainty quantification</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#markov-chain-monte-carlo">Markov Chain Monte Carlo</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/reconstruction/sampling.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
