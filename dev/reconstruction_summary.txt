@@ -1,0 +1,26 @@
+Distributed Image Reconstruction Summary
+==================================================
+
+Image dimensions: 1448 x 2048 pixels
+Number of patches: 4
+Patch size: 1024 x 1024
+Window size: 1088 x 1088
+Receptive field radius: 32
+
+Processing times:
+  Direct processing: 0.74 seconds
+  Distributed processing: 1.98 seconds
+
+PSNR Analysis (vs Original Clean Image):
+  Noisy image PSNR: 13.98 dB
+  Direct reconstruction PSNR: 32.11 dB
+  Distributed reconstruction PSNR: 32.10 dB
+  PSNR improvement (direct): +18.13 dB
+  PSNR improvement (distributed): +18.12 dB
+  PSNR difference (direct vs distributed): 0.007 dB
+
+Quality metrics:
+  Max absolute difference: 0.187161
+  Mean absolute difference: 0.000423
+  Std deviation of difference: 0.001530
+  95th percentile difference: 0.001849
