@@ -170,7 +170,7 @@ class HDF5Dataset(ImageDataset):
                         stacking_needle = attr_name[1:]
                         # If needle is the canonical base 10 representation of a non-negative integer
                         if (
-                            re.fullmatch(r"0|[1-9]+\d+", stacking_needle, re.ASCII)
+                            re.fullmatch(r"0|[1-9]\d*", stacking_needle, re.ASCII)
                             is not None
                         ):
                             stacking_index = int(stacking_needle)
