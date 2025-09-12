@@ -34,7 +34,6 @@ dependencies = [
     "requests",
     "h5py",
     "natsort",
-    "torch_dct",
 ]
 
 [tool.setuptools]

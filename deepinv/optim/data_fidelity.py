@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-import torch_dct as dct
 
 from deepinv.optim.distance import (
     Distance,
@@ -12,8 +11,9 @@ from deepinv.optim.distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-from deepinv.optim.potential import Potential
 
+from deepinv.optim.potential import Potential
+from deepinv.physics.functional import dct_2d, idct_2d
 
 class DataFidelity(Potential):
     r"""
@@ -347,7 +347,7 @@ class ItohFidelity(L2):
         WDy = self.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
 
-    def D(self, x):
+    def D(self, x, **kwargs):
         r"""
         Apply spatial finite differences to the input tensor.
 
@@ -366,7 +366,7 @@ class ItohFidelity(L2):
         out = torch.stack((Dh_x, Dv_x), dim=-1)
         return out
 
-    def WD(self, x):
+    def WD(self, x, **kwargs):
         r"""
         Applies spatial finite differences to the input and wraps the result.
 
@@ -382,7 +382,7 @@ class ItohFidelity(L2):
         WDx = self.modulo_round(Dx)
         return WDx
 
-    def D_adjoint(self, x):
+    def D_adjoint(self, x, **kwargs):
         r"""
         Applies the adjoint (transpose) of the spatial finite difference operator to the input tensor.
 
@@ -405,7 +405,7 @@ class ItohFidelity(L2):
         )
         return rho
 
-    def D_dagger(self, y):
+    def D_dagger(self, y, **kwargs):
         # fast initialization using DCT
         return self.prox(None, y, physics=None, gamma=None)
 
@@ -416,7 +416,7 @@ class ItohFidelity(L2):
 
         .. math::
             \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
-            \frac{\texttt{DCT}(D^{\top}W_t(Dy) + \frac{\rho}{2} z)_{i,j}}
+            \frac{\texttt{DCT}(D^{\top}w_t(Dy) + \frac{\rho}{2} z)_{i,j}}
             { \frac{\rho}{2} + 4 - (2\cos(\pi i / M) + 2\cos(\pi j / N))}
             \right)
 
@@ -445,14 +445,14 @@ class ItohFidelity(L2):
                 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
             )
 
-        dct_psi = dct.dct_2d(psi, norm="ortho")
+        dct_psi = dct_2d(psi, norm="ortho")
 
         denom = denom.to(psi.device)
         denom[..., 0, 0] = 1  # avoid division by zero
 
         dct_phi = dct_psi / denom
 
-        phi = dct.idct_2d(dct_phi, norm="ortho")
+        phi = idct_2d(dct_phi, norm="ortho")
 
         return phi
 

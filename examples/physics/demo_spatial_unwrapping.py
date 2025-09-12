@@ -4,14 +4,6 @@ Spatial unwrapping and modulo imaging
 
 This demo shows the use of the :class:`deepinv.physics.SpatialUnwrapping` forward model and the :class:`deepinv.optim.ItohFidelity` for unwrapping problems, which occur in modulo imaging, interferometry SAR and other imaging applications.
 It shows how to generate a wrapped phase image, apply blur and noise, and reconstruct the original phase using both DCT inversion and ADMM optimization.
-
-Sections:
-    1. Imports and setup
-    2. Load image and preprocess
-    3. Apply blur
-    4. Wrap phase and add noise
-    5. Invert with DCT and ADMM (ItohFidelity)
-    6. Visualize results
 """
 
 # %%
