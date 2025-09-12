@@ -17,13 +17,13 @@ class SpatialUnwrapping(Physics):
 
     .. math::
 
-        y = W_t(x) = x - t \cdot \mathrm{q}(x / t)
+        y = w_t(x) = x - t \cdot \mathrm{q}(x / t)
 
-    where :math:`W_t` is the wrapping operator, :math:`t` is the threshold, and :math:`\mathrm{q}` is either the rounding or flooring function depending on the mode.
+    where :math:`w_t` is the modulo operator, :math:`t` is the threshold, and :math:`\mathrm{q}` is either the rounding or flooring function depending on the mode.
 
 
     :param float threshold: The threshold :math:`t` value for the modulo operation (default: 1.0).
-    :param str mode: Wrapping function :math:`q(\cdot)`, either 'round' or 'floor' (default: 'round').
+    :param str mode: modulo function :math:`q(\cdot)`, either 'round' or 'floor' (default: 'round').
     :param kwargs: Additional arguments passed to the base Physics class.
 
     |sep|
@@ -60,7 +60,7 @@ class SpatialUnwrapping(Physics):
         """
         return self.sensor(self.A(self.noise(x, **kwargs), **kwargs))
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         r"""
         Applies the modulo operator to the input tensor.
 
@@ -69,7 +69,7 @@ class SpatialUnwrapping(Physics):
         """
         return self.B(x, self.threshold)
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         r"""
         Adjoint operator for the modulo operator. For the modulo operator, the adjoint is the identity.
 
