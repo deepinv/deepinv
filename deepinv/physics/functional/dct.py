@@ -20,9 +20,9 @@ def dct(x, norm=None):
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param x: the input signal
+    :param torch.Tensor x: the input signal
     :param norm: the normalization, None or 'ortho'
-    :return: the DCT-II of the signal over the last dimension
+    :return: (:class:`torch.Tensor`) the DCT-II of the signal over the last dimension
     """
     x_shape = x.shape
     N = torch.tensor(x_shape[-1], device=x.device)
@@ -47,24 +47,22 @@ def dct(x, norm=None):
     return V
 
 
-def idct(X, norm=None):
+def idct(x, norm=None):
     r"""
     The inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III
-
-    Our definition of idct is that idct(dct(x)) == x
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param X: the input signal
+    :param torch.Tensor x: the input signal
     :param norm: the normalization, None or 'ortho'
-    :return: the inverse DCT-II of the signal over the last dimension
+    :return: (:class:`torch.Tensor`) the inverse DCT-II of the signal over the last dimension
     """
 
-    x_shape = X.shape
-    N = torch.tensor(x_shape[-1], device=X.device)
+    x_shape = x.shape
+    N = torch.tensor(x_shape[-1], device=x.device)
 
-    X_v = X.contiguous().view(-1, x_shape[-1]) / 2
+    X_v = x.contiguous().view(-1, x_shape[-1]) / 2
 
     if norm == "ortho":
         X_v[:, 0] *= torch.sqrt(N) * 2
@@ -101,9 +99,9 @@ def dct_2d(x, norm=None):
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param x: the input signal
+    :param torch.Tensor x: the input signal
     :param norm: the normalization, None or 'ortho'
-    :return: the DCT-II of the signal over the last 2 dimensions
+    :return: (:class:`torch.Tensor`) the DCT-II of the signal over the last 2 dimensions
     """
     X1 = dct(x, norm=norm)
     X2 = dct(X1.transpose(-1, -2), norm=norm)
@@ -119,9 +117,9 @@ def idct_2d(X, norm=None):
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param X: the input signal
+    :param torch.Tensor x: the input signal
     :param norm: the normalization, None or 'ortho'
-    :return: the DCT-II of the signal over the last 2 dimensions
+    :return: (:class:`torch.Tensor`) the DCT-II of the signal over the last 2 dimensions
     """
     x1 = idct(X, norm=norm)
     x2 = idct(x1.transpose(-1, -2), norm=norm)
