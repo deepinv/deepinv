@@ -315,6 +315,7 @@ def test_losses(
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
 
     if loss_name == "ensure_mri":
+        # Modify test to use a MRI physics instead
         imsize = (2, *imsize[1:])
         gen = dinv.physics.generator.GaussianMaskGenerator(
             imsize, acceleration=2, rng=rng, device=device
@@ -323,6 +324,7 @@ def test_losses(
         loss = dinv.loss.mri.ENSURELoss(0.01, gen, rng=rng)
         dataset = _dataset(physics, tmp_path, imsize, device)
     elif loss_name == "reducedresolution":
+        # Modify test to use a downsampling physics instead
         imsize = (1, 16, 16)
         physics = dinv.physics.Downsampling(filter=None, factor=2, device=device)
         dataset = _dataset(physics, tmp_path, imsize, device)
@@ -334,10 +336,12 @@ def test_losses(
     )
 
     if loss_name == "reducedresolution":
+        # Modify test to use a network that doesn't require specification of
+        # image size, since this loss must pass in image at different sizes
         backbone = dinv.models.UNet(1, 1, scales=2)
 
     # choose a reconstruction architecture
-    model = dinv.models.ArtifactRemoval(backbone.to(device), device=device)
+    model = dinv.models.ArtifactRemoval(backbone, device=device)
 
     # choose optimizer and scheduler
     epochs = 10

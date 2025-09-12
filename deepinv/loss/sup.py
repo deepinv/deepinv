@@ -1,10 +1,14 @@
 from __future__ import annotations
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 import torch
+from torch import Tensor
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.models.base import Reconstructor
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class SupLoss(Loss):
@@ -55,7 +59,7 @@ class ReducedResolutionLoss(SupLoss):
 
         \frac{1}{n}\|y-\inverse{\forw{y}}\|^2
 
-    where :math:`\forw{y}` is the further-degraded measurement, and the measurement :math:`y` is used a supervisory signal.
+    where :math:`\forw{y}` is the reduced resolution measurement via further degrading, and the measurement :math:`y` is used a supervisory signal.
 
     .. warning::
 
@@ -75,7 +79,7 @@ class ReducedResolutionLoss(SupLoss):
         which is set as the mean squared error by default.
     """
 
-    def forward(self, x_net, y, *args, **kwargs):
+    def forward(self, x_net: Tensor, y: Tensor, *args, **kwargs):
         r"""
         Computes the reduced resolution loss.
 
@@ -100,26 +104,25 @@ class ReducedResolutionLoss(SupLoss):
             return self.ReducedResolutionModel(model)
 
     class ReducedResolutionModel(Reconstructor):
-        def __init__(self, model):
+        def __init__(self, model: Reconstructor):
             super().__init__()
             self.model = model
 
-        def forward(self, y, physics, **kwargs):
-            with torch.set_grad_enabled(self.training):
-                if self.training:
-                    try:
-                        y_rr = physics.A(y)
-                    except BaseException as e:
-                        raise RuntimeError(
-                            "Physics error. Check that the used physics can be applied to y to generate a further degraded y. Full error:",
-                            str(e),
-                        )
-                    try:
-                        return self.model(y_rr, physics)
-                    except BaseException as e:
-                        raise RuntimeError(
-                            "Model error. Check that the model can be used with a reduced-resolution input physics.A(y). Full error:",
-                            str(e),
-                        )
-                else:
-                    return self.model(y, physics)
+        def forward(self, y: Tensor, physics: Physics, **kwargs):
+            if self.training:
+                try:
+                    z = physics(y)
+                except BaseException as e:
+                    raise RuntimeError(
+                        "Physics error. Check that the used physics can be applied to y to generate a further degraded y. Full error:",
+                        str(e),
+                    )
+                try:
+                    return self.model(z, physics)
+                except BaseException as e:
+                    raise RuntimeError(
+                        "Model error. Check that the model can be used with a reduced-resolution input physics.A(y). Full error:",
+                        str(e),
+                    )
+            else:
+                return self.model(y, physics)
