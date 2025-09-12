@@ -2,8 +2,6 @@ import deepinv as dinv
 import torch
 import pytest
 
-import unittest.mock as mock
-
 
 class TestTomographyWithAstra:
     def dummy_compute_norm(cls, x0: torch.Tensor) -> torch.Tensor:
@@ -69,9 +67,7 @@ class TestTomographyWithAstra:
                 img_size=img_size,
                 n_detector_pixels=n_detector_pixels,
                 angles=num_angles,
-                angular_range=(
-                    (0, 180) if geometry_type == "parallel" else (0, 360)
-                ),
+                angular_range=((0, 180) if geometry_type == "parallel" else (0, 360)),
                 geometry_type=geometry_type,
                 normalize=normalize,
                 device=device,
@@ -85,9 +81,7 @@ class TestTomographyWithAstra:
             physics = dinv.physics.TomographyWithAstra(
                 img_size=img_size,
                 angles=num_angles,
-                angular_range=(
-                    (0, 180) if geometry_type == "parallel" else (0, 360)
-                ),
+                angular_range=((0, 180) if geometry_type == "parallel" else (0, 360)),
                 n_detector_pixels=n_detector_pixels,
                 geometry_type=geometry_type,
                 detector_spacing=(1.0, 1.0),
@@ -142,7 +136,7 @@ class TestTomographyWithAstra:
             loss = torch.linalg.norm(physics.A(pred) - Ax)
             loss.backward()
             assert pred.grad is not None
-        
+
         ## --- Test geometry properties ---
         if is_2d:
             assert physics.measurement_shape == (32, 32)

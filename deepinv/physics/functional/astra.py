@@ -547,7 +547,10 @@ def create_object_geometry(
         else:
             min_x, max_x = -n_cols / 2 * pixel_spacing[0], n_cols / 2 * pixel_spacing[0]
             min_y, max_y = -n_rows / 2 * pixel_spacing[1], n_rows / 2 * pixel_spacing[1]
-            min_z, max_z = -n_slices / 2 * pixel_spacing[2], n_slices / 2 * pixel_spacing[2]
+            min_z, max_z = (
+                -n_slices / 2 * pixel_spacing[2],
+                n_slices / 2 * pixel_spacing[2],
+            )
 
     pixel_spacing = [
         (max_x - min_x) / n_cols,
