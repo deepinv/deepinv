@@ -15,6 +15,7 @@ from deepinv.optim.distance import (
 from deepinv.optim.potential import Potential
 from deepinv.physics.functional import dct_2d, idct_2d
 
+
 class DataFidelity(Potential):
     r"""
     Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,

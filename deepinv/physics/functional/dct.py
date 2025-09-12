@@ -7,9 +7,11 @@ https://github.com/zh217/torch-dct
 Original code is licensed under the MIT License.
 Modifications have been made for integration with the DeepInverse library.
 """
+
 import torch
 
 pi = torch.acos(torch.zeros(1)).item() * 2
+
 
 def dct(x, norm=None):
     r"""
@@ -30,13 +32,13 @@ def dct(x, norm=None):
 
     Vc = torch.view_as_real(torch.fft.fft(v, dim=1))
 
-    k = - torch.arange(N, dtype=x.dtype, device=x.device)[None, :] * pi / (2 * N)
+    k = -torch.arange(N, dtype=x.dtype, device=x.device)[None, :] * pi / (2 * N)
     W_r = torch.cos(k)
     W_i = torch.sin(k)
 
     V = Vc[:, :, 0] * W_r - Vc[:, :, 1] * W_i
 
-    if norm == 'ortho':
+    if norm == "ortho":
         V[:, 0] /= torch.sqrt(N) * 2
         V[:, 1:] /= torch.sqrt(N / 2) * 2
 
@@ -64,11 +66,15 @@ def idct(X, norm=None):
 
     X_v = X.contiguous().view(-1, x_shape[-1]) / 2
 
-    if norm == 'ortho':
+    if norm == "ortho":
         X_v[:, 0] *= torch.sqrt(N) * 2
         X_v[:, 1:] *= torch.sqrt(N / 2) * 2
 
-    k = torch.arange(x_shape[-1], dtype=X.dtype, device=X.device)[None, :] * pi / (2 * N)
+    k = (
+        torch.arange(x_shape[-1], dtype=X.dtype, device=X.device)[None, :]
+        * pi
+        / (2 * N)
+    )
     W_r = torch.cos(k)
     W_i = torch.sin(k)
 
@@ -82,8 +88,8 @@ def idct(X, norm=None):
 
     v = torch.fft.irfft(torch.view_as_complex(V), n=V.shape[1], dim=1)
     x = v.new_zeros(v.shape)
-    x[:, ::2] += v[:, :N - (N // 2)]
-    x[:, 1::2] += v.flip([1])[:, :N // 2]
+    x[:, ::2] += v[:, : N - (N // 2)]
+    x[:, 1::2] += v.flip([1])[:, : N // 2]
 
     return x.view(*x_shape)
 
