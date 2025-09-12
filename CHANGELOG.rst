@@ -12,6 +12,7 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -25,7 +26,9 @@ New Features
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 - Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
+- Add dinv.utils.disable_tex to disable LaTeX (:gh:`726` by `Andrew Wang`_)
 - O(1) memory backprop for linear solver and example (:gh:`739` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^

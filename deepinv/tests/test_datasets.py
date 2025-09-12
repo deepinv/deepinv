@@ -668,6 +668,13 @@ def download_nbu():
 
 def test_load_nbu_dataset(download_nbu):
     """Check that dataset correct length and type."""
+    pytest.importorskip(
+        "scipy",
+        reason="This test requires scipy. It should be "
+        "installed with `pip install "
+        "scipy`",
+    )
+
     dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
     check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
     assert torch.all(
