@@ -25,7 +25,9 @@ class TestTomographyWithAstra:
             (False, "conebeam", True),
         ],
     )
-    def test_tomography_with_astra_logic(self, is_2d, geometry_type, normalize):
+    def test_tomography_with_astra_logic(
+        self, is_2d, geometry_type, normalize, monkeypatch
+    ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
 
@@ -41,6 +43,22 @@ class TestTomographyWithAstra:
         )
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device != "cuda":
+            monkeypatch.setattr(
+                target=dinv.physics.functional.XrayTransform,
+                name="_forward_projection",
+                value=self.dummy_projection,
+            )
+            monkeypatch.setattr(
+                target=dinv.physics.functional.XrayTransform,
+                name="_backprojection",
+                value=self.dummy_projection,
+            )
+            monkeypatch.setattr(
+                target=dinv.physics.TomographyWithAstra,
+                name="compute_norm",
+                value=self.dummy_compute_norm,
+            )
 
         ## Test 2d transforms
         if is_2d:
@@ -81,41 +99,24 @@ class TestTomographyWithAstra:
         x = torch.rand(1, 1, *img_size, device=device)
 
         if device != "cuda":
-            with (
-                mock.patch.object(
-                    dinv.physics.functional.XrayTransform,
-                    "_forward_projection",
-                    new=self.dummy_projection,
-                ),
-                mock.patch.object(
-                    dinv.physics.functional.XrayTransform,
-                    "_backprojection",
-                    new=self.dummy_projection,
-                ),
-                mock.patch.object(
-                    dinv.physics.TomographyWithAstra,
-                    "compute_norm",
-                    new=self.dummy_compute_norm,
-                ),
-            ):
-                ## -------- Test forward --------
-                Ax = physics.A(x)
-                assert Ax.shape == (1, 1, *physics.measurement_shape)
+            ## -------- Test forward --------
+            Ax = physics.A(x)
+            assert Ax.shape == (1, 1, *physics.measurement_shape)
 
-                ## ------- Test backward --------
-                y = torch.rand_like(Ax)
-                At_y = physics.A_adjoint(y)
-                assert At_y.shape == (1, 1, *img_size)
+            ## ------- Test backward --------
+            y = torch.rand_like(Ax)
+            At_y = physics.A_adjoint(y)
+            assert At_y.shape == (1, 1, *img_size)
 
-                ## ---- Test pseudo-inverse -----
-                x_hat = physics.A_dagger(y)
-                assert x_hat.shape == (1, 1, *img_size)
+            ## ---- Test pseudo-inverse -----
+            x_hat = physics.A_dagger(y)
+            assert x_hat.shape == (1, 1, *img_size)
 
-                ## --- Test autograd.Function ---
-                pred = torch.zeros_like(x, requires_grad=True)
-                loss = torch.linalg.norm(physics.A(pred) - Ax)
-                loss.backward()
-                assert pred.grad is not None
+            ## --- Test autograd.Function ---
+            pred = torch.zeros_like(x, requires_grad=True)
+            loss = torch.linalg.norm(physics.A(pred) - Ax)
+            loss.backward()
+            assert pred.grad is not None
 
         else:
             ## --- Test adjointness ---
