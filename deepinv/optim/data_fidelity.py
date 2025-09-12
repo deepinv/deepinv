@@ -458,13 +458,13 @@ class ItohFidelity(L2):
     def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
         r"""
         Proximal operator of :math:`\gamma \datafid{x}{y}`
-                
+
         Compute the proximal operator of the fidelity term :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
 
         .. math::
 
            \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
-        
+
         these can be computed using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
 
         .. math::
