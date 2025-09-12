@@ -332,7 +332,7 @@ class ItohFidelity(L2):
         :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{Dx}{w_{t}(Dy)}`.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
         """
 
         if physics.__class__.__name__ != "SpatialUnwrapping":
@@ -403,7 +403,7 @@ class ItohFidelity(L2):
         a new dimension.
 
         :param torch.Tensor x: Input tensor of shape (..., H, W), where H and W are spatial dimensions.
-        :return: torch.Tensor of shape (..., H, W, 2), where the last dimension contains
+        :return: (:class:`torch.Tensor`) of shape (..., H, W, 2), where the last dimension contains
             the horizontal and vertical finite differences, respectively.
         """
 
@@ -457,8 +457,15 @@ class ItohFidelity(L2):
 
     def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
         r"""
-        Compute the proximal operator of the fidelity term
-        using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
+        Proximal operator of :math:`\gamma \datafid{x}{y}`
+                
+        Compute the proximal operator of the fidelity term :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
+        
+        these can be computed using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
 
         .. math::
             \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
