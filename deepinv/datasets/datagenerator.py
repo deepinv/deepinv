@@ -5,14 +5,7 @@ from tqdm import tqdm
 import os
 from warnings import warn
 
-try:
-    import h5py
-except ImportError:  # pragma: no cover
-    h5py = ImportError(
-        "The h5py package is not installed. Please install it with `pip install h5py`."
-    )  # pragma: no cover
 import torch
-
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
@@ -23,6 +16,49 @@ if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
     from deepinv.transform import Transform
+    from typing import Any, Optional
+
+
+def _register_deprecated_attr(
+    self: Any,
+    *,
+    attr_name: str,
+    attr_underscore_name: str,
+    attr_initial_value: Any,
+    deprecation_message: str,
+    doc: Optional[str] = None,
+) -> None:
+    """Deprecate an instance attribute.
+
+    It wraps the attribute so that a warning is raised any time the attribute is read, written, or deleted.
+
+    :param self: The instance to which the attribute is added.
+    :param str attr_name: The name of the attribute to be deprecated.
+    :param str attr_underscore_name: The name of the internal attribute to store the value.
+    :param Any attr_initial_value: The initial value of the attribute.
+    :param str deprecation_message: The deprecation warning message to be shown.
+    :param str, None doc: The docstring for the deprecated attribute.
+    """
+    setattr(self, attr_underscore_name, attr_initial_value)
+
+    def fget(self) -> bool:
+        val = getattr(self, attr_underscore_name)
+        # warn last in case retrieval fails
+        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+        return val
+
+    def fset(self, value: bool) -> None:
+        setattr(self, attr_underscore_name, value)
+        # warn last in case setting fails
+        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+
+    def fdel(self) -> None:
+        delattr(self, attr_underscore_name)
+        # warn last in case deletion fails
+        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+
+    attr_value = property(fget=fget, fset=fset, fdel=fdel, doc=doc)
+    setattr(self, attr_name, attr_value)
 
 
 class HDF5Dataset(ImageDataset):
@@ -58,69 +94,170 @@ class HDF5Dataset(ImageDataset):
         dtype: torch.dtype = torch.float,
         complex_dtype: torch.dtype = torch.cfloat,
     ):
+        import h5py
+
         super().__init__()
-        self.data_info = []
-        self.data_cache = {}
-        self.unsupervised = False
+
+        f = h5py.File(path, "r")
+
+        self._register_members(
+            f,
+            train=train,
+            split=split,
+            load_physics_generator_params=load_physics_generator_params,
+        )
+
+        self.hd5 = f
         self.transform = transform
-        self.load_physics_generator_params = load_physics_generator_params
         self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
 
-        if isinstance(h5py, ImportError):
-            raise h5py
+        self._register_deprecated_attributes()
 
-        self.hd5 = h5py.File(path, "r")
-        suffix = ("_train" if train else "_test") if split is None else f"_{split}"
+    def _register_members(
+        self,
+        f: Any,
+        *,
+        train: bool,
+        split: Optional[str],
+        load_physics_generator_params: bool,
+    ) -> None:
+        # Process ground truths
+        x = None
 
-        if "stacked" in self.hd5.attrs.keys():
-            self.stacked = self.hd5.attrs["stacked"]
-            self.y = [self.hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
+        # Process measurements
+        attrs: dict = f.attrs
+        marked_stacked = "stacked" in attrs
+        stacked = attrs.get("stacked", 0)
+        if marked_stacked:
+            y = [None] * stacked
         else:
-            self.stacked = 0
-            self.y = self.hd5[f"y{suffix}"]
+            y = None
 
-        if train or split == "train":
-            if "x_train" in self.hd5:
-                self.x = self.hd5[f"x{suffix}"]
-            else:
-                self.unsupervised = True
+        # Process forward operator parameters
+        if load_physics_generator_params:
+            params = {}
         else:
-            self.x = self.hd5[f"x{suffix}"]
+            params = None
 
-        if self.load_physics_generator_params:
-            self.params = {}
-            for k in self.hd5:
-                if suffix in k and k not in (f"x{suffix}", f"y{suffix}"):
-                    self.params[k.replace(suffix, "")] = self.hd5[k]
+        # Register members in the HDF5 file as ground truths, parts of stacked
+        # measurements or regular measurements and forward operator parameters
+        split_name = split if split is not None else ("train" if train else "test")
+        split_suffix = f"_{split_name}"
+        for member_name, member in f.items():
+            # Only register members corresponding to the selected split
+            if member_name.endswith(split_suffix):
+                # Get the attribute name by stripping the split suffix
+                attr_name = member_name[: -len(split_suffix)]
+                # Register the ground truths
+                if attr_name == "x":
+                    x = member
+                # Register the measurements
+                elif attr_name == "y":
+                    if not marked_stacked:
+                        y = member
+                    else:
+                        warn(
+                            f"Dataset marked as stacked but found unstacked member {member_name}. There is probably an error with the dataset.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+                # Register parts of the stacked measurements and forward operator parameters
+                else:
+                    # Register part of the stacked measurements
+                    # Example target values for member_name: "y0_train", "y1_train", ...
+                    if attr_name.startswith("y"):
+                        stacking_needle = attr_name[1:]
+                        # If needle is the canonical base 10 representation of a non-negative integer
+                        if (
+                            re.fullmatch(r"0|[1-9]+\d+", stacking_needle, re.ASCII)
+                            is not None
+                        ):
+                            stacking_index = int(stacking_needle)
+                            # If the stacking index is in the target range
+                            if stacking_index in range(stacked):
+                                if marked_stacked:
+                                    y[stacking_index] = member
+                                else:
+                                    warn(
+                                        f"Dataset not marked as stacked but found stacked member {member_name}. There is probably an error with the dataset.",
+                                        UserWarning,
+                                        stacklevel=2,
+                                    )
+                            else:
+                                warn(
+                                    f"Found stacked measurement member {member_name} with stacking index {stacking_index} outside of the expected range [0, {stacked}). There is probably an error with the dataset.",
+                                    UserWarning,
+                                    stacklevel=2,
+                                )
+                        else:
+                            warn(
+                                f"Found stacked measurement member {member_name} with middle part {stacking_needle} not a non-negative integer represented canonically in base 10. There is probably an error with the dataset.",
+                                UserWarning,
+                                stacklevel=2,
+                            )
 
-    def __getitem__(self, index):
-        r"""
-        Returns the measurement and signal pair ``(x, y)`` at the given index.
+                    # Register the forward operator parameters
+                    if params is not None:
+                        params[attr_name] = member
 
-        If there is no training ground truth (i.e. ``x_train``) in the dataset file,
-        the dataset returns the measurement again as the signal.
+        # Process ground truths
+        if x is not None:
+            self.x = x
+
+        # Process measurements
+        if marked_stacked:
+            if None in y:
+                raise ValueError(
+                    f"Dataset marked as stacked with {stacked} parts but some parts are missing."
+                )
+        self.y = y
+
+        # Process forward operator parameters
+        if params is not None:
+            self.params = params
+
+    def __getitem__(self, index: int) -> tuple:
+        r"""Get an entry in the dataset.
+
+        Return the measuremet and signal pair ``(x, y)`` at the given index, in
+        the selected split. If forward operator parameters are available, it
+        returns ``(x, y, params)`` where ``params`` is a dict of parameters.
+
+        If the split contains no ground truth, it returns a scalar NaN tensor
+        as the ground truth, similarly to :class:`deepinv.training.Trainer`.
 
         :param int index: Index of the pair to return.
         """
+        import h5py
+
         if self.hd5 is None:
             raise ValueError(
                 "Dataset has been closed. Redefine the dataset to continue."
             )
 
-        if self.stacked > 0:
-            y = TensorList([self.cast(torch.from_numpy(y[index])) for y in self.y])
-        else:
-            y = self.cast(torch.from_numpy(self.y[index]))
-
-        if not self.unsupervised:
-            x = self.cast(torch.from_numpy(self.x[index]))
+        # Compute x
+        if hasattr(self, "x"):
+            x = self.x[index]
+            x = torch.from_numpy(x)
+            x = self.cast(x)
 
             if self.transform is not None:
                 x = self.transform(x)
         else:
-            x = torch.tensor(torch.nan, dtype=y.dtype, device=y.device)
+            x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
+            x = self.cast(x)
 
-        if self.load_physics_generator_params:
+        # Compute y
+        y = self.y
+        if isinstance(y, h5py.Dataset):
+            y = self.y[index]
+            y = torch.from_numpy(y)
+            y = self.cast(y)
+        else:
+            y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
+
+        # Compute params
+        if hasattr(self, "params"):
             params = {
                 k: self.cast(
                     torch.from_numpy(param[index])
@@ -129,27 +266,80 @@ class HDF5Dataset(ImageDataset):
                 )
                 for (k, param) in self.params.items()
             }
+        else:
+            params = None
+
+        if params is not None:
             return x, y, params
         else:
             return x, y
 
-    def __len__(self):
+    def __len__(self) -> int:
         r"""
         Returns the size of the dataset.
 
         """
-        if self.stacked > 0:
-            return len(self.y[0])
-        else:
-            return len(self.y)
+        import h5py
 
-    def close(self):
+        y = self.y
+        if not isinstance(y, h5py.Dataset):
+            y = y[0]
+        return len(y)
+
+    def close(self) -> None:
         """
         Closes the HDF5 dataset. Use when you are finished with the dataset.
         """
         if hasattr(self, "hd5") and self.hd5:
             self.hd5.close()
             self.hd5 = None
+
+    @property
+    def unsupervised(self) -> bool:
+        """Test if the split is unsupervised (i.e. contains no ground truths)."""
+        return hasattr(self, "x")
+
+    def _register_deprecated_attributes(self) -> None:
+        import h5py
+
+        # The attribute load_physics_generator_params is redundant with the attribute params.
+        # Indeed, it is true if and only if the attribute params exists.
+        _register_deprecated_attr(
+            self,
+            attr_name="load_physics_generator_params",
+            attr_underscore_name="_load_physics_generator_params",
+            attr_initial_value=hasattr(self, "params"),
+            deprecation_message="The attribute 'load_physics_generator_params' is deprecated and will be removed in future versions. Use the attribute 'params' instead.",
+        )
+
+        # The attribute stacked is redundant with the attribute y. It is the
+        # number of elements in y if y is a list, otherwise y is a h5py.Dataset
+        # and it is 0.
+        _register_deprecated_attr(
+            self,
+            attr_name="stacked",
+            attr_underscore_name="_stacked",
+            attr_initial_value=0 if isinstance(self.y, h5py.Dataset) else len(self.y),
+            deprecation_message="The attribute 'stacked' is deprecated and will be removed in future versions. Use the attribute 'y' instead."
+        )
+
+        # The attribute data_info is used nowhere.
+        _register_deprecated_attr(
+            self,
+            attr_name="data_info",
+            attr_underscore_name="_data_info",
+            attr_initial_value=[],
+            deprecation_message="The attribute 'data_info' is deprecated and will be removed in future versions.",
+        )
+
+        # The attribute data_cache is used nowhere.
+        _register_deprecated_attr(
+            self,
+            attr_name="data_cache",
+            attr_underscore_name="_data_cache",
+            attr_initial_value={},
+            deprecation_message="The attribute 'data_cache' is deprecated and will be removed in future versions.",
+        )
 
 
 def generate_dataset(
@@ -226,8 +416,7 @@ def generate_dataset(
     :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.
 
     """
-    if isinstance(h5py, ImportError):
-        raise h5py
+    import h5py
 
     if test_dataset is None and train_dataset is None and val_dataset is None:
         raise ValueError("No train or test datasets provided.")
