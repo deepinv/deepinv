@@ -15,6 +15,7 @@ Changed
 
 Fixed
 ^^^^^
+- Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 
 
 v0.3.4
