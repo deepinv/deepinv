@@ -147,7 +147,10 @@ class AdversarialLoss(Loss):
 
             def backward(loss: torch.Tensor):
                 if model.training:
+                    self.log_loss_D_train.update(loss.item())
                     loss.backward(retain_graph=True)
+                else:
+                    self.log_loss_D_eval.update(loss.item())
 
             yield backward
         finally:
