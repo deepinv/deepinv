@@ -32,7 +32,7 @@ from torchvision.transforms import ToTensor
 #    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT, etc.)
 #    by passing in a custom `loader` function and `transform`.
 
-DATA_DIR = dinv.utils.demo.get_data_home() / "demo_custom_dataset"
+DATA_DIR = dinv.utils.get_data_home() / "demo_custom_dataset"
 dinv.utils.download_example("butterfly.png", DATA_DIR / "GT")
 
 dataset1 = dinv.datasets.ImageFolder(DATA_DIR / "GT", transform=ToTensor())

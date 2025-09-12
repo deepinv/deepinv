@@ -20,7 +20,7 @@ import torch
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.plotting import plot, plot_curves
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 

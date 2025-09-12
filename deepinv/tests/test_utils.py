@@ -603,6 +603,7 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
 )
 def test_load_example(name):
     x = deepinv.utils.load_example(name, img_size=(64, 64))
+    assert isinstance(x, torch.Tensor)
     if name.split(".")[-1] == "png":
         assert x.shape[-2:] == (64, 64)
 

@@ -15,7 +15,7 @@ from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%

@@ -32,7 +32,7 @@ and Hadamard spectrum.
 import torch
 from pathlib import Path
 import deepinv as dinv
-from deepinv.utils.demo import get_image_url, load_url_image
+from deepinv.utils import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift

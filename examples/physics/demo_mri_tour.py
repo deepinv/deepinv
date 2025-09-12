@@ -414,10 +414,8 @@ _ = trainer.train()
 #
 
 x = (
-    torch.from_numpy(
-        dinv.utils.demo.load_np_url(
-            "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
-        )
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
     )
     .unsqueeze(0)
     .unsqueeze(0)

@@ -16,7 +16,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 
 # %%
 # Setup paths for data loading and results.

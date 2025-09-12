@@ -10,8 +10,12 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- io "submodule"
+
 Changed
 ^^^^^^^
+- load_np_url now returns tensors
+- load_url helper function moved to io
 
 Fixed
 ^^^^^

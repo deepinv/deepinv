@@ -9,12 +9,7 @@ fluorescence microscopes.
 """
 
 import torch
-
 import deepinv as dinv
-from deepinv.utils.plotting import plot, plot_ortho3D
-from deepinv.utils.demo import load_np_url
-import numpy as np
-
 
 # First, let's load some test images.
 
@@ -25,11 +20,15 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
-volume_data = load_np_url(
-    "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+volume_data = (
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+    )
+    .clone()[::-1, ...]
+    .unsqueeze(0)
+    .unsqueeze(0)
 )
-volume_data = np.copy(volume_data[::-1, ...])
-volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
+
 x = volume_data / volume_data.max()
 x = x.to(device)
 b, c, d, h, w = x.size()
@@ -48,7 +47,7 @@ filter_0 = torch.rand(1, 1, 3, 11, 8, device=device)
 physics = dinv.physics.Blur(filter_0, device=device, padding="circular")
 y = physics(x)
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [x, filter_0, y],
     titles=["signal", "filter", "measurement"],
     suptitle="3D convolution",
@@ -113,12 +112,12 @@ blurs = diffraction_generator.step(batch_size=3)
 # their pupil function and Zernike coefficients:
 print(blurs.keys())
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [f[None] for f in blurs["filter"]],
     suptitle="Examples of randomly generated diffraction blurs",
 )
 
-plot(
+dinv.utils.plot(
     [
         f
         for f in torch.angle(blurs["pupil"][:, None])
@@ -139,7 +138,7 @@ n_zernike = len(
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
 )
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [f for f in blurs["filter"][:, None]],
     suptitle="Airy pattern",
 )
@@ -204,12 +203,12 @@ blur_coll = generator.generator_coll.step(
 )
 psf_coll = blur_coll["filter"]
 # plot generated PSFs
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [psf[None] for psf in psf_coll],
     suptitle="PSFs of Widefield microscope (collection only)",
 )
 
-plot_ortho3D(
+dinv.utils.plot_ortho3D(
     [psf[None] for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )
