@@ -69,7 +69,7 @@ def idct(x, norm=None):
         X_v[:, 1:] *= torch.sqrt(N / 2) * 2
 
     k = (
-        torch.arange(x_shape[-1], dtype=X.dtype, device=X.device)[None, :]
+        torch.arange(x_shape[-1], dtype=x.dtype, device=x.device)[None, :]
         * pi
         / (2 * N)
     )
