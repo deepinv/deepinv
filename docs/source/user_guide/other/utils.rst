@@ -19,6 +19,9 @@ which can be used to quickly plot a list of tensor images.
     >>> x2 = torch.rand(4, 3, 16, 16)
     >>> plot([x1, x2], titles=['x1', 'x2'])
 
+.. hint::
+
+  Do you get a matplotlib LaTeX error when plotting? Disable LaTeX using `dinv.utils.disable_tex()`
 
 We provide other plotting functions that are useful for inverse problems:
 
@@ -41,6 +44,10 @@ We provide other plotting functions that are useful for inverse problems:
      - Save a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
+   * - :func:`deepinv.utils.disable_tex`
+     - Globally force disable LaTeX for matplotlib plotting.
+   * - :func:`deepinv.utils.enable_tex`
+     - Globally force enable LaTeX for matplotlib plotting.
 
 .. _logging:
 

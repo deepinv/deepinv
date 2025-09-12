@@ -4,7 +4,6 @@ Deep Equilibrium (DEQ) algorithms for image deblurring
 
 This a toy example to show you how to use DEQ to solve a deblurring problem.
 Note that this is a small dataset for training. For optimal results, use a larger dataset.
-For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
 For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
@@ -175,7 +174,6 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -202,7 +200,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 trainer.train()

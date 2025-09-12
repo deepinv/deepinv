@@ -20,6 +20,8 @@ Plotting
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
+        deepinv.utils.disable_tex
+        deepinv.utils.enable_tex
 
 
 TensorList

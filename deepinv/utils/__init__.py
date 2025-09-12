@@ -13,6 +13,8 @@ from .plotting import (
     scatter_plot,
     plot_ortho3D,
     rescale_img,  # deprecated
+    enable_tex,
+    disable_tex,
 )
 from .demo import (
     load_url_image,
