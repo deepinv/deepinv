@@ -360,7 +360,7 @@ class TomographyWithAstra(LinearPhysics):
 
     :Examples:
 
-        Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
+        Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -371,7 +371,7 @@ class TomographyWithAstra(LinearPhysics):
             >>> physics = TomographyWithAstra(
             ...        img_size=(5,5),
             ...        angles=10,
-            ...        angular_range=(0, 2*torch.pi),
+            ...        angular_range=(0, 360),
             ...        n_detector_pixels=5,
             ...        detector_spacing=2.0,
             ...        geometry_type='fanbeam',
@@ -393,14 +393,14 @@ class TomographyWithAstra(LinearPhysics):
                     [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
                     [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
 
-        Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
+        Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
 
             >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
             >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-            >>> angles = torch.linspace(0, 2*torch.pi, steps=4)[:-1]
+            >>> angles = torch.linspace(0, 360, steps=4)[:-1]
             >>> physics = TomographyWithAstra(
             ...        img_size=(5,5,5),
             ...        angles = angles,
@@ -441,7 +441,7 @@ class TomographyWithAstra(LinearPhysics):
         img_size: tuple[int, ...],
         angles: Union[int, torch.Tensor] = 180,
         n_detector_pixels: Optional[Union[int, tuple[int, ...]]] = None,
-        angular_range: tuple[float, float] = (0, torch.pi),
+        angular_range: tuple[float, float] = (0, 180),
         detector_spacing: Union[float, tuple[float, float]] = 1.0,
         pixel_spacing: Union[float, tuple[float, ...]] = 1.0,
         bounding_box: Optional[tuple[float, ...]] = None,
