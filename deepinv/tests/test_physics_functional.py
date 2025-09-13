@@ -164,3 +164,13 @@ def test_imresize_div2k():
     y = dinv.utils.load_example("div2k_valid_lr_bicubic_0877x4.png") * 255.0
     y2 = dinv.physics.functional.imresize_matlab(x, scale=1 / 4).round()
     assert dinv.metric.PSNR()(y2 / 255.0, y / 255.0) > 59
+
+
+def test_dct_idct(device):
+    torch.manual_seed(0)
+
+    shape = (1, 1, 8, 8)
+    x = torch.ones(shape).to(device)
+    y = dinv.physics.functional.dct_2d(x)
+    xrec = dinv.physics.functional.idct_2d(y)
+    assert torch.norm(x - xrec) < 1e-5
