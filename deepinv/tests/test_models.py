@@ -1009,6 +1009,21 @@ def test_dsccp_net(device, n_channels):
     assert y.shape == x.shape
 
 
+def test_siren_net(device):
+    siren = dinv.models.SIREN(
+        input_dim=2,
+        encoding_dim=32,
+        out_channels=1,
+        siren_dims=[32],
+        bias={"encoding": False, "siren": False},
+        device=device,
+    )
+    x = dinv.models.siren.get_mgrid((32, 32)).to(device)
+    assert x.min() == -1 and x.max() == 1
+    assert (siren.pe(x) == -siren.pe(-x)).all()
+    assert (siren(x) == -siren(-x)).all()
+
+
 def test_denoiser_perf(device):
     pytest.importorskip(
         "timm",

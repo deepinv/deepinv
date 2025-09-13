@@ -98,6 +98,7 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.SIREN
 
 
 Adversarial Networks
