@@ -56,6 +56,7 @@ Image Datasets
     deepinv.datasets.DIV2K
     deepinv.datasets.Urban100HR
     deepinv.datasets.Set14HR
+    deepinv.datasets.BSDS500
     deepinv.datasets.CBSD68
     deepinv.datasets.FastMRISliceDataset
     deepinv.datasets.SimpleFastMRISliceDataset

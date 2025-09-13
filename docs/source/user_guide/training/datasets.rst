@@ -147,10 +147,16 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - RGB, 248×248 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
+   * - :class:`BSDS500 <deepinv.datasets.BSDS500>`
+     - `x`
+     - 400 (train) + 100 (test) images
+     - RGB, 481x321 or 321x481 pixels
+     - Color Berkeley Segmentation Dataset.
+
    * - :class:`CBSD68 <deepinv.datasets.CBSD68>`
      - `x`
      - 68 images
-     - RGB, 481x321 pixels
+     - RGB, 481x321 or 321x481 pixels
      - A subset of the color Berkeley Segmentation Dataset.
 
    * - :class:`FastMRISliceDataset <deepinv.datasets.FastMRISliceDataset>`

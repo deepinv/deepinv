@@ -1,5 +1,6 @@
 from typing import Any, Callable
 import os
+from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
@@ -26,6 +27,8 @@ class CBSD68(ImageDataset):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform: (optional) A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
+        Default at False.
 
     |sep|
 
@@ -57,11 +60,13 @@ class CBSD68(ImageDataset):
         root: str,
         download: bool = False,
         transform: Callable = None,
+        rotate=False,
     ) -> None:
         from datasets import load_dataset as load_dataset_hf, load_from_disk
 
         self.root = root
         self.transform = transform
+        self.rotate = rotate
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -94,6 +99,11 @@ class CBSD68(ImageDataset):
     def __getitem__(self, idx: int) -> Any:
         # PIL Image
         img = self.hf_dataset[idx]["png"]
+
+        if self.rotate:
+            width, height = img.size
+            if width > height:
+                img = img.transpose(Image.ROTATE_90)
 
         if self.transform is not None:
             img = self.transform(img)
