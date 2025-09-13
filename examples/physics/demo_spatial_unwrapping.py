@@ -19,6 +19,7 @@ from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
 import deepinv as dinv
 from deepinv.utils.demo import load_example
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 
 
 def channel_norm(x):
@@ -30,31 +31,77 @@ def channel_norm(x):
 # %%
 # Load image and preprocess
 # -------------------------------------------------------
-# Load example image and preprocess
+# Load example image and preprocess to emulate a high dynamic range image.
+# images are normalized to [0, 1] and then scaled to the desired dynamic range.
 size = 256
 dr = 2  # dynamic range
-dtype = torch.float32
+threshold = 1.0  # threshold for spatial unwrapping
+factor = 1       # oversampling factor to ensure Itoh condition
 device = "cpu"
 img_size = (size, size)
-mode = "floor"  # available modes: "round", "floor"
+mode = "round"  # available modes: "round", "floor"
 
 
 x_rgb = load_example(
-    "CBSD_0010.png", grayscale=False, device=device, dtype=dtype, img_size=img_size
+    "CBSD_0010.png", grayscale=False, device=device, dtype=torch.float32, img_size=img_size
 )
 x_rgb = channel_norm(x_rgb) * dr
 
-factor = 3
+
+# %%
+# Itoh condition
+# -------------------------------------------------------
+# The Itoh condition states that the difference between adjacent pixels must be less than the threshold (here 1.0) to allow for perfect unwrapping. Thus,
+# $$   | Dx | < threshold / 2$$
+# where D is the spatial finite difference operator and x the original image.
+# If these assumptions are met, the HDR image its estimated from the wrapped differences of the modulo image by the minimization of the Itoh fidelity term.
+# $$ arg min (x) = \Vert Dx - w_t(Dy) \Vert^2_2 $$
+# Here show a example of the pixel differences with a row of the image
+
+modulo_round = lambda x: x - torch.round(x)
+modulo_fn    = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
+row = 120
+sigma_blur = 2.0
+
+filter1d = dinv.physics.blur.gaussian_blur(sigma=(sigma_blur, sigma_blur), angle=0.0)
+filter1d = filter1d[..., filter1d.shape[2] // 2, :].squeeze() 
+filter1d = filter1d / filter1d.sum()    
+
+row_x = x_rgb[0, 0, row, :]
+row_x = torch.kron(row_x, torch.ones(1, factor)).squeeze()
+row_x = torch.nn.functional.conv1d(row_x[None, None, :], filter1d[None, None, :], padding=filter1d.shape[0] // 2).squeeze()
+
+if mode == "round":
+    row_x = row_x - dr / 2
+
+row_dx = row_x[1:] - row_x[:-1]
+row_y = modulo_fn(row_x)
+row_wdy = modulo_round(row_y[1:] - row_y[:-1])
+
+plt.figure(figsize=(10, 3))
+plt.plot(row_x.cpu(), label="Pixel values", linewidth=3, color="g")
+plt.plot(row_dx.cpu(), label="Dx", linewidth=3, color="k")
+plt.plot(row_wdy.cpu(), label="w_t(Dy)", linewidth=3, color="b", linestyle="--")
+plt.axhline( threshold / 2, color="k", linestyle="--", label="Threshold")
+plt.axhline(-threshold / 2, color="k", linestyle="--")
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=4)
+plt.title(f"Itoh Condition, sigma={sigma_blur}, mode={mode}")
+plt.xlabel("Pixel Index")
+plt.ylabel("Difference")
+plt.show()
+
+
+
+# %%
+# Apply Resize and Gaussian blur
+# -------------------------------------------------------
+# To satisfy the Itoh condition, we resize the image and apply a slight Gaussian blur to ensure that adjacent pixel differences are small enough.
 resize = transforms.Resize(size=(img_size[0] * factor, img_size[1] * factor))
 x_rgb = resize(x_rgb)
 
 if mode == "round":
     x_rgb = x_rgb - dr / 2
 
-# %%
-# Apply blur
-# -------------------------------------------------------
-# We apply a slight Gaussian blur to the image to simulate the low bandwidth assumption of the phase map.
 filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
@@ -64,7 +111,6 @@ x_rgb = blur_op(x_rgb)
 # Add Gaussian noise and wrap phase
 # -------------------------------------------------------
 # Include Gaussian noise and wrap phase using SpatialUnwrapping physics
-threshold = 1.0
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 physics = SpatialUnwrapping(threshold=threshold, mode=mode, noise_model=noise_model)
 phase_map = x_rgb
