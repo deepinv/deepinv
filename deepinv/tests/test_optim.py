@@ -318,6 +318,12 @@ def test_itoh_fidelity(device, mode):
         grad_value = loss.grad(x, y, physics)
     assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
 
+    x_dagger = loss.D_dagger(y)
+    assert x_dagger.shape == x.shape
+
+    x_prox = loss.prox(x, y, physics, gamma=1.0)
+    assert x_prox.shape == x.shape
+
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
