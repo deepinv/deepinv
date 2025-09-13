@@ -76,6 +76,7 @@ OPERATORS = [
     "structured_random",
     "cassi",
     "ptychography_linear",
+    "cavitation",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
