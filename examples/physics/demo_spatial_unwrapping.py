@@ -36,14 +36,18 @@ def channel_norm(x):
 size = 256
 dr = 2  # dynamic range
 threshold = 1.0  # threshold for spatial unwrapping
-factor = 1       # oversampling factor to ensure Itoh condition
+factor = 2  # oversampling factor to ensure Itoh condition
 device = "cpu"
 img_size = (size, size)
 mode = "round"  # available modes: "round", "floor"
 
 
 x_rgb = load_example(
-    "CBSD_0010.png", grayscale=False, device=device, dtype=torch.float32, img_size=img_size
+    "CBSD_0010.png",
+    grayscale=False,
+    device=device,
+    dtype=torch.float32,
+    img_size=img_size,
 )
 x_rgb = channel_norm(x_rgb) * dr
 
@@ -51,45 +55,62 @@ x_rgb = channel_norm(x_rgb) * dr
 # %%
 # Itoh condition
 # -------------------------------------------------------
-# The Itoh condition states that the difference between adjacent pixels must be less than the threshold (here 1.0) to allow for perfect unwrapping. Thus,
-# $$   | Dx | < threshold / 2$$
-# where D is the spatial finite difference operator and x the original image.
-# If these assumptions are met, the HDR image its estimated from the wrapped differences of the modulo image by the minimization of the Itoh fidelity term.
-# $$ arg min (x) = \Vert Dx - w_t(Dy) \Vert^2_2 $$
-# Here show a example of the pixel differences with a row of the image
+# The Itoh condition requires that the difference between adjacent pixels is less than half of the threshold (here, 1.0)
+# to enable perfect unwrapping. Specifically, :math:`|Dx| < t / 2`
+# where :math:`D` denotes the spatial finite difference operator and :math:`x` is the original image :footcite:p:`itoh1982analysis`.
+# When this condition is satisfied, the high dynamic range (HDR) image can be recovered from
+# the wrapped differences of the modulo image by minimizing the Itoh fidelity term:
+#
+# .. math::
+#         \begin{equation}  \underset{x}{\arg\min} \quad \| Dx - w_t(Dy) \|^2_2. \end{equation}
+#
+# Below, we illustrate this for a single row of the image by visualizing the pixel values, their differences, and the wrapped differences.
+# By varying the amount of Gaussian blur, we observe that the Itoh condition is satisfied when the blur is sufficiently large.
 
 modulo_round = lambda x: x - torch.round(x)
-modulo_fn    = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
+modulo_fn = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
 row = 120
-sigma_blur = 2.0
 
-filter1d = dinv.physics.blur.gaussian_blur(sigma=(sigma_blur, sigma_blur), angle=0.0)
-filter1d = filter1d[..., filter1d.shape[2] // 2, :].squeeze() 
-filter1d = filter1d / filter1d.sum()    
+row_sel = x_rgb[0, 0, row, :]
 
-row_x = x_rgb[0, 0, row, :]
-row_x = torch.kron(row_x, torch.ones(1, factor)).squeeze()
-row_x = torch.nn.functional.conv1d(row_x[None, None, :], filter1d[None, None, :], padding=filter1d.shape[0] // 2).squeeze()
 
-if mode == "round":
-    row_x = row_x - dr / 2
+def plot_itoh(sigma_blur):
 
-row_dx = row_x[1:] - row_x[:-1]
-row_y = modulo_fn(row_x)
-row_wdy = modulo_round(row_y[1:] - row_y[:-1])
+    row_x = row_sel.clone()
 
-plt.figure(figsize=(10, 3))
-plt.plot(row_x.cpu(), label="Pixel values", linewidth=3, color="g")
-plt.plot(row_dx.cpu(), label="Dx", linewidth=3, color="k")
-plt.plot(row_wdy.cpu(), label="w_t(Dy)", linewidth=3, color="b", linestyle="--")
-plt.axhline( threshold / 2, color="k", linestyle="--", label="Threshold")
-plt.axhline(-threshold / 2, color="k", linestyle="--")
-plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=4)
-plt.title(f"Itoh Condition, sigma={sigma_blur}, mode={mode}")
-plt.xlabel("Pixel Index")
-plt.ylabel("Difference")
-plt.show()
+    filter1d = dinv.physics.blur.gaussian_blur(
+        sigma=(sigma_blur, sigma_blur), angle=0.0
+    )
+    filter1d = filter1d[..., filter1d.shape[2] // 2, :].squeeze()
+    filter1d = filter1d / filter1d.sum()
 
+    row_x = torch.kron(row_x, torch.ones(1, factor)).squeeze()
+    row_x = torch.nn.functional.conv1d(
+        row_x[None, None, :], filter1d[None, None, :], padding=filter1d.shape[0] // 2
+    ).squeeze()
+
+    if mode == "round":
+        row_x = row_x - dr / 2
+
+    row_dx = row_x[1:] - row_x[:-1]
+    row_y = modulo_fn(row_x)
+    row_wdy = modulo_round(row_y[1:] - row_y[:-1])
+
+    plt.figure(figsize=(10, 3))
+    plt.plot(row_x.cpu(), label="Pixel values", linewidth=3, color="g")
+    plt.plot(row_dx.cpu(), label="Dx", linewidth=3, color="k")
+    plt.plot(row_wdy.cpu(), label="w_t(Dy)", linewidth=3, color="b", linestyle="--")
+    plt.axhline(threshold / 2, color="r", linestyle="--", label="t/2")
+    plt.axhline(-threshold / 2, color="r", linestyle="--")
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=4)
+    plt.title(f"Itoh Condition, sigma={sigma_blur}, mode={mode}")
+    plt.xlabel("Pixel Index")
+    plt.ylabel("Difference")
+    plt.show()
+
+
+plot_itoh(sigma_blur=0.1)
+plot_itoh(sigma_blur=2.0)
 
 
 # %%
@@ -108,9 +129,9 @@ x_rgb = blur_op(x_rgb)
 
 
 # %%s
-# Add Gaussian noise and wrap phase
+# Add Gaussian noise and modulo operation
 # -------------------------------------------------------
-# Include Gaussian noise and wrap phase using SpatialUnwrapping physics
+# Include Gaussian noise and wrap the image using SpatialUnwrapping physics
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 physics = SpatialUnwrapping(threshold=threshold, mode=mode, noise_model=noise_model)
 phase_map = x_rgb
@@ -173,3 +194,8 @@ titles = [
     f"ADMM Inversion\n PSNR={psnr_admm:.2f} SSIM={ssim_admm:.2f}",
 ]
 plot(imgs, titles=titles, cmap="gray", figsize=(20, 10))
+
+# %%
+# :References:
+#
+# .. footbibliography::
