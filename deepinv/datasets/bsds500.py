@@ -46,7 +46,7 @@ class BSDS500(ImageDataset):
             to load the "train" and "val" splits. None for using the splits defined by the `train` parameter. Default None.
         :param Callable transform: (optional) A function/transform that takes in a PIL image
             and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``.
-        :param bool rotate: If set to ``True`` images are rotated to have all shape 481 x 321. This can be important to use a torch dataloader.
+        :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
             Default at False.
         """
         checksum = "7bfe17302a219367694200a61ce8256c"
@@ -110,8 +110,8 @@ class BSDS500(ImageDataset):
     def __len__(self):
         return len(self.file_list)
 
-    def __getitem__(self, IDX):
-        img = Image.open(self.file_list[IDX]).convert("RGB")
+    def __getitem__(self, idx):
+        img = Image.open(self.file_list[idx]).convert("RGB")
         if self.rotate:
             width, height = img.size
             if width > height:

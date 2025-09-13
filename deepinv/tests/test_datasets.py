@@ -462,27 +462,17 @@ def download_bsds500(download=True):
         shutil.rmtree(tmp_data_dir)
 
 
-def test_load_bsds500_dataset(download_bsds500):
+@pytest.mark.parametrize("train", [True, False])
+@pytest.mark.parametrize("totensor", [True, False])
+def test_load_bsds500_dataset(download_bsds500, train, totensor):
     """Check that dataset contains 400 + 100 PIL images."""
-
-    pytest.importorskip(
-        "datasets",
-        reason="This test requires datasets. It should be "
-        "installed with `pip install datasets`",
+    totensor = ToTensor() if totensor else None
+    check_dataset_format(
+        BSDS500(download_bsds500, download=False, transform=totensor, train=train),
+        length=400 if train else 100,
+        dtype=Tensor if totensor else PIL_Image,
+        allow_non_tensor=not totensor,
     )
-    for totensor in [ToTensor(), None]:
-        check_dataset_format(
-            BSDS500(download_bsds500, download=False, transform=totensor),
-            length=400,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
-        check_dataset_format(
-            BSDS500(download_bsds500, download=False, transform=totensor, train=False),
-            length=100,
-            dtype=Tensor if totensor else PIL_Image,
-            allow_non_tensor=not totensor,
-        )
 
 
 @pytest.fixture
