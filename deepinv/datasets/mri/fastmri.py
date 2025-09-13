@@ -36,7 +36,7 @@ from tqdm import tqdm
 import torch
 from torchvision.transforms import Compose, CenterCrop
 
-from deepinv.datasets.utils import ToComplex, Rescale, download_archive
+from deepinv.datasets.utils import ToComplex, Rescale, download_archive, torch_shuffle
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
@@ -278,16 +278,6 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     """
 
-    @staticmethod
-    def torch_shuffle(x: list, generator: torch.Generator = None) -> list:
-        """Shuffle list reproducibly using torch generator.
-
-        :param list x: list to be shuffled
-        :param torch.Generator generator: torch Generator.
-        :return list: shuffled list
-        """
-        return [x[i] for i in torch.randperm(len(x), generator=generator).tolist()]
-
     class SliceSampleID(NamedTuple):
         """Data structure containing ID and metadata of specific slices within MRI data files."""
 
@@ -387,7 +377,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
                     i = int(i) if "+" in slice_index and i.isdigit() else 0
                     chosen = samples[len(samples) // 2 - i : len(samples) // 2 + i + 1]
                 elif slice_index == "random":
-                    chosen = self.torch_shuffle(samples, generator=rng)[0]
+                    chosen = torch_shuffle(samples, generator=rng)[0]
                 else:
                     raise ValueError(
                         'slice_index must be "all", "random", "middle", "middle+i", int or tuple.'
@@ -397,9 +387,9 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         # Randomly keep a portion of MRI volumes
         if subsample_volumes < 1.0:
-            subsampled_fnames = self.torch_shuffle(
-                list(self.samples.keys()), generator=rng
-            )[: round(len(all_fnames) * subsample_volumes)]
+            subsampled_fnames = torch_shuffle(list(self.samples.keys()), generator=rng)[
+                : round(len(all_fnames) * subsample_volumes)
+            ]
             self.samples = {k: self.samples[k] for k in subsampled_fnames}
 
         # Flatten to list of samples
