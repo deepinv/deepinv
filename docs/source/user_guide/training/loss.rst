@@ -104,6 +104,8 @@ In order to learn from incomplete data, you can either:
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
    * - :class:`deepinv.loss.AugmentConsistencyLoss`
      - Assumes consistency to data augmentations.
+   * - :class:`deepinv.loss.ReducedResolutionLoss`
+     - Assumes invariance to degradation
 
 .. tip::
 

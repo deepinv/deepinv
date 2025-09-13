@@ -117,6 +117,9 @@ class Trainer:
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+    :param bool disable_train_metrics: if `False` (default), metrics are computed both during training and testing on their respective data.
+        If `True`, do not compute metrics during training on train set. Useful if your model output during training
+        is in the wrong shape for metric computation.
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
@@ -218,6 +221,7 @@ class Trainer:
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
     metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
+    disable_train_metrics: bool = False
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path] = "."
@@ -691,6 +695,7 @@ class Trainer:
         :param int epoch: current epoch.
         :returns: The logs with the metrics.
         """
+
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
@@ -808,9 +813,10 @@ class Trainer:
             x_net = x_net.detach()
 
             # Log metrics
-            logs = self.compute_metrics(
-                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
-            )
+            if not (self.disable_train_metrics and train):
+                logs = self.compute_metrics(
+                    x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+                )
 
             # Update the progress bar
             progress_bar.set_postfix(logs)

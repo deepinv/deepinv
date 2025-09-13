@@ -1,7 +1,7 @@
 from .mc import MCLoss
 from .ei import EILoss
 from .moi import MOILoss, MOEILoss
-from .sup import SupLoss
+from .sup import SupLoss, ReducedResolutionLoss
 from .score import ScoreLoss
 from .tv import TVLoss
 from .r2r import R2RLoss
