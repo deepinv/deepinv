@@ -164,6 +164,9 @@ class HDF5Dataset(ImageDataset):
                         )
                 # Register parts of the stacked measurements and forward operator parameters
                 else:
+                    # Other members are understood as parameters except if they are stacked measurements
+                    registered_as_measurements = False
+
                     # Register part of the stacked measurements
                     # Example target values for member_name: "y0_train", "y1_train", ...
                     if attr_name.startswith("y"):
@@ -177,6 +180,7 @@ class HDF5Dataset(ImageDataset):
                             # If the stacking index is in the target range
                             if stacking_index in range(stacked):
                                 if marked_stacked:
+                                    registered_as_measurements = True
                                     y[stacking_index] = member
                                 else:
                                     warn(
@@ -190,15 +194,9 @@ class HDF5Dataset(ImageDataset):
                                     UserWarning,
                                     stacklevel=2,
                                 )
-                        else:
-                            warn(
-                                f"Found stacked measurement member {member_name} with middle part {stacking_needle} not a non-negative integer represented canonically in base 10. There is probably an error with the dataset.",
-                                UserWarning,
-                                stacklevel=2,
-                            )
 
                     # Register the forward operator parameters
-                    if params is not None:
+                    if params is not None and not registered_as_measurements:
                         params[attr_name] = member
 
         # Process ground truths
