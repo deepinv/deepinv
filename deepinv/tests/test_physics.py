@@ -95,6 +95,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "FisherTippett",
     "SaltPepper",
 ]
 
@@ -1166,6 +1167,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.GammaNoise(l)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l)
     else:
         raise Exception("Noise model not found")
 
