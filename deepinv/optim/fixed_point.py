@@ -196,14 +196,16 @@ class FixedPoint(nn.Module):
         x = x.view(x_prev.shape)
         F = (
             self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.iterator.has_cost
+            if self.iterator.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         est = list(TX_prev["est"])
         est[0] = x
         return {"est": est, "cost": F}
 
-    def forward(self, *args, compute_metrics=False, x_gt=None, **kwargs):
+    def forward(self, *args, init=None, compute_metrics=False, x_gt=None, **kwargs):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -225,7 +227,7 @@ class FixedPoint(nn.Module):
                     otherwise.
         """
         X = (
-            self.init_iterate_fn(*args, F_fn=self.iterator.F_fn)
+            self.init_iterate_fn(*args, init=init, F_fn=self.iterator.F_fn)
             if self.init_iterate_fn
             else None
         )

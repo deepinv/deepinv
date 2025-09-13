@@ -21,6 +21,7 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
 from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
+from deepinv.optim import FISTA
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -303,12 +304,11 @@ prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 def custom_init(y, physics):
     x_init = torch.clamp(physics.A_dagger(y), 0)
-    return {"est": (x_init, x_init)}
+    return x_init
 
 
 # %%
 # We are now ready to implement the FISTA algorithm.
-from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
@@ -319,20 +319,19 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1e-3 * opnorm  # wavelet regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-3 * opnorm  # wavelet regularisation parameter
 max_iter = 50
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="FISTA",
+model = FISTA(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     custom_init=custom_init,
 )
 
