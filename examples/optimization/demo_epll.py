@@ -9,13 +9,14 @@ or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sig
 """
 
 import torch
+import deepinv as dinv
 from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
 from deepinv.utils.demo import load_example
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load test image and model
