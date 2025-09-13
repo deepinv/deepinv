@@ -4,6 +4,7 @@ from PIL import Image
 from pathlib import Path
 from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipfile
 from deepinv.datasets.base import ImageDataset
+from natsort import natsorted
 
 
 class BSDS500(ImageDataset):
