@@ -1,9 +1,7 @@
-import urllib.request
-import zipfile
 import os
 import os.path
 from PIL import Image
-from deepinv.datasets.utils import calculate_md5
+from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipfile
 from deepinv.datasets.base import ImageDataset
 
 
@@ -62,7 +60,7 @@ class BSDS500(ImageDataset):
             os.makedirs(self.base_path)
         zip_path = os.path.join(self.base_path, "download.zip")
         if download and not os.path.exists(zip_path):
-            urllib.request.urlretrieve(
+            download_archive(
                 "https://github.com/BIDS/BSDS500/archive/refs/heads/master.zip",
                 zip_path,
             )
@@ -71,8 +69,7 @@ class BSDS500(ImageDataset):
                 return ValueError(
                     "Verification of the dataset failed (unexpected md5 checksum of the downloaded zip-file)"
                 )
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(self.base_path)
+            extract_zipfile(zip_path, self.base_path)
         if not download and not os.path.exists(zip_path):
             raise NameError(
                 "Dataset does not exist. Set download=True for downloading it or choose root correctly."
