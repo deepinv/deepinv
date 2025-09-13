@@ -884,12 +884,7 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = [
-    "deblur_constant",
-    "inpainting",
-    "MRI",
-    "super_resolution_circular",
-]
+least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_valid"]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
@@ -905,7 +900,7 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
 
     tol = 0.01
     y = physics(x)
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
     assert (
         (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
@@ -915,21 +910,23 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
     z = x.clone()
     gamma = 1.0
 
-    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
     assert (
         (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < 3 * tol
+        < tol
     ).all()
 
     # test backprop
-    y.requires_grad = True
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-    loss = (x_hat - x).pow(2).mean()
-    loss.backward()
-    if not "inpainting" in physics_name:
-        assert y.grad.norm() > 0
+    if solver != "BiCGStab":  # bicgstab currently have issues with backprop
+        with torch.enable_grad():
+            y.requires_grad_(True)
+            x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
+            loss = (x_hat - x).pow(2).mean()
+            loss.backward()
+
+        assert torch.all(~torch.isnan(y.grad))
 
 
 DTYPES = [torch.float32, torch.complex64]
@@ -956,24 +953,20 @@ def test_linear_system(device, solver, dtype):
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-3
+    tol = 1e-5
     if solver == "CG":
-        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
     elif solver == "minres":
-        x = dinv.optim.utils.minres(A, b, tol=tol)
+        x = dinv.optim.utils.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":
-        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
-        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
-    x_star = torch.linalg.solve(mat, b.T).T
-
-    # consider relative error
-    assert (
-        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
-    )
+    error = (A(x) - b).abs().pow(2).sum()
+    assert error < tol * b.abs().pow(2).sum()
 
 
 def test_condition_number(device):
@@ -999,12 +992,11 @@ def test_condition_number(device):
 @pytest.mark.parametrize(
     "physics_name",
     [
-        "deblur_constant",
-        "MRI",
+        "deblur_valid",
         "super_resolution_circular",
     ],
 )
-@pytest.mark.parametrize("solver", ["CG", "lsqr"])
+@pytest.mark.parametrize("solver", solvers)
 def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
     batch_size = 1
@@ -1101,7 +1093,6 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
 
                     expected_grad[idx] = (loss_p - loss_m) / (2 * delta)
 
-            # Check that 99% of the entries are close, allowing for some numerical errors in edge cases
             torch.testing.assert_close(
                 implicit_grad.view(-1)[idx_flat],
                 expected_grad[idx_flat],

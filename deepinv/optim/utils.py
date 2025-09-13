@@ -308,17 +308,31 @@ def bicgstab(
     max_iter = int(max_iter)
 
     tol = dot(b, b, dim=dim).real * (tol**2)
+    eps = torch.finfo(b.dtype).eps  # Breakdown tolerance, to avoid division by zero
     flag = False
     for i in range(max_iter):
         y = right_precon(left_precon(p))
         v = A(y)
-        alpha = rho / dot(r_hat, v, dim=dim)
+        # Safeguard: avoid division by small/zero
+        alpha_denom = dot(r_hat, v, dim=dim)
+        alpha = torch.where(
+            torch.abs(alpha_denom) > eps, rho / alpha_denom, torch.zeros_like(rho)
+        )
+
         h = x + alpha * y
         s = r - alpha * v
         z = right_precon(left_precon(s))
         t = A(z)
-        omega = dot(left_precon(t), left_precon(s), dim=dim) / dot(
-            left_precon(t), left_precon(t), dim=dim
+
+        # Safeguard: avoid division by small/zero
+        left_s = left_precon(s)
+        left_t = left_precon(t)
+        omega_num = dot(left_t, left_s, dim=dim)
+        omega_denom = dot(left_t, left_t, dim=dim)
+        omega = torch.where(
+            torch.abs(omega_denom) > eps,
+            omega_num / omega_denom,
+            torch.zeros_like(omega_num),
         )
 
         x = h + omega * z
@@ -330,7 +344,11 @@ def bicgstab(
             break
 
         rho_new = dot(r, r_hat, dim=dim)
-        beta = (rho_new / rho) * (alpha / omega)
+        # Safeguard for beta: if rho or omega small, set beta=0
+        beta_mask = (torch.abs(rho) > eps) & (torch.abs(omega) > eps)
+        beta = torch.where(
+            beta_mask, (rho_new / rho) * (alpha / omega), torch.zeros_like(rho_new)
+        )
         p = r + beta * (p - omega * v)
         rho = rho_new
 
