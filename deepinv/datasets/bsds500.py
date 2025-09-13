@@ -83,12 +83,6 @@ class BSDS500(ImageDataset):
         )
         image_path_val = Path(self.base_path, "BSDS500-master/BSDS500/data/images/val")
 
-        try:
-            from natsort import natsorted
-        except ImportError:
-            natsorted = ImportError(
-                "natsort is not available. In order to use ImageFolder, please install the natsort package with `pip install natsort`."
-            )
         self.file_list = []
         if "train" in splits:
             self.file_list.extend(natsorted(image_path_train.glob("*.jpg")))
