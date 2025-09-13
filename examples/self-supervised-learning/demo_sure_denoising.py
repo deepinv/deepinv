@@ -155,7 +155,6 @@ optimizer.load_state_dict(ckpt["optimizer"])
 #
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -179,7 +178,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
 )
 
 # Train the network

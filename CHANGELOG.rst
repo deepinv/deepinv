@@ -16,9 +16,11 @@ Changed
 ^^^^^^^
 - load_np_url now returns tensors
 - load_url helper function moved to io
+- (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
+- Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 
 
 v0.3.4
@@ -29,6 +31,7 @@ New Features
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 - Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
+- Add dinv.utils.disable_tex to disable LaTeX (:gh:`726` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

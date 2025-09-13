@@ -9,7 +9,6 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from scipy.io import loadmat as scipy_loadmat
 from numpy import ndarray
 
 from torch import randn, Tensor, stack, zeros_like
@@ -109,11 +108,17 @@ def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
 def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     """Load MATLAB array from file.
 
+    .. note::
+
+        This function depends on the ``scipy`` package. You can install it with ``pip install scipy``.
+
     :param str fname: filename to load
     :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires
         ``mat73``, install with ``pip install mat73``.
     :return: dict with str keys and array values.
     """
+    from scipy.io import loadmat as scipy_loadmat
+
     if mat73:
         try:
             from mat73 import loadmat as loadmat73

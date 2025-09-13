@@ -26,7 +26,6 @@ from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
-    cosine_similarity,
 )
 from deepinv.models.complex import to_complex_denoiser
 
@@ -256,25 +255,25 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
 # In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
-imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
+subtitles = [
+    "PSNR",
+    f"{dinv.metric.PSNR()(x, x_gd_rand).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_spec).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_gd_spec).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_pnp).item():.2f} dB",
+]
 plot(
-    imgs,
-    titles=["Original", "GD random", "Spectral", "GD spectral", "PnP"],
+    {
+        "Original": x,
+        "GD random": x_gd_rand,
+        "Spectral": x_spec,
+        "GD spectral": x_gd_spec,
+        "PnP": x_pnp,
+    },
+    subtitles=subtitles,
     save_dir=RESULTS_DIR / "images",
     show=True,
     rescale_mode="clip",
 )
 
-# Compute metrics
-print(
-    f"GD Random reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase).item():.3f}."
-)
-print(
-    f"Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase).item():.3f}."
-)
-print(
-    f"GD Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase).item():.3f}."
-)
-print(
-    f"PnP reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase).item():.3f}."
-)
+# %%
