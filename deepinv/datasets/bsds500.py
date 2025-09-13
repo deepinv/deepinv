@@ -1,6 +1,7 @@
 import os
 import os.path
 from PIL import Image
+from pathlib import Path
 from deepinv.datasets.utils import calculate_md5, download_archive, extract_zipfile
 from deepinv.datasets.base import ImageDataset
 
@@ -74,35 +75,27 @@ class BSDS500(ImageDataset):
             raise NameError(
                 "Dataset does not exist. Set download=True for downloading it or choose root correctly."
             )
-        image_path_train = os.path.join(
+        image_path_train = Path(
             self.base_path, "BSDS500-master/BSDS500/data/images/train"
         )
-        image_path_test = os.path.join(
+        image_path_test = Path(
             self.base_path, "BSDS500-master/BSDS500/data/images/test"
         )
-        image_path_val = os.path.join(
-            self.base_path, "BSDS500-master/BSDS500/data/images/val"
-        )
+        image_path_val = Path(self.base_path, "BSDS500-master/BSDS500/data/images/val")
+
+        try:
+            from natsort import natsorted
+        except ImportError:
+            natsorted = ImportError(
+                "natsort is not available. In order to use ImageFolder, please install the natsort package with `pip install natsort`."
+            )
         self.file_list = []
         if "train" in splits:
-            file_list = os.listdir(image_path_train)
-            self.file_list = self.file_list + [
-                os.path.join(image_path_train, f)
-                for f in file_list
-                if f.endswith("jpg")
-            ]
+            self.file_list.extend(natsorted(image_path_train.glob("*.jpg")))
         if "test" in splits:
-            file_list = os.listdir(image_path_test)
-            self.file_list = self.file_list + [
-                os.path.join(image_path_test, f) for f in file_list if f.endswith("jpg")
-            ]
+            self.file_list.extend(natsorted(image_path_test.glob("*.jpg")))
         if "val" in splits:
-            file_list = os.listdir(image_path_val)
-            self.file_list = self.file_list + [
-                os.path.join(image_path_val, f) for f in file_list if f.endswith("jpg")
-            ]
-
-        self.file_list.sort()
+            self.file_list.extend(natsorted(image_path_val.glob("*.jpg")))
 
     def __len__(self):
         return len(self.file_list)
