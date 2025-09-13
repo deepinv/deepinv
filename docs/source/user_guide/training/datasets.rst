@@ -71,7 +71,7 @@ For example, here we generate a dataset of inpainting measurements from the :cla
 
     >>> import deepinv as dinv
     >>> from torchvision.transforms import ToTensor, Compose, CenterCrop
-    >>> save_dir = dinv.utils.demo.get_data_home() / 'set14'
+    >>> save_dir = dinv.utils.get_data_home() / 'set14'
     >>> 
     >>> # Define base train dataset
     >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()])) # doctest: +ELLIPSIS

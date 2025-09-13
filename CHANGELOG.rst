@@ -10,8 +10,12 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- io "submodule"
+
 Changed
 ^^^^^^^
+- load_np_url now returns tensors
+- load_url helper function moved to io
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed

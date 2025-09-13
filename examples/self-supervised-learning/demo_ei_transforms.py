@@ -35,7 +35,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 

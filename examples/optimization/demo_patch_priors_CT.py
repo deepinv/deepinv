@@ -48,7 +48,7 @@ from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
