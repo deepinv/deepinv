@@ -227,7 +227,7 @@ def test_get_samples(
 
     iterator = iter(dataloader)
 
-    trainer.setup_train(train=True)
+    trainer.setup(train=True)
     x1, y1, physics1 = trainer.get_samples([iterator], g=0)
     # take this out now as otherwise physics gets modified in place by next get_samples
     param1 = getattr(physics1, param_name)
@@ -486,7 +486,7 @@ def test_trainer_test_metrics(non_blocking_plots, device, rng):
         model=dinv.models.MedianFilter().to(device),
         physics=dinv.physics.Inpainting((3, 32, 28), mask=0.8, device=device, rng=rng),
         train_dataloader=torch.utils.data.DataLoader(DummyCircles(3)),
-        eval_dataloader=dataloader,
+        val_dataloader=dataloader,
         optimizer=None,
         epochs=0,
         losses=dinv.loss.SupLoss(),
@@ -495,7 +495,7 @@ def test_trainer_test_metrics(non_blocking_plots, device, rng):
         show_progress_bar=False,
         device=device,
         online_measurements=True,
-        plot_images=True,
+        log_images=True,
     )
 
     _ = trainer.train()
@@ -610,7 +610,7 @@ def test_dataloader_formats(
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
-        plot_images=True,
+        log_images=True,
         epochs=1,
         physics=physics,
         physics_generator=generator2,
@@ -620,7 +620,7 @@ def test_dataloader_formats(
         optimizer=optimizer,
         save_path=tmpdir,
     )
-    trainer.setup_train()
+    trainer.setup()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
 
     # fmt: off
@@ -697,16 +697,16 @@ def test_early_stop(
         physics=physics,
         max_batch_steps=max_batch_steps,
         train_dataloader=dataloader,
-        eval_dataloader=eval_dataloader,
+        val_dataloader=eval_dataloader,
         online_measurements=True,
         optimizer=optimizer,
         verbose=False,
-        plot_images=True,
+        log_images=True,
         save_path=tmpdir,
     )
     trainer.train()
 
-    metrics_history = trainer.eval_metrics_history["PSNR"]
+    metrics_history = trainer.val_metrics_history_per_epoch["PSNR"]
     if max_batch_steps == 3:
         assert len(metrics_history) <= len(dataloader) * epochs
     elif early_stop:
@@ -748,7 +748,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
         epochs=2,
         physics=physics,
         train_dataloader=dataloader,
-        eval_dataloader=eval_dataloader,
+        val_dataloader=eval_dataloader,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,

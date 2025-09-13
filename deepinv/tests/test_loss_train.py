@@ -279,7 +279,7 @@ def test_optim_algo(name_algo, imsize, device):
     trainer = dinv.Trainer(
         model=model_unfolded,
         train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
+        val_dataloader=test_dataloader,
         epochs=epochs,
         losses=losses,
         physics=physics,

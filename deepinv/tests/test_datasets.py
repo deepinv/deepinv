@@ -124,7 +124,7 @@ def check_dataset_format(
                     save_path=None,
                     compare_no_learning=False,
                     metrics=[],
-                ).setup_train(train=True)
+                ).setup(train=True)
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
