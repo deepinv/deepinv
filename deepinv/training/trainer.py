@@ -813,13 +813,10 @@ class Trainer:
             x_net = x_net.detach()
 
             # Log metrics
-            logs = (
-                logs
-                if self.disable_train_metrics and train
-                else self.compute_metrics(
+            if not (self.disable_train_metrics and train):
+                logs = self.compute_metrics(
                     x, x_net, y, physics_cur, logs, train=train, epoch=epoch
                 )
-            )
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
