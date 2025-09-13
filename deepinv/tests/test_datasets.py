@@ -469,7 +469,13 @@ def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
     """Check that dataset contains 400 + 100 PIL images."""
     totensor = ToTensor() if totensor else None
     check_dataset_format(
-        BSDS500(download_bsds500, download=False, transform=totensor, train=train, rotate=rotate),
+        BSDS500(
+            download_bsds500,
+            download=False,
+            transform=totensor,
+            train=train,
+            rotate=rotate,
+        ),
         length=400 if train else 100,
         dtype=Tensor if totensor else PIL_Image,
         allow_non_tensor=not totensor,
