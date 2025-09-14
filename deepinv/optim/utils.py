@@ -822,17 +822,18 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         kwargs = extra_kwargs if extra_kwargs is not None else {}
 
-        solution = least_squares(
-            A=physics.A,
-            AT=physics.A_adjoint,
-            y=y,
-            z=z,
-            init=init,
-            gamma=gamma,
-            AAT=physics.A_A_adjoint,
-            ATA=physics.A_adjoint_A,
-            **kwargs,
-        )
+        with torch.no_grad():
+            solution = least_squares(
+                A=physics.A,
+                AT=physics.A_adjoint,
+                y=y,
+                z=z,
+                init=init,
+                gamma=gamma,
+                AAT=physics.A_A_adjoint,
+                ATA=physics.A_adjoint_A,
+                **kwargs,
+            )
 
         # Save tensors only
         gamma = torch.as_tensor(gamma, dtype=y.dtype, device=y.device)
@@ -919,9 +920,31 @@ def least_squares_implicit_backward(
 ) -> Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
-    The functions is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. See :func:`deepinv.optim.utils.least_squares` for more details about the problem solved in the forward pass.
+    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. 
 
-    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See the notes below for more details.
+    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details. 
+    
+    Let :math:`h(z, y, \theta, \gamma)` denote the output of the least squares solver, i.e. the solution of the following problem:
+    .. math::
+
+        h(z, y, \theta, \gamma) = \underset{x}{\arg\min} \; \frac{\gamma}{2}\|A_\theta x-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+    When the forward least-squares solver converges to the exact minimizer, we have the following closed-form expressions for :math:`h(z, y, \theta, \gamma)`:
+
+    .. math::
+
+        h(z, y, \theta, \gamma) = \left( A_\theta^{\top} A_\theta + \frac{1}{\gamma} I \right)^{-1} \left( A_\theta^{\top} y + \frac{1}{\gamma} z \right)
+
+    Let :math:`M` denote the inverse :math:`\left( A_\theta^T A_\theta + \frac{1}{\gamma} I \right)^{-1}`. In the forward, we need to compute the vector-Jacobian products (VJPs), which can be computed as follows:
+
+    .. math::
+
+        \left( \frac{\partial h}{\partial z} \right)^{\top} v               &= \frac{1}{\gamma} M v \\
+        \left( \frac{\partial h}{\partial y} \right)^{\top} v               &= A_\theta M v \\
+        \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
+        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
+        
+    where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v ` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
 
     .. note::
 
@@ -945,8 +968,7 @@ def least_squares_implicit_backward(
 
     .. tip::
 
-        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations.
-        TODO: link to example notebook when available.
+        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations. 
 
     :param deepinv.physics.LinearPhysics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
@@ -1000,7 +1022,7 @@ def least_squares_implicit_backward(
         trigger = torch.ones(1, device=y.device, dtype=y.dtype)
     extra_kwargs = kwargs if kwargs else None
     if gamma is None:
-        gamma = torch.tensor(0, device=y.device, dtype=y.dtype)
+        gamma = torch.zeros((), device=y.device, dtype=y.dtype)
     return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)
 
 

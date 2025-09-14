@@ -2,7 +2,7 @@ r"""
 Reducing the memory and computational complexity of unfolded network training
 ====================================================================================================
 
-Some unfolded architectures rely on a `least-squares solver <deepinv.optim.utils.least_squares>` to compute the proximal step w.r.t. the data-fidelity term (e.g., :class:`ADMM <deepinv.optim.optim_iterators.ADMMIteration>` or :class:`HQS <deepinv.optim.optim_iterators.HQSIteration>`):  
+Some unfolded architectures rely on a :func:`least-squares solver <deepinv.optim.utils.least_squares>` to compute the proximal step w.r.t. the data-fidelity term (e.g., :class:`ADMM <deepinv.optim.optim_iterators.ADMMIteration>` or :class:`HQS <deepinv.optim.optim_iterators.HQSIteration>`):  
 
 .. math::  
 
@@ -12,29 +12,29 @@ During backpropagation, a naive implementation requires storing the gradients of
 
 The library provides a memory-efficient back-propagation strategy that reduces the memory footprint during training, by computing the gradients of the proximal step in closed-form, without storing any intermediate steps. This closed-form computation requires evaluating the least-squares solver one additional time during the gradient computation.  
 
-Let :math:`h(z, y, \theta, \gamma) = \operatorname{prox}_{\gamma f}(z)` be the proximal operator. During the backward pass, we need to compute the vector-Jacobian products (VJPs), in the input variables :math:`(z, y, \theta, \gamma)` is required for backpropagation:
+Let :math:`h(z, y, \theta, \gamma) = \operatorname{prox}_{\gamma f}(z)` be the proximal operator. During the backward pass, we need to compute the vector-Jacobian products (VJPs), w.r.t the input variables :math:`(z, y, \theta, \gamma)` required for backpropagation:
 
 .. math::
 
-    \left( \frac{\partial h}{\partial z} \right)^T v, \quad \left( \frac{\partial h}{\partial y} \right)^T v, \quad \left( \frac{\partial h}{\partial \theta} \right)^T v, \quad \left( \frac{\partial h}{\partial \gamma} \right)^T v
+    \left( \frac{\partial h}{\partial z} \right)^{\top} v, \quad \left( \frac{\partial h}{\partial y} \right)^{\top} v, \quad \left( \frac{\partial h}{\partial \theta} \right)^{\top} v, \quad \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v
 
 and :math:`v` is the upstream gradient. The VJPs can be computed in closed-form by solving a second least-squares problem, as shown in the following. 
 When the forward least-squares solver converges to the exact minimizer, we have the following closed-form expressions for :math:`h(z, y, \theta, \gamma)`:
 
 .. math::
 
-    h(z, y, \theta, \gamma) = \left( A_\theta^T A_\theta + \frac{1}{\gamma} I \right)^{-1} \left( A_\theta^T y + \frac{1}{\gamma} z \right)
+    h(z, y, \theta, \gamma) = \left( A_\theta^{\top} A_\theta + \frac{1}{\gamma} I \right)^{-1} \left( A_\theta^{\top} y + \frac{1}{\gamma} z \right)
 
 Let :math:`M` denote the inverse :math:`\left( A_\theta^T A_\theta + \frac{1}{\gamma} I \right)^{-1}`. The VJPs can be computed as follows:
 
 .. math::
 
-    \left( \frac{\partial h}{\partial z} \right)^T v               &= \frac{1}{\gamma} M v \\
-    \left( \frac{\partial h}{\partial y} \right)^T v               &= A_\theta M v \\
-    \left( \frac{\partial h}{\partial \gamma} \right)^T v          &= \langle M v, h - z \rangle / \gamma^2 \\
-    \left( \frac{\partial h}{\partial \theta} \right)^T v          &= \frac{\partial p}{\partial \theta} 
+    \left( \frac{\partial h}{\partial z} \right)^{\top} v               &= \frac{1}{\gamma} M v \\
+    \left( \frac{\partial h}{\partial y} \right)^{\top} v               &= A_\theta M v \\
+    \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
+    \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
     
-where :math:`p = \langle M v, A_\theta^T (y - A_\theta h) \rangle` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
+where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v ` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
 
 .. note::
 
@@ -43,11 +43,13 @@ where :math:`p = \langle M v, A_\theta^T (y - A_\theta h) \rangle` and :math:`\f
 
 This example shows how to train an unfolded neural network with a memory complexity that is independent of the number of iterations in least squares solver (O(1) memory complexity) used for computing the data-fidelity proximal step.
 
+.. note::
+
+    By default, this example is run on CPU so we should not expect significant speed-ups and we can not trace the memory usage precisely. For a better experience, we recommend running the example on a machine with a GPU. In such a case, we can expect significant speed-ups (20-50%) and a significant reduction in memory usage (2x-3x reduction factor). 
 """
 
 # %%
 import deepinv as dinv
-from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
@@ -59,51 +61,42 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-# %%
-# Setup paths for data loading and results.
-# ----------------------------------------------------------------------------------------
-#
-
-BASE_DIR = Path(".")
-DATA_DIR = BASE_DIR / "measurements"
-
 device = (
     dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
 )
-device = torch.device("cpu")
-# %%
-# Load base image datasets and degradation operators.
-# ----------------------------------------------------------------------------------------
-# In this example, we use the CBSD500 dataset for training and the Set3C dataset for testing.
-
+dtype = torch.float32
 img_size = 64 if torch.cuda.is_available() else 32
-n_channels = 3  # 3 for color images, 1 for gray-scale images
+num_images = 480 if torch.cuda.is_available() else 64
+
 
 # %%
-# Generate a dataset of low resolution images and load it.
+# Define the degradation operator and the dataset.
 # ----------------------------------------------------------------------------------------
-# We use the Blur class from the physics module to generate a dataset of blurry images.
-# For simplicity, we use a small dataset for training.
+# We use the Blur class with `valid` padding from the physics module. ITs proximal operator does not
+# have a closed-form solution, and thus requires using a least-squares solver.
+
+# In this example, we use the CBSD500 dataset
 train_dataset_name = "CBSD500"
 
 # Specify the transforms to be applied to the input images.
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-# Define the base train and test datasets of clean images.
+# Define the base train dataset of clean images.
 train_dataset = load_dataset(train_dataset_name, transform=train_transform)
+train_dataset = torch.utils.data.Subset(train_dataset, range(num_images))
 train_loader = DataLoader(
     train_dataset,
-    batch_size=32 if torch.cuda.is_available() else 2,
+    batch_size=32 if torch.cuda.is_available() else 8,
     num_workers=4 if torch.cuda.is_available() else 0,
     shuffle=True,
 )
 physics = dinv.physics.Blur(
-    filter=dinv.physics.blur.gaussian_blur(sigma=(1.5, 1.5)),
+    filter=dinv.physics.blur.gaussian_blur(sigma=(2.5, 2.5)),
     padding="valid",
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
-    max_iter=50,
+    max_iter=100,
     tol=1e-8,
     implicit_backward_solver=False,
 )
@@ -247,8 +240,8 @@ implicit_avg_loss = np.cumsum(implicit_avg_loss) / (
 # %%
 # Compare the memory usage
 # ----------------------------------------------------------------------------------------
-print(f"Full backpropagation: time per iteration: {auto_time_per_iter:.2f} ms. ")
-print(f"Implicit differentiation: time per iteration: {implicit_time_per_iter:.2f} ms.")
+print(f"Full backpropagation: time per iteration: {auto_time_per_iter:.2f} s. ")
+print(f"Implicit differentiation: time per iteration: {implicit_time_per_iter:.2f} s.")
 
 # Compare the memory usage
 if use_cuda:
@@ -262,15 +255,18 @@ if use_cuda:
 
 
 # Compare the training loss
-plt.figure(figsize=(8, 4))
-plt.plot(auto_avg_loss, label="Full backpropagation")
-plt.plot(implicit_avg_loss, label="Implicit differentiation")
+plt.figure(figsize=(7, 4))
+plt.plot(auto_avg_loss, label="Full backpropagation", linestyle="--", linewidth=2)
+plt.plot(
+    implicit_avg_loss, label="Implicit differentiation", linestyle="-.", linewidth=1.5
+)
 plt.yscale("log")
-plt.xlabel("Iteration")
-plt.ylabel("Training loss (MSE)")
+plt.xlabel("Iteration", fontsize=12)
+plt.ylabel("Training loss (MSE)", fontsize=12)
 plt.legend()
 plt.title(
-    f"Training loss. Avg loss difference: {np.mean(np.abs(auto_avg_loss - implicit_avg_loss)):.2e}"
+    f"Training loss. Avg loss difference: {np.mean(np.abs(auto_avg_loss - implicit_avg_loss)):.2e}",
+    fontsize=14,
 )
 plt.grid()
 plt.show()

@@ -356,7 +356,7 @@ class LinearPhysics(Physics):
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
-    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If False, uses the standard autograd mechanism, which can be memory-intensive. Default is True.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
 
     |sep|
 
@@ -435,9 +435,10 @@ class LinearPhysics(Physics):
         self.img_size = img_size
         self.implicit_backward_solver = implicit_backward_solver
 
-        if self.implicit_backward_solver and self.max_iter < 20:
+        _lstsq_conv_iter = 20  # heuristic number of iterations for convergence
+        if self.implicit_backward_solver and self.max_iter < _lstsq_conv_iter:
             warnings.warn(
-                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. Consider increasing max_iter for better training accuracy."
+                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
 
     def A_adjoint(self, y, **kwargs):

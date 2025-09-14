@@ -919,7 +919,7 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
     ).all()
 
     # test backprop
-    if solver != "BiCGStab":  # bicgstab currently have issues with backprop
+    if solver != "BiCGStab":  # bicgstab currently has issues with backprop
         with torch.enable_grad():
             y.requires_grad_(True)
             x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
@@ -1000,6 +1000,7 @@ def test_condition_number(device):
 def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
     batch_size = 1
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
     dtype = torch.float64
@@ -1032,6 +1033,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check gradients physics parameters
 
     # Enable gradients w.r.t physics parameters
+    # We only do this for physics that have a continuous parameterization w.r.t its parameters
     buffers = copy.deepcopy(dict(physics.named_buffers()))
     parameters = {k: v for k, v in buffers.items() if k in params}
     for k, v in parameters.items():
@@ -1100,3 +1102,5 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
                 atol=5e-2,
                 msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
             )
+
+    torch.use_deterministic_algorithms(prev_deterministic)
