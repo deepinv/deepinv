@@ -65,6 +65,7 @@ To enable this feature, set the argument ``implicit_backward_solver=True`` (defa
 (:class:`deepinv.physics.LinearPhysics`).  
 Note that when setting ``implicit_backward_solver=True``, we need to use a large enough number of iterations in the physics solver to ensure convergence (as the closed-form gradients assume that we converged to the least squares minimizer), otherwise the gradient might be inaccurate.
 See also :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` for more details.
+
 .. doctest::
 
     >>> import torch
