@@ -81,7 +81,6 @@ num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-minus_one_one = False
 
 sigma_min = 0.005
 sigma_max = 5
@@ -108,7 +107,6 @@ model = PosteriorDiffusion(
     dtype=dtype,
     device=device,
     verbose=True,
-    minus_one_one=minus_one_one,
 )
 x, trajectory = model(
     y=None,
@@ -189,7 +187,6 @@ model = PosteriorDiffusion(
     dtype=dtype,
     device=device,
     verbose=True,
-    minus_one_one=minus_one_one,
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
@@ -285,7 +282,6 @@ model = PosteriorDiffusion(
     device=device,
     dtype=dtype,
     verbose=True,
-    minus_one_one=minus_one_one,
 )
 
 x_hat_vp, trajectory = model(
@@ -401,7 +397,6 @@ model = PosteriorDiffusion(
     dtype=dtype,
     device=device,
     verbose=True,
-    minus_one_one=minus_one_one,
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
