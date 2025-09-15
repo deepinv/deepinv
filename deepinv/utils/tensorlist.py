@@ -288,6 +288,12 @@ class TensorList:
         """
         return TensorList([torch.isnan(xi) for xi in self.x])
 
+    def numel(self):
+        """
+        Returns the total number of elements in the TensorList.
+        """
+        return sum([xi.numel() for xi in self.x])
+
 
 def randn_like(x):
     r"""

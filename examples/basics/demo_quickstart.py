@@ -63,6 +63,9 @@ y = physics(x)
 # DeepInverse implements
 # :ref:`many different types of physics <physics>` across various imaging modalities.
 # Physics also possess noise models such as Gaussian or Poisson noise.
+#
+# .. hint::
+#     Do you get a matplotlib LaTeX error when plotting? Disable LaTeX using `dinv.utils.disable_tex()`
 
 physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 

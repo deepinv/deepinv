@@ -476,7 +476,7 @@ class LogPoissonLikelihood(DataFidelity):
 
         \datafid{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
 
-    Corresponds to LogPoissonNoise with the same arguments N0 and mu.
+    Corresponds to :class:`deepinv.physics.LogPoissonNoise` with the same arguments :math:`N_0` and :math:`\mu`.
     There is no closed-form of the proximal operator known.
 
     :param float N0: average number of photons
