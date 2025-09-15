@@ -31,6 +31,7 @@ New Features
 - Reduced resolution self-supervised loss (:gh:`735` by `Andrew Wang`_)
 - Add dinv.utils.disable_tex to disable LaTeX (:gh:`726` by `Andrew Wang`_)
 - Add BSDS500 dataset (:gh:`749` by `Johannes Hertrich`_ and `Sebastian Neumayer`_)
+- O(1) memory backprop for linear solver and example (:gh:`739` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -45,6 +46,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
+- Fix numerical instability of Bicgstab solver(:gh:`739` by `Minh Hai Nguyen`_)
 
 
 

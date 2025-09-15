@@ -838,7 +838,8 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device, rng):
+@pytest.mark.parametrize("implicit_backward_solver", [True, False])
+def test_pseudo_inverse(name, device, rng, implicit_backward_solver):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -849,6 +850,7 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
