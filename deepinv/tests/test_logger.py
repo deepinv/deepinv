@@ -74,3 +74,29 @@ def test_localrunner_log_losses(epoch, phase, tmpdir):
         logged_losses = json.load(f)
 
     assert logged_losses[phase][0]["losses"] == losses_dict
+    assert logged_losses[phase][1]["losses"] == losses_dict
+
+
+@pytest.mark.parametrize("epoch", [None, 1])
+@pytest.mark.parametrize("phase", ["train", "val"])
+def test_localrunner_log_metrics(epoch, phase, tmpdir):
+    logger = LocalLogger(
+        log_dir=tmpdir, project_name="test_project", run_name="test_run"
+    )
+    logger.start_run()
+    logger.stdout_logger.setLevel("CRITICAL")
+    metrics_dict = {"psnr": 25.0, "ssim": 0.85}
+    logger.log_metrics(metrics=metrics_dict, step=1, epoch=epoch, phase=phase)
+    logger.log_metrics(metrics=metrics_dict, step=2, epoch=epoch, phase=phase)
+
+    # Get the log file path for the metrics
+    log_dir = tmpdir / "test_project" / "test_run"
+    log_file = log_dir / "metrics" / "metrics.json"
+
+    assert log_file.exists(), f"Log file {log_file} not found"
+
+    with open(log_file, "r") as f:
+        logged_metrics = json.load(f)
+
+    assert logged_metrics[phase][0]["metrics"] == metrics_dict
+    assert logged_metrics[phase][1]["metrics"] == metrics_dict
