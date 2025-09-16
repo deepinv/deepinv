@@ -1,23 +1,5 @@
 import pytest
-import numpy as np
-import torch
-from torch.utils.data import DataLoader
 
-import deepinv as dinv
-from deepinv.utils import get_timestamp
-from dummy import DummyCircles, DummyModel
-from deepinv.training.trainer import Trainer
-from deepinv.physics.generator.base import PhysicsGenerator
-from deepinv.physics.forward import Physics
-from deepinv.physics.noise import GaussianNoise, PoissonNoise
-from deepinv.datasets.base import ImageDataset
-from deepinv.utils.compat import zip_strict
-from unittest.mock import patch
-import math
-import io
-import contextlib
-import re
-import typing
 from deepinv.training.run_logger import LocalLogger
 import os
 import json

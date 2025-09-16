@@ -15,8 +15,6 @@ from deepinv.datasets.base import ImageDataset
 from deepinv.utils.compat import zip_strict
 from unittest.mock import patch
 import math
-import io
-import contextlib
 import re
 import typing
 import logging

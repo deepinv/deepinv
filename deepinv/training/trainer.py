@@ -1,11 +1,9 @@
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter
 import os
 import numpy as np
 from tqdm import tqdm
 import torch
-import sys
-from pathlib import Path
 from typing import Union, Optional
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
@@ -14,7 +12,6 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
-from torchvision.utils import save_image
 from deepinv.training.run_logger import RunLogger, LocalLogger
 import inspect
 from logging import getLogger
@@ -873,7 +870,7 @@ class Trainer:
             imgs, titles, grid_image, caption = prepare_images(
                 x, y=y, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
-            dict_imgs = {t: im for t, im in zip(titles, imgs)}
+            dict_imgs = {t: im for t, im in zip(titles, imgs, strict=False)}
 
             for logger in self.loggers:
                 logger.log_images(

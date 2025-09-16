@@ -1,20 +1,14 @@
 from abc import ABC, abstractmethod
 import json
-import csv
 import logging
-import pickle
 from pathlib import Path
-from typing import Any, Optional, Union
-import warnings
+from typing import Any, Optional
 import os
 from logging import getLogger
-from deepinv.utils import AverageMeter
-from deepinv.loss import Loss, Metric
 
 import os
 
 import torch
-import wandb
 from torchvision.utils import save_image
 from datetime import datetime
 import platform
@@ -190,6 +184,8 @@ class WandbRunLogger(RunLogger):
 
     def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
         """ """
+        import wandb
+
         # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
         wandb_setup = self.get_wandb_setup(
             wandb_save_dir=self.log_dir,
@@ -257,6 +253,8 @@ class WandbRunLogger(RunLogger):
 
         Wandb expects NumPy array or PIL image.
         """
+        import wandb
+
         step = None
 
         # process images
@@ -490,9 +488,12 @@ class LocalLogger(RunLogger):
     def log_checkpoint(
         self,
         epoch: int,
-        state: dict[str, Any] = {},
+        state: Optional[dict[str, Any]] = None,
         name: Optional[str] = None,
     ):
+        if state is None:
+            state = {}
+
         if name is not None:
             ckpt_path = self.checkpoints_dir / f"{name}.pth.tar"
         else:
