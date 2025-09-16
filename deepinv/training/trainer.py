@@ -15,6 +15,7 @@ from deepinv.datasets.base import check_dataset
 from deepinv.training.run_logger import RunLogger, LocalLogger
 import inspect
 from logging import getLogger
+from deepinv.utils.compat import zip_strict
 
 
 @dataclass
@@ -870,7 +871,7 @@ class Trainer:
             imgs, titles, grid_image, caption = prepare_images(
                 x, y=y, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
-            dict_imgs = {t: im for t, im in zip(titles, imgs, strict=False)}
+            dict_imgs = {t: im for t, im in zip_strict(titles, imgs)}
 
             for logger in self.loggers:
                 logger.log_images(
