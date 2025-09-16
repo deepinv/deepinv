@@ -31,7 +31,7 @@ def test_localrunner_start_run(
         log_dir=tmpdir, project_name="test_project", run_name="test_run"
     )
     hyperparam_dict = {"lr": 0.001, "batch_size": 32}
-    logger.start_run(hyperparams=hyperparam_dict)
+    logger.init_logger(hyperparams=hyperparam_dict)
     logger.stdout_logger.setLevel("CRITICAL")
 
     expected_log_dir = tmpdir / "test_project" / "test_run"
@@ -58,7 +58,7 @@ def test_localrunner_log_losses(epoch, phase, tmpdir):
     logger = LocalLogger(
         log_dir=tmpdir, project_name="test_project", run_name="test_run"
     )
-    logger.start_run()
+    logger.init_logger()
     logger.stdout_logger.setLevel("CRITICAL")
     losses_dict = {"loss1": 0.5, "loss2": 0.3, "total_loss": 0.8}
     logger.log_losses(losses=losses_dict, step=1, epoch=epoch, phase=phase)
@@ -83,7 +83,7 @@ def test_localrunner_log_metrics(epoch, phase, tmpdir):
     logger = LocalLogger(
         log_dir=tmpdir, project_name="test_project", run_name="test_run"
     )
-    logger.start_run()
+    logger.init_logger()
     logger.stdout_logger.setLevel("CRITICAL")
     metrics_dict = {"psnr": 25.0, "ssim": 0.85}
     logger.log_metrics(metrics=metrics_dict, step=1, epoch=epoch, phase=phase)

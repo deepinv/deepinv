@@ -16,6 +16,17 @@ import os
 import torch
 import wandb
 from torchvision.utils import save_image
+from datetime import datetime
+import platform
+
+
+def get_timestamp() -> str:
+    """Get current timestamp string.
+
+    :return str: timestamp, with separators determined by system.
+    """
+    sep = "_" if platform.system() == "Windows" else ":"
+    return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
 
 class RunLogger(ABC):
@@ -26,7 +37,7 @@ class RunLogger(ABC):
     """
 
     @abstractmethod
-    def start_run(self, hyperparams: Optional[dict[str, Any]] = None):
+    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None):
         """
         Start a new training run.
 
@@ -125,7 +136,7 @@ class WandbRunLogger(RunLogger):
         local_checkpoint_dir: str,
         root_save_dir: str,
         proj_name: str,
-        run_name: str,
+        run_name: Optional[str] = None,
         logging_mode: str = "online",
         resume_id: str = None,
     ):
@@ -135,6 +146,8 @@ class WandbRunLogger(RunLogger):
         self.local_checkpoint_dir = Path(local_checkpoint_dir)
         self.save_dir = Path(root_save_dir)
         self.proj_name = proj_name
+        if run_name is None:
+            run_name = get_timestamp()
         self.run_name = run_name
         self.logging_mode = logging_mode
         self.resume_id = resume_id
@@ -175,7 +188,7 @@ class WandbRunLogger(RunLogger):
             }
         return wandb_setup
 
-    def start_run(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
+    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
         """ """
         # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
         wandb_setup = self.get_wandb_setup(
@@ -320,9 +333,11 @@ class LocalLogger(RunLogger):
         self,
         log_dir: str = "logs",
         project_name: Optional[str] = "default_project",
-        run_name: Optional[str] = "default_run",
+        run_name: Optional[str] = None,
         config: Optional[dict[str, Any]] = None,
     ):
+        if run_name is None:
+            run_name = get_timestamp()
         self.run_name = run_name
         self.stdout_logger = getLogger("stdout_logger")
         self.stdout_logger.setLevel("INFO")
@@ -333,12 +348,14 @@ class LocalLogger(RunLogger):
         self.checkpoints_dir = self.log_dir / "checkpoints"
         self.loss_history = []
 
-    def start_run(self, hyperparams: Optional[dict[str, Any]] = None):
-        os.makedirs(self.log_dir, exist_ok=True)
-        os.makedirs(self.loss_dir, exist_ok=True)
-        os.makedirs(self.metrics_dir, exist_ok=True)
-        os.makedirs(self.images_dir, exist_ok=True)
-        os.makedirs(self.checkpoints_dir, exist_ok=True)
+    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None):
+        if os.path.exists(self.log_dir):
+            raise FileExistsError(f"Log directory already exists: {self.log_dir}")
+        os.makedirs(self.log_dir)
+        os.makedirs(self.loss_dir)
+        os.makedirs(self.metrics_dir)
+        os.makedirs(self.images_dir)
+        os.makedirs(self.checkpoints_dir)
 
         # Save hyperparameters
         if hyperparams:
@@ -363,7 +380,7 @@ class LocalLogger(RunLogger):
 
         self.loss_history = []
 
-        self.stdout_logger.info(f"Run started: {self.run_name}")
+        self.stdout_logger.info(f"Log directory initialized: {self.log_dir}")
 
     def log_losses(
         self,

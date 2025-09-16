@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 import sys
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -112,7 +112,7 @@ class Trainer:
 
     :Evaluation:
 
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
@@ -122,9 +122,9 @@ class Trainer:
         If ``False`` (default), log average over dataset per epoch (standard training).
 
     .. tip::
-        If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
+        If a validation dataloader `val_dataloader` is provided, the trainer will also **save the best model** according to the
         first metric in the list, using the following format:
-        ``save_path/yyyy-mm-dd_hh-mm-ss/ckp_best.pth.tar``. The user can modify the strategy for saving the best model
+        ``ckp_best.pth.tar``. The user can modify the strategy for saving the best model
         by overriding the :func:`deepinv.Trainer.save_best_model` method.
         The best model can be also loaded using the :func:`deepinv.Trainer.load_best_model` method.
 
@@ -232,7 +232,7 @@ class Trainer:
     ckpt_interval: int = 1
 
     ## Logging & Monitoring
-    loggers: Union[RunLogger, list[RunLogger]] = field(
+    loggers: Optional[Union[RunLogger, list[RunLogger]]] = field(
         default_factory=lambda: [LocalLogger("./logs")]
     )
     log_every_step: bool = False
@@ -252,8 +252,6 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if not isinstance(self.loggers, list):
-            self.loggers = [self.loggers]
         if (
             self.train_dataloader is not None
             and type(self.train_dataloader) is not list
@@ -262,6 +260,9 @@ class Trainer:
 
         if self.val_dataloader is not None and type(self.val_dataloader) is not list:
             self.val_dataloader = [self.val_dataloader]
+
+        if self.train_dataloader is None:
+            self.train_dataloader = []
 
         for loader in self.train_dataloader + (
             self.val_dataloader if self.val_dataloader is not None else []
@@ -355,10 +356,14 @@ class Trainer:
         self._load_ckpt()
 
         # Init loggers
+        if self.loggers is None:
+            self.loggers = []
+        if not isinstance(self.loggers, list):
+            self.loggers = [self.loggers]
         for logger in self.loggers:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
-            logger.start_run(hyperparams={})
+            logger.init_logger()
 
         # Init trainer logger
         self.train_logger = getLogger("train_logger")
@@ -905,7 +910,7 @@ class Trainer:
             not lower_better and curr_metric >= best_metric
         ):
 
-            self.save_ckpt(epoch=epoch, name="best_model")
+            self.save_ckpt(epoch=epoch, name="ckpt_best.pth.tar")
             self.train_logger.info(
                 f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
@@ -1130,7 +1135,7 @@ def train(
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
     losses: Union[Loss, list[Loss], None] = None,
-    eval_dataloader: torch.utils.data.DataLoader = None,
+    val_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
 ):
@@ -1152,7 +1157,7 @@ def train(
         for how we expect data to be provided.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
         for how we expect data to be provided.
     :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
@@ -1167,7 +1172,7 @@ def train(
         epochs=epochs,
         losses=losses,
         train_dataloader=train_dataloader,
-        val_dataloader=eval_dataloader,
+        val_dataloader=val_dataloader,
         *args,
         **kwargs,
     )
