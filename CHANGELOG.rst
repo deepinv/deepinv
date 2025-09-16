@@ -18,7 +18,7 @@ Changed
 Fixed
 ^^^^^
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
-- Fix scalling issue in DiffusionSDE (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 
 
 v0.3.4
