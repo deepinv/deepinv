@@ -701,6 +701,7 @@ class Trainer:
         :param int epoch: current epoch.
         :returns: The logs with the metrics.
         """
+
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):

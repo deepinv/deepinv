@@ -112,12 +112,13 @@ class HDF5Dataset(ImageDataset):
         else:
             y = self.cast(torch.from_numpy(self.y[index]))
 
-        x = y
         if not self.unsupervised:
             x = self.cast(torch.from_numpy(self.x[index]))
 
-        if self.transform is not None:
-            x = self.transform(x)
+            if self.transform is not None:
+                x = self.transform(x)
+        else:
+            x = torch.tensor(torch.nan, dtype=y.dtype, device=y.device)
 
         if self.load_physics_generator_params:
             params = {
