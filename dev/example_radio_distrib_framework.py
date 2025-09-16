@@ -8,23 +8,15 @@ Usage:
     
     # Multi-process with torchrun
     uv run torchrun --nproc_per_node=2 dev/example_radio_distrib_framework.py
-    uv run torchrun --nproc_per_node=4 dev/example_radio_distrib_framework.py
 
-This script demonstrates the new distributed framework for radio interferometry
-inverse problems using real data from dev/ directory.
-
-Features:
-- Uses real radio interferometry data (3c353_gdth.npy, uv_coordinates.npy, briggs_weight.npy)
-- Splits the problem into multiple physics operators for distribution
-- Automatic device detection and backend selection (gloo/nccl)
-- Gradient descent optimization with numerical stability
-- Consistent results across single and multi-process execution
+This script demonstrates the distributed framework for radio interferometry
+inverse problems.
 
 The distributed framework provides:
 - DistributedContext: Handles process group initialization and device management
 - DistributedLinearPhysics: Distributes physics operators across processes
 - DistributedMeasurements: Distributes measurement data
-- DistributedSignal: Manages synchronized reconstruction parameter
+- DistributedSignal: Manages synchronized reconstruction signal
 - DistributedDataFidelity: Computes distributed loss and gradients
 """
 
@@ -267,6 +259,28 @@ def main():
             print(f"Reconstruction error (relative): {recon_error.item():.6f}")
             
             print("Radio interferometry reconstruction completed successfully!")
+
+
+            import matplotlib.pyplot as plt
+            import pathlib
+
+            # Move data to CPU and remove batch/channel dimensions for visualization
+            x_true_np = x_true.squeeze().detach().cpu().numpy()
+            recon_np = signal.data.squeeze().detach().cpu().numpy()
+
+            plt.figure(figsize=(10, 4))
+            plt.subplot(1, 2, 1)
+            plt.imshow(x_true_np, cmap="gray")
+            plt.title("Ground Truth")
+            plt.axis("off")
+
+            plt.subplot(1, 2, 2)
+            plt.imshow(recon_np, cmap="gray")
+            plt.title("Reconstruction")
+            plt.axis("off")
+
+            plt.tight_layout()
+            plt.savefig(pathlib.Path(__file__).parent / "radio_reconstruction.png", dpi=150)
 
 
 if __name__ == "__main__":

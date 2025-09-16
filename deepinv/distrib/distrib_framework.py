@@ -4,9 +4,12 @@ from typing import Callable, Optional, List, Dict, Tuple, Union, Sequence
 import torch
 import torch.distributed as dist
 
-from deepinv.physics import Physics
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics import Physics, LinearPhysics
+from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
+from deepinv.distrib.utils import tiling_splitting_strategy, tiling_reduce_fn
+
+Index = Tuple[Union[slice, int], ...]
 
 
 # =========================
@@ -508,3 +511,151 @@ class DistributedDataFidelity:
             x_grad_local = x_grad_local / float(self.physics.num_ops)
 
         return x_grad_local
+
+
+class DistributedPrior:
+    """
+    Distributed prior where:
+      • Splits are computed at __init__ from the *global* signal shape.
+      • Each rank processes only its local split indices.
+      • grad/prox: compute local results, gather to rank 0, call user reduce_fn(List[Tensor])->Tensor,
+        broadcast the final tensor to all ranks.
+
+    Parameters
+    ----------
+    ctx : DistributedContext
+    prior : deepinv.optim.Prior
+    splitting_strategy : Union[str, Callable[[torch.Size], List[Index]]]
+        If callable, it must take the full signal shape and return an *ordered* list of slice-indexers.
+        If 'tiling2d', pass tile options via splitting_kwargs.
+    signal_shape : Sequence[int]
+        Full tensor shape of the signal to be processed (e.g. BCHW).
+    reduce_fn : Callable[[List[torch.Tensor]], torch.Tensor]
+        User-provided reduction function applied on rank 0 that receives the global ordered list of
+        processed pieces and returns a single tensor (same shape as signal).
+    splitting_kwargs : dict
+        Extra args to the splitting strategy (e.g., tile size/stride).
+    """
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        prior: Prior,
+        *,
+        splitting_strategy: Union[str, Callable[[torch.Size], Tuple[List[Index], Dict]]],
+        signal_shape: Sequence[int],
+        reduce_fn: Callable[[List[torch.Tensor], Dict], torch.Tensor],
+        splitting_kwargs: Optional[dict] = None,
+    ):
+        self.ctx = ctx
+        self.prior = prior
+
+        if hasattr(prior, "to"):
+            self.prior.to(ctx.device)
+
+        self.signal_shape = torch.Size(signal_shape)
+        self.reduce_fn = reduce_fn
+        self.splitting_kwargs = splitting_kwargs or {}
+
+        # --- compute global ordered list of slices once (independent of rank) ---
+        if callable(splitting_strategy):
+            self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
+        elif splitting_strategy == "tiling2d":
+            self._global_slices, self._global_metadata = tiling_splitting_strategy(
+                self.signal_shape, **self.splitting_kwargs
+            )
+            self.reduce_fn = tiling_reduce_fn
+        else:
+            raise ValueError(f"Unknown splitting_strategy: {splitting_strategy}")
+
+        self.num_splits = len(self._global_slices)
+        if self.num_splits == 0:
+            raise ValueError("Splitting strategy produced zero splits.")
+
+        # determine local split indices for this rank
+        self.local_split_indices: List[int] = list(self.ctx.local_indices(self.num_splits))
+
+        # If distributed, ensure all ranks share the same slices ordering (broadcast from rank 0)
+        if self.ctx.is_dist:
+            obj = [self._global_slices if self.ctx.rank == 0 else None]
+            dist.broadcast_object_list(obj, src=0)
+            self._global_slices = obj[0]
+
+    # ---- public ops -------------------------------------------------------
+
+    def grad(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
+        return self._apply_op(X, op="grad", **kwargs)
+
+    def prox(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
+        return self._apply_op(X, op="prox", **kwargs)
+
+    # ---- internals --------------------------------------------------------
+
+    def _apply_op(self, X: DistributedSignal, *, op: str, **kwargs) -> torch.Tensor:
+        """
+        op in {"grad", "prox"} – calls prior.op on each local split, gathers, reduces on rank 0, broadcasts.
+        """
+        # 1) local compute
+        local_pairs = self._compute_local_pairs(X, op=op, **kwargs)
+
+        # 2) gather all (idx, tensor) pairs
+        if self.ctx.is_dist:
+            gathered = [None] * self.ctx.world_size
+            dist.all_gather_object(gathered, local_pairs)
+            all_pairs = []
+            for part in gathered:
+                all_pairs.extend(part)
+        else:
+            all_pairs = local_pairs
+
+        # 3) assemble into the global ordered list (by index)
+        pieces: List[Optional[torch.Tensor]] = [None] * self.num_splits
+        for idx, tens in all_pairs:
+            pieces[idx] = tens
+        # sanity check
+        if any(p is None for p in pieces):
+            missing = [i for i, p in enumerate(pieces) if p is None]
+            raise RuntimeError(f"Missing pieces for splits (did all ranks produce their parts?): {missing}")
+
+        # 4) reduce on rank 0, broadcast tensor result
+        if self.ctx.is_dist:
+            if self.ctx.rank == 0:
+                out = self.reduce_fn(pieces, self._global_metadata)
+                out.to(self.ctx.device, dtype=X.tensor.dtype)
+            else:
+                out = torch.empty(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+
+            # broadcast to everyone
+            self.ctx.broadcast_(out, src=0)
+            return out
+        else:
+            out = self.reduce_fn(pieces, self._global_metadata).to(self.ctx.device, dtype=X.tensor.dtype)
+            return out
+
+    def _compute_local_pairs(self, X: DistributedSignal, *, op: str, **kwargs) -> List[Tuple[int, torch.Tensor]]:
+        """
+        Returns a list of (global_index, processed_tensor) for this rank's local splits.
+        """
+        fn: Callable[[torch.Tensor], torch.Tensor]
+        if op == "grad":
+            if hasattr(self.prior, "grad"):
+                fn = lambda t: self.prior.grad(t, **kwargs)
+            else:
+                raise ValueError("Prior does not implement .grad()")
+        elif op == "prox":
+            if hasattr(self.prior, "prox"):
+                fn = lambda t: self.prior.prox(t, **kwargs)
+            else:
+                raise ValueError("Prior does not implement .prox()")
+        else:
+            raise ValueError(op)
+
+        pairs: List[Tuple[int, torch.Tensor]] = []
+        for idx in self.local_split_indices:
+            slc = self._global_slices[idx]
+            # NOTE: use a copy for safety (some priors may write in-place)
+            piece = X.tensor[slc].clone()
+            res = fn(piece)
+            # Keep result on current device; reduce_fn will run on rank 0 and convert as needed
+            pairs.append((idx, res))
+        return pairs
