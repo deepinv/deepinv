@@ -96,7 +96,9 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def log_checkpoint(self, epoch: int, state: dict[str, Any]):
+    def log_checkpoint(
+        self, epoch: int, state: dict[str, Any], name: Optional[str] = None
+    ):
         """
         Log training checkpoint.
 
@@ -277,15 +279,18 @@ class WandbRunLogger(RunLogger):
         if "resume_id" in checkpoint:
             self.resume_id = checkpoint["resume_id"]
 
-    def log_checkpoint(self, epoch, state=None):
+    def log_checkpoint(
+        self, epoch: int, state: dict[str, Any], name: Optional[str] = None
+    ):
         """
         TODO
         """
-        state = None
-
-        checkpoint_file = (
-            self.local_checkpoint_dir / f"checkpoint_epoch_{epoch}.pth.tar"
-        )
+        if name is not None:
+            checkpoint_file = self.local_checkpoint_dir / f"{name}.pth.tar"
+        else:
+            checkpoint_file = (
+                self.local_checkpoint_dir / f"checkpoint_epoch_{epoch}.pth.tar"
+            )
 
         # Add wandb run id to either an existing checkpoint or a new checkpoint
         if os.path.isfile(checkpoint_file):
@@ -431,13 +436,15 @@ class LocalLogger(RunLogger):
             all_logs = {}
 
         if phase not in all_logs:
-            all_logs[phase] = {}
+            all_logs[phase] = []
 
-        all_logs[phase]["epoch"] = epoch
-        all_logs[phase]["step"] = step
-        all_logs[phase]["metrics"] = {
-            name: float(value) for name, value in metrics.items()
+        entry = {
+            "epoch": epoch,
+            "step": step,
+            "metrics": {name: float(value) for name, value in metrics.items()},
         }
+
+        all_logs[phase].append(entry)
 
         with open(log_file, "w") as f:
             json.dump(all_logs, f, indent=2)
@@ -469,8 +476,12 @@ class LocalLogger(RunLogger):
         self,
         epoch: int,
         state: dict[str, Any] = {},
+        name: Optional[str] = None,
     ):
-        ckpt_path = self.checkpoints_dir / f"checkpoint_epoch_{epoch}.pth.tar"
+        if name is not None:
+            ckpt_path = self.checkpoints_dir / f"{name}.pth.tar"
+        else:
+            ckpt_path = self.checkpoints_dir / f"checkpoint_epoch_{epoch}.pth.tar"
 
         torch.save(
             state,
