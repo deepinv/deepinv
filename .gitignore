@@ -24,6 +24,8 @@ uv.lock
 *tmp
 *.tar
 *.ipynb
+*.log
+*.json
 examples/*/*.png
 examples/*/*.gif
 
