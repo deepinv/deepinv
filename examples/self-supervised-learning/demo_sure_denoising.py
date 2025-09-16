@@ -20,6 +20,7 @@ where :math:`R` is the trainable network, :math:`y` is the noisy image with :mat
 
 """
 
+# %%
 from pathlib import Path
 
 import torch
@@ -29,6 +30,7 @@ from torchvision import transforms, datasets
 import deepinv as dinv
 from deepinv.utils.demo import get_data_home
 from deepinv.models.utils import get_weights_url
+from deepinv.training.run_logger import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -175,7 +177,7 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     val_dataloader=test_dataloader,
     log_images=True,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )

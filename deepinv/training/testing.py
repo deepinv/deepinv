@@ -1,5 +1,7 @@
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
+from typing import Optional, Union
+from deepinv.training.run_logger import RunLogger, LocalLogger
 
 
 def test(
@@ -11,7 +13,7 @@ def test(
     physics_generator=None,
     device="cpu",
     plot_images=False,
-    save_folder=None,
+    loggers: Optional[Union[RunLogger, list[RunLogger]]] = [LocalLogger("./logs")],
     plot_convergence_metrics=False,
     verbose=True,
     rescale_mode="clip",
@@ -74,9 +76,6 @@ def test(
         compare_no_learning=compare_no_learning,
         no_learning_method=no_learning_method,
         show_progress_bar=show_progress_bar,
-        save_path=save_folder,
         **kwargs,
     )
-    return trainer.test(
-        test_dataloader, save_path=save_folder, compare_no_learning=compare_no_learning
-    )
+    return trainer.test(test_dataloader, compare_no_learning=compare_no_learning)

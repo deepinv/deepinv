@@ -9,6 +9,7 @@ For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -18,7 +19,7 @@ from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
-
+from deepinv.training.run_logger import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -28,7 +29,6 @@ from deepinv.utils.demo import load_dataset, load_degradation
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
-CKPT_DIR = BASE_DIR / "ckpts"
 DEG_DIR = BASE_DIR / "degradations"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -186,7 +186,6 @@ test_dataloader = DataLoader(
 # Train the network
 # -----------------
 # We train the network using the library's train function.
-
 trainer = dinv.Trainer(
     model=model,
     physics=physics,
@@ -197,14 +196,16 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     train_dataloader=train_dataloader,
     val_dataloader=test_dataloader,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=BASE_DIR),
     verbose=verbose,
     show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
 )
+CKPT_DIR = trainer.loggers.checkpoints_dir
 
 trainer.train()
-model = trainer.load_best_model()  # load model with best validation PSNR
-
+model = trainer.load_ckpt(
+    CKPT_DIR / "ckpt_best.pth.tar"
+)  # load model with best validation PSNR
 # %%
 # Test the network
 # --------------------------------------------

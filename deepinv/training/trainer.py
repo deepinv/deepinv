@@ -38,7 +38,7 @@ class Trainer:
 
     where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
-    and ``eval_metrics`` the evaluation metrics history.
+    and ``val_metrics`` the validation metrics history.
 
     The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets user guide <datasets>` for
     how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
@@ -55,7 +55,7 @@ class Trainer:
 
     .. note::
 
-        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
+        The losses and validation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
 
         Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
         and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
@@ -96,7 +96,7 @@ class Trainer:
     :param int max_batch_steps: Number of gradient steps per iteration.
         Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``.
+    :param bool early_stop: If ``True``, the training stops when the validation metric is not improving. Default is ``False``.
         The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
@@ -110,12 +110,12 @@ class Trainer:
 
     :Evaluation:
 
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Evaluation data loader(s),
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Validation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
-        :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool log_every_step: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
+        :ref:`See the libraries' validation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+    :param bool log_every_step: if ``True``, log train batch and validation -set metrics and losses for each train batch during training.
         This is useful for visualising train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
 
@@ -200,6 +200,9 @@ class Trainer:
     val_dataloader: Union[
         torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]
     ] = None
+    test_dataloader: Union[
+        torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]
+    ] = None
 
     ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
@@ -262,8 +265,15 @@ class Trainer:
         if self.val_dataloader is not None and type(self.val_dataloader) is not list:
             self.val_dataloader = [self.val_dataloader]
 
+        if self.test_dataloader is not None and type(self.test_dataloader) is not list:
+            self.test_dataloader = [self.test_dataloader]
+
         if self.train_dataloader is None:
             self.train_dataloader = []
+        if self.val_dataloader is None:
+            self.val_dataloader = []
+        if self.test_dataloader is None:
+            self.test_dataloader = []
 
         for loader in self.train_dataloader + (
             self.val_dataloader if self.val_dataloader is not None else []
@@ -271,7 +281,8 @@ class Trainer:
             if loader is not None:
                 check_dataset(loader.dataset)
 
-        self.G = len(self.train_dataloader)
+        if self.train_dataloader is not None:
+            self.G = len(self.train_dataloader)
 
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
@@ -363,7 +374,7 @@ class Trainer:
         if train:
             self.loss_history = []
 
-        self._load_ckpt()
+        self.load_ckpt(self.ckpt_pretrained)
 
         # Init loggers
         if self.loggers is None:
@@ -409,8 +420,9 @@ class Trainer:
         for logger in self.loggers:
             logger.log_checkpoint(epoch=epoch, state=state, name=name)
 
-    def _load_ckpt(
+    def load_ckpt(
         self,
+        ckpt_pretrained: Optional[str] = None,
     ) -> dict:
         """Load model from checkpoint.
 
@@ -419,6 +431,7 @@ class Trainer:
         :param bool strict: strict load weights to model.
         :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
+        self.ckpt_pretrained = ckpt_pretrained
 
         if self.ckpt_pretrained is not None:
             # Load model weights from the checkpoint
@@ -437,6 +450,7 @@ class Trainer:
 
             for logger in self.loggers:
                 logger.load_from_checkpoint(checkpoint)
+        return self.model
 
     def check_clip_grad(self):
         r"""
@@ -791,13 +805,12 @@ class Trainer:
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.zero_grad()  # Clear stored gradients
 
-        # random permulation of the dataloaders
+        # random permutation of the dataloaders
         G_perm = np.random.permutation(self.G)
         loss = 0
 
         if self.log_every_step and train:
             self.reset_metrics()
-
         for g in G_perm:  # for each dataloader
             x, y, physics_cur = self.get_samples(
                 self.current_train_iterators if train else self.current_val_iterators,
@@ -928,7 +941,7 @@ class Trainer:
             not lower_better and curr_metric >= best_metric
         ):
 
-            self.save_ckpt(epoch=epoch, name="ckpt_best.pth.tar")
+            self.save_ckpt(epoch=epoch, name="ckpt_best")
             self.train_logger.info(
                 f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
@@ -1021,7 +1034,7 @@ class Trainer:
                     break
 
             ## Validation
-            if self.val_dataloader is not None:
+            if self.val_dataloader is not None or self.val_dataloader is not []:
                 self.model.eval()
                 self.current_val_iterators = [
                     iter(loader) for loader in self.val_dataloader
@@ -1102,14 +1115,19 @@ class Trainer:
         self.reset_metrics()
 
         if not isinstance(test_dataloader, list):
-            test_dataloader = [test_dataloader]
+            self.test_dataloader = [test_dataloader]
+        else:
+            self.test_dataloader = test_dataloader
+        self.G = len(self.test_dataloader)
 
-        for loader in test_dataloader:
+        for loader in self.test_dataloader:
             check_dataset(loader.dataset)
 
-        self.current_val_iterators = [iter(loader) for loader in test_dataloader]
+        self.current_val_iterators = [iter(loader) for loader in self.test_dataloader]
 
-        batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
+        batches = min(
+            [len(loader) - loader.drop_last for loader in self.test_dataloader]
+        )
 
         self.model.eval()
         for i in (

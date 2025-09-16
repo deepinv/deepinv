@@ -224,7 +224,7 @@ trainer = dinv.Trainer(
     metrics=dinv.metric.PSNR(complex_abs=True),
     epochs=1,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
 )
 
 # %%

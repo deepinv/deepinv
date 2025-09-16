@@ -140,7 +140,6 @@ model = dinv.models.RAM(pretrained=True, device=device)
 
 params = {"mask": (dataset2[0][1].to(device) != 0).float()}
 physics.update(**params)
-
 dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
