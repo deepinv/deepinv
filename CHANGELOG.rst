@@ -18,6 +18,7 @@ Changed
 Fixed
 ^^^^^
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
+- Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 
 
 v0.3.4
@@ -47,7 +48,6 @@ Fixed
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
 - Fix numerical instability of Bicgstab solver(:gh:`739` by `Minh Hai Nguyen`_)
-
 
 
 v0.3.3
