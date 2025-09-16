@@ -83,7 +83,7 @@ The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :
 
    * - :class:`Variance Exploding <deepinv.sampling.VarianceExplodingDiffusion>`
      - :math:`0`
-     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
+     - :math:`\sigma(t) \sqrt{2 \log \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)}`
      - :math:`1`
      - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
 

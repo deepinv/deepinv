@@ -111,13 +111,15 @@ class L2(DataFidelity):
 
     def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
         self.d = dinv.optim.L2Distance(sigma=sigma_y)
-        super().__init__(d=self.d, weight=weight, *args, **kwargs)
+        super().__init__(d=self.d, *args, **kwargs)
 
 
 class ScoreSDE(NoisyDataFidelity):
 
     def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
-        super().__init__(weight=weight, sigma_y=sigma_y, *args, **kwargs)
+        super().__init__(weight=weight, *args, **kwargs)
+        self.weight = weight
+        self.d = dinv.optim.L2Distance(sigma=sigma_y)
 
     def grad(self, x, y, physics, sigma=None, *args, **kwargs):
         y_noisy = y + sigma * torch.randn_like(x)
@@ -129,7 +131,9 @@ class ScoreSDE(NoisyDataFidelity):
 class ILVR(NoisyDataFidelity):
 
     def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
-        super().__init__(weight=weight, sigma_y=sigma_y, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.weight = weight
+        self.d = dinv.optim.L2Distance(sigma=sigma_y)
 
     def grad(self, x, y, physics, sigma=None, *args, **kwargs):
         y_noisy = y + sigma * torch.randn_like(x)
@@ -138,39 +142,26 @@ class ILVR(NoisyDataFidelity):
         )
 
 
-class DPSDataFidelity(NoisyDataFidelity):
+class DPSDataFidelity_my(NoisyDataFidelity):
 
     def __init__(
-        self, weight=1.0, denoiser=lambda x, sigma: x, sigma_y=1.0, *args, **kwargs
+        self, weight=1.0, denoiser=lambda x,sigma: x, sigma_y=1.0, *args, **kwargs
     ):
-        super().__init__(weight=weight, sigma_y=sigma_y, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.weight = weight
         self.denoiser = denoiser
+        self.d = dinv.optim.L2Distance(sigma=sigma_y)
 
     def fn(self, x, y, physics, sigma=None, *args, **kwargs):
-        return self.weight * self.d(
-            physics.A(self.denoiser(x, sigma)), y, *args, **kwargs
-        )
+        x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
+        return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
 
 
-class DPSDataFidelity_old(NoisyDataFidelity):
+class DPSDataFidelity(NoisyDataFidelity):
     r"""
     Diffusion posterior sampling data-fidelity term.
 
-    Using the fact that
-
-    .. math::
-
-        p(y | x_\sigma) = \int p(y|x) p(x | x_\sigma)dx,
-
-    This approximation comes back to approximating the denoising posterior by a dirac i.e:
-
-    .. math::
-
-        p(x | x_\sigma) \approx \delta(x - D_\sigma(x_\sigma))`
-
-    where :math:`\delta` is the Dirac delta function.
-
-    This corresponds to the :math:`p(y|x_\sigma)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
 
     .. math::
             \begin{aligned}
