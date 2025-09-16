@@ -243,15 +243,18 @@ class Trainer:
     show_progress_bar: bool = True
     verbose: bool = True
 
-    def setup(self, train=True, **kwargs):
+    def setup_run(self, train=True, **kwargs):
         r"""
         Set up the training process.
 
-        It initializes the wandb logging, the different metrics, the save path, the physics and dataloaders,
-        and the pretrained checkpoint if given.
+        It initializes the loggers and transforms some attributes to list if needed.
 
         :param bool train: whether model is being trained.
         """
+        self._setup_data()
+        self._setup_logging(train=train, **kwargs)
+
+    def _setup_data(self):
         if (
             self.train_dataloader is not None
             and type(self.train_dataloader) is not list
@@ -284,6 +287,25 @@ class Trainer:
             warnings.warn(
                 "Generated measurements repeat each epoch. Ensure that dataloader is not shuffling."
             )
+
+        # make physics and data_loaders of list type
+        if type(self.physics) is not list:
+            self.physics = [self.physics]
+
+        if (
+            self.physics_generator is not None
+            and type(self.physics_generator) is not list
+        ):
+            self.physics_generator = [self.physics_generator]
+
+    def _setup_logging(self, train=True, **kwargs):
+        r"""
+        Set up the training process.
+
+        It initializes the loggers and transforms some attributes to list if needed.
+
+        :param bool train: whether model is being trained.
+        """
 
         self.epoch_start = 0
 
@@ -340,16 +362,6 @@ class Trainer:
             params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             print(f"The model has {params} trainable parameters")
 
-        # make physics and data_loaders of list type
-        if type(self.physics) is not list:
-            self.physics = [self.physics]
-
-        if (
-            self.physics_generator is not None
-            and type(self.physics_generator) is not list
-        ):
-            self.physics_generator = [self.physics_generator]
-
         if train:
             self.loss_history = []
 
@@ -363,6 +375,11 @@ class Trainer:
         for logger in self.loggers:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
+            if train and os.path.exists(logger.log_dir):
+                raise FileExistsError(
+                    f"Log directory {logger.log_dir} already exists and would be overwritten by the new training run."
+                )
+
             logger.init_logger()
 
         # Init trainer logger
@@ -559,6 +576,8 @@ class Trainer:
         :param int g: Current dataloader index.
         :returns: the tuple returned by the get_samples_online or get_samples_offline function.
         """
+        # In case someone wants samples without actually launching a run
+        self._setup_data()
         if self.online_measurements:  # the measurements y are created on-the-fly
             x, y, physics = self.get_samples_online(iterators, g)
         else:  # the measurements y were pre-computed
@@ -957,7 +976,7 @@ class Trainer:
 
         :returns: The trained model.
         """
-        self.setup()
+        self.setup_run()
         stop_flag = False
 
         for epoch in range(self.epoch_start, self.epochs):
@@ -1077,7 +1096,7 @@ class Trainer:
         :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
-        self.setup(train=False)
+        self.setup_run(train=False)
 
         self.log_every_step = False
 

@@ -235,10 +235,9 @@ def test_get_samples(
         loggers=logger,
         device=device,
     )
-
     iterator = iter(dataloader)
 
-    trainer.setup(train=True)
+    trainer._setup_data()
     x1, y1, physics1 = trainer.get_samples([iterator], g=0)
     # take this out now as otherwise physics gets modified in place by next get_samples
     param1 = getattr(physics1, param_name)
@@ -484,7 +483,7 @@ def test_trainer_save_ckpt(logger):
         train_dataloader=None,
         loggers=logger,
     )
-    trainer.setup(train=True)
+    trainer.setup_run(train=True)
 
     trainer.save_ckpt(epoch=1, name="temp")
     trainer.model.a *= 3
@@ -504,7 +503,7 @@ def test_trainer_load_ckpt(tmp_path):
         optimizer=None,
         train_dataloader=None,
     )
-    trainer.setup(train=True)
+    trainer.setup_run(train=True)
 
     torch.save({"state_dict": trainer.model.state_dict()}, tmp_path / "temp.pth")
     trainer.model.a *= 3
@@ -660,7 +659,7 @@ def test_dataloader_formats(
         loggers=logger,
         device=device,
     )
-    trainer.setup()
+    trainer._setup_data()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
 
     # fmt: off

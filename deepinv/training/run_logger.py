@@ -134,8 +134,8 @@ class WandbRunLogger(RunLogger):
     def __init__(
         self,
         local_checkpoint_dir: str,
-        root_save_dir: str,
-        proj_name: str,
+        log_dir: str,
+        project_name: str,
         run_name: Optional[str] = None,
         logging_mode: str = "online",
         resume_id: str = None,
@@ -144,8 +144,8 @@ class WandbRunLogger(RunLogger):
         TODO
         """
         self.local_checkpoint_dir = Path(local_checkpoint_dir)
-        self.save_dir = Path(root_save_dir)
-        self.proj_name = proj_name
+        self.log_dir = Path(log_dir)
+        self.proj_name = project_name
         if run_name is None:
             run_name = get_timestamp()
         self.run_name = run_name
@@ -192,7 +192,7 @@ class WandbRunLogger(RunLogger):
         """ """
         # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
         wandb_setup = self.get_wandb_setup(
-            wandb_save_dir=self.save_dir,
+            wandb_save_dir=self.log_dir,
             wandb_proj_name=self.proj_name,
             wandb_run_name=self.run_name,
             wandb_hp_config=hyperparams,
@@ -349,13 +349,11 @@ class LocalLogger(RunLogger):
         self.loss_history = []
 
     def init_logger(self, hyperparams: Optional[dict[str, Any]] = None):
-        if os.path.exists(self.log_dir):
-            raise FileExistsError(f"Log directory already exists: {self.log_dir}")
-        os.makedirs(self.log_dir)
-        os.makedirs(self.loss_dir)
-        os.makedirs(self.metrics_dir)
-        os.makedirs(self.images_dir)
-        os.makedirs(self.checkpoints_dir)
+        os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.loss_dir, exist_ok=True)
+        os.makedirs(self.metrics_dir, exist_ok=True)
+        os.makedirs(self.images_dir, exist_ok=True)
+        os.makedirs(self.checkpoints_dir, exist_ok=True)
 
         # Save hyperparameters
         if hyperparams:
