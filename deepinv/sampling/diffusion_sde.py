@@ -140,17 +140,17 @@ class DiffusionSDE(BaseSDE):
     :param Callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
-    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward. 
-        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`); 
-        set `False` only if the denoiser natively expects [-1, 1]. 
-        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range. 
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
+        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
+        set `False` only if the denoiser natively expects [-1, 1].
+        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
         Default: `True`.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
     :param \*args: additional arguments for the :class:`deepinv.sampling.BaseSDE`.
-    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.BaseSDE`. 
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.BaseSDE`.
     """
 
     def __init__(
@@ -502,12 +502,12 @@ class PosteriorDiffusion(Reconstructor):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
     :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to `False`.
-    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising  and mapped back afterward. 
-        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`); 
-        set `False` only if the denoiser natively expects [-1, 1]. 
-        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range. 
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising  and mapped back afterward.
+        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
+        set `False` only if the denoiser natively expects [-1, 1].
+        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
         Default: `True`.
-    
+
     """
 
     def __init__(
