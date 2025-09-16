@@ -57,7 +57,7 @@ physics = dinv.physics.Denoising(
 y = physics(x)
 
 # Compute the PSNR
-psnr = dinv.metric.PSNR()(x, y).item()
+psnr = dinv.metric.PSNR()(y, x).item()
 
 # Plot the input and the output of the degradation
 list_images = [x[0, :, 90, :, :], x[0, :, :, 108, :], x[0, :, :, :, 90]]
@@ -73,7 +73,7 @@ list_images = [y[0, :, 90, :, :], y[0, :, :, 108, :], y[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="noisy brain volume, PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"noisy brain volume, PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
@@ -109,14 +109,14 @@ denoiser = dinv.models.wavdict.WaveletDenoiser(
 ths = noise_level_img * 2  # thresholding parameter
 with torch.no_grad():
     x_hat = denoiser(y, ths)  # denoised volume
-psnr = dinv.metric.PSNR()(x, x_hat).item()  # compute PSNR
+psnr = dinv.metric.PSNR()(x_hat, x).item()  # compute PSNR
 
 # Plot
 list_images = [x_hat[0, :, 90, :, :], x_hat[0, :, :, 108, :], x_hat[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume, wavelet prior. PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"Denoised brain volume, wavelet prior. PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
@@ -139,7 +139,7 @@ ths_tv = noise_level_img * 5.0  # thresholding parameter
 with torch.no_grad():
     x_hat_tv = denoiser_tv(y, ths_tv)  # denoised volume
 
-psnr_tv = dinv.metric.PSNR()(x, x_hat_tv).item()  # compute PSNR
+psnr_tv = dinv.metric.PSNR()(x_hat_tv, x).item()
 
 # Plot
 list_images = [
@@ -150,7 +150,7 @@ list_images = [
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume, TV prior. PSNR = {:.2f}dB".format(psnr_tv),
+    suptitle=f"Denoised brain volume, TV prior. PSNR = {psnr_tv:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,
@@ -265,14 +265,14 @@ for it in range(max_iter):
 
 
 # Compute the PSNR
-psnr = dinv.metric.PSNR()(x, x_cur).item()
+psnr = dinv.metric.PSNR()(x_cur, x).item()
 
 # Plot the output
 list_images = [x_cur[0, :, 90, :, :], x_cur[0, :, :, 108, :], x_cur[0, :, :, :, 90]]
 dinv.utils.plot(
     list_images,
     figsize=(6, 2),
-    suptitle="Denoised brain volume after 10 steps. PSNR = {:.2f}dB".format(psnr),
+    suptitle=f"Denoised brain volume after 10 steps. PSNR = {psnr:.2f}dB",
     cmap="viridis",
     tight=False,
     fontsize=12,

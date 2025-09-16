@@ -159,8 +159,7 @@ class TGVDenoiser(Denoiser):
                     print("TGV prox reached convergence")
                 break
 
-            # if self.verbose and _ % 100 == 0:
-            if True:
+            if self.verbose and _ % 100 == 0:
                 primalcost = (
                     torch.linalg.norm(x.flatten() - y.flatten()) ** 2
                     + lambda1 * torch.sum(torch.sqrt(torch.sum(r**2, axis=-1)))
@@ -184,16 +183,14 @@ class TGVDenoiser(Denoiser):
                     / 2.0
                 )  # we display the best value of dualcost2 computed so far.
                 primalcostlowerbound = max(primalcostlowerbound, dualcost2.item())
-                # if self.verbose:
-                if True:
-                    print(
-                        "Iter: ",
-                        _,
-                        " Primal cost: ",
-                        primalcost.item(),
-                        " Rel err:",
-                        rel_err,
-                    )
+                print(
+                    "Iter: ",
+                    _,
+                    " Primal cost: ",
+                    primalcost.item(),
+                    " Rel err:",
+                    rel_err,
+                )
 
             if _ == self.n_it_max - 1:
                 if self.verbose:
