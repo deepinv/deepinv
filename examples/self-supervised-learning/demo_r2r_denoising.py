@@ -149,6 +149,11 @@ if noise_name == "poisson":
 # --------------------------------------------
 #
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping).
+
 
 verbose = True  # print training information
 
@@ -170,11 +175,13 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    eval_dataloader=None,
+    eval_dataloader=test_dataloader,
+    early_stop=True,  # early stop using the self-supervised loss on the test set
+    metrics=loss,
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
 )
 
 # Train the network
@@ -186,8 +193,7 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

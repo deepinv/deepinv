@@ -160,8 +160,10 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # Train the network
 # --------------------------------------------
 #
+# .. tip::
 #
-
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping).
 
 verbose = True  # print training information
 
@@ -185,6 +187,8 @@ trainer = dinv.Trainer(
     device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    metrics=losses,
+    early_stop=True,  # early stop using the self-supervised loss on the test set
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     plot_images=True,
@@ -200,7 +204,7 @@ model = trainer.train()
 # --------------------------------------------
 #
 
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

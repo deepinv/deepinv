@@ -201,6 +201,10 @@ model = loss.adapt_model(model)
 # train from scratch, simply comment out the model loading code and
 # increase the number of epochs.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping).
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -222,7 +226,7 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+    metrics=loss,
     online_measurements=True,
     device=device,
     save_path=None,
@@ -239,7 +243,7 @@ model = trainer.train()
 #
 
 trainer.plot_images = True
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()])
 
 # %%
 # :References:

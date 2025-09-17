@@ -105,6 +105,10 @@ physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
 #
 #       We only train for a single epoch in the demo, but it is recommended to train multiple epochs in practice.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping).
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
@@ -125,6 +129,8 @@ model = dinv.Trainer(
     eval_dataloader=test_dataloader,
     epochs=1,
     losses=losses,
+    metrics=losses,
+    early_stop=True,  # we can use early stopping as we have a validation set
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,
