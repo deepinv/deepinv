@@ -354,7 +354,7 @@ class ItohFidelity(L2):
 
             \nabla_x \distance{Dx}{w_{t}(Dy)} = \left. \frac{\partial D}{\partial x} \right|_x^\top \nabla_u \distance{u}{w_{t}(Dy)},
 
-        where :math:`\left. \frac{\partial D}{\partial x} \right|_x` is the Jacobian of :math:`D` at :math:`x`, and :math:`\nabla_u \distance{u}{w_{t}(Dy)}` is computed using ``grad_d`` with :math:`u = Dx`. The multiplication is computed using the ``D_adjoint`` method of the class.
+        where :math:`\left. \frac{\partial D}{\partial x} \right|_x` is the Jacobian of :math:`D` at :math:`x`, and :math:`\nabla_u \distance{u}{w_{t}(Dy)}` is computed using ``grad_d`` with :math:`u = Dx`. The multiplication is computed using the :func:`D_adjoint <deepinv.optim.ItohFidelity.D_adjoint>` method of the class.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.
