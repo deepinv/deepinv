@@ -299,7 +299,7 @@ class ItohFidelity(L2):
     where :math:`D` denotes the spatial finite differences operator, :math:`w_t` denotes the wrapping operator, and :math:`\sigma` denotes the noise level.
 
     :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
-    :param float threshold: Threshold value used in the wrapping operator (default: 1.0).
+    :param float threshold: Threshold value :math:`t` used in the wrapping operator (default: 1.0).
 
     |sep|
 
