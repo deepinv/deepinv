@@ -380,7 +380,7 @@ class ItohFidelity(L2):
 
     def prox_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{w_{t}(Dy)}}(u)`, computed in :math:`u`.
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{w_{t}(Dy)}}(u)`, computed at :math:`u`.
 
         Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
         This function directly calls :func:`deepinv.optim.Potential.prox` for the
