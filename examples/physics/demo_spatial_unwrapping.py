@@ -56,7 +56,7 @@ x_rgb = channel_norm(x_rgb) * dr
 # Itoh condition
 # -------------------------------------------------------
 # The Itoh condition requires that the difference between adjacent pixels is less than half of the threshold (here, 1.0)
-# to enable perfect unwrapping. Specifically, :math:`|Dx| < t / 2`
+# to enable perfect unwrapping. Specifically, :math:`\|Dx\|_{\infty} < t / 2`
 # where :math:`D` denotes the spatial finite difference operator and :math:`x` is the original image :footcite:p:`itoh1982analysis`.
 # When this condition is satisfied, the high dynamic range (HDR) image can be recovered from
 # the wrapped differences of the modulo image by minimizing the Itoh fidelity term:
