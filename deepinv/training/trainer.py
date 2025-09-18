@@ -118,7 +118,13 @@ class Trainer:
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
     :param bool disable_train_metrics: if `False`, metrics are computed both during training and testing on their respective data.
-        If `True` (default), do not compute metrics during training on train set.
+        In this case, the metrics are computed using the model prediction during training (i.e in `model.train()` mode) to avoid an additional
+        forward pass. If `True` (default), do not compute metrics during training on train set.
+        .. warning::
+
+            When using self-supervised losses for validation (i.e., with compute_losses_eval=True and metrics=[]),
+            we recommend setting disable_train_metrics=True to avoid computing metrics on train mode.
+
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
