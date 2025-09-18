@@ -261,7 +261,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             kspace = self.noise_model(kspace) * mask
 
         if self.apply_mask:
-            kspace = kspace * mask + 0.0
+            kspace = kspace * mask.to(device=kspace.device) + 0.0
             return target, kspace.float(), {"mask": mask.float()}
         else:
             return target, kspace.float()

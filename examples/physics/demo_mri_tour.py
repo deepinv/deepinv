@@ -93,11 +93,12 @@ mask = physics_generator.step()["mask"]
 
 physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
+x = next(iter(DataLoader(knee_dataset))).to(device)
 dinv.utils.plot(
     {
-        "x": (x := next(iter(DataLoader(knee_dataset)))),
+        "x": x,
         "mask": mask,
-        "y": physics(x.to(device)).clamp(-1, 1),
+        "y": physics(x).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
@@ -225,6 +226,7 @@ trainer = dinv.Trainer(
     epochs=1,
     show_progress_bar=False,
     save_path=None,
+    device=device,
 )
 
 # %%
@@ -277,6 +279,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
 )
 
 x, y = next(iter(DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -397,6 +400,7 @@ trainer = dinv.Trainer(
     epochs=1,
     save_path=None,
     show_progress_bar=False,
+    device=device,
 )
 _ = trainer.train()
 
@@ -489,6 +493,8 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
+params = {k: v.to(device) if torch.is_tensor(v) else v for k, v in params.items()}
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we
