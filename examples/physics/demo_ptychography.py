@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 import deepinv as dinv
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
 from deepinv.physics import Ptychography
 from deepinv.optim.data_fidelity import L1

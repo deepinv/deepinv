@@ -11,8 +11,12 @@ New Features
 ^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
 
+- io "submodule"
+
 Changed
 ^^^^^^^
+- load_np_url now returns tensors
+- load_url helper function moved to io
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed

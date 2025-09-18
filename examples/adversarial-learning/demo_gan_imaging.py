@@ -37,7 +37,7 @@ from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 
 import deepinv as dinv
 from deepinv.loss import adversarial
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.physics.generator import MotionBlurGenerator
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"

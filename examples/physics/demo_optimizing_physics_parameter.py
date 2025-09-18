@@ -56,7 +56,7 @@ physics = dinv.physics.Blur(noise_model=dinv.physics.GaussianNoise(0.02), device
 
 # %% Load and example image and compute the measurement
 x = dinv.utils.load_url_image(
-    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+    dinv.utils.get_image_url("celeba_example.jpg"),
     img_size=256,
     resize_mode="resize",
 ).to(device)

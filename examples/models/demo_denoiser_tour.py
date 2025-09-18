@@ -24,9 +24,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import deepinv as dinv
-from deepinv.utils.plotting import plot_inset
-from deepinv.utils.demo import load_example
-from deepinv.utils.compat import zip_strict
+from deepinv.utils import plot_inset, load_example, zip_strict
 
 # %%
 # Load test images
