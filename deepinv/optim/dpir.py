@@ -9,15 +9,16 @@ from deepinv.optim import BaseOptim
 import torch
 
 
-def get_DPIR_params(noise_level_img):
+def get_DPIR_params(noise_level_img, s1=49.0 / 255.0, max_iter=8, lamb=1 / 0.23):
     r"""
     Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
+    :param float s1: Initial noise level for the denoiser. Default is 49/255.
+    :param int max_iter: Number of iterations. Default is 8.
+    :param float lamb: Regularization parameter. Default is 1/0.23.
     :return: tuple(list with denoiser noise level per iteration, list with stepsize per iteration, iterations).
     """
-    max_iter = 8
-    s1 = 49.0 / 255.0
     s2 = noise_level_img
     sigma_denoiser = torch.logspace(
         torch.log10(torch.tensor(s1, dtype=torch.float32)),
@@ -27,7 +28,6 @@ def get_DPIR_params(noise_level_img):
     )
 
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
-    lamb = 1 / 0.23
 
     return sigma_denoiser, lamb * stepsize, max_iter
 
