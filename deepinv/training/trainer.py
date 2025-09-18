@@ -114,7 +114,7 @@ class Trainer:
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
-    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
+    :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
     :param bool disable_train_metrics: if `False`, metrics are computed both during training and testing on their respective data.
@@ -225,7 +225,7 @@ class Trainer:
     physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
+    metrics: Union[Metric, list[Metric], None] = field(default_factory=PSNR)
     disable_train_metrics: bool = True
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
@@ -323,6 +323,9 @@ class Trainer:
 
         for l in self.losses:
             self.model = l.adapt_model(self.model)
+
+        if self.metrics is None:
+            self.metrics = []
 
         if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
@@ -1266,15 +1269,11 @@ class Trainer:
         :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
-        :param deepinv.metrics.Metric, list[deepinv.metrics.Metric] metrics: Metric or list of metrics used for evaluation. If
+        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
         :returns: dict of metrics results with means and stds.
         """
-        if metrics is not None:
-            if not isinstance(metrics, list):
-                metrics = [metrics]
-            self.metrics = metrics
-
+        self.metrics = metrics
         self.compute_metrics_on_eval_mode = (
             True  # always compute metrics in eval mode at test time
         )
