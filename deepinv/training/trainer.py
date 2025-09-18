@@ -225,7 +225,7 @@ class Trainer:
     physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric], Loss, list[Loss]] = field(default_factory=PSNR)
+    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
     disable_train_metrics: bool = True
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
