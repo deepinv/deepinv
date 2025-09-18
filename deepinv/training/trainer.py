@@ -1208,10 +1208,11 @@ class Trainer:
                         )
 
                     # store losses history
-                    for l in self.losses:
-                        self.eval_loss_history[l.__class__.__name__].append(
-                            self.logs_losses_eval[self.losses.index(l)].avg
-                        )
+                    if self.compute_losses_eval:
+                        for l in self.losses:
+                            self.eval_loss_history[l.__class__.__name__].append(
+                                self.logs_losses_eval[self.losses.index(l)].avg
+                            )
 
                     # store metrics history
                     for m in self.metrics:
