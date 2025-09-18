@@ -1,0 +1,1003 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Optimization &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/reconstruction/optimization';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Iterative Reconstruction (PnP, RED, etc.)" href="iterative.html" />
+    <link rel="prev" title="Deep Reconstruction Models" href="deep-reconstructors.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Optimization</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="optimization">
+<span id="optim"></span><h1>Optimization<a class="headerlink" href="#optimization" title="Link to this heading">#</a></h1>
+<p>This module contains a collection of routines that optimize</p>
+<div class="math notranslate nohighlight">
+\[\begin{equation}
+\label{eq:min_prob}
+\tag{1}
+\underset{x}{\arg\min} \quad \datafid{x}{y} + \lambda \reg{x},
+\end{equation}\]</div>
+<p>where the first term <span class="math notranslate nohighlight">\(\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}\)</span> enforces data-fidelity, the second
+term <span class="math notranslate nohighlight">\(\regname:\xset\mapsto \mathbb{R}_{+}\)</span> acts as a regularization and
+<span class="math notranslate nohighlight">\(\lambda &gt; 0\)</span> is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy
+between the data <span class="math notranslate nohighlight">\(y\)</span> and the forward operator <span class="math notranslate nohighlight">\(A\)</span> applied to the variable <span class="math notranslate nohighlight">\(x\)</span>, as</p>
+<div class="math notranslate nohighlight">
+\[\datafid{x}{y} = \distance{A(x)}{y},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\distance{\cdot}{\cdot}\)</span> is a distance function, and where <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> is the forward
+operator (see <a class="reference internal" href="../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Physics</span></code></a>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The regularization term often (but not always) depends on a hyperparameter <span class="math notranslate nohighlight">\(\sigma\)</span> that can be either fixed
+or estimated. For example, if the regularization is implicitly defined by a denoiser,
+the hyperparameter is the noise level.</p>
+</div>
+<p>A typical example of optimization problem is the <span class="math notranslate nohighlight">\(\ell_1\)</span>-regularized least squares problem, where the data-fidelity term is
+the squared <span class="math notranslate nohighlight">\(\ell_2\)</span>-norm and the regularization term is the <span class="math notranslate nohighlight">\(\ell_1\)</span>-norm. In this case, a possible
+algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm writing as</p>
+<div class="math notranslate nohighlight">
+\[\qquad x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname} \left( x_k - \gamma \nabla \datafidname(x_k, y) \right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\operatorname{prox}_{\lambda \regname}\)</span> is the proximity operator of the regularization term, <span class="math notranslate nohighlight">\(\gamma\)</span> is the
+step size of the algorithm, and <span class="math notranslate nohighlight">\(\nabla \datafidname\)</span> is the gradient of the data-fidelity term.</p>
+<p>The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the <span class="math notranslate nohighlight">\(\ell_1\)</span>-regularized
+least squares problem.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span><span class="p">,</span> <span class="n">TVPrior</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Forward operator, here inpainting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span><span class="n">img_size</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">L2</span><span class="p">()</span>  <span class="c1"># The data fidelity term</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prior</span> <span class="o">=</span> <span class="n">TVPrior</span><span class="p">()</span>  <span class="c1"># The prior term</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lambd</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># Regularization parameter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Compute the squared norm of the operator A</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">norm_A2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stepsize</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">norm_A2</span>  <span class="c1"># stepsize for the PGD algorithm</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># PGD algorithm</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">max_iter</span> <span class="o">=</span> <span class="mi">20</span>  <span class="c1"># number of iterations</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># initial guess</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">u</span> <span class="o">=</span> <span class="n">x_k</span> <span class="o">-</span> <span class="n">stepsize</span><span class="o">*</span><span class="n">data_fidelity</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">x_k</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>  <span class="c1"># Gradient step</span>
+<span class="gp">... </span>    <span class="n">x_k</span> <span class="o">=</span> <span class="n">prior</span><span class="o">.</span><span class="n">prox</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">lambd</span><span class="o">*</span><span class="n">stepsize</span><span class="p">)</span>  <span class="c1"># Proximal step</span>
+<span class="gp">... </span>    <span class="n">cost</span> <span class="o">=</span> <span class="n">data_fidelity</span><span class="p">(</span><span class="n">x_k</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="o">+</span> <span class="n">lambd</span><span class="o">*</span><span class="n">prior</span><span class="p">(</span><span class="n">x_k</span><span class="p">)</span>  <span class="c1"># Compute the cost</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">)</span>
+<span class="go">tensor([True])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Estimated solution: &#39;</span><span class="p">,</span> <span class="n">x_k</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+<span class="go">Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])</span>
+</pre></div>
+</div>
+<section id="potentials">
+<span id="id1"></span><h2>Potentials<a class="headerlink" href="#potentials" title="Link to this heading">#</a></h2>
+<p>The class <a class="reference internal" href="../../api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a> implements potential scalar functions <span class="math notranslate nohighlight">\(h : \xset \to \mathbb{R}\)</span>
+used to define an optimization problems. For example, both <span class="math notranslate nohighlight">\(f\)</span> and <span class="math notranslate nohighlight">\(\regname\)</span> are potentials.
+This class comes with methods for computing operators useful for optimization,
+such as its proximal operator <span class="math notranslate nohighlight">\(\operatorname{prox}_{h}\)</span>, its gradient <span class="math notranslate nohighlight">\(\nabla h\)</span>, its convex conjugate <span class="math notranslate nohighlight">\(h^*\)</span>, etc.</p>
+<p>The following classes inherit from <a class="reference internal" href="../../api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a></p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p>Class</p></td>
+<td><p><span class="math notranslate nohighlight">\(h(x)\)</span></p></td>
+<td><p>Requires</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman" title="deepinv.optim.Bregman"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Bregman</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\phi(x)\)</span> with <span class="math notranslate nohighlight">\(\phi\)</span> convex</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance" title="deepinv.optim.Distance"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Distance</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(d(x,y)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(d(A(x),y)\)</span> where <span class="math notranslate nohighlight">\(d\)</span> is a distance.</p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span> &amp; operator <span class="math notranslate nohighlight">\(A\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(g_{\sigma}(x)\)</span></p></td>
+<td><p>optional denoising level <span class="math notranslate nohighlight">\(\sigma\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="bregman">
+<span id="id2"></span><h3>Bregman<a class="headerlink" href="#bregman" title="Link to this heading">#</a></h3>
+<p>Bregman potentials are defined as <span class="math notranslate nohighlight">\(\phi(x)\)</span> where <span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and
+where <span class="math notranslate nohighlight">\(\phi\)</span> is a convex scalar function, and are defined via the base class <a class="reference internal" href="../../api/stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman" title="deepinv.optim.Bregman"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Bregman</span></code></a>.</p>
+<p>In addition to the methods inherited from <a class="reference internal" href="../../api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a> (gradient
+<span class="math notranslate nohighlight">\(\nabla \phi\)</span>, conjugate <span class="math notranslate nohighlight">\(\phi^*\)</span> and its gradient <span class="math notranslate nohighlight">\(\nabla \phi^*\)</span>),
+this class provides the Bregman divergence <span class="math notranslate nohighlight">\(D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y\)</span>,
+and is well suited for performing Mirror Descent.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id6">
+<caption><span class="caption-number">Table 12 </span><span class="caption-text">Bregman potentials</span><a class="headerlink" href="#id6" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Bregman potential <span class="math notranslate nohighlight">\(\phi(x)\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2" title="deepinv.optim.bregman.BregmanL2"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.bregman.BregmanL2</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\|x\|_2^2\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy" title="deepinv.optim.bregman.BurgEntropy"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.bregman.BurgEntropy</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(- \sum_i \log x_i\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy" title="deepinv.optim.bregman.NegEntropy"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.bregman.NegEntropy</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sum_i x_i \log x_i\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.Bregman_ICNN.html#deepinv.optim.Bregman_ICNN" title="deepinv.optim.bregman.Bregman_ICNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.bregman.Bregman_ICNN</span></code></a></p></td>
+<td><p><a class="reference internal" href="../../api/stubs/deepinv.models.ICNN.html#deepinv.models.ICNN" title="deepinv.models.ICNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">Convolutional</span> <span class="pre">Input</span> <span class="pre">Convex</span> <span class="pre">NN</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="data-fidelity">
+<span id="id3"></span><h3>Data Fidelity<a class="headerlink" href="#data-fidelity" title="Link to this heading">#</a></h3>
+<p>The base class <a class="reference internal" href="../../api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity</span></code></a> implements data fidelity terms <span class="math notranslate nohighlight">\(\distance{A(x)}{y}\)</span>
+where <span class="math notranslate nohighlight">\(A\)</span> is the forward operator, <span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and <span class="math notranslate nohighlight">\(y\in\yset\)</span> is the data,
+and where <span class="math notranslate nohighlight">\(d\)</span> is a distance function from the class <a class="reference internal" href="../../api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance" title="deepinv.optim.Distance"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Distance</span></code></a>.
+The class <a class="reference internal" href="../../api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance" title="deepinv.optim.Distance"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Distance</span></code></a> is implemented as a child class from <a class="reference internal" href="../../api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a>.</p>
+<p>This data-fidelity class thus comes with useful methods,
+such as <span class="math notranslate nohighlight">\(\operatorname{prox}_{\distancename\circ A}\)</span> and <span class="math notranslate nohighlight">\(\nabla (\distancename \circ A)\)</span> (among others)
+which are used by most optimization algorithms.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id7">
+<caption><span class="caption-number">Table 13 </span><span class="caption-text">Data Fidelity Overview</span><a class="headerlink" href="#id7" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Data Fidelity</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(d(A(x), y)\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.L1.html#deepinv.optim.L1" title="deepinv.optim.L1"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.L1</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\|A(x) - y\|_1\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.L2</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\|A(x) - y\|_2^2\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.IndicatorL2.html#deepinv.optim.IndicatorL2" title="deepinv.optim.IndicatorL2"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.IndicatorL2</span></code></a></p></td>
+<td><p>Indicator function of <span class="math notranslate nohighlight">\(\|A(x) - y\|_2 \leq \epsilon\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.PoissonLikelihood.html#deepinv.optim.PoissonLikelihood" title="deepinv.optim.PoissonLikelihood"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.PoissonLikelihood</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\datafid{A(x)}{y} =  -y^{\top} \log(A(x)+\beta)+1^{\top}A(x)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.LogPoissonLikelihood.html#deepinv.optim.LogPoissonLikelihood" title="deepinv.optim.LogPoissonLikelihood"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.LogPoissonLikelihood</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(N_0 (1^{\top} \exp(-\mu A(x))+ \mu \exp(-\mu y)^{\top}A(x))\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.AmplitudeLoss.html#deepinv.optim.AmplitudeLoss" title="deepinv.optim.AmplitudeLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.AmplitudeLoss</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity" title="deepinv.optim.ZeroFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.ZeroFidelity</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\datafid{x}{y} = 0\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="priors">
+<span id="id4"></span><h3>Priors<a class="headerlink" href="#priors" title="Link to this heading">#</a></h3>
+<p>Prior functions are defined as <span class="math notranslate nohighlight">\(\reg{x}\)</span> where <span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and
+where <span class="math notranslate nohighlight">\(\regname\)</span> is a function.</p>
+<p>The base class is <a class="reference internal" href="../../api/stubs/deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Prior</span></code></a> implemented as a child class from <a class="reference internal" href="../../api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a>
+and therefore it comes with methods for computing operators such as <span class="math notranslate nohighlight">\(\operatorname{prox}_{\regname}\)</span> and <span class="math notranslate nohighlight">\(\nabla \regname\)</span>.  This base class is used to implement user-defined differentiable
+priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play methods).</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id8">
+<caption><span class="caption-number">Table 14 </span><span class="caption-text">Priors Overview</span><a class="headerlink" href="#id8" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Prior</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\reg{x}\)</span></p></th>
+<th class="head"><p>Explicit <span class="math notranslate nohighlight">\(\regname\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.PnP.html#deepinv.optim.PnP" title="deepinv.optim.PnP"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.PnP</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)\)</span></p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.RED.html#deepinv.optim.RED" title="deepinv.optim.RED"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.RED</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)\)</span></p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2\)</span></p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov" title="deepinv.optim.Tikhonov"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Tikhonov</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x}=\|x\|_2^2\)</span></p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior" title="deepinv.optim.L1Prior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.L1Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x}=\|x\|_1\)</span></p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior" title="deepinv.optim.WaveletPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.WaveletPrior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x} = \|\Psi x\|_{p}\)</span> where <span class="math notranslate nohighlight">\(\Psi\)</span> is a wavelet transform</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior" title="deepinv.optim.TVPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.TVPrior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x}=\|Dx\|_{1,2}\)</span> where <span class="math notranslate nohighlight">\(D\)</span> is a finite difference operator</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.PatchPrior.html#deepinv.optim.PatchPrior" title="deepinv.optim.PatchPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.PatchPrior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x} = \sum_i h(P_i x)\)</span> for some prior <span class="math notranslate nohighlight">\(h(x)\)</span> on the space of patches</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR" title="deepinv.optim.PatchNR"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.PatchNR</span></code></a></p></td>
+<td><p>Patch prior via normalizing flows.</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior" title="deepinv.optim.L12Prior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.L12Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\reg{x} = \sum_i\| x_i \|_2\)</span></p></td>
+<td><p>Yes</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="predefined-algorithms">
+<span id="optim-iterators"></span><h2>Predefined Algorithms<a class="headerlink" href="#predefined-algorithms" title="Link to this heading">#</a></h2>
+<p>Optimization algorithm inherit from the base class <a class="reference internal" href="../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a>, which serves as a common interface
+for all predefined optimization algorithms.</p>
+<p>The function <a class="reference internal" href="../../api/stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder" title="deepinv.optim.optim_builder"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.optim.optim_builder()</span></code></a> returns an instance of <a class="reference internal" href="../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a> with the
+optimization algorithm of choice, either a predefined one (<code class="docutils literal notranslate"><span class="pre">&quot;PGD&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ADMM&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;HQS&quot;</span></code>, etc.),
+or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
+at the beginning of this page, in one line of code:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">optim_builder</span><span class="p">(</span><span class="n">iteration</span><span class="o">=</span><span class="s2">&quot;PGD&quot;</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span> <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">params_algo</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="n">stepsize</span><span class="p">,</span> <span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="n">lambd</span><span class="p">},</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;signal&quot;</span><span class="p">,</span> <span class="s2">&quot;measurement&quot;</span><span class="p">,</span> <span class="s2">&quot;estimate&quot;</span><span class="p">],</span> <span class="n">rescale_mode</span><span class="o">=</span><span class="s1">&#39;clip&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Some predefined optimizers are provided:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Algorithm</p></th>
+<th class="head"><p>Iteration</p></th>
+<th class="head"><p>Parameters</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.GDIteration.html#deepinv.optim.optim_iterators.GDIteration" title="deepinv.optim.optim_iterators.GDIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Gradient</span> <span class="pre">Descent</span> <span class="pre">(GD)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = x_k-\gamma v_{k}\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.PGDIteration.html#deepinv.optim.optim_iterators.PGDIteration" title="deepinv.optim.optim_iterators.PGDIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Proximal</span> <span class="pre">Gradient</span> <span class="pre">Descent</span> <span class="pre">(PGD)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k} = x_k - \gamma \nabla f(x_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.FISTAIteration.html#deepinv.optim.optim_iterators.FISTAIteration" title="deepinv.optim.optim_iterators.FISTAIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fast</span> <span class="pre">Iterative</span> <span class="pre">Shrinkage-Thresholding</span> <span class="pre">Algorithm</span> <span class="pre">(FISTA)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k} = z_k -  \gamma \nabla f(z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.HQSIteration.html#deepinv.optim.optim_iterators.HQSIteration" title="deepinv.optim.optim_iterators.HQSIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Half-Quadratic</span> <span class="pre">Splitting</span> <span class="pre">(HQS)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k} = \operatorname{prox}_{\gamma f}(x_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\sigma \lambda \regname}(u_k)\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;gamma&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration" title="deepinv.optim.optim_iterators.ADMMIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Alternating</span> <span class="pre">Direction</span> <span class="pre">Method</span> <span class="pre">of</span> <span class="pre">Multipliers</span> <span class="pre">(ADMM)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;gamma&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.DRSIteration.html#deepinv.optim.optim_iterators.DRSIteration" title="deepinv.optim.optim_iterators.DRSIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Douglas-Rachford</span> <span class="pre">Splitting</span> <span class="pre">(DRS)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.CPIteration.html#deepinv.optim.optim_iterators.CPIteration" title="deepinv.optim.optim_iterators.CPIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chambolle-Pock</span> <span class="pre">(CP)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;gamma&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;stepsize_dual&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.MDIteration.html#deepinv.optim.optim_iterators.MDIteration" title="deepinv.optim.optim_iterators.MDIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mirror</span> <span class="pre">Descent</span> <span class="pre">(MD)</span></code></a></p></td>
+<td><div class="line-block">
+<div class="line"><span class="math notranslate nohighlight">\(v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})\)</span></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code>, convex potential <code class="docutils literal notranslate"><span class="pre">h</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.SMIteration.html#deepinv.optim.optim_iterators.SMIteration" title="deepinv.optim.optim_iterators.SMIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">Spectral</span> <span class="pre">Methods</span> <span class="pre">(SM)</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(M = \conj{B} \text{diag}(T(y)) B + \lambda I\)</span></p></td>
+<td><p>(phase-retrieval only)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="parameters">
+<span id="optim-params"></span><h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">#</a></h3>
+<p>The parameters of generic optimization algorithms, such as
+stepsize, regularization parameter, standard deviation of denoiser prior, etc.
+are stored in a dictionary <code class="docutils literal notranslate"><span class="pre">&quot;params_algo&quot;</span></code>, whose typical entries are:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Meaning</p></th>
+<th class="head"><p>Recommended Values</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize&quot;</span></code></p></td>
+<td><p>Step size of the optimization algorithm.</p></td>
+<td><div class="line-block">
+<div class="line">Should be positive. Depending on the algorithm,</div>
+<div class="line">needs to be small enough for convergence;</div>
+<div class="line">e.g. for PGD with <code class="docutils literal notranslate"><span class="pre">g_first=False</span></code>,</div>
+<div class="line">should be smaller than <span class="math notranslate nohighlight">\(1/(\|A\|_2^2)\)</span>.</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;lambda&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Regularization parameter <span class="math notranslate nohighlight">\(\lambda\)</span></div>
+<div class="line">multiplying the regularization term.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;g_param&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Optional parameter <span class="math notranslate nohighlight">\(\sigma\)</span> which <span class="math notranslate nohighlight">\(\regname\)</span> depends on.</div>
+<div class="line">For priors based on denoisers,</div>
+<div class="line">corresponds to the noise level.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Relaxation parameter used in</div>
+<div class="line">ADMM, DRS, CP.</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;stepsize_dual&quot;</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Step size in the dual update in the</div>
+<div class="line">Primal Dual algorithm (only required by CP).</div>
+</div>
+</td>
+<td><p>Should be positive.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
+a single float (same value for each iteration).</p>
+</section>
+<section id="iterators">
+<span id="id5"></span><h3>Iterators<a class="headerlink" href="#iterators" title="Link to this heading">#</a></h3>
+<p>An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
+<span class="math notranslate nohighlight">\(F = \datafidname + \lambda \regname\)</span> where <span class="math notranslate nohighlight">\(\datafidname\)</span> is a data-fidelity term  that will be modeled
+by an instance of physics and <span class="math notranslate nohighlight">\(\regname\)</span> is a regularizer. The fixed point iteration takes the form</p>
+<div class="math notranslate nohighlight">
+\[\qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...),\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is a variable converging to the solution of the minimization problem, and
+<span class="math notranslate nohighlight">\(z\)</span> is an additional variable that may be required in the computation of the fixed point operator.</p>
+<p>The implementation of the fixed point algorithm in <code class="docutils literal notranslate"><span class="pre">deepinv.optim</span></code>,
+following standard optimization theory, is split in two steps:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
+x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\operatorname{step}_{\datafidname}\)</span> and <span class="math notranslate nohighlight">\(\operatorname{step}_{\regname}\)</span> are gradient and/or proximal steps
+on <span class="math notranslate nohighlight">\(\datafidname\)</span> and <span class="math notranslate nohighlight">\(\regname\)</span>, while using additional inputs, such as <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(y\)</span>, but also stepsizes,
+relaxation parameters, etc…</p>
+<p>The <a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.fStep.html#deepinv.optim.optim_iterators.fStep" title="deepinv.optim.optim_iterators.fStep"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.fStep</span></code></a> and <a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.gStep.html#deepinv.optim.optim_iterators.gStep" title="deepinv.optim.optim_iterators.gStep"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.gStep</span></code></a> classes
+precisely implement these steps.</p>
+</section>
+</section>
+<section id="utils">
+<span id="optim-utils"></span><h2>Utils<a class="headerlink" href="#utils" title="Link to this heading">#</a></h2>
+<p>We provide some useful routines for optimization algorithms.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.optim.utils.conjugate_gradient.html#deepinv.optim.utils.conjugate_gradient" title="deepinv.optim.utils.conjugate_gradient"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.utils.conjugate_gradient</span></code></a> implements the conjugate gradient algorithm for solving linear systems.</p></li>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.optim.utils.gradient_descent.html#deepinv.optim.utils.gradient_descent" title="deepinv.optim.utils.gradient_descent"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.utils.gradient_descent</span></code></a> implements the gradient descent algorithm.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="deep-reconstructors.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Deep Reconstruction Models</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="iterative.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Iterative Reconstruction (PnP, RED, etc.)</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#potentials">Potentials</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bregman">Bregman</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#data-fidelity">Data Fidelity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#priors">Priors</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#predefined-algorithms">Predefined Algorithms</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters">Parameters</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#iterators">Iterators</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#utils">Utils</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/reconstruction/optimization.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

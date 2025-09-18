@@ -1,0 +1,1278 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.optim.prior &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/optim/prior';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/optim/prior.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.optim.prior</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.optim.prior</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.potential</span><span class="w"> </span><span class="kn">import</span> <span class="n">Potential</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.tv</span><span class="w"> </span><span class="kn">import</span> <span class="n">TVDenoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.wavdict</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaveletDenoiser</span><span class="p">,</span> <span class="n">WaveletDictDenoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">patch_extractor</span>
+
+
+<div class="viewcode-block" id="Prior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.Prior.html#deepinv.optim.Prior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Prior</span><span class="p">(</span><span class="n">Potential</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prior term :math:`\reg{x}`.</span>
+
+<span class="sd">    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Poential class, it comes with methods for computing</span>
+<span class="sd">    :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.</span>
+<span class="sd">    To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify</span>
+<span class="sd">    `self.explicit_prior = True`)</span>
+
+<span class="sd">    This base class is also used to implement implicit priors. For instance, in PnP methods, the method computing the</span>
+<span class="sd">    proximity operator is overwritten by a method performing denoising. For an implicit prior, overwrite `grad`</span>
+<span class="sd">    or `prox`.</span>
+
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The methods for computing the proximity operator and the gradient of the prior rely on automatic</span>
+<span class="sd">        differentiation. These methods should not be used when the prior is not differentiable, although they will</span>
+<span class="sd">        not raise an error.</span>
+
+
+<span class="sd">    :param Callable g: Prior function :math:`g(x)`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">g</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">True</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Zero</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Zero prior :math:`\reg{x} = 0`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_g</span> <span class="o">=</span> <span class="n">forward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.</span>
+
+<span class="sd">        It returns a tensor of zeros of the same shape as :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.</span>
+
+<span class="sd">        It returns a tensor of zeros of the same shape as :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">ths</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.</span>
+
+<span class="sd">        It returns the identity :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<div class="viewcode-block" id="PnP">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.PnP.html#deepinv.optim.PnP">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PnP</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plug-and-play prior :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`.</span>
+
+
+<span class="sd">    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="PnP.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.PnP.html#deepinv.optim.PnP.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses denoising as the proximity operator of the PnP prior :math:`\regname` at :math:`x`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float sigma_denoiser: noise level parameter of the denoiser.</span>
+<span class="sd">        :return: (torch.tensor) proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RED">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.RED.html#deepinv.optim.RED">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RED</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Regularization-by-Denoising (RED) prior :math:`\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)`.</span>
+
+
+<span class="sd">    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="RED.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.RED.html#deepinv.optim.RED.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the gradient of the prior term :math:`\regname` at :math:`x`.</span>
+<span class="sd">        By default, the gradient is computed using automatic differentiation.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ScorePrior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScorePrior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Score via MMSE denoiser :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`.</span>
+
+<span class="sd">    This approximates the score of a distribution using Tweedie&#39;s formula, i.e.,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        - \nabla \log p_{\sigma}(x) \propto \left(x-D(x,\sigma)\right)/\sigma^2</span>
+
+<span class="sd">    where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,</span>
+<span class="sd">    :math:`D(\cdot,\sigma)` is a (trained or model-based) denoiser with noise level :math:`\sigma`,</span>
+<span class="sd">    which is typically set to a low value.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in</span>
+<span class="sd">        Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn&#39;t require the normalization.</span>
+
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class can also be used with maximum-a-posteriori (MAP) denoisers,</span>
+<span class="sd">        but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather</span>
+<span class="sd">        given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="ScorePrior.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the denoiser to the input signal.</span>
+
+<span class="sd">        :param torch.Tensor x: the input tensor.</span>
+<span class="sd">        :param float sigma_denoiser: the noise level.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stable_division</span><span class="p">(</span>
+            <span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">sigma_denoiser</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ScorePrior.score">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior.score">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie&#39;s formula.</span>
+
+<span class="sd">        :param torch.Tensor x: the input tensor.</span>
+<span class="sd">        :param float sigma_denoiser: the noise level.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stable_division</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stable_division</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">epsilon</span><span class="p">,</span>
+                <span class="n">b</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">epsilon</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span><span class="o">.</span><span class="n">sign</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">a</span> <span class="o">/</span> <span class="n">b</span></div>
+
+
+
+<div class="viewcode-block" id="Tikhonov">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Tikhonov</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Tikhonov.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="Tikhonov.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) gradient at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="Tikhonov.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the proximity operator of the Tikhonov regularization term :math:`\gamma g` at :math:`x`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float gamma: stepsize of the proximity operator.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">gamma</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="L1Prior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">L1Prior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :math:`\ell_1` prior :math:`\reg{x} = \| x \|_1`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="L1Prior.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the regularizer :math:`\reg{x} = \| x \|_1`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="L1Prior.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">ths</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.</span>
+
+<span class="sd">        More precisely, it computes</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \operatorname{prox}_{\gamma g}(x) = \operatorname{sign}(x) \max(|x| - \gamma, 0)</span>
+
+
+<span class="sd">        where :math:`\gamma` is a stepsize.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float gamma: stepsize of the proximity operator.</span>
+<span class="sd">        :return torch.Tensor: proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">-</span> <span class="n">ths</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="WaveletPrior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WaveletPrior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wavelet prior :math:`\reg{x} = \|\Psi x\|_{p}`.</span>
+
+<span class="sd">    :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with</span>
+<span class="sd">    :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.</span>
+
+<span class="sd">    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{[c_{\text{min}}, c_{\text{max}}]}(x)`,</span>
+<span class="sd">    where :math:`\iota_{[c_{\text{min}}, c_{\text{max}}]}(x)` is the indicator function of the interval :math:`[c_{\text{min}}, c_{\text{max}}]`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Following common practice in signal processing, only detail coefficients are regularized, and the approximation</span>
+<span class="sd">        coefficients are left untouched.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        For 3D data, the computational complexity of the wavelet transform cubically with the size of the support. For</span>
+<span class="sd">        large 3D data, it is recommended to use wavelets with small support (e.g. db1 to db4).</span>
+
+
+<span class="sd">    :param int level: level of the wavelet transform. Default is 3.</span>
+<span class="sd">    :param str wv: wavelet name to choose among those available in `pywt &lt;https://pywavelets.readthedocs.io/en/latest/&gt;`_. Default is &quot;db8&quot;.</span>
+<span class="sd">    :param float p: :math:`p`-norm of the prior. Default is 1.</span>
+<span class="sd">    :param str device: device on which the wavelet transform is computed. Default is &quot;cpu&quot;.</span>
+<span class="sd">    :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.</span>
+<span class="sd">    :param str mode: padding mode for the wavelet transform (default: &quot;zero&quot;).</span>
+<span class="sd">    :param float clamp_min: minimum value for the clamping. Default is None.</span>
+<span class="sd">    :param float clamp_max: maximum value for the clamping. Default is None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">wv</span><span class="o">=</span><span class="s2">&quot;db8&quot;</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">wvdim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;zero&quot;</span><span class="p">,</span>
+        <span class="n">clamp_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">clamp_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wv</span> <span class="o">=</span> <span class="n">wv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wvdim</span> <span class="o">=</span> <span class="n">wvdim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">level</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clamp_min</span> <span class="o">=</span> <span class="n">clamp_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clamp_max</span> <span class="o">=</span> <span class="n">clamp_max</span>
+
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">non_linearity</span> <span class="o">=</span> <span class="s2">&quot;hard&quot;</span>
+        <span class="k">elif</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">non_linearity</span> <span class="o">=</span> <span class="s2">&quot;soft&quot;</span>
+        <span class="k">elif</span> <span class="n">p</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="ow">or</span> <span class="n">p</span> <span class="o">==</span> <span class="s2">&quot;inf&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">non_linearity</span> <span class="o">=</span> <span class="s2">&quot;topk&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;p should be 0, 1 or inf&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">WaveletDenoiser</span> <span class="o">=</span> <span class="n">WaveletDenoiser</span><span class="p">(</span>
+                <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+                <span class="n">wv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">non_linearity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">non_linearity</span><span class="p">,</span>
+                <span class="n">wvdim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wvdim</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">WaveletDenoiser</span> <span class="o">=</span> <span class="n">WaveletDictDenoiser</span><span class="p">(</span>
+                <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+                <span class="n">list_wv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                <span class="n">non_linearity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">non_linearity</span><span class="p">,</span>
+                <span class="n">wvdim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wvdim</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;wv should be a string (name of the wavelet) or a list of strings (list of wavelet names). Got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="WaveletPrior.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the regularizer</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \begin{equation}</span>
+<span class="sd">             {\regname}_{i,j}(x) = \|(\Psi x)_{i,j}\|_{p}</span>
+<span class="sd">             \end{equation}</span>
+
+
+<span class="sd">        where :math:`\Psi` is an orthonormal wavelet transform, :math:`i` and :math:`j` are the indices of the</span>
+<span class="sd">        wavelet sub-bands,  and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with</span>
+<span class="sd">        :math:`p=0`, :math:`p=1`, or :math:`p=\infty`. As mentioned in the class description, only detail coefficients</span>
+<span class="sd">        are regularized, and the approximation coefficients are left untouched.</span>
+
+<span class="sd">        If `reduce` is set to `True`, the regularizer is summed over all detail coefficients, yielding</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">                \regname(x) = \|\Psi x\|_{p}.</span>
+
+<span class="sd">        If `reduce` is set to `False`, the regularizer is returned as a list of the norms of the detail coefficients.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.</span>
+<span class="sd">        :param bool reduce: if True, the prior is summed over all detail coefficients. Default is True.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">list_dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psi</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">list_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">dec</span> <span class="ow">in</span> <span class="n">list_dec</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">reduce</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">list_norm</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">list_norm</span></div>
+
+
+<div class="viewcode-block" id="WaveletPrior.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.</span>
+<span class="sd">        Only detail coefficients are thresholded.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float gamma: stepsize of the proximity operator.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WaveletDenoiser</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ths</span><span class="o">=</span><span class="n">gamma</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clamp_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clamp_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clamp_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="WaveletPrior.psi">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.psi">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">psi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the (flattening) wavelet decomposition of x.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">WaveletDenoiser</span><span class="o">.</span><span class="n">psi</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">wavelet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">,</span>
+            <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+            <span class="n">dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wvdim</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TVPrior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TVPrior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.</span>
+
+<span class="sd">    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.</span>
+<span class="sd">    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">def_crit</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">n_it_max</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TVModel</span> <span class="o">=</span> <span class="n">TVDenoiser</span><span class="p">(</span><span class="n">crit</span><span class="o">=</span><span class="n">def_crit</span><span class="p">,</span> <span class="n">n_it_max</span><span class="o">=</span><span class="n">n_it_max</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TVPrior.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the regularizer</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \reg{x} = \|Dx\|_{1,2}</span>
+
+
+<span class="sd">        where D is the finite differences linear operator,</span>
+<span class="sd">        and the 2-norm is taken on the dimension of the differences.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nabla</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TVPrior.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float gamma: stepsize of the proximity operator.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">TVModel</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ths</span><span class="o">=</span><span class="n">gamma</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TVPrior.nabla">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.nabla">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nabla</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the finite differences operator associated with tensors of the same shape as x.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">TVModel</span><span class="o">.</span><span class="n">nabla</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TVPrior.nabla_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.nabla_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nabla_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the adjoint of the finite difference operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">TVModel</span><span class="o">.</span><span class="n">nabla_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PatchPrior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.PatchPrior.html#deepinv.optim.PatchPrior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatchPrior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Patch prior :math:`g(x) = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches.</span>
+
+<span class="sd">    Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing</span>
+<span class="sd">    the NLLs of all (overlapping) patches in the image.</span>
+
+<span class="sd">    :param Callable negative_patch_log_likelihood: NLL function on the patch space</span>
+<span class="sd">    :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches</span>
+<span class="sd">    :param int patch_size: size of the patches</span>
+<span class="sd">    :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">negative_patch_log_likelihood</span><span class="p">,</span>
+        <span class="n">n_patches</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">negative_patch_log_likelihood</span> <span class="o">=</span> <span class="n">negative_patch_log_likelihood</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_patches</span> <span class="o">=</span> <span class="n">n_patches</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="n">patch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="n">pad</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,)),</span>
+                    <span class="n">x</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">,</span> <span class="p">:],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,)),</span>
+                <span class="p">),</span>
+                <span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)),</span>
+                    <span class="n">x</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">1</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">],</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)),</span>
+                <span class="p">),</span>
+                <span class="mi">3</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">patches</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">patch_extractor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_patches</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span><span class="p">)</span>
+        <span class="n">reg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negative_patch_log_likelihood</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+        <span class="n">reg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reg</span></div>
+
+
+
+<div class="viewcode-block" id="PatchNR">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatchNR</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Patch prior via normalizing flows.</span>
+
+<span class="sd">    The forward method evaluates its negative log likelihood.</span>
+
+<span class="sd">    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`</span>
+<span class="sd">        supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)</span>
+<span class="sd">        as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output</span>
+<span class="sd">        If `rev=True`, it considers the inverse of the normalizing flow.</span>
+<span class="sd">        When set to ``None`` it is set to a dense invertible neural network built with the FrEIA library, where the number of</span>
+<span class="sd">        invertible blocks and the size of the subnetworks is determined by the parameters `num_layers` and `sub_net_size`.</span>
+<span class="sd">    :param str pretrained: Define pretrained weights by its path to a `.pt` file, None for random initialization,</span>
+<span class="sd">        `&quot;PatchNR_lodopab_small&quot;` for the weights from the limited-angle CT example.</span>
+<span class="sd">    :param int patch_size: size of patches</span>
+<span class="sd">    :param int channels: number of channels for the underlying images/patches.</span>
+<span class="sd">    :param int num_layers: defines the number of blocks of the generated normalizing flow if `normalizing_flow` is ``None``.</span>
+<span class="sd">    :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow</span>
+<span class="sd">        if `normalizing_flow` is ``None``.</span>
+<span class="sd">    :param str device: used device</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">normalizing_flow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pretrained</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">sub_net_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">FrEIA.framework</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">Ff</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">FrEIA.modules</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">Fm</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">PatchNR</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">normalizing_flow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Create Normalizing Flow with FrEIA</span>
+            <span class="n">dimension</span> <span class="o">=</span> <span class="n">patch_size</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">channels</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">subnet_fc</span><span class="p">(</span><span class="n">c_in</span><span class="p">,</span> <span class="n">c_out</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">c_in</span><span class="p">,</span> <span class="n">sub_net_size</span><span class="p">),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">sub_net_size</span><span class="p">,</span> <span class="n">sub_net_size</span><span class="p">),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">sub_net_size</span><span class="p">,</span> <span class="n">c_out</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ff</span><span class="o">.</span><span class="n">InputNode</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+                <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">Ff</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span>
+                        <span class="n">nodes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">Fm</span><span class="o">.</span><span class="n">GLOWCouplingBlock</span><span class="p">,</span>
+                        <span class="p">{</span><span class="s2">&quot;subnet_constructor&quot;</span><span class="p">:</span> <span class="n">subnet_fc</span><span class="p">,</span> <span class="s2">&quot;clamp&quot;</span><span class="p">:</span> <span class="mf">1.6</span><span class="p">},</span>
+                        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;coupling_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Ff</span><span class="o">.</span><span class="n">OutputNode</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalizing_flow</span> <span class="o">=</span> <span class="n">Ff</span><span class="o">.</span><span class="n">GraphINN</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalizing_flow</span> <span class="o">=</span> <span class="n">normalizing_flow</span>
+        <span class="k">if</span> <span class="n">pretrained</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pretrained</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">&quot;.pt&quot;</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pretrained</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pretrained</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;PatchNR_lodopab_small&quot;</span><span class="p">):</span>
+                    <span class="k">assert</span> <span class="n">patch_size</span> <span class="o">==</span> <span class="mi">3</span>
+                    <span class="k">assert</span> <span class="n">channels</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="s2">&quot;PatchNR_lodopab_small.pt&quot;</span>
+                    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://drive.google.com/uc?export=download&amp;id=1Z2us9ZHjDGOlU6r1Jee0s2BBej2XV5-i&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Pretrained weights not found!&quot;</span><span class="p">)</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span>
+                    <span class="n">url</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalizing_flow</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PatchNR.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluates the negative log likelihood function of th PatchNR.</span>
+
+<span class="sd">        :param torch.Tensor x: image tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">n_patches</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">latent_x</span><span class="p">,</span> <span class="n">logdet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalizing_flow</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span> <span class="o">*</span> <span class="n">n_patches</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">logpz</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">latent_x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n_patches</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">logpz</span> <span class="o">-</span> <span class="n">logdet</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n_patches</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="L12Prior">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">L12Prior</span><span class="p">(</span><span class="n">Prior</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.</span>
+
+<span class="sd">    The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.</span>
+
+<span class="sd">    :param int l2_axis: dimension in which the :math:`\ell_2` norm is computed.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.optim import L12Prior</span>
+<span class="sd">    &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.randn(2, 1, 3, 3) # Define random 3x3 image</span>
+<span class="sd">    &gt;&gt;&gt; prior = L12Prior()</span>
+<span class="sd">    &gt;&gt;&gt; prior.fn(x)</span>
+<span class="sd">    tensor([5.4949, 4.3881])</span>
+<span class="sd">    &gt;&gt;&gt; prior.prox(x)</span>
+<span class="sd">    tensor([[[[-0.4666, -0.4776,  0.2348],</span>
+<span class="sd">              [ 0.3636,  0.2744, -0.7125],</span>
+<span class="sd">              [-0.1655,  0.8986,  0.2270]]],</span>
+<span class="sd">    &lt;BLANKLINE&gt;</span>
+<span class="sd">    &lt;BLANKLINE&gt;</span>
+<span class="sd">            [[[-0.0000, -0.0000,  0.0000],</span>
+<span class="sd">              [ 0.7883,  0.9000,  0.5369],</span>
+<span class="sd">              [-0.3695,  0.4081,  0.5513]]]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">l2_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2_axis</span> <span class="o">=</span> <span class="n">l2_axis</span>
+
+<div class="viewcode-block" id="L12Prior.fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior.fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the regularizer :math:`\reg{x} = \sum_i\| x_i \|_2`.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_l2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_l2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="L12Prior.prox">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior.prox">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the proximity operator of the :math:`\ell_{1,2}` function at :math:`x`.</span>
+
+<span class="sd">        More precisely, it computes</span>
+
+<span class="sd">        .. math::</span>
+<span class="sd">            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x</span>
+
+
+<span class="sd">        where :math:`\gamma` is a stepsize.</span>
+
+<span class="sd">        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.</span>
+<span class="sd">        :param float gamma: stepsize of the proximity operator.</span>
+<span class="sd">        :param int l2_axis: axis in which the l2 norm is computed.</span>
+<span class="sd">        :return torch.Tensor: proximity operator at :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_axis</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Compute the norm</span>
+        <span class="n">z2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+            <span class="n">z</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># Compute its max w.r.t. gamma at each point</span>
+        <span class="n">z3</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>  <span class="c1"># Construct a mask of ones</span>
+        <span class="n">mask_z</span> <span class="o">=</span> <span class="n">z</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># Find locations where z (hence x) is not already zero</span>
+        <span class="n">z3</span><span class="p">[</span><span class="n">mask_z</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">z3</span><span class="p">[</span><span class="n">mask_z</span><span class="p">]</span> <span class="o">-</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">z2</span><span class="p">[</span><span class="n">mask_z</span><span class="p">]</span>
+        <span class="p">)</span>  <span class="c1"># If z &lt; gamma -&gt; z2 = gamma -&gt; z3 -gamma/gamma =0  (threshold below gamma)</span>
+        <span class="c1"># Oth. z3 = 1- gamma/z2</span>
+        <span class="n">z4</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">z3</span>
+        <span class="p">)</span>  <span class="c1"># All elems of x with norm &lt; gamma are set 0; the others are z4 = x(1-gamma/|x|)</span>
+        <span class="c1"># Creating a mask to avoid diving by zero</span>
+        <span class="c1"># if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well</span>
+        <span class="k">return</span> <span class="n">z4</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

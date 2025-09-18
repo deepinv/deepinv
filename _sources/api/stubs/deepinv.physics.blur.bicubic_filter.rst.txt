@@ -1,0 +1,9 @@
+﻿bicubic\_filter
+===============
+
+.. currentmodule:: deepinv.physics.blur
+
+.. autofunction:: bicubic_filter
+
+.. minigallery:: deepinv.physics.blur.bicubic_filter
+    :add-heading: Examples using ``bicubic_filter``:

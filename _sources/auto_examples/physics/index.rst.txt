@@ -1,0 +1,207 @@
+
+
+.. _sphx_glr_auto_examples_physics:
+
+Physics
+-------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of some of the forward operators implemented in DeepInverse. We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in here.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_physics_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_physics_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Tour of forward sensing operators</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 2D blur operators in DeepInverse. In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_blur_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_blur_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Tour of blur operators</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example presents the various datasets, forward physics and models available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_mri_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Tour of MRI functionality in DeepInverse</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we show how to use the deepinv.physics.SinglePhotonLidar forward model.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_lidar_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_lidar.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Single photon lidar operator for depth ranging.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use deepinv.physics.Physics together with automatic differentiation to optimize your operator.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_optimizing_physics_parameter_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_optimizing_physics_parameter.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Solving blind inverse problems / estimating physics parameters</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we demonstrate remote sensing inverse problems for multispectral satellite imaging.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_remote_sensing_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Remote sensing with satellite images</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This demo illustrates the impact of different Hadamard pattern ordering algorithms in the Single Pixel Camera (SPC), a computational imaging system that uses a single photodetector to capture images by projecting the scene onto a series of patterns. The SPC is implemented in the DeepInverse library.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_spc_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_spc.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Pattern Ordering in a Compressive Single Pixel Camera</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a Ptychography phase retrieval operator and generate phaseless measurements from a given image.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_ptychography_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_ptychography.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Ptychography phase retrieval</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 3D blur operators in the library. In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate fluorescence microscopes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_microscopy_3d_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_microscopy_3d.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D diffraction PSF</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:">
+
+.. only:: html
+
+  .. image:: /auto_examples/physics/images/thumb/sphx_glr_demo_phase_retrieval_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_physics_demo_phase_retrieval.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/physics/demo_physics_tour
+   /auto_examples/physics/demo_blur_tour
+   /auto_examples/physics/demo_mri_tour
+   /auto_examples/physics/demo_lidar
+   /auto_examples/physics/demo_optimizing_physics_parameter
+   /auto_examples/physics/demo_remote_sensing
+   /auto_examples/physics/demo_spc
+   /auto_examples/physics/demo_ptychography
+   /auto_examples/physics/demo_microscopy_3d
+   /auto_examples/physics/demo_phase_retrieval
+
