@@ -105,10 +105,13 @@ physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
 #
 #       We only train for a single epoch in the demo, but it is recommended to train multiple epochs in practice.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping).
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=[]` and `early_stop=True` in the trainer.
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
@@ -127,9 +130,10 @@ model = dinv.Trainer(
     online_measurements=True,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    compute_losses_eval=True,  # use self-supervised loss for evaluation
     epochs=1,
     losses=losses,
-    metrics=losses,
+    metrics=[],
     early_stop=True,  # we can use early stopping as we have a validation set
     optimizer=optimizer,
     verbose=True,

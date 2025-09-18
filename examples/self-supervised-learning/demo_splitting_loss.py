@@ -146,11 +146,13 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train and test network
 # ----------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping).
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=[]` and `early_stop=True` in the trainer.
 
 trainer = dinv.Trainer(
     model=model,
@@ -161,8 +163,9 @@ trainer = dinv.Trainer(
     device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    metrics=loss,
+    metrics=[],
     early_stop=True,  # we can use early stopping as we have a validation loss
+    compute_losses_eval=True,  # use self-supervised loss for evaluation
     plot_images=False,
     save_path=None,
     verbose=True,

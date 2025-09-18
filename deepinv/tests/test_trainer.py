@@ -731,7 +731,12 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
+class ConstantLoss2(ConstantLoss):
+    def __init__(self, value, device):
+        super().__init__(value, device)
+
+
+def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
@@ -739,16 +744,24 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     losses = [
         ConstantLoss(1 / 2, device),
-        ConstantLoss(1 / 3, device),
+        ConstantLoss2(1 / 3, device),
+    ]
+
+    eval_losses = [
+        ConstantLoss(1 / 4, device),
+        ConstantLoss2(1 / 5, device),
     ]
 
     trainer = dinv.Trainer(
         model=dummy_model,
         losses=losses,
+        metrics=eval_losses,
         epochs=2,
         physics=physics,
+        device=device,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
+        display_losses_eval=True,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
@@ -757,10 +770,97 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     trainer.train()
 
-    loss_history = trainer.loss_history
-    assert all(
-        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+    for k, (_, loss_history) in enumerate(trainer.train_loss_history.items()):
+        l = losses[k]
+        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+
+    for k, (_, loss_history) in enumerate(trainer.eval_metrics_history.items()):
+        l = eval_losses[k]
+        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+
+    for k, (_, loss_history) in enumerate(trainer.eval_loss_history.items()):
+        l = losses[k]
+        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+
+
+class DummyModel(dinv.models.Reconstructor):
+    def __init__(self):
+        super().__init__()
+        self.eval_count = 0
+        self.train_count = 0
+        self.param = torch.nn.Parameter(torch.ones(1), requires_grad=True)
+
+    def forward(self, y, physics, **kwargs):
+        x = physics.A_adjoint(y)
+        if self.training:
+            self.train_count += 1
+        else:
+            self.eval_count += 1
+        return x * self.param
+
+
+@pytest.mark.parametrize("compute_losses_eval", [True, False])
+@pytest.mark.parametrize("disable_train_metrics", [True, False])
+def test_model_forward_passes(
+    dummy_dataset, imsize, device, tmpdir, compute_losses_eval, disable_train_metrics
+):
+    train_data = get_dummy_dataset(imsize=imsize, N=4, value=1.0)
+    eval_data = get_dummy_dataset(imsize=imsize, N=2, value=1.0)
+    dataloader = DataLoader(train_data, batch_size=2)
+    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
+
+    model = DummyModel().to(device)
+
+    epochs = 4
+    eval_interval = 2
+    trainer = dinv.Trainer(
+        model=model,
+        device=device,
+        save_path=tmpdir,
+        verbose=False,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=epochs,
+        eval_interval=eval_interval,
+        losses=dinv.loss.SupLoss(),
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        eval_dataloader=eval_dataloader,
+        online_measurements=True,
+        compute_losses_eval=compute_losses_eval,
+        disable_train_metrics=disable_train_metrics,
     )
+
+    assert model.train_count == 0
+    assert model.eval_count == 0
+
+    trainer.train()
+
+    train_calls = len(dataloader) * epochs
+    eval_calls = len(eval_dataloader) * (epochs // eval_interval + 1)
+    if compute_losses_eval:
+        assert model.train_count == train_calls + eval_calls
+    else:
+        assert model.train_count == train_calls
+
+    if not disable_train_metrics and compute_losses_eval:
+        assert model.eval_count == 0  # all metrics computed in train mode
+    else:
+        assert model.eval_count == eval_calls
+
+    model.train_count = 0
+    model.eval_count = 0
+
+    trainer.test(eval_dataloader)
+
+    test_calls = len(eval_dataloader)
+    assert model.eval_count == test_calls
+
+    if compute_losses_eval:
+        assert model.train_count == test_calls
+    else:
+        assert model.train_count == 0
 
 
 # We test that the gradient norm is correctly computed and printed to the

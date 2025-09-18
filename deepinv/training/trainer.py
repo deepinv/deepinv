@@ -114,12 +114,11 @@ class Trainer:
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
-    :param Metric, list[Metric], Loss, list[Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool disable_train_metrics: if `False` (default), metrics are computed both during training and testing on their respective data.
-        If `True`, do not compute metrics during training on train set. Useful if your model output during training
-        is in the wrong shape for metric computation.
+    :param bool disable_train_metrics: if `False`, metrics are computed both during training and testing on their respective data.
+        If `True` (default), do not compute metrics during training on train set.
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
@@ -191,7 +190,7 @@ class Trainer:
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
-    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
+    :param bool compute_losses_eval: If ``True``, the losses are computed during evaluation. Default is ``False``.
 
     |sep|
 
@@ -221,7 +220,7 @@ class Trainer:
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
     metrics: Union[Metric, list[Metric], Loss, list[Loss]] = field(default_factory=PSNR)
-    disable_train_metrics: bool = False
+    disable_train_metrics: bool = True
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path, None] = "."
@@ -239,7 +238,7 @@ class Trainer:
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
-    display_losses_eval: bool = False
+    compute_losses_eval: bool = False
     log_train_batch: bool = False
     verbose: bool = True
     verbose_individual_losses: bool = True
@@ -267,6 +266,11 @@ class Trainer:
                 check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
+
+        if train:
+            self.compute_metrics_on_eval_mode = self.disable_train_metrics
+        else:
+            self.compute_metrics_on_eval_mode = True
 
         self.G = len(self.train_dataloader)
 
@@ -316,6 +320,9 @@ class Trainer:
 
         if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
+
+        if len(self.metrics) == 0:
+            self.compute_losses_eval = True
 
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
@@ -608,6 +615,11 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
+        if train:
+            self.model.train()
+        else:
+            self.model.eval()
+
         if not train:
             with torch.no_grad():
                 if self.plot_convergence_metrics:
@@ -641,10 +653,11 @@ class Trainer:
         if train and step:
             self.optimizer.zero_grad()
 
-        # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
+        x_net = None
+        if train or self.compute_losses_eval:
+            # Evaluate reconstruction network
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=True)
 
-        if train or self.display_losses_eval:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
@@ -657,11 +670,11 @@ class Trainer:
                     epoch=epoch,
                 )
                 loss_total += loss.mean()
+                meters = (
+                    self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                )
+                meters.update(loss.detach().cpu().numpy())
                 if len(self.losses) > 1 and self.verbose_individual_losses:
-                    meters = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
-                    )
-                    meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
@@ -700,6 +713,12 @@ class Trainer:
         :returns: The logs with the metrics.
         """
 
+        if len(self.metrics) > 0 and (
+            self.compute_metrics_on_eval_mode or x_net is None
+        ):
+            # re-evaluate the model in eval mode if needed
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=False)
+
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
@@ -726,7 +745,7 @@ class Trainer:
                     logs[f"{l.__class__.__name__} no learning"] = (
                         self.logs_metrics_no_learning[k].avg
                     )
-        return logs
+        return x_net, logs
 
     def no_learning_inference(self, y, physics):
         r"""
@@ -814,11 +833,12 @@ class Trainer:
             loss += loss_cur
 
             # detach the network output for metrics and plotting
-            x_net = x_net.detach()
+            if x_net is not None:
+                x_net = x_net.detach()
 
             # Log metrics
             if not (self.disable_train_metrics and train):
-                logs = self.compute_metrics(
+                x_net, logs = self.compute_metrics(
                     x, x_net, y, physics_cur, logs, train=train, epoch=epoch
                 )
 
@@ -1000,8 +1020,12 @@ class Trainer:
             number of batches) + current batch within epoch
         """
         k = 0  # index of the first metric
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
-        lower_better = getattr(self.metrics[k], "lower_better", True)
+        if len(self.metrics) == 0:
+            history = self.eval_loss_history[self.losses[k].__class__.__name__]
+            lower_better = True
+        else:
+            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+            lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         curr_metric = history[-1]
@@ -1047,8 +1071,12 @@ class Trainer:
         """
         k = 0  # use first metric
 
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
-        lower_better = getattr(self.metrics[k], "lower_better", True)
+        if len(self.metrics) == 0:
+            history = self.eval_loss_history[self.losses[k].__class__.__name__]
+            lower_better = True
+        else:
+            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+            lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric) * self.eval_interval
@@ -1074,6 +1102,7 @@ class Trainer:
         :returns: The trained model.
         """
         self.setup_train()
+
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
@@ -1114,6 +1143,13 @@ class Trainer:
                     last_batch=last_batch,
                 )
 
+                if self.log_train_batch or last_batch:
+                    # store losses history
+                    for l in self.losses:
+                        self.train_loss_history[l.__class__.__name__].append(
+                            self.logs_losses_train[self.losses.index(l)].avg
+                        )
+
                 perform_eval = self.eval_dataloader and (
                     (
                         (epoch % self.eval_interval == 0 or epoch + 1 == self.epochs)
@@ -1136,10 +1172,6 @@ class Trainer:
                             for loader in self.eval_dataloader
                         ]
                     )
-
-                    # self.model.eval()
-                    # The eval mode is removed to allow for
-                    # self-supervised losses used as eval metrics (e.g. R2R)
 
                     # close train progress bar
                     progress_bar.update(1)
@@ -1165,19 +1197,15 @@ class Trainer:
 
                     # store losses history
                     for l in self.losses:
-                        self.train_loss_history[l.__class__.__name__].append(
-                            self.logs_losses_train[self.losses.index(l)].avg
-                        )
                         self.eval_loss_history[l.__class__.__name__].append(
                             self.logs_losses_eval[self.losses.index(l)].avg
                         )
 
                     # store metrics history
-                    for k in range(len(self.metrics)):
-                        metric = self.logs_metrics_eval[k].avg
-                        self.eval_metrics_history[
-                            self.metrics[k].__class__.__name__
-                        ].append(metric)
+                    for m in self.metrics:
+                        self.eval_metrics_history[m.__class__.__name__].append(
+                            self.logs_metrics_eval[self.metrics.index(m)].avg
+                        )
 
                     self.save_best_model(epoch, train_ite)
 
@@ -1234,6 +1262,9 @@ class Trainer:
                 metrics = [metrics]
             self.metrics = metrics
 
+        self.compute_metrics_on_eval_mode = (
+            True  # always compute metrics in eval mode at test time
+        )
         self.compare_no_learning = compare_no_learning
         self.setup_train(train=False)
 
@@ -1254,7 +1285,6 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
-        self.model.eval()
         for i in (
             progress_bar := tqdm(
                 range(batches),

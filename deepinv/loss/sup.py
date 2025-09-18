@@ -93,7 +93,9 @@ class ReducedResolutionLoss(SupLoss):
             return self.metric(x_net, y)
         except BaseException as e:
             raise RuntimeError(
-                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. Full error:",
+                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. "
+                f"If using deepinv.Trainer, this issue can be solved by setting compute_metrics_on_eval_mode=True. "
+                f"Full error:",
                 str(e),
             )
 
@@ -118,7 +120,8 @@ class ReducedResolutionLoss(SupLoss):
                         str(e),
                     )
                 try:
-                    return self.model(z, physics)
+                    x_hat = self.model(z, physics)
+                    return x_hat
                 except BaseException as e:
                     raise RuntimeError(
                         "Model error. Check that the model can be used with a reduced-resolution input physics.A(y). Full error:",
