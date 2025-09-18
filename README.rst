@@ -110,7 +110,7 @@ Star history
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
