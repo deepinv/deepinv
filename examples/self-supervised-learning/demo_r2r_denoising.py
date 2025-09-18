@@ -122,7 +122,7 @@ model = dinv.models.ArtifactRemoval(
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
 #
 
-epochs = 10  # choose training epochs
+epochs = 1  # choose training epochs
 learning_rate = 1e-4
 batch_size = 64 if torch.cuda.is_available() else 1
 
@@ -153,7 +153,7 @@ if noise_name == "poisson":
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=[]` and `early_stop=True` in the trainer.
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop=True` in the trainer.
 
 
 verbose = True  # print training information
@@ -175,7 +175,7 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     device=device,
-    metrics=[],
+    metrics=None,  # no supervised metrics
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     early_stop=True,  # early stop using the self-supervised loss on the test set
@@ -183,7 +183,7 @@ trainer = dinv.Trainer(
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
 # Train the network

@@ -845,7 +845,7 @@ class Trainer:
             if x_net is not None:
                 x_net = x_net.detach()
 
-            # Log metrics
+            # compute metrics
             if not (self.disable_train_metrics and train):
                 x_net, logs = self.compute_metrics(
                     x, x_net, y, physics_cur, logs, train=train, epoch=epoch
@@ -1273,7 +1273,8 @@ class Trainer:
             ``None``, uses the metrics provided during Trainer initialization.
         :returns: dict of metrics results with means and stds.
         """
-        self.metrics = metrics
+        if metrics is not None:
+            self.metrics = metrics
         self.compute_metrics_on_eval_mode = (
             True  # always compute metrics in eval mode at test time
         )

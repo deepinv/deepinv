@@ -163,7 +163,7 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=[]` and `early_stop=True` in the trainer.
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop=True` in the trainer.
 
 
 verbose = True  # print training information
@@ -186,7 +186,7 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     compute_losses_eval=True,  # use self-supervised loss for evaluation
-    metrics=[],
+    metrics=None, # no supervised metrics
     early_stop=True,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     device=device,
