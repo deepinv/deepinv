@@ -366,7 +366,6 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
-        compute_metrics_on_eval_mode=True,
         # disable_train_metrics=(loss_name == "reducedresolution"),
     )
 

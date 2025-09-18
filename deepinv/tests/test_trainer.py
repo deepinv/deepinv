@@ -761,7 +761,7 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
         device=device,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
-        display_losses_eval=True,
+        compute_losses_eval=True,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
