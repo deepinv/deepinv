@@ -1019,7 +1019,10 @@ class Trainer:
         r"""
         Save the best model using validation metrics.
 
-        By default, uses validation based on first metric. Override this method to provide custom criterion.
+        By default, uses validation based on first metric. If no metric is provided (e.g. in self-supervised learning),
+        uses the first loss on the eval dataset instead (requires having `compute_losses_eval=True`).
+
+        Override this method to provide custom criterion.
 
         :param int epoch: Current epoch.
         :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
@@ -1066,6 +1069,9 @@ class Trainer:
         Stop criterion for early stopping.
 
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
+
+        If no metric is provided (e.g. in self-supervised learning),
+        uses the first loss on the eval dataset instead (requires having `compute_losses_eval=True`).
 
         Override this method to early stop on a custom condition.
 
