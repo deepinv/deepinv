@@ -484,6 +484,12 @@ def test_inpainting_generators(
     )
     correct_pixelwise(mask3)
 
+    # Adapt to new img sizes
+    assert gen.step(batch_size=batch_size, img_size=(73, 29))["mask"].shape[-2:] == (
+        73,
+        29,
+    )
+
 
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("device", DEVICES)

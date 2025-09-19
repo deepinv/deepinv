@@ -270,9 +270,11 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
-                warn("Mask generator not defined. Using new Bernoulli mask generator.")
+                warn(
+                    f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
+                )
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    img_size=y.shape[1:],
+                    img_size=(1,) + y.shape[-2:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
@@ -301,9 +303,12 @@ class SplittingLoss(Loss):
 
             for _ in range(eval_n_samples):
                 # Perform input masking
+
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+                # print(physics.mask.shape, mask.shape)
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass

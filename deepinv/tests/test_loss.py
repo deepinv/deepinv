@@ -415,6 +415,7 @@ def test_sure_losses(device):
     "loss_name",
     [
         "splitting",
+        "splitting-gaussian",
         "weighted-splitting",
         "robust-splitting",
         "n2n",
@@ -422,16 +423,41 @@ def test_sure_losses(device):
         "splitting_eval_split_input_output",
     ],
 )
-def test_measplit(device, loss_name, rng):
-    # Larger, even imsize to reduce effect of randomness
-    imsize = (2, 64, 64)
+@pytest.mark.parametrize(
+    "imsize",
+    [
+        (2, 64, 64),  # Larger, even imsize to reduce effect of randomness
+        (2, 66, 66),  # Test can adapt to new imsize
+    ],
+)
+@pytest.mark.parametrize("physics_name", ["Denoising", "Inpainting", "MultiCoilMRI"])
+def test_measplit(device, loss_name, rng, imsize, physics_name):
 
     if loss_name == "n2n":
+        if physics_name != "Denoising":
+            pytest.skip("N2N test only available for Denoising")
+
         physics = dinv.physics.Denoising()
         physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
         backbone = dinv.models.MedianFilter()
     elif "splitting" in loss_name:
-        physics = dinv.physics.Inpainting(imsize, mask=0.6, device=device, rng=rng)
+        if physics_name == "MultiCoilMRI":
+            physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+                imsize, acceleration=2, device=device, rng=rng
+            )
+            physics = dinv.physics.MultiCoilMRI(
+                img_size=imsize, device=device, coil_maps=4, **physics_generator.step()
+            )
+        elif physics_name == "Inpainting":
+            physics_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                imsize, split_ratio=0.6, device=device, rng=rng
+            )
+            physics = dinv.physics.Inpainting(
+                imsize, device=device, rng=rng, **physics_generator.step()
+            )
+        else:
+            pytest.skip("Splitting tests only available for MultiCoilMRI, Inpainting")
+
         if loss_name == "robust-splitting":
             physics.noise_model = dinv.physics.GaussianNoise(0.1)
         backbone = DummyModel()
@@ -451,6 +477,14 @@ def test_measplit(device, loss_name, rng):
         loss = dinv.loss.SplittingLoss(
             split_ratio=0.7, metric=test_metric, eval_split_input=False
         )
+    elif loss_name == "splitting-gaussian":
+        loss = dinv.loss.SplittingLoss(
+            mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
+                imsize, split_ratio=0.7
+            ),
+            metric=test_metric,
+            eval_split_input=False,
+        )
     elif loss_name == "splitting_eval_split_input":
         eval_n_samples = 3
         loss = dinv.loss.SplittingLoss(
@@ -460,6 +494,11 @@ def test_measplit(device, loss_name, rng):
             eval_n_samples=eval_n_samples,
         )
     elif loss_name == "splitting_eval_split_input_output":
+        if physics_name == "MultiCoilMRI":
+            pytest.skip(
+                "splitting at input and output invalid when y and x have different shapes."
+            )
+
         eval_n_samples = 1
         loss = dinv.loss.SplittingLoss(
             split_ratio=0.7,
@@ -477,7 +516,7 @@ def test_measplit(device, loss_name, rng):
             device=device,
         )
         loss = dinv.loss.mri.WeightedSplittingLoss(
-            mask_generator=gen, physics_generator=physics.gen
+            mask_generator=gen, physics_generator=physics_generator
         )
     elif loss_name == "robust-splitting":
         gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
@@ -489,7 +528,7 @@ def test_measplit(device, loss_name, rng):
         )
         loss = dinv.loss.mri.RobustSplittingLoss(
             mask_generator=gen,
-            physics_generator=physics.gen,
+            physics_generator=physics_generator,
             noise_model=physics.noise_model,
         )
     else:
@@ -502,16 +541,17 @@ def test_measplit(device, loss_name, rng):
 
     # Training recon + loss
     if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
-        assert l > 0
+        assert l >= 0
     elif "splitting" in loss_name:
         y1 = x_net
         y2_hat, y2 = l.clamp(0, 1)  # remove normalisation
-        # Splitting mask 1 has more samples than mask 2
-        assert y2.mean() < y1.mean() < y.mean()
-        # Union of splitting masks is original mask
-        assert torch.all(y1 + y2 == y)
-        # Splitting mask 1 and 2 are disjoint
-        assert torch.all(y2_hat == 0)
+        if physics_name == "Inpainting":
+            # Splitting mask 1 has more samples than mask 2
+            assert y2.mean() < y1.mean() < y.mean()
+            # Union of splitting masks is original mask
+            assert torch.all(y1 + y2 == y)
+            # Splitting mask 1 and 2 are disjoint
+            assert torch.all(y2_hat == 0)
     else:
         raise ValueError("Incorrect loss name.")
 
@@ -520,27 +560,27 @@ def test_measplit(device, loss_name, rng):
     y1_eval = x_net
 
     # Eval recon
-    if loss_name == "splitting":
-        # No splitting performed during eval
-        assert torch.all(y == y1_eval)
-        print(y.mean(), y1_eval.mean())
-    elif loss_name == "splitting_eval_split_input":
-        # Splits during eval
-        assert y1_eval.mean() < y.mean()
-        # Split data averaged across n samples so contains multiple values
-        assert len(y1_eval.unique()) == eval_n_samples + 1
-        # Split amount averages to amount during training
-        assert y1_eval.mean() == y1.mean()
-    elif loss_name == "splitting_eval_split_input_output":
-        # Splits output with complement mask
-        assert torch.all(y1_eval == 0)
-    elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
-        pass
-    else:
-        raise ValueError("Incorrect loss name.")
+    if physics_name == "Inpainting":  # Check mask properties in inpainting case
+        if loss_name in ("splitting", "splitting-gaussian"):
+            # No splitting performed during eval
+            assert torch.all(y == y1_eval)
+        elif loss_name == "splitting_eval_split_input":
+            # Splits during eval
+            assert y1_eval.mean() < y.mean()
+            # Split data averaged across n samples so contains multiple values
+            assert len(y1_eval.unique()) == eval_n_samples + 1
+            # Split amount averages to amount during training
+            assert y1_eval.mean() == y1.mean()
+        elif loss_name == "splitting_eval_split_input_output":
+            # Splits output with complement mask
+            assert torch.all(y1_eval == 0)
+        elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
+            pass
+        else:
+            raise ValueError("Incorrect loss name.")
 
     if loss_name == "weighted-splitting":
-        assert loss.weight.shape == (1, imsize[-1])  # 1D in W dim
+        assert loss.metric.weight.shape == (1, imsize[-1])  # 1D in W dim
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])

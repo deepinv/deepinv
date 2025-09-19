@@ -103,7 +103,7 @@ class WeightedSplittingLoss(SplittingLoss):
                     f"Metric input tensors should be same image size but got {y1.shape[-2:]}, {y2.shape[-2:]}."
                 )
 
-            if self.weight.shape[1] != y1.shape[-1]:
+            if self.weight.shape[-1] != y1.shape[-1]:
                 warn(
                     f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[-1]} in forward pass. Recalculating weight..."
                 )
@@ -149,7 +149,8 @@ class WeightedSplittingLoss(SplittingLoss):
         img_size: tuple = None,
     ) -> torch.Tensor:
         """
-        Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
+        Compute weight for K-weighted splitting loss where K is a diagonal matrix of shape `(H, W)`,
+        and returned weight is a tensor of shape `(1, W)`.
 
         Estimates the 1D PDFs of the mask generators empirically.
 
@@ -236,13 +237,33 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         self.noise_model = noise_model
         self.noise_model.update_parameters(sigma=noise_model.sigma * alpha)
 
+    @staticmethod
+    def expand_mask(mask, y):
+        """Expand mask intermediate dimensions to match those of y, where intermediate
+        dimensions are those (e.g. slice, coils, time) that are not the first two dims (batch, channel),
+        nor the final two dims (H, W).
+        """
+        return mask.view(
+            *mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[2:]
+        )
+
     def forward(self, x_net, y, physics, model, **kwargs):
+        # Usual weighted splitting loss
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
 
         mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
+
         n2n_metric = self.WeightedMetric(
-            (1 + 1 / (self.alpha**2)) * mask, self.metric.metric, expand=False
+            mask_generator=None,
+            physics_generator=None,
+            weight=(1 + 1 / (self.alpha**2)) * self.expand_mask(mask, y),
+            metric=self.metric.metric,
+            expand=False,
         )
+
+        assert (
+            n2n_metric.weight.shape[-2:] == y.shape[-2:]
+        ), "Mask and y should be same shape"
 
         return recon_loss + n2n_metric(physics.A(x_net), y)
 
@@ -270,7 +291,8 @@ class RobustSplittingLoss(WeightedSplittingLoss):
 
         def split(self, mask, y, physics=None):
             y1, physics1 = SplittingLoss.split(mask, y, physics)
-            return (mask * self.noise_model(y1) if self.training else y1), physics1
+            y1_noisy = RobustSplittingLoss.expand_mask(mask, y1) * self.noise_model(y1)
+            return (y1_noisy if self.training else y1), physics1
 
 
 class Phase2PhaseLoss(SplittingLoss):
