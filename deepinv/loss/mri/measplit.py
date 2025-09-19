@@ -98,7 +98,7 @@ class WeightedSplittingLoss(SplittingLoss):
         def forward(self, y1, y2):
             """Weighted metric forward pass."""
 
-            if y1.shape[-2:] != y2.shape[-2]:
+            if y1.shape[-2:] != y2.shape[-2:]:
                 raise ValueError(
                     f"Metric input tensors should be same image size but got {y1.shape[-2:]}, {y2.shape[-2:]}."
                 )
