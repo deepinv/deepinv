@@ -51,12 +51,12 @@ operation = "tomography"
 
 
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
-angles = 100
+angles = 50
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.Tomography(
     img_width=img_size,
     angles=angles,
-    circle=False,
+    normalize=True,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -79,9 +79,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-stepsize = 0.01 * SCALING
-sigma_denoiser = noise_level_img
-max_iter = 100
+stepsize = 15 * SCALING
+sigma_denoiser = 0.01
+max_iter = 200
 early_stop = True
 
 # Select the data fidelity term
