@@ -278,11 +278,6 @@ class SplittingLoss(Loss):
                     device=y.device,
                 )
 
-            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
-                raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
-                )
-
             with torch.set_grad_enabled(self.training):
                 if not self.eval_split_input and not self.training:
                     # No splitting
@@ -329,8 +324,14 @@ class SplittingLoss(Loss):
             for _ in range(self.eval_n_samples):
                 # Perform input masking
                 mask = self.mask_generator.step(
-                    y.size(0), input_mask=getattr(physics, "mask", None)
+                    batch_size=y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
+                if mask.shape[-2:] != y.shape[-2:]:
+                    raise ValueError(
+                        f"Generated mask should be same shape as y in last 2 dims, but mask has {mask.shape[-2:]} and y has {y.shape[-2:]}"
+                    )
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
