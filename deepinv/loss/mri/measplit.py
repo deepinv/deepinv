@@ -103,7 +103,7 @@ class WeightedSplittingLoss(SplittingLoss):
 
             if self.weight.shape[1] != y1.shape[1]:
                 warn(
-                    "WeightedSplittingLoss detected new y shape in forward pass. Recalculating weight..."
+                    f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[1]} in forward pass. Recalculating weight..."
                 )
                 self.weight = WeightedSplittingLoss.compute_weight(
                     mask_generator=self.mask_generator,
@@ -128,12 +128,14 @@ class WeightedSplittingLoss(SplittingLoss):
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
         self.metric = self.WeightedMetric(
-            self.compute_weight(
+            mask_generator=mask_generator,
+            physics_generator=physics_generator,
+            weight=self.compute_weight(
                 mask_generator=mask_generator,
                 physics_generator=physics_generator,
                 eps=eps,
             ),
-            metric,
+            metric=metric,
         )
         self.normalize_loss = False
 
