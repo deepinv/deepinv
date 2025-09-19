@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, Optional
 from warnings import warn
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator
@@ -81,7 +81,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.max_split_ratio = max_split_ratio
 
     def step(
-        self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
+        self, batch_size=1, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None, seed: int = None, **kwargs
     ) -> dict:
         r"""
         Generate a random mask.
@@ -91,6 +91,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
+        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *img_size)`` with values in {0, 1}.
@@ -98,9 +99,10 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
-        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
-            self.img_size
-        ):
+        if input_mask is not None and img_size is not None:
+            raise ValueError("Only input_mask or img_size can be passed, but not both.")
+
+        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(self.img_size):
             input_mask = input_mask.to(self.device)
             if input_mask.shape[0] > 1:
                 # Batch dim exists in input_mask and it's > 1
@@ -121,10 +123,10 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                     inp = input_mask[b]
                 elif isinstance(input_mask, torch.Tensor):
                     inp = input_mask
-                outs.append(self.batch_step(input_mask=inp, **kwargs))
+                outs.append(self.batch_step(input_mask=inp, img_size=img_size, **kwargs))
             mask = torch.stack(outs)
         else:
-            mask = self.batch_step(input_mask=input_mask, **kwargs)
+            mask = self.batch_step(input_mask=input_mask, img_size=img_size, **kwargs)
 
         return {"mask": mask}
 
@@ -163,13 +165,16 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         return pixelwise
 
-    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
         r"""
         Create one batch of splitting mask.
 
         :param torch.Tensor, None input_mask: optional mask to be split. If ``None``, all pixels are considered. If not ``None``, only pixels where ``mask==1`` are considered. Batch dimension should not be included in shape.
+        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
         """
+
         pixelwise = self.check_pixelwise(input_mask)
+        img_size = self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
 
         if self.random_split_ratio:
             self.split_ratio = (
@@ -202,8 +207,8 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         else:
             # Sample pixels from a uniform distribution as input_mask is not given
-            mask = torch.ones(self.img_size, device=self.device)
-            aux = torch.rand(self.img_size, generator=self.rng, device=self.device)
+            mask = torch.ones(img_size, device=self.device)
+            aux = torch.rand(img_size, generator=self.rng, device=self.device)
             if not pixelwise:
                 mask[aux > self.split_ratio] = 0
             else:
@@ -262,11 +267,14 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         )
         self.split_generator = split_generator
 
-    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
-        mask = self.split_generator.step(batch_size=1, img_size=input_mask.shape[-2:])[
-            "mask"
-        ].squeeze(0)
+    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
+
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
+
+            mask = self.split_generator.step(batch_size=1, img_size=input_mask.shape[-2:])[
+                "mask"
+            ].squeeze(0)
+
             if input_mask.shape[-2:] == mask.shape[-2:]:
                 return mask * input_mask.to(self.device)
             else:
@@ -274,6 +282,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
                     f"Input mask should be same shape as generated mask, but input has shape {input_mask.shape} and generated has shape {mask.shape}"
                 )
         else:
+            mask = self.split_generator.step(batch_size=1, img_size=img_size)["mask"].squeeze(0)
             return mask
 
 
@@ -369,13 +378,14 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         )
         return gaussian
 
-    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None,) -> dict:
         r"""
         Create one batch of splitting mask using Gaussian distribution.
 
         Adapted from https://github.com/byaman14/SSDU/blob/main/masks/ssdu_masks.py from SSDU :footcite:t:`yaman2020self`.
 
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. No batch dim in shape.
+        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
         """
         pixelwise = self.check_pixelwise()
         _T = self.img_size[1] if len(self.img_size) > 3 else 1
@@ -383,7 +393,8 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
         # Create blank input mask if not specified. Create with time dim even if we only want static mask
         if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
-            input_mask = torch.ones(_C, _T, *self.img_size[-2:], device=self.device)
+            img_size = img_size if img_size is not None else self.img_size
+            input_mask = torch.ones(_C, _T, *img_size[-2:], device=self.device)
 
         if len(input_mask.shape) < len(self.img_size):
             # Missing channel dim, so create it
@@ -476,15 +487,16 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             rng=rng,
         )
 
-    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
         if len(self.img_size) != 4:
-            raise ValueError("img_size must be of shape (C, T, H, W)")
+            raise ValueError("Default img_size must be of shape (C, T, H, W)")
+
+        if input_mask is not None and input_mask.shape != self.img_size:
+            raise ValueError("input_mask must be same shape as default img_size")
 
         if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
-            input_mask = torch.ones(self.img_size, device=self.device)
-
-        if tuple(input_mask.shape) != self.img_size:
-            raise ValueError("input_mask must be same shape as img_size")
+            img_size = self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
+            input_mask = torch.ones(img_size, device=self.device)
 
         mask_out = torch.zeros_like(input_mask)
         mask_out[:, ::2] = input_mask[:, ::2]
@@ -524,7 +536,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
         self.prev_split_size = None
 
     def batch_step(
-        self, input_mask: torch.Tensor = None, persist_prev: bool = False
+        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None, persist_prev: bool = False,
     ) -> dict:
         def rand_select(arr):
             return arr[
@@ -534,7 +546,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
             ]
 
         # Do Phase2Phase step to check input dimensions
-        _ = super().batch_step(input_mask=input_mask)
+        _ = super().batch_step(input_mask=input_mask, img_size=None)
 
         # Choose split_size
         split_size = self.split_size

@@ -70,7 +70,11 @@ class WeightedSplittingLoss(SplittingLoss):
     class WeightedMetric(torch.nn.Module):
         """Wraps metric to apply weight on inputs
 
+        Note `mask_generator` and `physics_generator` are only used to regenerate the weight in the case that y has different shapes during training.
+
         :param torch.Tensor: loss weight.
+        :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+        :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
         :param Metric, torch.nn.Module metric: loss metric.
         :param bool expand: whether expand weight to input dims
         """
@@ -78,16 +82,27 @@ class WeightedSplittingLoss(SplittingLoss):
         def __init__(
             self,
             weight: torch.Tensor,
+            mask_generator: BernoulliSplittingMaskGenerator,
+            physics_generator: BaseMaskGenerator,
             metric: Union[Metric, torch.nn.Module],
             expand: bool = True,
         ):
             super().__init__()
             self.weight = weight
             self.metric = metric
+            self.mask_generator = mask_generator
+            self.physics_generator = physics_generator
             self.expand = lambda w, y: w.expand_as(y) if expand else w
 
         def forward(self, y1, y2):
             """Weighted metric forward pass."""
+            
+            if y1.shape[-2:] != y2.shape[-2]:
+                raise ValueError("Metric input tensors should be same image size.")
+            
+            if self.weight.shape[1] != y1.shape[1]:
+                self.weight = WeightedSplittingLoss.compute_weight(mask_generator=self.mask_generator, physics_generator=self.physics_generator, img_size=y1.shape[-2:])
+            
             return self.metric(
                 self.expand(self.weight, y1) * y1, self.expand(self.weight, y2) * y2
             )
@@ -104,23 +119,27 @@ class WeightedSplittingLoss(SplittingLoss):
         super().__init__(eval_split_input=False, pixelwise=True)
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
-        self.name = "WeightedSplitting"
-        self.k = self.compute_k(eps=eps)
-        self.weight = (1 - self.k).clamp(min=eps) ** (-0.5)
-        self.metric = self.WeightedMetric(self.weight, metric)
+        self.metric = self.WeightedMetric(
+            self.compute_weight(mask_generator=mask_generator, physics_generator=physics_generator, eps=eps),
+            metric
+        )
         self.normalize_loss = False
 
-    def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
+    @staticmethod
+    def compute_weight(mask_generator: BernoulliSplittingMaskGenerator, physics_generator: BaseMaskGenerator, eps: float = 1e-9, img_size: tuple = None) -> torch.Tensor:
         """
         Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
 
         Estimates the 1D PDFs of the mask generators empirically.
 
+        :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+        :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
         :param float eps: small value to avoid division by zero.
+        :param tuple img_size: desired mask shape `(H, W)`. If `None`, use default provided in `physics_generator` and `mask_generator`.
         """
 
-        P = self.physics_generator.average()["mask"]
-        P_tilde = self.mask_generator.average()["mask"]
+        P = physics_generator.average(img_size=img_size)["mask"]
+        P_tilde = mask_generator.average(img_size=img_size)["mask"]
 
         if P.shape != P_tilde.shape:
             raise ValueError(
@@ -141,7 +160,10 @@ class WeightedSplittingLoss(SplittingLoss):
 
         # element-wise multiplication to get K
         k_weight = inv_diag_1_minus_PtP * diag_1_minus_P
-        return k_weight.unsqueeze(0)
+        k_weight = k_weight.unsqueeze(0) # (1, W)
+
+        # Calculate weight from K
+        return (1 - k_weight).clamp(min=eps) ** (-0.5)
 
 
 class RobustSplittingLoss(WeightedSplittingLoss):
