@@ -103,9 +103,9 @@ class WeightedSplittingLoss(SplittingLoss):
                     f"Metric input tensors should be same image size but got {y1.shape[-2:]}, {y2.shape[-2:]}."
                 )
 
-            if self.weight.shape[1] != y1.shape[1]:
+            if self.weight.shape[1] != y1.shape[-1]:
                 warn(
-                    f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[1]} in forward pass. Recalculating weight..."
+                    f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[-1]} in forward pass. Recalculating weight..."
                 )
                 self.weight = WeightedSplittingLoss.compute_weight(
                     mask_generator=self.mask_generator,
