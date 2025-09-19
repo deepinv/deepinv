@@ -900,6 +900,30 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
         assert all(
             isinstance(title, str) for title in titles
         ), "All titles should be strings."
+        assert len(imgs) == len(
+            titles
+        ), "Number of images should match number of titles."
+        assert len(imgs) == sum(v is not None for v in [x, y, x_net, x_nl])
+
+
+@pytest.mark.parametrize(
+    "x",
+    [
+        torch.randn((32, 1, 10, 10)),
+        torch.randn((32, 2, 10, 10)),
+        torch.randn((32, 3, 10, 10)),
+    ],
+)
+def test_prepare_images_shapes(x):
+    imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
+        x, y=x, x_net=x, x_nl=x, rescale_mode="min_max"
+    )
+
+    # Check that the grid image has the correct shape (4 below = number of non None inputs)
+    num_inputs = 4  # x, y, x_net, x_nl
+    assert grid_image.shape == torch.Size(
+        [3, num_inputs * (x.shape[-1] + 2) + 2, x.shape[0] * (x.shape[-2] + 2) + 2]
+    )
 
 
 # Module-level fixtures
