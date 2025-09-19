@@ -274,7 +274,10 @@ class SplittingLoss(Loss):
                     f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
                 )
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    img_size=(y.shape[1], *y.shape[-2:]), # (C, H, W) with no intermediate dims
+                    img_size=(
+                        y.shape[1],
+                        *y.shape[-2:],
+                    ),  # (C, H, W) with no intermediate dims
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
