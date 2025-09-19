@@ -10,6 +10,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
+- Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`789` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
