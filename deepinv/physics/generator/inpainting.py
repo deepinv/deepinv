@@ -81,7 +81,12 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.max_split_ratio = max_split_ratio
 
     def step(
-        self, batch_size=1, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None, seed: int = None, **kwargs
+        self,
+        batch_size=1,
+        input_mask: torch.Tensor = None,
+        img_size: Optional[tuple] = None,
+        seed: int = None,
+        **kwargs,
     ) -> dict:
         r"""
         Generate a random mask.
@@ -102,7 +107,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         if input_mask is not None and img_size is not None:
             raise ValueError("Only input_mask or img_size can be passed, but not both.")
 
-        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(self.img_size):
+        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
+            self.img_size
+        ):
             input_mask = input_mask.to(self.device)
             if input_mask.shape[0] > 1:
                 # Batch dim exists in input_mask and it's > 1
@@ -123,7 +130,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                     inp = input_mask[b]
                 elif isinstance(input_mask, torch.Tensor):
                     inp = input_mask
-                outs.append(self.batch_step(input_mask=inp, img_size=img_size, **kwargs))
+                outs.append(
+                    self.batch_step(input_mask=inp, img_size=img_size, **kwargs)
+                )
             mask = torch.stack(outs)
         else:
             mask = self.batch_step(input_mask=input_mask, img_size=img_size, **kwargs)
@@ -165,7 +174,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         return pixelwise
 
-    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
+    def batch_step(
+        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+    ) -> dict:
         r"""
         Create one batch of splitting mask.
 
@@ -174,7 +185,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         """
 
         pixelwise = self.check_pixelwise(input_mask)
-        img_size = self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
+        img_size = (
+            self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
+        )
 
         if self.random_split_ratio:
             self.split_ratio = (
@@ -267,13 +280,15 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         )
         self.split_generator = split_generator
 
-    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
+    def batch_step(
+        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+    ) -> dict:
 
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
 
-            mask = self.split_generator.step(batch_size=1, img_size=input_mask.shape[-2:])[
-                "mask"
-            ].squeeze(0)
+            mask = self.split_generator.step(
+                batch_size=1, img_size=input_mask.shape[-2:]
+            )["mask"].squeeze(0)
 
             if input_mask.shape[-2:] == mask.shape[-2:]:
                 return mask * input_mask.to(self.device)
@@ -282,7 +297,9 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
                     f"Input mask should be same shape as generated mask, but input has shape {input_mask.shape} and generated has shape {mask.shape}"
                 )
         else:
-            mask = self.split_generator.step(batch_size=1, img_size=img_size)["mask"].squeeze(0)
+            mask = self.split_generator.step(batch_size=1, img_size=img_size)[
+                "mask"
+            ].squeeze(0)
             return mask
 
 
@@ -378,7 +395,11 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         )
         return gaussian
 
-    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None,) -> dict:
+    def batch_step(
+        self,
+        input_mask: torch.Tensor = None,
+        img_size: Optional[tuple] = None,
+    ) -> dict:
         r"""
         Create one batch of splitting mask using Gaussian distribution.
 
@@ -487,7 +508,9 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             rng=rng,
         )
 
-    def batch_step(self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None) -> dict:
+    def batch_step(
+        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+    ) -> dict:
         if len(self.img_size) != 4:
             raise ValueError("Default img_size must be of shape (C, T, H, W)")
 
@@ -495,7 +518,11 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             raise ValueError("input_mask must be same shape as default img_size")
 
         if not isinstance(input_mask, torch.Tensor) or input_mask.numel() <= 1:
-            img_size = self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
+            img_size = (
+                self.img_size
+                if img_size is None
+                else self.img_size[:-2] + img_size[-2:]
+            )
             input_mask = torch.ones(img_size, device=self.device)
 
         mask_out = torch.zeros_like(input_mask)
@@ -536,7 +563,10 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
         self.prev_split_size = None
 
     def batch_step(
-        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None, persist_prev: bool = False,
+        self,
+        input_mask: torch.Tensor = None,
+        img_size: Optional[tuple] = None,
+        persist_prev: bool = False,
     ) -> dict:
         def rand_select(arr):
             return arr[

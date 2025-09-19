@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Optional, Union
+from warnings import warn
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -96,13 +97,20 @@ class WeightedSplittingLoss(SplittingLoss):
 
         def forward(self, y1, y2):
             """Weighted metric forward pass."""
-            
+
             if y1.shape[-2:] != y2.shape[-2]:
                 raise ValueError("Metric input tensors should be same image size.")
-            
+
             if self.weight.shape[1] != y1.shape[1]:
-                self.weight = WeightedSplittingLoss.compute_weight(mask_generator=self.mask_generator, physics_generator=self.physics_generator, img_size=y1.shape[-2:])
-            
+                warn(
+                    "WeightedSplittingLoss detected new y shape in forward pass. Recalculating weight..."
+                )
+                self.weight = WeightedSplittingLoss.compute_weight(
+                    mask_generator=self.mask_generator,
+                    physics_generator=self.physics_generator,
+                    img_size=y1.shape[-2:],
+                )
+
             return self.metric(
                 self.expand(self.weight, y1) * y1, self.expand(self.weight, y2) * y2
             )
@@ -120,13 +128,22 @@ class WeightedSplittingLoss(SplittingLoss):
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
         self.metric = self.WeightedMetric(
-            self.compute_weight(mask_generator=mask_generator, physics_generator=physics_generator, eps=eps),
-            metric
+            self.compute_weight(
+                mask_generator=mask_generator,
+                physics_generator=physics_generator,
+                eps=eps,
+            ),
+            metric,
         )
         self.normalize_loss = False
 
     @staticmethod
-    def compute_weight(mask_generator: BernoulliSplittingMaskGenerator, physics_generator: BaseMaskGenerator, eps: float = 1e-9, img_size: tuple = None) -> torch.Tensor:
+    def compute_weight(
+        mask_generator: BernoulliSplittingMaskGenerator,
+        physics_generator: BaseMaskGenerator,
+        eps: float = 1e-9,
+        img_size: tuple = None,
+    ) -> torch.Tensor:
         """
         Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
 
@@ -160,7 +177,7 @@ class WeightedSplittingLoss(SplittingLoss):
 
         # element-wise multiplication to get K
         k_weight = inv_diag_1_minus_PtP * diag_1_minus_P
-        k_weight = k_weight.unsqueeze(0) # (1, W)
+        k_weight = k_weight.unsqueeze(0)  # (1, W)
 
         # Calculate weight from K
         return (1 - k_weight).clamp(min=eps) ** (-0.5)
