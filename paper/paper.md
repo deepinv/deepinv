@@ -232,7 +232,7 @@ for classes. The documentation is generated using Sphinx and Sphinx-Gallery [@na
 
 DeepInverse has been used in various recent computational imaging works, including self-supervised learning [@wang2024perspective] [@tachella2025unsure], 
 plug-and-play methods [@terris2024equivariant] [@park2025plug], foundation models [@terris2025ram], phase-retrieval [@hu2025structured], uncertainty quantification [@tachella2024equivariant]
-and benchmarking methods [@wang2025benchmarking].
+and benchmarking [@wang2025benchmarking].
 
 # Perspectives
 
