@@ -6,69 +6,70 @@ tags:
   - imaging inverse problems
   - computational imaging
   - deep learning
+
 authors:
   - name: Julián Tachella
     orcid: 0000-0003-3878-9142
-    equal-contrib: true
-    corresponding: true 
+    corresponding: true
     affiliation: 1
   - name: Matthieu Terris
     equal-contrib: true
     affiliation: 2
   - name: Samuel Hurault
-    equal-contrib: true 
+    equal-contrib: true
     affiliation: 3
   - name: Andrew Wang
     orcid: 0000-0003-0838-7986
-    equal-contrib: true 
+    equal-contrib: true
     affiliation: 4
-  - name: Dongdong Chen
-    affiliation: 5
-  - name: Minh-Hai Nguyen
-    affiliation: 8
-  - name: Maxime Song
-    affiliation: 14
-  - name: Thomas Davies
-    affiliation: "4, 5"
-  - name: Leo Davy  
+
+  - name: Leo Davy
     affiliation: 1
-  - name: Jonathan Dong  
-    affiliation: 7
-  - name: Paul Escande  
-    affiliation: 9
-  - name: Johannes Hertrich  
-    affiliation: 15
-  - name: Zhiyuan Hu  
-    affiliation: 7
-  - name: Tobías I. Liaudat  
-    affiliation: 13
-  - name: Nils Laurent  
-    affiliation: 6
-  - name: Brett Levac  
-    affiliation: 12
-  - name: Mathurin Massias  
-    affiliation: 10
-  - name: Thomas Moreau  
-    affiliation: 2
-  - name: Thibaut Modrzyk  
-    affiliation: 11
-  - name: Brayan Monroy  
-    affiliation: 6
-  - name: Sebastian Neumayer
-    affiliation: 16
-  - name: Jérémy Scanvic  
+  - name: Jérémy Scanvic
     affiliation: 1
-  - name: Florian Sarron  
-    affiliation: 8
-  - name: Victor Sechaud  
+  - name: Victor Sechaud
     affiliation: 1
-  - name: Georg Schramm  
-    affiliation: 17
-    orcid: 0000-0002-2251-3195
   - name: Romain Vo
     affiliation: 1
-  - name: Pierre Weiss  
-    affiliation: 8  
+  - name: Thomas Moreau
+    affiliation: 2
+  - name: Thomas Davies
+    affiliation: "4, 5"
+  - name: Dongdong Chen
+    affiliation: 5
+  - name: Nils Laurent
+    affiliation: 6
+  - name: Brayan Monroy
+    affiliation: 6
+  - name: Jonathan Dong
+    affiliation: 7
+  - name: Zhiyuan Hu
+    affiliation: 7
+  - name: Minh-Hai Nguyen
+    affiliation: 8
+  - name: Florian Sarron
+    affiliation: 8
+  - name: Pierre Weiss
+    affiliation: 8
+  - name: Paul Escande
+    affiliation: 9
+  - name: Mathurin Massias
+    affiliation: 10
+  - name: Thibaut Modrzyk
+    affiliation: 11
+  - name: Brett Levac
+    affiliation: 12
+  - name: Tobías I. Liaudat
+    affiliation: 13
+  - name: Maxime Song
+    affiliation: 14
+  - name: Johannes Hertrich
+    affiliation: 15
+  - name: Sebastian Neumayer
+    affiliation: 16
+  - name: Georg Schramm
+    orcid: 0000-0002-2251-3195
+    affiliation: 17
 
 affiliations:
   - name: CNRS, ENS de Lyon, France
@@ -105,7 +106,7 @@ affiliations:
     index: 16
   - name: Department of Imaging and Pathology, KU Leuven, Belgium
     index: 17
-
+    
 date: 15 May 2025
 bibliography: paper.bib
 
