@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch.nn as nn
 from torch import Tensor
 from torch import rand
+import torch
 from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
@@ -342,25 +343,26 @@ class CSGMGenerator(Reconstructor):
         :param Physics physics: forward model
         :return: optimized latent z
         """
-        z = nn.Parameter(z)
-        optimizer = Adam([z], lr=self.inf_lr)
-        err_prev = 999
+        with torch.enable_grad():
+            z = nn.Parameter(z)
+            optimizer = Adam([z], lr=self.inf_lr)
+            err_prev = 999
 
-        pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
-        for i in pbar:
-            x_hat = self.backbone_generator(z)
-            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
-            optimizer.zero_grad()
-            error.backward()
-            optimizer.step()
+            pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
+            for i in pbar:
+                x_hat = self.backbone_generator(z)
+                error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+                optimizer.zero_grad()
+                error.backward()
+                optimizer.step()
 
-            err_curr = error.item()
-            err_perc = abs(err_curr - err_prev) / err_curr
-            err_prev = err_curr
-            pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
+                err_curr = error.item()
+                err_perc = abs(err_curr - err_prev) / err_curr
+                err_prev = err_curr
+                pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
 
-            if err_perc < self.inf_tol:
-                break
+                if err_perc < self.inf_tol:
+                    break
         return z
 
     def forward(self, y: Tensor, physics: Physics, *args, **kwargs):
