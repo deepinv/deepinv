@@ -14,11 +14,13 @@ New Features
 Changed
 ^^^^^^^
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Allow self-supervised eval by removing the model.eval() from Trainer.train() (:gh:`777` by `Julian Tachella`_)
 
 Fixed
 ^^^^^
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
+- Save training loss history (:gh:`777` by `Julian Tachella`_)
 
 
 v0.3.4
