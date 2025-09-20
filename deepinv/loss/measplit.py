@@ -270,17 +270,17 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
-                warn("Mask generator not defined. Using new Bernoulli mask generator.")
+                warn(
+                    f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
+                )
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    img_size=y.shape[1:],
+                    img_size=(
+                        y.shape[1],
+                        *y.shape[-2:],
+                    ),  # (C, H, W) with no intermediate dims
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
-                )
-
-            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
-                raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -306,9 +306,11 @@ class SplittingLoss(Loss):
 
             for _ in range(eval_n_samples):
                 # Perform input masking
+
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
@@ -329,8 +331,14 @@ class SplittingLoss(Loss):
             for _ in range(self.eval_n_samples):
                 # Perform input masking
                 mask = self.mask_generator.step(
-                    y.size(0), input_mask=getattr(physics, "mask", None)
+                    batch_size=y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
+                if mask.shape[-2:] != y.shape[-2:]:
+                    raise ValueError(
+                        f"Generated mask should be same shape as y in last 2 dims, but mask has {mask.shape[-2:]} and y has {y.shape[-2:]}"
+                    )
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
