@@ -310,7 +310,6 @@ class SplittingLoss(Loss):
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
-                # print(physics.mask.shape, mask.shape)
 
                 y1, physics1 = self.split(mask, y, physics)
 

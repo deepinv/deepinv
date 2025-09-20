@@ -490,6 +490,10 @@ def test_inpainting_generators(
         29,
     )
 
+    # Raise error if input_mask and img_size both passed
+    with pytest.raises(ValueError):
+        gen.step(img_size=(20, 20), input_mask=(2, 20, 20))
+
 
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("device", DEVICES)

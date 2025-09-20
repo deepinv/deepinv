@@ -1,9 +1,7 @@
 import pytest
-
 import math
 import numpy as np
 import torch
-
 import deepinv
 from dummy import DummyCircles, DummyModel
 from torch.utils.data import DataLoader
@@ -579,8 +577,53 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         else:
             raise ValueError("Incorrect loss name.")
 
-    if loss_name == "weighted-splitting":
+    # Other checks for weighted-splitting
+    if loss_name in ("weighted-splitting", "robust-splitting"):
         assert loss.metric.weight.shape == (1, imsize[-1])  # 1D in W dim
+        with pytest.raises(ValueError):
+            # Weighted metric needs same shape inputs
+            loss.metric(torch.ones_like(y), torch.ones(*y.shape[:-1], y.shape[-1] + 2))
+        with pytest.raises(ValueError):
+            # Weight computation needs same shape generators
+            loss.compute_weight(
+                mask_generator=loss.mask_generator,
+                physics_generator=dinv.physics.generator.GaussianMaskGenerator(
+                    (2, 91, 93), acceleration=2, device=device, rng=rng
+                ),
+            )
+    elif loss_name == "splitting_eval_split_input_output":
+        # Minor check but honestly this should never happen in practice
+        with pytest.raises(ValueError):
+            y = torch.ones(
+                *y.shape[:-1], y.shape[-1] + 1, dtype=y.dtype, device=y.device
+            )
+            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+    # Test loss works even after updating new x shape
+    x = torch.ones((batch_size, 2, 68, 70), device=device)
+
+    if physics_name == "Inpainting":
+        physics.update(mask=torch.ones_like(x))
+    elif physics_name == "MultiCoilMRI":
+        new_mask = torch.ones_like(x)
+        new_maps = torch.ones(
+            batch_size, 4, x.shape[-2], x.shape[-1], dtype=torch.complex64
+        )
+        physics.update(mask=new_mask, coil_maps=new_maps)
+    elif physics_name == "Denoising":
+        pass
+
+    y = physics(x)
+    f.train()
+    x_net = f(y, physics, update_parameters=True)
+    if loss_name in ("weighted-splitting", "robust-splitting"):
+        with pytest.warns(UserWarning, match="Recalculating weight"):
+            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+    else:
+        loss.metric = torch.nn.MSELoss()
+        l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+    assert l >= 0.0
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
