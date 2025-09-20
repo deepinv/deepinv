@@ -330,7 +330,7 @@ class Trainer:
         if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
 
-        if len(self.metrics) == 0:
+        if len(self.metrics) == 0 and not train:
             self.compute_losses_eval = True
 
         # losses
@@ -1275,9 +1275,6 @@ class Trainer:
         """
         if metrics is not None:
             self.metrics = metrics
-        self.compute_metrics_on_eval_mode = (
-            True  # always compute metrics in eval mode at test time
-        )
         self.compare_no_learning = compare_no_learning
         self.setup_train(train=False)
 

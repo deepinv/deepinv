@@ -124,7 +124,7 @@ def check_dataset_format(
                     online_measurements=True,
                     save_path=None,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=None,
                 ).setup_train(train=True)
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
@@ -135,7 +135,7 @@ def check_dataset_format(
                     physics,
                     online_measurements=True,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=None,
                 )
 
             except ValueError as e:
