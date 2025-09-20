@@ -228,6 +228,12 @@ subclasses provide specific method implementations or special cases, reducing co
 The library provides a [**user guide**](https://deepinv.github.io/deepinv/user_guide.html), which also serves as a tutorial on computational imaging, [quickstart](https://deepinv.github.io/deepinv/quickstart.html) and in-depth [**examples**](https://deepinv.github.io/deepinv/auto_examples/index.html) for all levels of user, and individual [API documentation](https://deepinv.github.io/deepinv/API.html)
 for classes. The documentation is generated using Sphinx and Sphinx-Gallery [@najera2023sphinxgallery], tested using `doctest`, and uses consistent mathematical notation throughout.
 
+# Research Use
+
+DeepInverse has been used in various recent computational imaging works, including self-supervised learning [@wang2024perspective] [@tachella2025unsure], 
+plug-and-play methods [@terris2024equivariant] [@park2025plug], foundation models [@terris2025ram], phase-retrieval [@hu2025structured], uncertainty quantification [@tachella2024equivariant]
+and benchmarking methods [@wang2025benchmarking].
+
 # Perspectives
 
 DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress. The community is continuously contributing more methods reflecting state-of-the-art in imaging with deep learning, addressing the needs and interests of researchers and practitioners.
