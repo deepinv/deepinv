@@ -7,7 +7,7 @@ import torch.nn as nn
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -34,20 +34,20 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 
 
 def least_squares(
-    A,
-    AT,
-    y,
-    z=0.0,
-    init=None,
-    gamma=None,
-    parallel_dim=0,
-    AAT=None,
-    ATA=None,
-    solver="CG",
-    max_iter=100,
-    tol=1e-6,
+    A: Callable,
+    AT: Callable,
+    y: Tensor,
+    z: Optional[Union[Tensor, float]] = 0.0,
+    init: Optional[Tensor] = None,
+    gamma: Optional[Union[float, Tensor]] = None,
+    parallel_dim: int = 0,
+    AAT: Optional[Callable] = None,
+    ATA: Optional[Callable] = None,
+    solver: str = "CG",
+    max_iter: int = 100,
+    tol: float = 1e-6,
     **kwargs,
-):
+) -> Tensor:
     r"""
     Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
 
@@ -911,7 +911,9 @@ class LeastSquaresSolver(torch.autograd.Function):
         if needs[4]:
             diff = h - z
             # vdot gives correct conjugation for complex; .real keeps real scalar
-            grads[4] = torch.vdot(mv.flatten(), diff.flatten()).real / (gamma**2)
+            grads[4] = torch.sum(
+                mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
+            ).real / (gamma**2)
 
         # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
         params = [
