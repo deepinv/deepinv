@@ -37,6 +37,18 @@ class RAM(Reconstructor, Denoiser):
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
     :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
+
+    |sep|
+
+      >>> import deepinv as dinv
+      >>> x = dinv.utils.load_example("butterfly.png")
+      >>> physics = dinv.physics.Downsampling(filter="bicubic")
+      >>> y = physics(x)
+      >>> model = dinv.models.RAM(pretrained=True) # or any of the models listed below
+      >>> x_hat = model(y, physics) # Model inference
+      >>> dinv.metric.PSNR()(x_hat, x)
+      tensor([31.9902])
+
     """
 
     def __init__(
