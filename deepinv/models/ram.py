@@ -175,6 +175,8 @@ class RAM(Reconstructor, Denoiser):
         snr = num / (sigma + 1e-4)  # SNR equivariant
         gamma = 1 / (1e-4 + 1 / (snr * f**2))
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
+        gamma = gamma * self.fact_realign
+        gamma = gamma.clamp(min=1e-8)  # clamp to avoid negative or zero gamma
         model_input = physics.prox_l2(x, y, gamma=gamma * self.fact_realign)
 
         return model_input

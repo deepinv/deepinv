@@ -78,8 +78,7 @@ def least_squares(
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
-    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to 0 (no regularization).
-        If batched, all values must be either strictly positive or zero.
+    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to :math:`\infty` (no regularization).
     :param str solver: solver to be used.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
@@ -92,23 +91,24 @@ def least_squares(
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
-    zero_gamma = False
     if gamma is None:
-        gamma = 0.0
+        gamma = torch.tensor(0.0, device=y.device)
         zero_gamma = True
-    elif isinstance(gamma, (int, float)):
-        zero_gamma = not (gamma > 0)
-    elif isinstance(gamma, Tensor):
-        zero_gamma = not torch.any(gamma > 0)
-        if not zero_gamma:
-            gamma[gamma <= 0] = 1e8  # guardrails
-            warnings.warn(
-                "The least square solver requires that all gamma > 0, or gamma=0. "
-                "Since the current batch has both cases, setting gamma <=0 to 1e-8."
-            )
+    else:
+        zero_gamma = False
+
+    if not isinstance(gamma, Tensor):
+        gamma = torch.tensor(gamma, device=y.device)
+
+    if torch.any(gamma < 0):
+        warnings.warn(
+            "Regularization parameter of least squares problem (gamma) should be non-negative."
+            "Otherwise, the problem can become non-convex and the solvers are not designed for that."
+            "Continuing anyway..."
+        )
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if not zero_gamma else 0
+        eta = 1 / gamma if not zero_gamma else None
         x, _ = lsqr(
             A,
             AT,
@@ -493,8 +493,13 @@ def lsqr(
     if not isinstance(eta, Tensor):
         eta = torch.tensor(eta, device=device)
 
-    if torch.any(eta > 0):
-        eta_sqrt = torch.sqrt(eta)
+    if torch.any(eta < 0):
+        raise ValueError(
+            "Damping parameter eta must be non-negative. LSQR cannot be applied to problems with negative eta."
+        )
+
+    # this should be safe as eta should be non-negative
+    eta_sqrt = torch.sqrt(eta)
 
     # ctol = 1 / conlim if conlim > 0 else 0
     anorm = 0.0
