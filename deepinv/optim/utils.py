@@ -57,6 +57,18 @@ def least_squares(
     The solvers are stopped either when :math:`\|Ax-y\| \leq \text{tol} \times \|y\|` or
     when the maximum number of iterations is reached.
 
+    The solution depends on the regularization parameter :math:`\gamma`:
+
+    - If :math:`\gamma = \infty` (default), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
+        - If :math:`A` is overcomplete (more rows than columns), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`.
+        - If :math:`A` is undercomplete (more columns than rows), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+    - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
+
+    .. warning::
+
+        If :math:`\gamma \leq 0`, the problem can become non-convex and the solvers are not designed for that.
+        A warning is raised, but solvers continue anyway (except for LSQR, which cannot be used for negative :math:`\gamma`).
+
     Available solvers are:
 
     - `'CG'`: `Conjugate Gradient <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
@@ -490,6 +502,8 @@ def lsqr(
         else:
             return v * alpha.view(Atb_shape)
 
+    if eta is None:
+        eta = 0.0
     if not isinstance(eta, Tensor):
         eta = torch.tensor(eta, device=device)
 

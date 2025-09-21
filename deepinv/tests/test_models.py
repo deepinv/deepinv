@@ -906,7 +906,10 @@ def test_restoration_models(
         if physics is not None:
             physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
 
-    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0)
+    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0).to(device)
+
+    # make batch with > 1 element to test batch processing
+    x = x.repeat(2, 1, 1, 1)
 
     if physics is not None:
         y = physics(x)
