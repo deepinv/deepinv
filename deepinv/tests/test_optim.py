@@ -1005,7 +1005,7 @@ def test_condition_number(device):
 @pytest.mark.parametrize("solver", solvers)
 def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
-    batch_size = 1
+    batch_size = 1  # TODO: test batching
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
@@ -1022,7 +1022,12 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check gradients w.r.t y, z, gamma
     y.requires_grad_(True)
     z = torch.randn_like(x).requires_grad_(True)
-    gamma = torch.tensor(0.4, dtype=dtype, requires_grad=True)
+    gamma = (
+        torch.ones(
+            (batch_size, 1, 1, 1), dtype=dtype, device=device, requires_grad=True
+        )
+        * 0.4
+    )
     init = torch.zeros_like(z).requires_grad_(False)
 
     # This check can be quite slow since it needs to compute finite differences in all directions

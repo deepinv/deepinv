@@ -9,9 +9,6 @@ from deepinv.utils.compat import zip_strict
 import warnings
 from typing import Callable, Union, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from deepinv.physics import LinearPhysics
-
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
     if crit_conv == "residual":
@@ -827,6 +824,7 @@ class LeastSquaresSolver(torch.autograd.Function):
     Custom autograd function for the least squares solver to enable O(1) memory backward propagation using implicit differentiation.
 
     The forward pass solves the following problem using :func:`deepinv.optim.utils.least_squares`:
+
     .. math::
 
         \min_x \|A_\theta x - y \|^2 + \frac{1}{\gamma} \|x - z\|^2
@@ -834,7 +832,8 @@ class LeastSquaresSolver(torch.autograd.Function):
     where :math:`A_\theta` is a linear operator :class:`deepinv.physics.LinearPhysics` parameterized by :math:`\theta`.
 
     .. note::
-        This function uses a `least_squares` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.utils.least_squares` for more details).
+
+        This function uses a :func:`least squares <deepinv.optim.utils.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.utils.least_squares` for more details).
 
     The backward pass computes the gradients with respect to the inputs using implicit differentiation.
     """
@@ -844,11 +843,11 @@ class LeastSquaresSolver(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        physics: "LinearPhysics",
+        physics,
         y: Tensor,
         z: Tensor,
         init: Tensor,
-        gamma: float,
+        gamma: Union[float, Tensor],
         trigger: Tensor = None,
         extra_kwargs: dict = None,
     ):
@@ -944,7 +943,7 @@ class LeastSquaresSolver(torch.autograd.Function):
 
 # wrapper of the autograd function for easier use
 def least_squares_implicit_backward(
-    physics: "LinearPhysics",
+    physics,
     y: Tensor,
     z: Tensor = None,
     init: Tensor = None,
@@ -1004,11 +1003,11 @@ def least_squares_implicit_backward(
 
         Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations. 
 
-    :param deepinv.physics.LinearPhysics: physics operator :class:`deepinv.physics.LinearPhysics`.
+    :param deepinv.physics.LinearPhysics physics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
-    :param Optional[torch.Tensor] init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
-    :param Optional[float, torch.Tensor] gamma: regularization parameter :math:`\gamma > 0`. Default is `None`. Can be batched (shape (B, ...)) or a scalar.
+    :param None, torch.Tensor init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
+    :param None, float, torch.Tensor gamma: regularization parameter :math:`\gamma > 0`. Default is `None`. Can be batched (shape (B, ...)) or a scalar.
     :param kwargs: additional arguments to be passed to the least squares solver.
 
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
