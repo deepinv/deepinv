@@ -890,7 +890,10 @@ least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_vali
 @pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("implicit_backward_solver", [False, True])
-def test_least_square_solvers(device, solver, physics_name, implicit_backward_solver):
+@pytest.mark.parametrize("gamma_scalar", [False, True])
+def test_least_square_solvers(
+    device, solver, physics_name, implicit_backward_solver, gamma_scalar
+):
     batch_size = 4
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
@@ -908,7 +911,10 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
     ).all()
 
     z = x.clone()
-    gamma = 1.0
+    if gamma_scalar:
+        gamma = 1.0
+    else:
+        gamma = torch.ones((batch_size, 1, 1, 1), device=device)
 
     x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 

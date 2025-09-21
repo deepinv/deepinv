@@ -78,7 +78,8 @@ def least_squares(
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
-    :param None, float gamma: (Optional) inverse regularization parameter.
+    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to 0 (no regularization).
+        If batched, all values must be either strictly positive or zero.
     :param str solver: solver to be used.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
@@ -90,11 +91,24 @@ def least_squares(
     """
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
+
+    zero_gamma = False
     if gamma is None:
         gamma = 0.0
+        zero_gamma = True
+    elif isinstance(gamma, (int, float)):
+        zero_gamma = not (gamma > 0)
+    elif isinstance(gamma, Tensor):
+        zero_gamma = not torch.any(gamma > 0)
+        if not zero_gamma:
+            gamma[gamma <= 0] = 1e8  # guardrails
+            warnings.warn(
+                "The least square solver requires that all gamma > 0, or gamma=0. "
+                "Since the current batch has both cases, setting gamma <=0 to 1e-8."
+            )
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if gamma > 0 else 0
+        eta = 1 / gamma if not zero_gamma else 0
         x, _ = lsqr(
             A,
             AT,
@@ -121,7 +135,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if gamma > 0:
+            if not zero_gamma:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -168,7 +182,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if gamma == 0 and not overcomplete and not complete:
+        if zero_gamma and not overcomplete and not complete:
             x = AT(x)
     return x
 
@@ -413,7 +427,7 @@ def lsqr(
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
     :param torch.Tensor b: input tensor of shape (B, ...)
-    :param float eta: damping parameter :math:`eta \geq 0`.
+    :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
@@ -476,11 +490,11 @@ def lsqr(
         else:
             return v * alpha.view(Atb_shape)
 
-    if eta > 0:
-        if isinstance(eta, torch.Tensor):
-            eta_sqrt = torch.sqrt(eta)
-        else:
-            eta_sqrt = torch.tensor(eta, device=device).sqrt()
+    if not isinstance(eta, Tensor):
+        eta = torch.tensor(eta, device=device)
+
+    if torch.any(eta > 0):
+        eta_sqrt = torch.sqrt(eta)
 
     # ctol = 1 / conlim if conlim > 0 else 0
     anorm = 0.0
@@ -541,7 +555,7 @@ def lsqr(
             if torch.all(alpha > 0):
                 v = scalar(v, 1 / alpha, b_domain=False)
 
-        if eta > 0:
+        if torch.any(eta > 0):
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
             cs1 = rhobar / rhobar1
             sn1 = eta_sqrt / rhobar1
@@ -975,7 +989,7 @@ def least_squares_implicit_backward(
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
     :param Optional[torch.Tensor] init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
-    :param Optional[float, torch.Tensor] gamma: regularization parameter :math:`\gamma > 0`. Default is `None`.
+    :param Optional[float, torch.Tensor] gamma: regularization parameter :math:`\gamma > 0`. Default is `None`. Can be batched (shape (B, ...)) or a scalar.
     :param kwargs: additional arguments to be passed to the least squares solver.
 
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
