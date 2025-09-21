@@ -93,22 +93,22 @@ def least_squares(
 
     if gamma is None:
         gamma = torch.tensor(0.0, device=y.device)
-        zero_gamma = True
+        no_gamma = True
     else:
-        zero_gamma = False
+        no_gamma = False
 
     if not isinstance(gamma, Tensor):
         gamma = torch.tensor(gamma, device=y.device)
 
-    if torch.any(gamma < 0):
+    if torch.any(gamma <= 0):
         warnings.warn(
-            "Regularization parameter of least squares problem (gamma) should be non-negative."
+            "Regularization parameter of least squares problem (gamma) should be positive."
             "Otherwise, the problem can become non-convex and the solvers are not designed for that."
             "Continuing anyway..."
         )
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if not zero_gamma else None
+        eta = 1 / gamma if not no_gamma else None
         x, _ = lsqr(
             A,
             AT,
@@ -135,7 +135,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if not zero_gamma:
+            if not no_gamma:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -182,7 +182,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if zero_gamma and not overcomplete and not complete:
+        if no_gamma and not overcomplete and not complete:
             x = AT(x)
     return x
 
