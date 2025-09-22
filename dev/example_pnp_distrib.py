@@ -262,9 +262,6 @@ def main():
     
     # Initialize distributed context
     with DistributedContext(sharding="round_robin", seed=42) as ctx:
-        # Force CPU usage for memory efficiency in this demo
-        if not torch.cuda.is_available() or torch.cuda.get_device_properties(0).total_memory < 12e9:
-            ctx.device = torch.device("cpu")
         
         print(f"Running on {ctx.world_size} process(es)")
         print(f"Device: {ctx.device}")
@@ -351,8 +348,6 @@ def main():
             splitting_kwargs={
                 "patch_size": patch_size,
                 "receptive_field_radius": receptive_field_radius,
-                "stride": None,
-                "hw_dims": (-2, -1),
                 "non_overlap": True,
             },
         )
@@ -377,8 +372,7 @@ def main():
             distributed_signal.data = distributed_signal.data - lr * grad
 
             # Denoising step using distributed prior
-            denoised = distributed_prior.prox(distributed_signal, sigma_denoiser=denoiser_sigma)
-            distributed_signal.update_(denoised)
+            distributed_signal.data = distributed_prior.prox(distributed_signal, sigma_denoiser=denoiser_sigma)
 
             # Compute PSNR on rank 0
             if ctx.rank == 0:
