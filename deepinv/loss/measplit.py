@@ -35,7 +35,6 @@ class SplittingLoss(Loss):
     This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
     Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.
 
-
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
     .. warning::
@@ -52,6 +51,10 @@ class SplittingLoss(Loss):
     .. note::
 
         To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
+
+    .. note::
+
+        This loss allows training over images of varying shapes.
 
     .. seealso::
 

@@ -49,6 +49,8 @@ class WeightedSplittingLoss(SplittingLoss):
 
         Note also that we assume that all masks are 1D mask in the image width dimension repeated in all other dimensions.
 
+    If the input data varies in shape, the loss will dynamically recalculate the weight. However, this will be slower every time the weight must be recalculated.
+
     :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
     :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
     :param float eps: small value to avoid division by zero.
@@ -104,8 +106,9 @@ class WeightedSplittingLoss(SplittingLoss):
                 )
 
             if self.weight.shape[-1] != y1.shape[-1]:
+                # TODO these weights should be cached for a speed-up
                 warn(
-                    f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[-1]} in forward pass. Recalculating weight..."
+                    f"WeightedSplittingLoss with weight width {self.weight.shape[1]} detected new y width {y1.shape[-1]} in forward pass. Recalculating weight (this may take a second)..."
                 )
                 self.weight = WeightedSplittingLoss.compute_weight(
                     mask_generator=self.mask_generator,
