@@ -3,11 +3,12 @@ from typing import Callable, Optional, List, Dict, Tuple, Union, Sequence
 
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
-from deepinv.distrib.utils import tiling_splitting_strategy, tiling_reduce_fn
+from deepinv.distrib.utils_new import tiling_splitting_strategy
 
 Index = Tuple[Union[slice, int], ...]
 
@@ -557,8 +558,9 @@ class DistributedPrior:
         *,
         splitting_strategy: Union[str, Callable[[torch.Size], Tuple[List[Index], Dict]]],
         signal_shape: Sequence[int],
-        reduce_fn: Callable[[List[torch.Tensor], Dict], torch.Tensor],
+        reduce_fn: Optional[Callable[[List[torch.Tensor], Dict], torch.Tensor]] = None,
         splitting_kwargs: Optional[dict] = None,
+        batching: bool = True,
     ):
         self.ctx = ctx
         self.prior = prior
@@ -569,16 +571,16 @@ class DistributedPrior:
         self.signal_shape = torch.Size(signal_shape)
         self.reduce_fn = reduce_fn
         self.splitting_kwargs = splitting_kwargs or {}
+        self.batching = False
 
         # --- compute global ordered list of slices once (independent of rank) ---
         if callable(splitting_strategy):
             self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
-            self.reduce_fn = reduce_fn
         elif splitting_strategy == "tiling2d":
             self._global_slices, self._global_metadata = tiling_splitting_strategy(
                 self.signal_shape, **self.splitting_kwargs
             )
-            self.reduce_fn = tiling_reduce_fn
+            self.reduce_fn = "tiling2d" if reduce_fn is None else reduce_fn
         else:
             raise ValueError(f"Unknown splitting_strategy: {splitting_strategy}")
 
@@ -612,6 +614,20 @@ class DistributedPrior:
         # 1) local compute
         local_pairs = self._compute_local_pairs(X, op=op, **kwargs)
 
+        if self.ctx.is_dist and self.reduce_fn == "tiling2d":
+            out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+            crop_slices = self._global_metadata["crop_slices"]
+            target_slices = self._global_metadata["target_slices"]
+
+            for idx, tens in local_pairs:
+                c_sl = crop_slices[idx]
+                t_sl = target_slices[idx]
+                out_local[t_sl] = tens[c_sl]
+
+            self.ctx.all_reduce_(out_local, op="sum")
+            return out_local
+
+
         # 2) gather all (idx, tensor) pairs
         if self.ctx.is_dist:
             gathered = [None] * self.ctx.world_size
@@ -621,6 +637,7 @@ class DistributedPrior:
                 all_pairs.extend(part)
         else:
             all_pairs = local_pairs
+
 
         # 3) assemble into the global ordered list (by index)
         pieces: List[Optional[torch.Tensor]] = [None] * self.num_splits
@@ -665,6 +682,35 @@ class DistributedPrior:
             raise ValueError(op)
 
         pairs: List[Tuple[int, torch.Tensor]] = []
+
+        if self.batching:
+            pad_specs = self._global_metadata["pad_specs"]           # list indexed by GLOBAL tile index
+            pad_mode = self._global_metadata.get("pad_mode", "reflect")
+            win_h, win_w = self._global_metadata["window_shape"]
+
+            pieces = []
+            for idx in self.local_split_indices:                      # idx is GLOBAL tile index
+                sl = self._global_slices[idx]                         # slice into original tensor
+                piece = X.tensor[sl]                                  # [B,C,h_var,w_var]
+                piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
+                # sanity: all windows must now be uniform
+                if piece.shape[-2] != win_h or piece.shape[-1] != win_w:
+                    raise RuntimeError(
+                        f"Uniform window check failed for tile {idx}: "
+                        f"got {piece.shape[-2:]} vs expected {(win_h, win_w)}"
+                    )
+                pieces.append(piece)
+
+            batch = torch.cat(pieces, dim=0)
+            results = fn(batch)                                       # same leading batch dim
+            if results.shape[0] != len(self.local_split_indices):
+                raise RuntimeError(
+                    f"Prior {op} returned wrong batch size: "
+                    f"{results.shape[0]} != {len(self.local_split_indices)}"
+                )
+            pairs = list(zip(self.local_split_indices, [results[i][None, :] for i in range(results.shape[0])]))
+            return pairs
+        
         for idx in self.local_split_indices:
             slc = self._global_slices[idx]
             # NOTE: use a copy for safety (some priors may write in-place)
