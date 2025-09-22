@@ -1023,10 +1023,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     y.requires_grad_(True)
     z = torch.randn_like(x).requires_grad_(True)
     gamma = (
-        torch.ones(
-            (batch_size, 1, 1, 1), dtype=dtype, device=device, requires_grad=True
-        )
-        * 0.4
+        torch.ones((batch_size,), dtype=dtype, device=device, requires_grad=True) * 0.4
     )
     init = torch.zeros_like(z).requires_grad_(False)
 

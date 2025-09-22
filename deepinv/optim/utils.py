@@ -115,6 +115,13 @@ def least_squares(
                 "Otherwise, the problem can become non-convex and the solvers are not designed for that."
                 "Continuing anyway..."
             )
+    if gamma.ndim > 0:  # if batched gamma
+        if gamma.size(0) != y.size(0):
+            raise ValueError(
+                "If gamma is batched, its batch size must match the one of y."
+            )
+        else:  # ensure gamma has ndim as y
+            gamma = gamma.view([gamma.size(0)] + [1] * (y.ndim - 1))
 
     if solver == "lsqr":  # rectangular solver
         eta = 1 / gamma if not no_gamma else None
@@ -869,10 +876,17 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         # Save tensors only
         gamma = torch.as_tensor(gamma, dtype=y.dtype, device=y.device)
+        gamma_orig_shape = gamma.shape
+        # For broadcasting with other tensors
+        if gamma.ndim > 0:
+            gamma = gamma.view(
+                -1, *[1] * (y.ndim - 1)
+            )  # reshape for broadcasting if needed
         ctx.save_for_backward(solution, y, z, gamma)
         # Save other non-tensor contexts
         ctx.physics = physics
         ctx.kwargs = kwargs
+        ctx.gamma_orig_shape = gamma_orig_shape
 
         return solution
 
@@ -911,9 +925,13 @@ class LeastSquaresSolver(torch.autograd.Function):
         if needs[4]:
             diff = h - z
             # vdot gives correct conjugation for complex; .real keeps real scalar
-            grads[4] = torch.sum(
+            grad_gamma = torch.sum(
                 mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
             ).real / (gamma**2)
+
+            grads[4] = grad_gamma.view(
+                ctx.gamma_orig_shape
+            )  # reshape to original shape
 
         # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
         params = [
