@@ -33,12 +33,14 @@ class DistributedContext:
         cleanup: bool = True,
         seed: Optional[int] = None,
         deterministic: bool = False,
+        device_mode: Optional[str] = None,
     ):
         self.backend = backend
         self.sharding = sharding
         self.cleanup = cleanup
         self.seed = seed
         self.deterministic = deterministic
+        self.device_mode = device_mode  # "cpu", "gpu", or None (auto)
 
         # set in __enter__
         self.initialized_here = False
@@ -85,13 +87,25 @@ class DistributedContext:
             self.rank = dist.get_rank()
 
         # ---- Device selection ----
-        if torch.cuda.is_available() and visible_gpus > 0:
-            # map local_rank onto *visible* devices
+        if self.device_mode == "cpu":
+            # Force CPU mode
+            self.device = torch.device("cpu")
+        elif self.device_mode == "gpu":
+            # Force GPU mode (require CUDA)
+            if not torch.cuda.is_available() or visible_gpus == 0:
+                raise RuntimeError("GPU mode requested but CUDA not available or no visible GPUs")
             dev_index = self.local_rank % visible_gpus
             self.device = torch.device(f"cuda:{dev_index}")
             torch.cuda.set_device(self.device)
         else:
-            self.device = torch.device("cpu")
+            # Auto mode (original behavior)
+            if torch.cuda.is_available() and visible_gpus > 0:
+                # map local_rank onto *visible* devices
+                dev_index = self.local_rank % visible_gpus
+                self.device = torch.device(f"cuda:{dev_index}")
+                torch.cuda.set_device(self.device)
+            else:
+                self.device = torch.device("cpu")
 
         self._post_init_setup()
         return self
@@ -241,7 +255,7 @@ class DistributedSignal:
                  ctx: DistributedContext,
                  shape: Sequence[int],
                  dtype: Optional[torch.dtype] = None,
-                 init: Optional[Callable[[torch.device, torch.Size], torch.Tensor]] = None,
+                 init: Optional[torch.Tensor] = None,
                  sync_src: int = 0):
         self.ctx = ctx
         self.dtype = dtype or torch.float32
@@ -251,7 +265,7 @@ class DistributedSignal:
         if init is None:
             self._data = torch.zeros(self._shape, device=ctx.device, dtype=self.dtype)
         else:
-            self._data = init(ctx.device, self._shape).to(ctx.device, dtype=self.dtype)
+            self._data = init.to(ctx.device, dtype=self.dtype)
 
         # Auto-sync after initialization
         self._sync()
@@ -316,7 +330,6 @@ class DistributedPhysics(Physics):
     """
     Holds only local physics operators. Exposes fast local and compatible global APIs.
     """
-
     def __init__(self,
                  ctx: DistributedContext,
                  num_ops: int,
@@ -560,6 +573,7 @@ class DistributedPrior:
         # --- compute global ordered list of slices once (independent of rank) ---
         if callable(splitting_strategy):
             self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
+            self.reduce_fn = reduce_fn
         elif splitting_strategy == "tiling2d":
             self._global_slices, self._global_metadata = tiling_splitting_strategy(
                 self.signal_shape, **self.splitting_kwargs

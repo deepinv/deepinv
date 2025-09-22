@@ -198,6 +198,6 @@ def tiling_reduce_fn(
         raise ValueError("Length mismatch among pieces/crop_slices/target_slices.")
 
     for tile, c_sl, t_sl in zip(pieces, crop_slices, target_slices):
-        out[t_sl] = tile[c_sl]  # equivalent to concatenation when no overlap
+        out[t_sl] = tile[c_sl]
 
     return out
