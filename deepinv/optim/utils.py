@@ -400,6 +400,7 @@ def _sym_ortho(a, b):
     ``1/eps`` in some important places.
 
     """
+    a, b = torch.broadcast_tensors(a, b)
     if torch.any(b == 0):
         return torch.sign(a), 0, a.abs()
     elif torch.any(a == 0):
@@ -510,6 +511,13 @@ def lsqr(
         eta = 0.0
     if not isinstance(eta, Tensor):
         eta = torch.tensor(eta, device=device)
+    if eta.ndim > 0:  # if batched eta
+        if eta.size(0) != b.size(0):
+            raise ValueError(
+                "If eta is batched, its batch size must match the one of b."
+            )
+        else:  # ensure eta has ndim as b
+            eta = eta.squeeze()
 
     if torch.any(eta < 0):
         raise ValueError(
