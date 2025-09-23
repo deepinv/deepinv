@@ -4,6 +4,16 @@ Spatial unwrapping and modulo imaging
 
 This demo shows the use of the :class:`deepinv.physics.SpatialUnwrapping` forward model and the :class:`deepinv.optim.ItohFidelity` for unwrapping problems, which occur in modulo imaging, interferometry SAR and other imaging applications.
 It shows how to generate a wrapped phase image, apply blur and noise, and reconstruct the original phase using both DCT inversion and ADMM optimization.
+
+
+The spatial unwrapping forward model can be mathematically described as follows:
+
+.. math::
+    y = w_t(x + n) = x + n - t \cdot \mathrm{q}((x + n) / t)
+
+where :math:`x` is the original image, :math:`n` is additive noise, and :math:`w_t(\cdot)` denotes the modulo (wrapping) operation with threshold :math:`t`.
+Here, :math:`\mathrm{q}(\cdot)` is either the rounding or flooring function, depending on the chosen mode ('round' or 'floor').
+The goal is to recover :math:`x` from the observed wrapped image :math:`y`.
 """
 
 # %%
@@ -22,17 +32,18 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
 
-def channel_norm(x):
-    x = x - x.min(dim=-1, keepdim=True)[0].min(dim=-2, keepdim=True)[0]
-    x = x / x.max(dim=-1, keepdim=True)[0].max(dim=-2, keepdim=True)[0]
-    return x
-
 
 # %%
 # Load image and preprocess
 # -------------------------------------------------------
 # Load example image and preprocess to emulate a high dynamic range image.
 # images are normalized to [0, 1] and then scaled to the desired dynamic range.
+
+def channel_norm(x):
+    x = x - x.min(dim=-1, keepdim=True)[0].min(dim=-2, keepdim=True)[0]
+    x = x / x.max(dim=-1, keepdim=True)[0].max(dim=-2, keepdim=True)[0]
+    return x
+
 size = 256
 dr = 2  # dynamic range
 threshold = 1.0  # threshold for spatial unwrapping
@@ -66,6 +77,10 @@ x_rgb = channel_norm(x_rgb) * dr
 #
 # Below, we illustrate this for a single row of the image by visualizing the pixel values, their differences, and the wrapped differences.
 # By varying the amount of Gaussian blur, we observe that the Itoh condition is satisfied when the blur is sufficiently large.
+# For instace, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
+# and consequenly, missmatch with the wrapped differences :math:`w_t(Dy)`.
+# while with a blur of 2.0, the differences :math:`Dx` remain within the threshold are match the wrapped differences :math:`w_t(Dy)`,
+# indicating that the Itoh condition is satisfied. 
 
 modulo_round = lambda x: x - torch.round(x)
 modulo_fn = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
@@ -96,13 +111,13 @@ def plot_itoh(sigma_blur):
     row_y = modulo_fn(row_x)
     row_wdy = modulo_round(row_y[1:] - row_y[:-1])
 
-    plt.figure(figsize=(10, 3))
+    plt.figure(figsize=(10, 2.5))
     plt.plot(row_x.cpu(), label="Pixel values", linewidth=3, color="g")
     plt.plot(row_dx.cpu(), label="Dx", linewidth=3, color="k")
     plt.plot(row_wdy.cpu(), label="w_t(Dy)", linewidth=3, color="b", linestyle="--")
     plt.axhline(threshold / 2, color="r", linestyle="--", label="t/2")
     plt.axhline(-threshold / 2, color="r", linestyle="--")
-    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=4)
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=4)
     plt.title(f"Itoh Condition, sigma={sigma_blur}, mode={mode}")
     plt.xlabel("Pixel Index")
     plt.ylabel("Difference")
@@ -116,7 +131,9 @@ plot_itoh(sigma_blur=2.0)
 # %%
 # Apply Resize and Gaussian blur
 # -------------------------------------------------------
-# To satisfy the Itoh condition, we resize the image and apply a slight Gaussian blur to ensure that adjacent pixel differences are small enough.
+# To satisfy the Itoh condition, we resize the image and apply a slight Gaussian blur.
+# The blur here is chosen similarly to the 1D analysis above, ensuring adjacent pixel differences are small enough for successful unwrapping.
+
 resize = transforms.Resize(size=(img_size[0] * factor, img_size[1] * factor))
 x_rgb = resize(x_rgb)
 
