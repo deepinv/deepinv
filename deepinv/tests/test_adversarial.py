@@ -53,7 +53,7 @@ def choose_discriminator(discrim_name, imsize):
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
 @pytest.mark.parametrize("loss_name", LOSS_NAMES)
-def test_discrim_training(discrim_name, loss_name, imsize, device, rng):
+def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path):
     # Test discriminator training with frozen generator
     imsize = (1, *imsize[1:])
     D = choose_discriminator(discrim_name, imsize).to(device)
@@ -75,6 +75,8 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng):
         loss = adversarial.SupAdversarialLoss(
             D=D, optimizer_D=optimizer_D, device=device
         )
+        loss.save_model(tmp_path / "discrim.tmp")
+
     elif loss_name == "Unsup":
         loss = adversarial.UnsupAdversarialLoss(
             D=D, optimizer_D=optimizer_D, device=device
@@ -133,6 +135,11 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng):
         # Note we don't test that fake becomes more fake, as the discrim
         # training is not necessarily monotonic
         assert D(x_net) <= D(x)
+
+        # Test save/load resets model
+        _ = loss.load_model(tmp_path / "discrim.tmp", device=device)
+        assert D(x) == Dx0
+
     else:
         # For other losses, can't guarantee learning goes well but at least something should happen
         assert D(x) != Dx0
@@ -252,3 +259,11 @@ def test_discriminators(discrim_name, imsize):
     x = torch.rand(1, *imsize[1:]).unsqueeze(0)
     y = D(x)
     assert len(y.flatten()) == 1
+
+
+def test_discriminator_metric(device):
+    metric = adversarial.DiscriminatorMetric(device=device)
+    assert metric(torch.tensor([1.0]), real=True).item() == 0.0
+    assert metric(torch.tensor([0.0]), real=True).item() == 1.0
+    assert metric(torch.tensor([0.0]), real=False).item() == 0.0
+    assert metric(torch.tensor([1.0]), real=False).item() == 1.0
