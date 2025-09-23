@@ -151,7 +151,7 @@ We implement various popular (supervised and unsupervised) adversarial training 
 Discriminators are trained inside the adversarial losses by passing in a optimizer.
 Alternatively, a pretrained discriminator can be used to just train the generator.
 
-See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
+See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples.
 
 .. list-table:: Adversarial Losses Overview
    :header-rows: 1

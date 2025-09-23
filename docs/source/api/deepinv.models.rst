@@ -115,3 +115,4 @@ Adversarial Networks
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
    deepinv.models.SkipConvDiscriminator
+   deepinv.models.UNetDiscriminatorSN

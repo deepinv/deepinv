@@ -26,7 +26,7 @@ class SupAdversarialLoss(AdversarialLoss):
 
     where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.01 (from original paper)
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
@@ -79,7 +79,7 @@ class UnsupAdversarialLoss(AdversarialLoss):
 
     where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     We also provide the option to perform the loss calculation in the image domain using
     :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`.

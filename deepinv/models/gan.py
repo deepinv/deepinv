@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
+from torch.nn import functional as F
 
 from deepinv.physics.forward import Physics
 from deepinv.loss.mc import MCLoss
@@ -23,7 +24,7 @@ class PatchGANDiscriminator(nn.Module):
 
     Implementation adapted from :footcite:t:`kupyn2018deblurgan`.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int input_nc: number of input channels, defaults to 3
     :param int ndf: hidden layer size, defaults to 64
@@ -113,7 +114,7 @@ class ESRGANDiscriminator(nn.Module):
     The ESRGAN discriminator model was originally proposed by :footcite:t:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
     :param list[int] hidden_dims: number of channels in each hidden layer.
@@ -174,7 +175,7 @@ class DCGANDiscriminator(nn.Module):
     The DCGAN discriminator model was originally proposed by :footcite:t:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
@@ -221,7 +222,7 @@ class DCGANGenerator(nn.Module):
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int output_size: desired square size of output image. Choose from 64 or 128, defaults to 64
     :param int nz: latent dimension, defaults to 100
@@ -290,7 +291,7 @@ class CSGMGenerator(Reconstructor):
 
     This generator can be overridden for more advanced optimisation algorithms by overriding ``optimize_z``.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for how to use this for adversarial training.
 
     .. note::
 
@@ -453,3 +454,91 @@ class SkipConvDiscriminator(nn.Module):
 
         y = self.final(self.flatten(x))
         return self.sigmoid(y).squeeze() if self.use_sigmoid else y.squeeze()
+
+
+class UNetDiscriminatorSN(nn.Module):
+    """U-Net discriminator with spectral normalization.
+
+    Discriminator proposed in Real-ESRGAN :footcite:t:`wang2021realesrgan` for superresolution problems.
+
+    Implementation and pretrained weights taken from https://github.com/xinntao/Real-ESRGAN.
+
+    :param int num_in_ch: Channel number of inputs. Default: 3.
+    :param int num_feat: Channel number of base intermediate features. Default: 64.
+    :param bool skip_connection: Whether to use skip connections between U-Net. Default: `True`.
+    :param int, None pretrained_factor: if not `None`, loads pretrained weights with given factor, must be `2` or `4`. Default: `None`.
+    """
+
+    def __init__(
+        self,
+        num_in_ch=3,
+        num_feat=64,
+        skip_connection=True,
+        pretrained_factor: Optional[int] = None,
+        device="cpu",
+    ):
+        super(UNetDiscriminatorSN, self).__init__()
+        self.skip_connection = skip_connection
+        norm = nn.utils.spectral_norm
+        # the first convolution
+        self.conv0 = nn.Conv2d(num_in_ch, num_feat, kernel_size=3, stride=1, padding=1)
+        # downsample
+        self.conv1 = norm(nn.Conv2d(num_feat, num_feat * 2, 4, 2, 1, bias=False))
+        self.conv2 = norm(nn.Conv2d(num_feat * 2, num_feat * 4, 4, 2, 1, bias=False))
+        self.conv3 = norm(nn.Conv2d(num_feat * 4, num_feat * 8, 4, 2, 1, bias=False))
+        # upsample
+        self.conv4 = norm(nn.Conv2d(num_feat * 8, num_feat * 4, 3, 1, 1, bias=False))
+        self.conv5 = norm(nn.Conv2d(num_feat * 4, num_feat * 2, 3, 1, 1, bias=False))
+        self.conv6 = norm(nn.Conv2d(num_feat * 2, num_feat, 3, 1, 1, bias=False))
+        # extra convolutions
+        self.conv7 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv8 = norm(nn.Conv2d(num_feat, num_feat, 3, 1, 1, bias=False))
+        self.conv9 = nn.Conv2d(num_feat, 1, 3, 1, 1)
+
+        if pretrained_factor is not None:  # pragma: no cover
+            if pretrained_factor == 2:
+                url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x2plus_netD.pth"
+            elif pretrained_factor == 4:
+                url = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.3/RealESRGAN_x4plus_netD.pth"
+            else:
+                raise ValueError(
+                    f"Unsupported pretrained_factor={pretrained_factor}. Use 2 or 4."
+                )
+
+            state_dict = torch.hub.load_state_dict_from_url(
+                url, map_location=device, weights_only=True
+            )
+            self.load_state_dict(state_dict["params"], strict=True)
+
+        self.to(device)
+
+    def forward(self, x):
+        # downsample
+        x0 = F.leaky_relu(self.conv0(x), negative_slope=0.2, inplace=True)
+        x1 = F.leaky_relu(self.conv1(x0), negative_slope=0.2, inplace=True)
+        x2 = F.leaky_relu(self.conv2(x1), negative_slope=0.2, inplace=True)
+        x3 = F.leaky_relu(self.conv3(x2), negative_slope=0.2, inplace=True)
+
+        # upsample
+        x3 = F.interpolate(x3, scale_factor=2, mode="bilinear", align_corners=False)
+        x4 = F.leaky_relu(self.conv4(x3), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x4 = x4 + x2
+        x4 = F.interpolate(x4, scale_factor=2, mode="bilinear", align_corners=False)
+        x5 = F.leaky_relu(self.conv5(x4), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x5 = x5 + x1
+        x5 = F.interpolate(x5, scale_factor=2, mode="bilinear", align_corners=False)
+        x6 = F.leaky_relu(self.conv6(x5), negative_slope=0.2, inplace=True)
+
+        if self.skip_connection:
+            x6 = x6 + x0
+
+        # extra convolutions
+        out = F.leaky_relu(self.conv7(x6), negative_slope=0.2, inplace=True)
+        out = F.leaky_relu(self.conv8(out), negative_slope=0.2, inplace=True)
+        out = self.conv9(out)
+
+        return out

@@ -71,7 +71,7 @@ class AdversarialLoss(Loss):
     For examples, see :class:`deepinv.loss.adversarial.SupAdversarialLoss`
     and :class:`deepinv.loss.adversarial.UnsupAdversarialLoss`.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formula.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.

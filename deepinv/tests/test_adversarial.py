@@ -16,6 +16,7 @@ DISCRIMS = [
     "ESRGANDiscriminator",
     "DCGANDiscriminator",
     "SkipConvDiscriminator",
+    "UNetDiscriminator",
 ]
 
 ADVERSARIAL_COMBOS = [
@@ -34,7 +35,7 @@ def imsize():
     return (3, 64, 64)
 
 
-def choose_discriminator(discrim_name, imsize):
+def choose_discriminator(discrim_name, imsize, device):
     if discrim_name == "PatchGANDiscriminator":
         return dinv.models.gan.PatchGANDiscriminator(
             input_nc=1, ndf=2, n_layers=5, batch_norm=False, original=False
@@ -49,6 +50,10 @@ def choose_discriminator(discrim_name, imsize):
         return dinv.models.gan.SkipConvDiscriminator(
             imsize[1:], d_dim=2, d_blocks=1, in_channels=1
         )
+    elif discrim_name == "UNetDiscriminator":
+        return dinv.models.gan.UNetDiscriminatorSN(num_in_ch=imsize[0], device=device)
+    else:
+        raise ValueError("invalid discrim_name.")
 
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
@@ -56,7 +61,7 @@ def choose_discriminator(discrim_name, imsize):
 def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path):
     # Test discriminator training with frozen generator
     imsize = (1, *imsize[1:])
-    D = choose_discriminator(discrim_name, imsize).to(device)
+    D = choose_discriminator(discrim_name, imsize, device=device).to(device)
 
     x = DummyCircles(1, imsize).x
     physics_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
@@ -104,6 +109,10 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
         Dx0 = D(x)
         Dx_net0 = D(x_net)
 
+        if discrim_name == "UNetDiscriminator":
+            Dx0 = Dx0.mean()
+            Dx_net0 = Dx_net0.mean()
+
     # Test discriminator metric
     m = adversarial.DiscriminatorMetric(device=device)
     assert m(Dx_net0, real=False) == (Dx_net0 - 0.0) ** 2
@@ -125,24 +134,35 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
 
     with torch.no_grad():
         x_net = model(y, physics)
+        Dx1 = D(x)
+        Dx_net1 = D(x_net)
 
-    if loss_name == "Sup":
-        # In supervised adversarial training, we expect at least something good to happen
-        # Real should become more real
-        assert 1.0 >= D(x) > Dx0
+        if discrim_name == "UNetDiscriminator":
+            Dx1 = Dx1.mean()
+            Dx_net1 = Dx_net1.mean()
 
-        # Fake should be more fake than real
-        # Note we don't test that fake becomes more fake, as the discrim
-        # training is not necessarily monotonic
-        assert D(x_net) <= D(x)
+        if loss_name == "Sup":
+            # In supervised adversarial training, we expect at least something good to happen
+            # Real should become more real
+            assert 1.0 >= Dx1 > Dx0
 
-        # Test save/load resets model
-        _ = loss.load_model(tmp_path / "discrim.tmp", device=device)
-        assert D(x) == Dx0
+            # Fake should be more fake than real
+            # Note we don't test that fake becomes more fake, as the discrim
+            # training is not necessarily monotonic
+            assert Dx_net1 <= Dx1
 
-    else:
-        # For other losses, can't guarantee learning goes well but at least something should happen
-        assert D(x) != Dx0
+            # Test save/load resets model
+            _ = loss.load_model(tmp_path / "discrim.tmp", device=device)
+            Dx2 = D(x)
+
+            if discrim_name == "UNetDiscriminator":
+                Dx2 = Dx2.mean()
+
+            assert Dx2 == Dx0
+
+        else:
+            # For other losses, can't guarantee learning goes well but at least something should happen
+            assert Dx1 != Dx0
 
 
 def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
@@ -253,12 +273,13 @@ def test_adversarial_losses(combo_name, imsize, device, physics, dataset, domain
 
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
-def test_discriminators(discrim_name, imsize):
+def test_discriminators(discrim_name, imsize, device):
     # 1 channel for speed
-    D = choose_discriminator(discrim_name, (1, *imsize[1:]))
+    D = choose_discriminator(discrim_name, (1, *imsize[1:]), device=device)
     x = torch.rand(1, *imsize[1:]).unsqueeze(0)
     y = D(x)
-    assert len(y.flatten()) == 1
+    if discrim_name != "UNetDiscriminator":  # Returns feature map
+        assert len(y.flatten()) == 1
 
 
 def test_discriminator_metric(device):

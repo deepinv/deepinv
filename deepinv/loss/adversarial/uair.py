@@ -27,7 +27,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
 
     In the multi-operator case, :math:`\forw{\cdot}` can be modified in the loss by passing a `physics_generator`.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
+    See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)

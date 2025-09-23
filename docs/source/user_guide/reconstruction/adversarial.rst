@@ -3,7 +3,7 @@
 Adversarial Networks
 ====================
 There are two types of adversarial networks for imaging: conditional and unconditional.
-See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
+See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for examples.
 Adversarial training can be done directly using :class:`deepinv.Trainer`. Note that
 any reconstruction network may be used as a generator.
 
@@ -50,6 +50,8 @@ The discriminator network :math:`D` can be implemented with one of the following
      - PatchGAN discriminator model
    * - :class:`SkipConvDiscriminator <deepinv.models.SkipConvDiscriminator>`
      - Simple convolutional discriminator with skip connections
+   * - :class:`UNetDiscriminatorSN <deepinv.models.UNetDiscriminatorSN>`
+     - Discriminator used in Real-ESRGAN
 
 
 Unconditional GAN

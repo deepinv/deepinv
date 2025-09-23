@@ -10,6 +10,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add multi-operator unsup adversarial loss (:gh:`409` by `Andrew Wang`_)
+- Add SkipConvDiscriminator and Real-ESRGAN discrimiantor (:gh:`409` by `Andrew Wang`_)
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
 
 Changed
