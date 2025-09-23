@@ -26,7 +26,7 @@ x = dinv.utils.load_example("CBSD_0010.png", img_size=64, device=device)
 physics = dinv.physics.Downsampling(
     (3, 64, 64), filter="bicubic", factor=4, device=device
 )
-
+ 
 y = physics(x)
 
 # %%
