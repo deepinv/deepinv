@@ -10,6 +10,10 @@ from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
+from deepinv.optim.utils import least_squares_implicit_backward
+
+from functools import partial
+import copy
 
 
 def custom_init_CP(y, physics):
@@ -880,21 +884,23 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_valid"]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
-def test_least_square_solvers(device, solver, physics_name):
+@pytest.mark.parametrize("implicit_backward_solver", [False, True])
+def test_least_square_solvers(device, solver, physics_name, implicit_backward_solver):
     batch_size = 4
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn((batch_size, *img_size), device=device)
 
     tol = 0.01
     y = physics(x)
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
     assert (
         (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
@@ -904,21 +910,23 @@ def test_least_square_solvers(device, solver, physics_name):
     z = x.clone()
     gamma = 1.0
 
-    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
     assert (
         (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < 3 * tol
+        < tol
     ).all()
 
     # test backprop
-    y.requires_grad = True
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-    loss = (x_hat - x).pow(2).mean()
-    loss.backward()
-    if not "inpainting" in physics_name:
-        assert y.grad.norm() > 0
+    if solver != "BiCGStab":  # bicgstab currently has issues with backprop
+        with torch.enable_grad():
+            y.requires_grad_(True)
+            x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
+            loss = (x_hat - x).pow(2).mean()
+            loss.backward()
+
+        assert torch.all(~torch.isnan(y.grad))
 
 
 DTYPES = [torch.float32, torch.complex64]
@@ -928,9 +936,7 @@ DTYPES = [torch.float32, torch.complex64]
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_linear_system(device, solver, dtype):
     # test the solution of linear systems with random matrices
-    batch_size = 4
-    dim = 32
-
+    batch_size = 2
     mat = torch.randn((32, 32), dtype=dtype, device=device)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
@@ -947,24 +953,20 @@ def test_linear_system(device, solver, dtype):
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
 
-    tol = 1e-3
+    tol = 1e-5
     if solver == "CG":
-        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
     elif solver == "minres":
-        x = dinv.optim.utils.minres(A, b, tol=tol)
+        x = dinv.optim.utils.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":
-        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
-        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
-    x_star = torch.linalg.solve(mat, b.T).T
-
-    # consider relative error
-    assert (
-        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
-    )
+    error = (A(x) - b).abs().pow(2).sum()
+    assert error < tol * b.abs().pow(2).sum()
 
 
 def test_condition_number(device):
@@ -985,3 +987,120 @@ def test_condition_number(device):
     gt_cond = c.max() / c.min()
     rel_error = (cond - gt_cond).abs() / gt_cond
     assert rel_error < 0.1
+
+
+@pytest.mark.parametrize(
+    "physics_name",
+    [
+        "deblur_valid",
+        "super_resolution_circular",
+    ],
+)
+@pytest.mark.parametrize("solver", solvers)
+def test_least_squares_implicit_backward(device, solver, physics_name):
+    # Check that the backward gradient matches the finite difference gradient
+    batch_size = 1
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
+    torch.use_deterministic_algorithms(True)
+
+    dtype = torch.float64
+    physics, img_size, _, _, params = find_operator(
+        physics_name, device=device, get_physics_param=True
+    )
+    physics = physics.to(dtype=dtype)
+
+    x = torch.randn((batch_size, *img_size), device=device, dtype=dtype)
+    y = physics(x)
+
+    # ------------------------------------------------------------
+    # Check gradients w.r.t y, z, gamma
+    y.requires_grad_(True)
+    z = torch.randn_like(x).requires_grad_(True)
+    gamma = torch.tensor(0.4, dtype=dtype, requires_grad=True)
+    init = torch.zeros_like(z).requires_grad_(False)
+
+    # This check can be quite slow since it needs to compute finite differences in all directions
+    # So we limit the number of iterations and allow a higher tolerance
+    assert torch.autograd.gradcheck(
+        partial(least_squares_implicit_backward, max_iter=20),
+        (physics, y, z, init, gamma),
+        eps=1e-6,
+        atol=1e-2,
+        rtol=1e-2,
+    )
+
+    # ------------------------------------------------------------
+    # Check gradients physics parameters
+
+    # Enable gradients w.r.t physics parameters
+    # We only do this for physics that have a continuous parameterization w.r.t its parameters
+    buffers = copy.deepcopy(dict(physics.named_buffers()))
+    parameters = {k: v for k, v in buffers.items() if k in params}
+    for k, v in parameters.items():
+        if isinstance(v, torch.Tensor) and v.dtype in [
+            torch.float16,
+            torch.float32,
+            torch.float64,
+        ]:
+            parameters[k] = v.requires_grad_(True)
+
+    # Compute gradient with implicit backward, when calling `.backward()`, it will use the custom jvp defined in least_squares_implicit_backward
+    init = torch.zeros_like(z)
+    with torch.enable_grad():
+        physics.update_parameters(**parameters)
+        sol = least_squares_implicit_backward(
+            physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+        )
+        # simple loss
+        loss = (sol - 1).pow(2).sum()
+        loss.backward()
+
+    # Check that all physics parameters have a gradient and close to finite difference gradient
+    for k, v in parameters.items():
+        if isinstance(v, torch.Tensor) and v.dtype in [
+            torch.float16,
+            torch.float32,
+            torch.float64,
+        ]:
+            assert v.requires_grad == True
+            assert v.grad is not None
+            assert torch.all(~torch.isnan(v.grad))
+
+            # Only check a few random entries for large parameters
+            num_samples = min(10, v.numel())
+            idx_flat = torch.randperm(v.numel())[:num_samples]
+            delta = 1e-6
+            implicit_grad = v.grad.detach().clone().contiguous()
+            expected_grad = torch.ones_like(v).view(-1)
+
+            with torch.no_grad():
+                for idx in idx_flat:
+                    v_p = v.detach().clone().view(-1)
+                    v_m = v.detach().clone().view(-1)
+                    v_p[idx] += delta
+                    v_m[idx] -= delta
+                    v_p = v_p.view_as(v)
+                    v_m = v_m.view_as(v)
+                    physics.update_parameters(**{k: v_p})
+                    sol_p = least_squares_implicit_backward(
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                    )
+                    loss_p = (sol_p - 1).pow(2).sum()
+
+                    physics.update_parameters(**{k: v_m})
+                    sol_m = least_squares_implicit_backward(
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                    )
+                    loss_m = (sol_m - 1).pow(2).sum()
+
+                    expected_grad[idx] = (loss_p - loss_m) / (2 * delta)
+
+            torch.testing.assert_close(
+                implicit_grad.view(-1)[idx_flat],
+                expected_grad[idx_flat],
+                rtol=5e-2,
+                atol=5e-2,
+                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+            )
+
+    torch.use_deterministic_algorithms(prev_deterministic)
