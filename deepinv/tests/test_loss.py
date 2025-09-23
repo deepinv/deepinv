@@ -492,11 +492,6 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             eval_n_samples=eval_n_samples,
         )
     elif loss_name == "splitting_eval_split_input_output":
-        if physics_name == "MultiCoilMRI":
-            pytest.skip(
-                "splitting at input and output invalid when y and x have different shapes."
-            )
-
         eval_n_samples = 1
         loss = dinv.loss.SplittingLoss(
             split_ratio=0.7,

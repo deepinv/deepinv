@@ -243,7 +243,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
     @staticmethod
     def expand_mask(mask, y):
         """Expand mask intermediate dimensions to match those of y, where intermediate
-        dimensions are those (e.g. slice, coils, time) that are not the first two dims (batch, channel),
+        dimensions are those (e.g. depth, coils, time) that are not the first two dims (batch, channel),
         nor the final two dims (H, W).
         """
         return mask.view(

@@ -328,8 +328,8 @@ class SplittingLoss(Loss):
             """
             Perform splitting at model output too, only at eval time
             """
-            out = 0
-            normalizer = torch.zeros_like(y)
+            out = 0.0
+            normalizer = 0.0
 
             for _ in range(self.eval_n_samples):
                 # Perform input masking
