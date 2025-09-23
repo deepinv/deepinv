@@ -26,6 +26,8 @@ ADVERSARIAL_COMBOS = [
     "MultiOperatorAdversarial",
 ]
 
+LOSS_NAMES = ["Sup", "Unsup", "MultiOperatorUnsup", "UAIR"]
+
 
 @pytest.fixture
 def imsize():
@@ -50,20 +52,50 @@ def choose_discriminator(discrim_name, imsize):
 
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
-def test_discrim_training(discrim_name, imsize, device, rng):
+@pytest.mark.parametrize("loss_name", LOSS_NAMES)
+def test_discrim_training(discrim_name, loss_name, imsize, device, rng):
     # Test discriminator training with frozen generator
     imsize = (1, *imsize[1:])
     D = choose_discriminator(discrim_name, imsize).to(device)
 
     x = DummyCircles(1, imsize).x
-    physics = dinv.physics.Inpainting(imsize, mask=0.7, device=device, rng=rng)
+    physics_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        imsize, 0.7, device=device, rng=rng
+    )
+    physics = dinv.physics.Inpainting(imsize, device=device, **physics_generator.step())
     y = physics(x)
-    dataloader = torch.utils.data.DataLoader(dinv.datasets.TensorDataset(x=x, y=y))
+    dataset = dinv.datasets.TensorDataset(x=x, y=y)
+    dataloader = DataLoader(dataset)
 
     model = dinv.models.MedianFilter()
     optimizer = torch.optim.SGD([torch.tensor(0.0, requires_grad=False)])
     optimizer_D = torch.optim.Adam(D.parameters(), lr=1e-3)
-    loss = adversarial.SupAdversarialLoss(D=D, optimizer_D=optimizer_D, device=device)
+
+    if loss_name == "Sup":
+        loss = adversarial.SupAdversarialLoss(
+            D=D, optimizer_D=optimizer_D, device=device
+        )
+    elif loss_name == "Unsup":
+        loss = adversarial.UnsupAdversarialLoss(
+            D=D, optimizer_D=optimizer_D, device=device
+        )
+    elif loss_name == "MultiOperatorUnsup":
+        loss = adversarial.MultiOperatorUnsupAdversarialLoss(
+            D=D,
+            optimizer_D=optimizer_D,
+            dataloader=DataLoader(dataset),
+            physics_generator=physics_generator,
+            device=device,
+        )
+    elif loss_name == "UAIR":
+        loss = adversarial.UAIRLoss(
+            D=D,
+            optimizer_D=optimizer_D,
+            device=device,
+            physics_generator=physics_generator,
+        )
+    else:
+        raise ValueError("loss_name invalid.")
 
     with torch.no_grad():
         x_net = model(y, physics)
@@ -91,8 +123,9 @@ def test_discrim_training(discrim_name, imsize, device, rng):
 
     with torch.no_grad():
         x_net = model(y, physics)
-        # print(f"x {Dx0} -> {D(x)}, x_net {Dx_net0} -> {D(x_net)}")
 
+    if loss_name == "Sup":
+        # In supervised adversarial training, we expect at least something good to happen
         # Real should become more real
         assert 1.0 >= D(x) > Dx0
 
@@ -100,6 +133,9 @@ def test_discrim_training(discrim_name, imsize, device, rng):
         # Note we don't test that fake becomes more fake, as the discrim
         # training is not necessarily monotonic
         assert D(x_net) <= D(x)
+    else:
+        # For other losses, can't guarantee learning goes well but at least something should happen
+        assert D(x) != Dx0
 
 
 def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
@@ -143,7 +179,6 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
             D=D,
             device=device,
             domain=domain,
-            dataloader=dataloader,
             physics_generator=physics_generator,
         )
     elif combo_name == "CSGM":
@@ -207,7 +242,7 @@ def test_adversarial_losses(combo_name, imsize, device, physics, dataset, domain
     # PSNR won't necessarily increase
     # so this just tests that the loss can be trained
     # and it does something in 1 epoch
-    assert final_psnr.item() != initial_psnr.item()
+    assert final_psnr != initial_psnr
 
 
 @pytest.mark.parametrize("discrim_name", DISCRIMS)
