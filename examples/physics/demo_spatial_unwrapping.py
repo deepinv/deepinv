@@ -32,17 +32,18 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
 
-
 # %%
 # Load image and preprocess
 # -------------------------------------------------------
 # Load example image and preprocess to emulate a high dynamic range image.
 # images are normalized to [0, 1] and then scaled to the desired dynamic range.
 
+
 def channel_norm(x):
     x = x - x.min(dim=-1, keepdim=True)[0].min(dim=-2, keepdim=True)[0]
     x = x / x.max(dim=-1, keepdim=True)[0].max(dim=-2, keepdim=True)[0]
     return x
+
 
 size = 256
 dr = 2  # dynamic range
@@ -80,7 +81,7 @@ x_rgb = channel_norm(x_rgb) * dr
 # For instace, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
 # and consequenly, missmatch with the wrapped differences :math:`w_t(Dy)`.
 # while with a blur of 2.0, the differences :math:`Dx` remain within the threshold are match the wrapped differences :math:`w_t(Dy)`,
-# indicating that the Itoh condition is satisfied. 
+# indicating that the Itoh condition is satisfied.
 
 modulo_round = lambda x: x - torch.round(x)
 modulo_fn = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
