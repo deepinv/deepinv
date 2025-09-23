@@ -189,7 +189,11 @@ class AdversarialLoss(Loss):
         :param bool strict: strict load weights to model.
         """
         ckpt = torch.load(filename, map_location=device, weights_only=False)
-        self.D.load_state_dict(ckpt["state_dict"], strict=strict)
+        if "state_dict" in ckpt:
+            self.D.load_state_dict(ckpt["state_dict"], strict=strict)
+        else:
+            self.D.load_state_dict(ckpt, strict=strict)
+
         if "optimizer" in ckpt and self.optimizer_D is not None:
             self.optimizer_D.load_state_dict(ckpt["optimizer"])
         return ckpt

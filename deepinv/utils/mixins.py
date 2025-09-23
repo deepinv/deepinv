@@ -300,6 +300,7 @@ class MultiOperatorMixin:
                 physics_cur = physics[j]
             else:
                 physics_cur = physics.clone()
+
         else:
             if isinstance(physics, (list, tuple)):
                 raise ValueError("physics must be physics, not a list or tuple.")
@@ -307,6 +308,5 @@ class MultiOperatorMixin:
             physics_cur = physics.clone()
             params = physics_generator.step(batch_size=batch_size)
             physics_cur.update(**params)
-            return physics_cur
 
-        return physics
+        return physics_cur

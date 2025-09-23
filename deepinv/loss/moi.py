@@ -95,7 +95,7 @@ class MOILoss(Loss, MultiOperatorMixin):
         """
         physics_cur = self.next_physics(
             self.physics if self.physics is not None else physics,
-            physics=self.physics_generator,
+            physics_generator=self.physics_generator,
         )
 
         if self.noise:
