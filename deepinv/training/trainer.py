@@ -244,6 +244,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
+    freq_update_progress_bar: int = 5
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -769,6 +770,7 @@ class Trainer:
         train_ite=None,
         train=True,
         last_batch=False,
+        update_progress_bar=False,
     ):
         r"""
         Train/Eval a batch.
@@ -819,7 +821,8 @@ class Trainer:
                 )
 
             # Update the progress bar
-            progress_bar.set_postfix(logs)
+            if update_progress_bar:  # implicit syncing with gpu, slow
+                progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
             self.log_metrics_wandb(logs, step=train_ite, train=train)
@@ -1107,6 +1110,7 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
+                    update_progress_bar=(i % self.freq_update_progress_bar == 0),
                 )
 
                 perform_eval = self.eval_dataloader and (
