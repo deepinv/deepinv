@@ -1,17 +1,15 @@
 from abc import ABC, abstractmethod
-import json
-import logging
+from datetime import datetime
+from logging import getLogger
 from pathlib import Path
 from typing import Any, Optional
+import json
+import logging
 import os
-from logging import getLogger
-
-import os
-
-import torch
-from torchvision.utils import save_image
-from datetime import datetime
 import platform
+
+from torchvision.utils import save_image
+import torch
 
 
 def get_timestamp() -> str:
@@ -19,9 +17,9 @@ def get_timestamp() -> str:
 
     :return str: timestamp, with separators determined by system.
     """
+    # ":" is not allowed on Windows filenames
     sep = "_" if platform.system() == "Windows" else ":"
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
-
 
 class RunLogger(ABC):
     """
@@ -31,7 +29,7 @@ class RunLogger(ABC):
     """
 
     @abstractmethod
-    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None):
+    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
         """
         Start a new training run.
 
@@ -46,7 +44,7 @@ class RunLogger(ABC):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         Log loss values for the current step/epoch.
 
@@ -64,7 +62,7 @@ class RunLogger(ABC):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         Log metrics for the current step/epoch.
 
@@ -82,7 +80,7 @@ class RunLogger(ABC):
         epoch: int,
         step: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         Log images for visualization.
 
@@ -94,26 +92,29 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+    def load_from_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         """
-        TODO
+        Resume the logger by restoring from a training checkpoint.
+
+        :param dict state: Contains model weights, optimizer states, LR scheduler, etc.
         """
         pass
 
     @abstractmethod
     def log_checkpoint(
         self, epoch: int, state: dict[str, Any], name: Optional[str] = None
-    ):
+    ) -> None:
         """
-        Log training checkpoint.
+        Log training checkpoint (always save in a folder on the local machine).
 
         :param int epoch: Save checkpoint at the end of an epoch.
         :param dict state: Contains model weights, optimizer states, LR scheduler, etc.
+        :param str name: Checkpoint filename.
         """
         pass
 
     @abstractmethod
-    def finish_run(self):
+    def finish_run(self) -> None:
         """
         Finalize and close the training run.
         """
@@ -133,7 +134,7 @@ class WandbRunLogger(RunLogger):
         run_name: Optional[str] = None,
         logging_mode: str = "online",
         resume_id: str = None,
-    ):
+    ) -> None:
         """
         TODO
         """
@@ -205,7 +206,7 @@ class WandbRunLogger(RunLogger):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         TODO
         """
@@ -226,7 +227,7 @@ class WandbRunLogger(RunLogger):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         TODO
         """
@@ -247,14 +248,12 @@ class WandbRunLogger(RunLogger):
         epoch: int,
         step: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         """
         TODO
 
         Wandb expects NumPy array or PIL image.
         """
-        import wandb
-
         step = None
 
         # process images
@@ -283,7 +282,7 @@ class WandbRunLogger(RunLogger):
                         {f"{phase} samples: {name_img}_{j}": wandb_images}, step=epoch
                     )
 
-    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+    def load_from_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         """
         TODO
         """
@@ -292,10 +291,13 @@ class WandbRunLogger(RunLogger):
 
     def log_checkpoint(
         self, epoch: int, state: dict[str, Any], name: Optional[str] = None
-    ):
+    ) -> None:
         """
         TODO
         """
+        if state is None:
+            state = {}
+
         if name is not None:
             checkpoint_file = self.local_checkpoint_dir / f"{name}.pth.tar"
         else:
@@ -312,9 +314,10 @@ class WandbRunLogger(RunLogger):
             torch.save(checkpoint, checkpoint_file)
         else:
             os.makedirs(self.local_checkpoint_dir, exist_ok=True)
-            torch.save({"wandb_id": self.wandb_run.id})
+            state["wandb_id"] = self.wandb_run.id
+            torch.save(state)
 
-    def finish_run(self):
+    def finish_run(self) -> None:
         """
         TODO
         """
@@ -325,6 +328,7 @@ class LocalLogger(RunLogger):
     """
     Concrete implementation of RunLogger that logs to local files.
 
+    TODO
     """
 
     def __init__(
@@ -333,7 +337,7 @@ class LocalLogger(RunLogger):
         project_name: Optional[str] = "default_project",
         run_name: Optional[str] = None,
         config: Optional[dict[str, Any]] = None,
-    ):
+    ) -> None:
         if run_name is None:
             run_name = get_timestamp()
         self.run_name = run_name
@@ -346,7 +350,7 @@ class LocalLogger(RunLogger):
         self.checkpoints_dir = self.log_dir / "checkpoints"
         self.loss_history = []
 
-    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None):
+    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.metrics_dir, exist_ok=True)
@@ -384,7 +388,7 @@ class LocalLogger(RunLogger):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         if phase == "train":
             self.loss_history.append(["total_loss_avg"])
 
@@ -427,7 +431,7 @@ class LocalLogger(RunLogger):
         step: int,
         epoch: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         # Human readable logging
         metric_str = "| ".join(
             [f"{name}: {value:.6f}" for name, value in metrics.items()]
@@ -468,7 +472,7 @@ class LocalLogger(RunLogger):
         epoch: int = 0,
         step: Optional[int] = None,
         phase: str = "train",
-    ):
+    ) -> None:
         dir_path = self.images_dir / phase / f"epoch_{epoch}"
         if step is not None:
             dir_path = dir_path / f"step_{step}"
