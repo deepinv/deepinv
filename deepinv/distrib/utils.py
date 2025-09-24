@@ -1,31 +1,230 @@
-from typing import Sequence, Tuple, Optional, List, Dict
+from typing import Sequence, Tuple, Optional, List, Dict, Callable
 import torch
+import torch.nn.functional as F
 
 Index = Tuple[slice, ...]
+
+
+def tiling2d_reduce_fn(out_local: torch.Tensor, local_pairs: List[Tuple[int, torch.Tensor]], global_metadata: Dict) -> None:
+    """
+    Default reduction function for tiling2d strategy.
+    
+    This function fills the out_local tensor with the processed patches from local_pairs,
+    using the metadata to determine where each patch should be placed in the output tensor.
+    
+    Parameters
+    ----------
+    out_local : torch.Tensor
+        The output tensor to fill (should be initialized to zeros).
+    local_pairs : List[Tuple[int, torch.Tensor]]
+        List of (global_index, processed_tensor) pairs from this rank.
+    global_metadata : Dict
+        Metadata from the splitting strategy containing crop_slices and target_slices.
+    """
+    crop_slices = global_metadata["crop_slices"]
+    target_slices = global_metadata["target_slices"]
+    
+    for idx, processed_tensor in local_pairs:
+        c_sl = crop_slices[idx]
+        t_sl = target_slices[idx]
+        # Extract the valid part of the processed patch and place it in the output
+        out_local[t_sl] = processed_tensor[c_sl]
+
+
+def extract_and_pad_patch(X: torch.Tensor, idx: int, global_slices: List[Index], global_metadata: Dict) -> torch.Tensor:
+    """
+    Extract and pad a single patch from the input tensor.
+    
+    Parameters
+    ----------
+    X : torch.Tensor
+        Input tensor
+    idx : int
+        Global index of the patch
+    global_slices : List[Index]
+        List of slice objects for extracting patches
+    global_metadata : Dict
+        Metadata containing padding specifications
+        
+    Returns
+    -------
+    torch.Tensor
+        Extracted and padded patch
+    """
+    slc = global_slices[idx]
+    piece = X[slc]
+    
+    # Apply padding if specifications are available
+    pad_specs = global_metadata.get("pad_specs", [])
+    if pad_specs and idx < len(pad_specs):
+        pad_mode = global_metadata.get("pad_mode", "reflect")
+        piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
+    
+    return piece
+
+
+def no_batching_strategy(patches: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Callable[[List[torch.Tensor]], List[torch.Tensor]]]:
+    """
+    No batching strategy - returns patches as-is and an identity unpacking function.
+    
+    Parameters
+    ----------
+    patches : List[torch.Tensor]
+        List of patches to process
+        
+    Returns
+    -------
+    Tuple[List[torch.Tensor], Callable]
+        (batched_patches, unpack_fn) where batched_patches is the same as input
+        and unpack_fn extracts individual results from the processed batch
+    """
+    def unpack_fn(results: List[torch.Tensor]) -> List[torch.Tensor]:
+        return results
+    
+    return patches, unpack_fn
+
+
+def uniform_batching_strategy(patches: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Callable[[List[torch.Tensor]], List[torch.Tensor]]]:
+    """
+    Uniform batching strategy - combines all patches into a single batch tensor.
+    
+    This assumes all patches have the same shape (after padding).
+    
+    Parameters
+    ----------
+    patches : List[torch.Tensor]
+        List of uniform-shaped patches
+        
+    Returns
+    -------
+    Tuple[List[torch.Tensor], Callable]
+        (batched_patches, unpack_fn) where batched_patches contains one batch tensor
+        and unpack_fn splits the result back into individual patches
+    """
+    if not patches:
+        return [], lambda x: []
+    
+    # Verify all patches have the same shape
+    expected_shape = patches[0].shape
+    for i, patch in enumerate(patches):
+        if patch.shape != expected_shape:
+            raise RuntimeError(f"Patch {i} has shape {patch.shape}, expected {expected_shape}")
+    
+    # Combine into batch
+    batch = torch.cat(patches, dim=0)
+    
+    def unpack_fn(results: List[torch.Tensor]) -> List[torch.Tensor]:
+        if len(results) != 1:
+            raise RuntimeError(f"Expected 1 batch result, got {len(results)}")
+        
+        result_batch = results[0]
+        if result_batch.shape[0] != len(patches):
+            raise RuntimeError(f"Result batch size {result_batch.shape[0]} != expected {len(patches)}")
+        
+        # Split back into individual patches, keeping the original batch dimension
+        return [result_batch[i:i+1] for i in range(len(patches))]
+    
+        return [batch], unpack_fn
+
+
+def get_batching_strategy(strategy_name: str) -> Callable:
+    """
+    Get a batching strategy function by name.
+    
+    Parameters
+    ----------
+    strategy_name : str
+        Name of the batching strategy ('uniform', 'no_batching')
+        
+    Returns
+    -------
+    Callable
+        The batching strategy function
+    """
+    if strategy_name == "uniform":
+        return uniform_batching_strategy
+    elif strategy_name == "no_batching":
+        return no_batching_strategy
+    else:
+        raise ValueError(f"Unknown batching strategy: {strategy_name}")
+
 
 def _normalize_hw_args(
     signal_shape: Sequence[int],
     patch_size: int | Tuple[int, int],
     stride: Optional[Tuple[int, int]],
     hw_dims: Tuple[int, int],
-) -> Tuple[int, int, int, int, int, int, int, int]:
+    *,
+    receptive_field_radius: int = 0,
+    non_overlap: bool = True,
+    end_align: Optional[bool] = None,  # only used if non_overlap=False
+) -> Tuple[
+    int, int, int, int, int,  # ndim, H_dim, W_dim, H, W
+    int, int, int, int,       # ph, pw, sh, sw
+    int, int,                 # H_pad, W_pad
+    int, int, int, int,       # pad_bottom, pad_right, (pad_top=0), (pad_left=0)
+    int, int                  # win_h, win_w
+]:
     """
-    Returns: (ndim, H_dim, W_dim, H, W, ph, pw, sh, sw)
+    Returns:
+        (ndim, H_dim, W_dim, H, W, ph, pw, sh, sw,
+         H_pad, W_pad, pad_bottom, pad_right, pad_top, pad_left, win_h, win_w)
+
+    Notes:
+        • H_pad/W_pad are the virtual canvas sizes used to place a uniform tile grid.
+        • We conceptually pad only on the bottom/right to reach multiples; receptive-field
+          padding is handled per-tile (returned by tiler) so pad_top/left are 0 here.
     """
     shape = list(signal_shape)
     ndim = len(shape)
     H_dim, W_dim = hw_dims
-    H = shape[H_dim]
-    W = shape[W_dim]
+    H = int(shape[H_dim])
+    W = int(shape[W_dim])
+
     if isinstance(patch_size, int):
         ph, pw = patch_size, patch_size
     else:
-        ph, pw = patch_size
+        ph, pw = int(patch_size[0]), int(patch_size[1])
+
     if stride is None:
         sh, sw = ph, pw
     else:
-        sh, sw = stride
-    return ndim, H_dim, W_dim, H, W, ph, pw, sh, sw
+        sh, sw = int(stride[0]), int(stride[1])
+
+    # Compute padded canvas for a uniform grid of tile *starts*.
+    if non_overlap:
+        # grid at 0, ph, 2ph, ..., H_pad - ph  (same for W)
+        H_pad = ((H + ph - 1) // ph) * ph
+        W_pad = ((W + pw - 1) // pw) * pw
+    else:
+        # end-aligned sliding windows: last start is ceil((H-ph)/sh)*sh
+        if end_align is None:
+            end_align = True
+        if end_align:
+            last_h = max(0, ((max(H - ph, 0) + sh - 1) // sh) * sh)
+            last_w = max(0, ((max(W - pw, 0) + sw - 1) // sw) * sw)
+            H_pad = last_h + ph
+            W_pad = last_w + pw
+        else:
+            # no extra padding needed; grid stops before end
+            H_pad = H
+            W_pad = W
+
+    pad_bottom = max(0, H_pad - H)
+    pad_right  = max(0, W_pad - W)
+    pad_top = 0
+    pad_left = 0
+
+    win_h = ph + 2 * receptive_field_radius
+    win_w = pw + 2 * receptive_field_radius
+
+    return (
+        ndim, H_dim, W_dim, H, W,
+        ph, pw, sh, sw,
+        H_pad, W_pad,
+        pad_bottom, pad_right, pad_top, pad_left,
+        win_h, win_w,
+    )
 
 
 def tiling_splitting_strategy(
@@ -36,168 +235,137 @@ def tiling_splitting_strategy(
     stride: Optional[Tuple[int, int]] = None,
     hw_dims: Tuple[int, int] = (-2, -1),
     non_overlap: bool = True,
-    end_align: Optional[bool] = None, # ignored when non_overlap=True
+    end_align: Optional[bool] = None,  # used when non_overlap=False
+    pad_mode: str = "reflect",         # advisory; not applied here
 ) -> Tuple[List[Index], Dict]:
     """
-    Tiling splitting strategy for distributed processing.
-    
-    This strategy creates windows around patches that include receptive field context.
-    
-    The strategy works by:
-    1. Dividing the signal into non-overlapping patches
-    2. Expanding each patch by receptive_field_radius in all directions
-    3. Clipping the expanded windows to valid signal boundaries
-    4. Storing crop information to extract the original patch from processed windows
+    Uniform-batching tiler with per-tile padding.
 
-    Parameters:
-    -----------
-    signal_shape : Sequence[int]
-        Shape of the signal tensor (e.g., [B, C, H, W])
-    patch_size : int | Tuple[int, int]
-        Size of the non-overlapping patches
-    receptive_field_radius : int, optional
-        Radius to expand patches for context (default: 0)
-    stride : Optional[Tuple[int, int]], optional
-        Custom stride (default: patch_size for non-overlapping)
-    hw_dims : Tuple[int, int], optional
-        Dimensions for height and width (default: (-2, -1))
-    non_overlap : bool, optional
-        If True, creates non-overlapping patches (default: True)
-    end_align : Optional[bool], optional
-        Ignored when non_overlap=True
+    Produces:
+      • global_slices: list of slices into the *original* tensor (no out-of-bounds),
+      • crop_slices:   slices relative to the *padded window* that grab only the inner patch
+                       portion that overlaps the original image,
+      • target_slices: slices into the *original-shape* output where that patch should be placed,
+      • pad_specs:     per-tile padding tuple for F.pad: (w_left, w_right, h_top, h_bottom),
+                       so that after padding, each window is (ph+2rf, pw+2rf).
 
-    Returns:
-    --------
-    Tuple[List[Index], Dict]
-        - List of global slices to extract windows from the signal
-        - Metadata including crop_slices and target_slices for reconstruction
-
-    If non_overlap=True (default):
-        - grid is non-overlapping (stride := patch_size)
-        - last tiles are ragged (no end-alignment append)
-        - matches old behavior: inner patches do NOT overlap, so no merge/blend needed
-
-    If non_overlap=False:
-        - stride as provided
-        - optionally end-align last start if end_align=True
+    Usage for batching:
+      piece = X[global_slices[i]]
+      piece = torch.nn.functional.pad(piece, pad=pad_specs[i], mode=pad_mode)
+      # piece now has uniform window size across all tiles; stack and run Prior.
     """
-    ndim, H_dim, W_dim, H, W, ph, pw, sh, sw = _normalize_hw_args(
-        signal_shape, patch_size, stride, hw_dims
+    (
+        ndim, H_dim, W_dim, H, W,
+        ph, pw, sh, sw,
+        H_pad, W_pad,
+        _pad_bottom, _pad_right, _pad_top, _pad_left,
+        win_h, win_w,
+    ) = _normalize_hw_args(
+        signal_shape, patch_size, stride, hw_dims,
+        receptive_field_radius=receptive_field_radius,
+        non_overlap=non_overlap, end_align=end_align,
     )
     signal_shape = torch.Size(signal_shape)
 
+    # Uniform grid of patch starts over the padded canvas
     if non_overlap:
-        # - non-overlapping inner patches
-        # - ragged last tile (no end-alignment)
-        sh, sw = ph, pw
-        h_starts = list(range(0, H, sh))
-        w_starts = list(range(0, W, sw))
+        h_starts = list(range(0, H_pad, ph))
+        w_starts = list(range(0, W_pad, pw))
     else:
         if end_align is None:
-            end_align = True 
+            end_align = True
         if end_align:
-            h_starts = list(range(0, max(H - ph, 0) + 1, sh))
-            if h_starts[-1] != H - ph:
-                h_starts.append(H - ph)
-            w_starts = list(range(0, max(W - pw, 0) + 1, sw))
-            if w_starts[-1] != W - pw:
-                w_starts.append(W - pw)
+            last_h = H_pad - ph
+            last_w = W_pad - pw
+            h_starts = list(range(0, last_h + 1, sh))
+            w_starts = list(range(0, last_w + 1, sw))
         else:
-            h_starts = list(range(0, H, sh))
-            w_starts = list(range(0, W, sw))
+            h_starts = list(range(0, max(H - ph, 0) + 1, sh))
+            w_starts = list(range(0, max(W - pw, 0) + 1, sw))
 
     global_slices: List[Index] = []
     crop_slices: List[Index] = []
     target_slices: List[Index] = []
+    pad_specs: List[Tuple[int, int, int, int]] = []
+
+    rf = receptive_field_radius
 
     for hs in h_starts:
         for ws in w_starts:
-            # inner patch bounds (ragged at the end if needed)
+            # Inner patch in padded-canvas coords
             p_top, p_left = hs, ws
-            p_bot, p_right = min(hs + ph, H), min(ws + pw, W)
+            p_bot, p_right = hs + ph, ws + pw
 
-            # window (with rf), clamped to image bounds
-            w_top = max(0, p_top - receptive_field_radius)
-            w_left = max(0, p_left - receptive_field_radius)
-            w_bot = min(H, p_bot + receptive_field_radius)
-            w_right = min(W, p_right + receptive_field_radius)
+            # Amount of valid patch that lies inside the *original* image
+            # (ragged last tiles get truncated)
+            patch_h = max(0, min(ph, H - p_top))
+            patch_w = max(0, min(pw, W - p_left))
+            if patch_h == 0 or patch_w == 0:
+                # This tile lies entirely in the padded extension; skip
+                continue
 
-            # window slice in full tensor space (select all other dims)
+            # Desired window in original coords (before per-tile padding)
+            w_top_desired = p_top - rf
+            w_left_desired = p_left - rf
+            w_bot_desired = p_bot + rf
+            w_right_desired = p_right + rf
+
+            # Clip window to original tensor; compute how much padding is needed to
+            # restore the uniform window size (win_h, win_w).
+            w_top = max(0, w_top_desired)
+            w_left = max(0, w_left_desired)
+            w_bot = min(H, w_bot_desired)
+            w_right = min(W, w_right_desired)
+
+            need_h_top = max(0, 0 - w_top_desired)         # == rf - p_top if p_top<rf
+            need_h_bot = max(0, w_bot_desired - H)         # == p_bot+rf - H if beyond bottom
+            need_w_left = max(0, 0 - w_left_desired)       # == rf - p_left if p_left<rf
+            need_w_right = max(0, w_right_desired - W)     # == p_right+rf - W if beyond right
+
+            # Slices into original tensor (no OOB)
             win_sl = [slice(None)] * ndim
             win_sl[H_dim] = slice(w_top, w_bot)
             win_sl[W_dim] = slice(w_left, w_right)
             win_sl = tuple(win_sl)
 
-            # crop slice relative to the window
-            c_top = p_top - w_top
-            c_left = p_left - w_left
-            c_bot = c_top + (p_bot - p_top)
-            c_right = c_left + (p_right - p_left)
+            # After padding this window by the amounts above, its size will be (win_h, win_w).
+            # In that padded window, the inner patch normally sits at [rf:rf+ph, rf:rf+pw],
+            # but when the patch is truncated at the image boundary, we only take the valid subregion.
+            c_top = rf
+            c_left = rf
+            c_bot = rf + patch_h
+            c_right = rf + patch_w
 
             crop_sl = [slice(None)] * ndim
             crop_sl[H_dim] = slice(c_top, c_bot)
             crop_sl[W_dim] = slice(c_left, c_right)
             crop_sl = tuple(crop_sl)
 
-            # target slice in the full output
+            # Target region inside the *original-shape* output tensor
             tgt_sl = [slice(None)] * ndim
-            tgt_sl[H_dim] = slice(p_top, p_bot)
-            tgt_sl[W_dim] = slice(p_left, p_right)
+            tgt_sl[H_dim] = slice(p_top, p_top + patch_h)
+            tgt_sl[W_dim] = slice(p_left, p_left + patch_w)
             tgt_sl = tuple(tgt_sl)
+
+            # Pad spec for F.pad: (w_left, w_right, h_top, h_bottom)
+            pad_specs.append((need_w_left, need_w_right, need_h_top, need_h_bot))
 
             global_slices.append(win_sl)
             crop_slices.append(crop_sl)
             target_slices.append(tgt_sl)
 
     metadata: Dict = {
-        "signal_shape": signal_shape,
+        "signal_shape": torch.Size(signal_shape),   # original (unpadded) output shape
         "hw_dims": (H_dim, W_dim),
         "crop_slices": crop_slices,
         "target_slices": target_slices,
+        "pad_specs": pad_specs,                     # per-tile padding for uniform windows
+        "window_shape": (win_h, win_w),             # uniform H×W after per-tile pad
+        "inner_patch_size": (ph, pw),
+        "grid_shape": (len(h_starts), len(w_starts)),
+        "pad_mode": pad_mode,
+        "receptive_field_radius": rf,
+        "non_overlap": non_overlap,
+        "stride": (sh, sw),
     }
     return global_slices, metadata
-
-
-def tiling_reduce_fn(
-    pieces: List[torch.Tensor],
-    metadata: Dict,
-) -> torch.Tensor:
-    """
-    Reduction function for tiling strategy.
-    
-    This function reassembles processed window pieces back into the original signal shape.
-    It crops each processed window to extract only the relevant patch region and places
-    it in the correct location in the output tensor.
-    
-    Parameters:
-    -----------
-    pieces : List[torch.Tensor]
-        List of processed window tensors
-    metadata : Dict
-        Metadata from tiling_splitting_strategy containing:
-        - signal_shape: Original signal shape
-        - crop_slices: How to crop each piece to get the patch
-        - target_slices: Where to place each patch in the output
-        
-    Returns:
-    --------
-    torch.Tensor
-        Reconstructed signal with original shape
-    """
-    if len(pieces) == 0:
-        raise ValueError("pieces is empty.")
-
-    device = pieces[0].device
-    dtype = pieces[0].dtype
-    out = torch.zeros(metadata["signal_shape"], device=device, dtype=dtype)
-
-    crop_slices: List[Index] = metadata["crop_slices"]
-    target_slices: List[Index] = metadata["target_slices"]
-
-    if len(crop_slices) != len(pieces) or len(target_slices) != len(pieces):
-        raise ValueError("Length mismatch among pieces/crop_slices/target_slices.")
-
-    for tile, c_sl, t_sl in zip(pieces, crop_slices, target_slices):
-        out[t_sl] = tile[c_sl]
-
-    return out

@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional, List, Dict, Tuple, Union, Sequence
+from typing import Callable, Optional, List, Dict, Tuple, Union, Sequence, TYPE_CHECKING
 
 import torch
 import torch.distributed as dist
@@ -9,7 +9,8 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
 
-from deepinv.distrib.utils_new import tiling_splitting_strategy, tiling2d_reduce_fn
+if TYPE_CHECKING:
+    from .strategies import DistributedSignalStrategy
 
 Index = Tuple[Union[slice, int], ...]
 
@@ -551,25 +552,18 @@ class DistributedDataFidelity:
 
 class DistributedPrior:
     """
-    Distributed prior where:
-      • Splits are computed at __init__ from the *global* signal shape.
-      • Each rank processes only its local split indices.
-      • grad/prox: compute local results, apply custom reduction function locally, then all-reduce.
+    Distributed prior using pluggable signal processing strategies.
 
     Parameters
     ----------
     ctx : DistributedContext
     prior : deepinv.optim.Prior
-    splitting_strategy : Union[str, Callable[[torch.Size], List[Index]]]
-        If callable, it must take the full signal shape and return an *ordered* list of slice-indexers.
-        If 'tiling2d', pass tile options via splitting_kwargs.
+    strategy : Union[str, DistributedSignalStrategy]
+        Either a strategy name ('basic', 'smart_tiling') or a custom strategy instance
     signal_shape : Sequence[int]
         Full tensor shape of the signal to be processed (e.g. BCHW).
-    reduce_fn : Callable[[torch.Tensor, List[Tuple[int, torch.Tensor]], Dict], None]
-        User-provided reduction function that takes (out_local, local_pairs, global_metadata) and
-        fills out_local tensor in-place. Default is tiling2d_reduce_fn for tiling strategies.
-    splitting_kwargs : dict
-        Extra args to the splitting strategy (e.g., tile size/stride).
+    strategy_kwargs : dict
+        Extra args for the strategy (when using string strategy names).
     """
 
     def __init__(
@@ -577,11 +571,10 @@ class DistributedPrior:
         ctx: DistributedContext,
         prior: Prior,
         *,
-        splitting_strategy: Union[str, Callable[[torch.Size], Tuple[List[Index], Dict]]],
+        strategy: Union[str, DistributedSignalStrategy] = "smart_tiling",
         signal_shape: Sequence[int],
-        reduce_fn: Optional[Callable[[torch.Tensor, List[Tuple[int, torch.Tensor]], Dict], None]] = None,
-        splitting_kwargs: Optional[dict] = None,
-        batching: bool = True,
+        strategy_kwargs: Optional[dict] = None,
+        **kwargs
     ):
         self.ctx = ctx
         self.prior = prior
@@ -590,40 +583,33 @@ class DistributedPrior:
             self.prior.to(ctx.device)
 
         self.signal_shape = torch.Size(signal_shape)
-        self.splitting_kwargs = splitting_kwargs or {}
-        self.batching = batching  # Keep the user-specified batching preference
 
-        # --- compute global ordered list of slices once (independent of rank) ---
-        if callable(splitting_strategy):
-            self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
-        elif splitting_strategy == "tiling2d":
-            self._global_slices, self._global_metadata = tiling_splitting_strategy(
-                self.signal_shape, **self.splitting_kwargs
-            )
+        # Create or set the strategy
+        if isinstance(strategy, str):
+            from .strategies import create_strategy
+            strategy_kwargs = strategy_kwargs or {}
+            self.strategy = create_strategy(strategy, signal_shape, **strategy_kwargs)
         else:
-            raise ValueError(f"Unknown splitting_strategy: {splitting_strategy}")
+            self.strategy = strategy
 
-        # Set default reduce_fn if not provided
-        if reduce_fn is None:
-            self.reduce_fn = tiling2d_reduce_fn
-        else:
-            self.reduce_fn = reduce_fn
+        if self.strategy is None:
+            raise RuntimeError("Strategy is None - failed to create or import strategy")
 
-        self.num_splits = len(self._global_slices)
-        if self.num_splits == 0:
-            raise ValueError("Splitting strategy produced zero splits.")
+        self.num_patches = self.strategy.get_num_patches()
+        if self.num_patches == 0:
+            raise ValueError("Strategy produced zero patches.")
 
-        # determine local split indices for this rank
-        self.local_split_indices: List[int] = list(self.ctx.local_indices(self.num_splits))
+        # determine local patch indices for this rank
+        self.local_indices: List[int] = list(self.ctx.local_indices(self.num_patches))
 
         # Check for insufficient work distribution
         if self.ctx.is_dist and self.ctx.rank == 0:
             ranks_with_work = sum(1 for rank in range(self.ctx.world_size) 
-                                 if len(self.ctx.local_indices(self.num_splits)) > 0)
+                                 if len(self.ctx.local_indices(self.num_patches)) > 0)
             if ranks_with_work < self.ctx.world_size:
                 print(f"Warning: Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
                       f"Some ranks will have no work. "
-                      f"Current: {self.num_splits} patches for {self.ctx.world_size} ranks.")
+                      f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks.")
 
     # ---- public ops -------------------------------------------------------
 
@@ -637,89 +623,67 @@ class DistributedPrior:
 
     def _apply_op(self, X: DistributedSignal, *, op: str, **kwargs) -> torch.Tensor:
         """
-        op in {"grad", "prox"} – calls prior.op on each local split, applies custom reduction locally, 
-        then all-reduces the result tensor.
+        Apply prior operation (grad/prox) using the distributed strategy.
+        
+        This method:
+        1. Extracts local patches using the strategy
+        2. Applies batching as defined by the strategy
+        3. Applies the prior operation to batched patches
+        4. Unpacks and reduces results using the strategy
+        5. All-reduces the final result across ranks
         """
-        # 1) Compute local processed patches
-        local_pairs = self._compute_local_pairs(X, op=op, **kwargs)
+        # Handle empty case early
+        if not self.local_indices:
+            out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+            if self.ctx.is_dist:
+                self.ctx.all_reduce_(out_local, op="sum")
+            return out_local
+            
+        # Get the prior operation function
+        if op == "grad":
+            if not hasattr(self.prior, "grad"):
+                raise ValueError("Prior does not implement .grad()")
+            prior_fn = lambda t: self.prior.grad(t, **kwargs)
+        elif op == "prox":
+            if not hasattr(self.prior, "prox"):
+                raise ValueError("Prior does not implement .prox()")
+            prior_fn = lambda t: self.prior.prox(t, **kwargs)
+        else:
+            raise ValueError(f"Unknown operation: {op}")
 
-        # 2) Initialize output tensor with zeros
+        # 1. Extract local patches using strategy
+        local_pairs = self.strategy.get_local_patches(X.tensor, self.local_indices)
+        patches = [patch for _, patch in local_pairs]
+
+        # 2. Apply batching strategy
+        batched_patches = self.strategy.apply_batching(patches)
+
+        # 3. Apply prior to each batch
+        processed_batches = []
+        for batch in batched_patches:
+            result = prior_fn(batch)
+            processed_batches.append(result)
+
+        # 4. Unpack results back to individual patches
+        processed_patches = self.strategy.unpack_batched_results(processed_batches, len(patches))
+
+        # 5. Pair with global indices
+        if len(processed_patches) != len(self.local_indices):
+            raise RuntimeError(
+                f"Mismatch between processed patches ({len(processed_patches)}) "
+                f"and local indices ({len(self.local_indices)})"
+            )
+
+        processed_pairs = list(zip(self.local_indices, processed_patches))
+
+        # 6. Initialize output tensor and apply reduction strategy
         out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+        self.strategy.reduce_patches(out_local, processed_pairs)
         
-        # 3) Apply user-defined reduction function locally
-        self.reduce_fn(out_local, local_pairs, self._global_metadata)
-        
-        # 4) All-reduce to combine results from all ranks
+        # 7. All-reduce to combine results from all ranks
         if self.ctx.is_dist:
             self.ctx.all_reduce_(out_local, op="sum")
             
         return out_local
 
-    def _compute_local_pairs(self, X: DistributedSignal, *, op: str, **kwargs) -> List[Tuple[int, torch.Tensor]]:
-        """
-        Returns a list of (global_index, processed_tensor) for this rank's local splits.
-        """
-        fn: Callable[[torch.Tensor], torch.Tensor]
-        if op == "grad":
-            if hasattr(self.prior, "grad"):
-                fn = lambda t: self.prior.grad(t, **kwargs)
-            else:
-                raise ValueError("Prior does not implement .grad()")
-        elif op == "prox":
-            if hasattr(self.prior, "prox"):
-                fn = lambda t: self.prior.prox(t, **kwargs)
-            else:
-                raise ValueError("Prior does not implement .prox()")
-        else:
-            raise ValueError(op)
 
-        pairs: List[Tuple[int, torch.Tensor]] = []
-
-        if self.batching:
-            pad_specs = self._global_metadata["pad_specs"]           # list indexed by GLOBAL tile index
-            pad_mode = self._global_metadata.get("pad_mode", "reflect")
-            win_h, win_w = self._global_metadata["window_shape"]
-
-            pieces = []
-            for idx in self.local_split_indices:                      # idx is GLOBAL tile index
-                sl = self._global_slices[idx]                         # slice into original tensor
-                piece = X.tensor[sl]                                  # [B,C,h_var,w_var]
-                piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
-                # sanity: all windows must now be uniform
-                if piece.shape[-2] != win_h or piece.shape[-1] != win_w:
-                    raise RuntimeError(
-                        f"Uniform window check failed for tile {idx}: "
-                        f"got {piece.shape[-2:]} vs expected {(win_h, win_w)}"
-                    )
-                pieces.append(piece)
-
-            # Handle empty case (rank has no work)
-            if len(pieces) == 0:
-                return pairs  # Return empty list
-            
-            batch = torch.cat(pieces, dim=0)
-            results = fn(batch)                                       # same leading batch dim
-            if results.shape[0] != len(self.local_split_indices):
-                raise RuntimeError(
-                    f"Prior {op} returned wrong batch size: "
-                    f"{results.shape[0]} != {len(self.local_split_indices)}"
-                )
-            pairs = list(zip(self.local_split_indices, [results[i][None, :] for i in range(results.shape[0])]))
-            return pairs
-        
-        # Non-batching case: apply proper padding workflow for consistency
-        pad_specs = self._global_metadata["pad_specs"]
-        pad_mode = self._global_metadata.get("pad_mode", "reflect")
-        
-        for idx in self.local_split_indices:
-            slc = self._global_slices[idx]
-            # Extract piece and apply padding (same as batching case)
-            piece = X.tensor[slc].clone()
-            piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
-            
-            # Apply prior to padded piece
-            res = fn(piece)
-            
-            # Keep result on current device; reduce_fn will run on rank 0 and convert as needed
-            pairs.append((idx, res))
-        return pairs
