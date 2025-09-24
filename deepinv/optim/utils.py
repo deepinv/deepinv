@@ -890,7 +890,6 @@ class LeastSquaresSolver(torch.autograd.Function):
             )
 
         # Save tensors only
-        gamma = torch.as_tensor(gamma, dtype=y.dtype, device=y.device)
         gamma_orig_shape = gamma.shape
         # For broadcasting with other tensors
         if gamma.ndim > 0:
@@ -944,9 +943,14 @@ class LeastSquaresSolver(torch.autograd.Function):
                 mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
             ).real / (gamma**2)
 
-            grads[4] = grad_gamma.view(
-                ctx.gamma_orig_shape
-            )  # reshape to original shape
+            # If gamma was batched in the forward, we return a batched grad
+            if len(ctx.gamma_orig_shape) > 0:
+                grad_gamma = grad_gamma.view(ctx.gamma_orig_shape)
+            # gamma was a scalar in the forward, we accumulate all grads to return a scalar, similar to
+            # torch autograd behavior for broadcasted inputs
+            else:
+                grad_gamma = torch.sum(grad_gamma).view(())
+            grads[4] = grad_gamma
 
         # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
         params = [
@@ -1091,6 +1095,13 @@ def least_squares_implicit_backward(
     extra_kwargs = kwargs if kwargs else None
     if gamma is None:
         gamma = torch.zeros((), device=y.device, dtype=y.dtype)
+    if isinstance(gamma, Tensor) and gamma.ndim > 0:
+        if gamma.size(0) != y.size(0):
+            raise ValueError(
+                "If gamma is batched, its batch size must match the one of y."
+            )
+    if not isinstance(gamma, Tensor):
+        gamma = torch.as_tensor(gamma, device=y.device, dtype=y.dtype)
     return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)
 
 
