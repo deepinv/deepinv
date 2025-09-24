@@ -116,12 +116,19 @@ def least_squares(
                 "Continuing anyway..."
             )
     if gamma.ndim > 0:  # if batched gamma
-        if gamma.size(0) != y.size(0):
+        if isinstance(y, TensorList):
+            batch_size = y[0].size(0)
+            ndim = y[0].ndim
+        else:
+            batch_size = y.size(0)
+            ndim = y.ndim
+
+        if gamma.size(0) != batch_size:
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
         else:  # ensure gamma has ndim as y
-            gamma = gamma.view([gamma.size(0)] + [1] * (y.ndim - 1))
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
 
     if solver == "lsqr":  # rectangular solver
         eta = 1 / gamma if not no_gamma else None
