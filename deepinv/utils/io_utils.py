@@ -12,60 +12,87 @@ from deepinv.utils.mixins import MRIMixin
 # TODO tests (pydicom, nibabel, mat73, scipy to datasets op deps)
 
 
-def load_dicom(path: Union[str, Path]) -> torch.Tensor:
+def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
     """Load image from DICOM file.
 
     Requires `pydicom` to be installed. Install it with `pip install pydicom`.
 
-    :param str, Path path: path to DICOM file.
+    :param str, Path fname: path to DICOM file.
     :return: torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
     try:
         import pydicom
-    except ImportError:
+    except ImportError:  # pragma: no cover
         raise ImportError(
             "load_dicom requires pydicom, which is not installed. Please install it with `pip install pydicom`."
         )
-    return torch.from_numpy(pydicom.dcmread(str(path)).pixel_array).float().unsqueeze(0)
+    return (
+        torch.from_numpy(pydicom.dcmread(str(fname)).pixel_array).float().unsqueeze(0)
+    )
 
 
-def load_nifti(path: Union[str, Path]) -> torch.Tensor:
+def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
     """Load image from NIFTI `.nii.gz` file.
 
     Requires `nibabel` to be installed. Install it with `pip install nibabel`.
 
-    :param str, Path path: path to NIFTI `.nii.gz` file.
+    :param str, Path fname: path to NIFTI `.nii.gz` file.
     :return: torch float tensor of shape `(1, ...)` where `...` are the NIFTI image dimensions.
     """
     try:
         import nibabel as nib
-    except ImportError:
+    except ImportError:  # pragma: no cover
         raise ImportError(
             "load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`."
         )
-    return torch.from_numpy(nib.load(path).get_fdata()).float().unsqueeze(0)
+    return torch.from_numpy(nib.load(fname).get_fdata()).float().unsqueeze(0)
 
 
-# TODO load h5 ISMRM
+def load_ismrmd(fname: Union[str, Path], data_name: str = "kspace") -> torch.Tensor:
+    """Load complex MRI data from ISMRMD format.
+
+    Uses `h5py` to load data specified by `data_name` key.
+
+    .. note::
+        To speed up loading, load the data yourself using `h5py` and perform slicing/indexing before converting to tensor.
+
+    :param str, pathlib.Path fname: file to load.
+    :param str data_name: key of data in file, defaults to "kspace".
+    :return: data loaded in :class:`torch.Tensor` of shape `(2, ...)` containing real and imaginary parts.
+    """
+    try:
+        import h5py
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "The h5py package is not installed. Please install it with `pip install h5py`."
+        )
+
+    with h5py.File(fname, "r") as hf:
+        data = hf[data_name]
+        data = MRIMixin.from_torch_complex(torch.from_numpy(data).unsqueeze(0)).squeeze(
+            0
+        )
+
+    return data
 
 
-def load_torch(path: Union[str, Path], device=None) -> torch.Tensor:
+def load_torch(fname: Union[str, Path], device=None) -> torch.Tensor:
     """Load torch tensor from file.
 
-    :param str, pathlib.Path path: file to load.
+    :param str, pathlib.Path fname: file to load.
     :param torch.device, str device: device to load onto.
     :return: :class:`torch.Tensor` containing loaded torch tensor.
     """
-    return torch.load(path, weights_only=True, map_location=device)
+    return torch.load(fname, weights_only=True, map_location=device)
 
 
-def load_np(path: Union[str, Path]) -> torch.Tensor:
+def load_np(fname: Union[str, Path]) -> torch.Tensor:
     """Load numpy array from file as torch tensor.
 
-    :param str, pathlib.Path path: file to load.
+    :param str, pathlib.Path fname: file to load.
     :return: :class:`torch.Tensor` containing loaded numpy array.
     """
-    return torch.from_numpy(np.load(path, allow_pickle=False))
+    return torch.from_numpy(np.load(fname, allow_pickle=False))
 
 
 def load_url(url: str) -> BytesIO:
@@ -98,23 +125,23 @@ def load_mat(fname: str, mat73: bool = False) -> dict[str, np.ndarray]:
             from mat73 import loadmat as loadmat73
 
             return loadmat73(fname)
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError("mat73 is required, install with 'pip install mat73'.")
-        except TypeError:
+        except TypeError:  # pragma: no cover
             pass
 
     try:
         from scipy.io import loadmat as scipy_loadmat
 
         return scipy_loadmat(fname)
-    except ImportError:
+    except ImportError:  # pragma: no cover
         raise ImportError(
             "load_mat requires scipy, which is not installed. Install it with `pip install scipy`."
         )
 
 
 def load_raster(
-    filepath: str,
+    fname: str,
     patch: Union[bool, int, tuple[int, int]] = False,
     patch_start: Optional[tuple[int, int]] = (0, 0),
     transform: Optional[Callable] = None,
@@ -125,7 +152,9 @@ def load_raster(
     This function allows you to stream patches from large rasters e.g. satellite imagery, SAR etc.
     and supports all file formats supported by `rasterio`.
 
-    :param str filepath: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc.
+    This function requires `rasterio`, and should not rely on external GDAL dependencies. Install it with `pip install rasterio`.
+
+    :param str fname: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc.
     :param bool, int, tuple[int, int], patch: Patch extraction mode.
         * ``False`` (default): return the entire image as a :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.
         * ``True``: yield patches based on the raster's internal block windows.
@@ -163,7 +192,7 @@ def load_raster(
     """
     try:
         import rasterio
-    except ImportError:
+    except ImportError:  # pragma: no cover
         raise ImportError(
             "load_raster requires rasterio, which is not installed. Install it with `pip install rasterio`."
         )
@@ -193,11 +222,11 @@ def load_raster(
         return arr.float()  # (C, H, W)
 
     if patch is False:
-        with rasterio.open(filepath) as src:
+        with rasterio.open(fname) as src:
             return _process_array(src.read())
 
     def _patch_generator() -> Iterator[torch.Tensor]:
-        with rasterio.open(filepath) as src:
+        with rasterio.open(fname) as src:
 
             if patch is True:
                 block_windows = list(
