@@ -16,7 +16,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 
 # %%
-# We demonstrate fine-tuning the RAM foundation model :footcite:p:`terris2025ram`,
+# We demonstrate fine-tuning the RAM foundation model :footcite:p:`terris2025reconstruct`,
 # on a single demo image from CBSD68. The measurement operator is a 4x superresolution problem.
 
 model = dinv.models.RAM(device="cpu")
