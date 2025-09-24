@@ -228,14 +228,13 @@ def load_raster(
             return _process_array(src.read())
 
     def _patch_generator() -> Iterator[torch.Tensor]:
-        with rasterio.open(fname) as src:
+        src = rasterio.open(fname)
 
-            if patch is True:
-                block_windows = list(
-                    src.block_windows(1)
-                )  # use band 1 as representative
-                if not block_windows:
-                    raise RuntimeError("No block windows available for this raster.")
+        if patch is True:
+            block_windows = list(src.block_windows(1))  # use band 1 as representative
+            if not block_windows:
+                raise RuntimeError("No block windows available for this raster.")
+            try:
                 for _, window in block_windows:
                     w, h = window.width, window.height
                     if w == 1 or h == 1:
@@ -244,14 +243,16 @@ def load_raster(
                         )
                     yield _process_array(src.read(window=window))
                 return
+            finally:
+                src.close()
 
-            elif isinstance(patch, int):
-                patch_h, patch_w = patch, patch
-            elif isinstance(patch, tuple) and len(patch) == 2:
-                patch_h, patch_w = patch
-            else:
-                raise ValueError(f"Invalid value for patch: {patch}")
-
+        elif isinstance(patch, int):
+            patch_h, patch_w = patch, patch
+        elif isinstance(patch, tuple) and len(patch) == 2:
+            patch_h, patch_w = patch
+        else:
+            raise ValueError(f"Invalid value for patch: {patch}")
+        try:
             for y in range(patch_start[0], src.height, patch_h):
                 for x in range(patch_start[1], src.width, patch_w):
                     window = rasterio.windows.Window(
@@ -262,5 +263,7 @@ def load_raster(
                     )
                     yield _process_array(src.read(window=window))
             return
+        finally:
+            src.close()
 
     return _patch_generator()

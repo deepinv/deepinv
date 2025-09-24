@@ -1029,7 +1029,7 @@ def test_io_dicom():
     file = deepinv.io.load_url(
         "https://github.com/robyoung/dicom-test-files/raw/refs/heads/master/data/pydicom/693_J2KI.dcm"
     )
-    assert deepinv.io.load_dicom(file).shape == (512, 512)
+    assert deepinv.io.load_dicom(file).shape == (1, 512, 512)
 
 
 def test_io_nifti(tmp_path):
@@ -1077,13 +1077,13 @@ def test_io_ismrmd():
         4,
         512,
         213,
-    )  # BCNHW
+    )  # CXNHW (X is slice dim, note this is unusual usage)
 
 
 def test_io_torch():
     assert deepinv.io.load_torch(
         deepinv.utils.load_url(deepinv.utils.demo.get_image_url("CT100_256x256_0.pt"))
-    ).shape == (256, 256)
+    ).shape == (1, 1, 256, 256)
 
 
 def test_io_np():
