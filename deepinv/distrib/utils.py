@@ -1,17 +1,21 @@
-from typing import Sequence, Tuple, Optional, List, Dict, Callable
+from typing import Sequence, Optional, Callable
 import torch
 import torch.nn.functional as F
 
-Index = Tuple[slice, ...]
+Index = tuple[slice, ...]
 
 
-def tiling2d_reduce_fn(out_local: torch.Tensor, local_pairs: List[Tuple[int, torch.Tensor]], global_metadata: Dict) -> None:
+def tiling2d_reduce_fn(
+    out_local: torch.Tensor,
+    local_pairs: list[tuple[int, torch.Tensor]],
+    global_metadata: dict,
+) -> None:
     """
     Default reduction function for tiling2d strategy.
-    
+
     This function fills the out_local tensor with the processed patches from local_pairs,
     using the metadata to determine where each patch should be placed in the output tensor.
-    
+
     Parameters
     ----------
     out_local : torch.Tensor
@@ -23,7 +27,7 @@ def tiling2d_reduce_fn(out_local: torch.Tensor, local_pairs: List[Tuple[int, tor
     """
     crop_slices = global_metadata["crop_slices"]
     target_slices = global_metadata["target_slices"]
-    
+
     for idx, processed_tensor in local_pairs:
         c_sl = crop_slices[idx]
         t_sl = target_slices[idx]
@@ -31,10 +35,12 @@ def tiling2d_reduce_fn(out_local: torch.Tensor, local_pairs: List[Tuple[int, tor
         out_local[t_sl] = processed_tensor[c_sl]
 
 
-def extract_and_pad_patch(X: torch.Tensor, idx: int, global_slices: List[Index], global_metadata: Dict) -> torch.Tensor:
+def extract_and_pad_patch(
+    X: torch.Tensor, idx: int, global_slices: list[Index], global_metadata: dict
+) -> torch.Tensor:
     """
     Extract and pad a single patch from the input tensor.
-    
+
     Parameters
     ----------
     X : torch.Tensor
@@ -45,7 +51,7 @@ def extract_and_pad_patch(X: torch.Tensor, idx: int, global_slices: List[Index],
         List of slice objects for extracting patches
     global_metadata : Dict
         Metadata containing padding specifications
-        
+
     Returns
     -------
     torch.Tensor
@@ -53,48 +59,53 @@ def extract_and_pad_patch(X: torch.Tensor, idx: int, global_slices: List[Index],
     """
     slc = global_slices[idx]
     piece = X[slc]
-    
+
     # Apply padding if specifications are available
     pad_specs = global_metadata.get("pad_specs", [])
     if pad_specs and idx < len(pad_specs):
         pad_mode = global_metadata.get("pad_mode", "reflect")
         piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
-    
+
     return piece
 
 
-def no_batching_strategy(patches: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Callable[[List[torch.Tensor]], List[torch.Tensor]]]:
+def no_batching_strategy(
+    patches: list[torch.Tensor],
+) -> tuple[list[torch.Tensor], Callable[[list[torch.Tensor]], list[torch.Tensor]]]:
     """
     No batching strategy - returns patches as-is and an identity unpacking function.
-    
+
     Parameters
     ----------
     patches : List[torch.Tensor]
         List of patches to process
-        
+
     Returns
     -------
     Tuple[List[torch.Tensor], Callable]
         (batched_patches, unpack_fn) where batched_patches is the same as input
         and unpack_fn extracts individual results from the processed batch
     """
-    def unpack_fn(results: List[torch.Tensor]) -> List[torch.Tensor]:
+
+    def unpack_fn(results: list[torch.Tensor]) -> list[torch.Tensor]:
         return results
-    
+
     return patches, unpack_fn
 
 
-def uniform_batching_strategy(patches: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Callable[[List[torch.Tensor]], List[torch.Tensor]]]:
+def uniform_batching_strategy(
+    patches: list[torch.Tensor],
+) -> tuple[list[torch.Tensor], Callable[[list[torch.Tensor]], list[torch.Tensor]]]:
     """
     Uniform batching strategy - combines all patches into a single batch tensor.
-    
+
     This assumes all patches have the same shape (after padding).
-    
+
     Parameters
     ----------
     patches : List[torch.Tensor]
         List of uniform-shaped patches
-        
+
     Returns
     -------
     Tuple[List[torch.Tensor], Callable]
@@ -103,39 +114,43 @@ def uniform_batching_strategy(patches: List[torch.Tensor]) -> Tuple[List[torch.T
     """
     if not patches:
         return [], lambda x: []
-    
+
     # Verify all patches have the same shape
     expected_shape = patches[0].shape
     for i, patch in enumerate(patches):
         if patch.shape != expected_shape:
-            raise RuntimeError(f"Patch {i} has shape {patch.shape}, expected {expected_shape}")
-    
+            raise RuntimeError(
+                f"Patch {i} has shape {patch.shape}, expected {expected_shape}"
+            )
+
     # Combine into batch
     batch = torch.cat(patches, dim=0)
-    
-    def unpack_fn(results: List[torch.Tensor]) -> List[torch.Tensor]:
+
+    def unpack_fn(results: list[torch.Tensor]) -> list[torch.Tensor]:
         if len(results) != 1:
             raise RuntimeError(f"Expected 1 batch result, got {len(results)}")
-        
+
         result_batch = results[0]
         if result_batch.shape[0] != len(patches):
-            raise RuntimeError(f"Result batch size {result_batch.shape[0]} != expected {len(patches)}")
-        
+            raise RuntimeError(
+                f"Result batch size {result_batch.shape[0]} != expected {len(patches)}"
+            )
+
         # Split back into individual patches, keeping the original batch dimension
-        return [result_batch[i:i+1] for i in range(len(patches))]
-    
+        return [result_batch[i : i + 1] for i in range(len(patches))]
+
         return [batch], unpack_fn
 
 
 def get_batching_strategy(strategy_name: str) -> Callable:
     """
     Get a batching strategy function by name.
-    
+
     Parameters
     ----------
     strategy_name : str
         Name of the batching strategy ('uniform', 'no_batching')
-        
+
     Returns
     -------
     Callable
@@ -151,19 +166,31 @@ def get_batching_strategy(strategy_name: str) -> Callable:
 
 def _normalize_hw_args(
     signal_shape: Sequence[int],
-    patch_size: int | Tuple[int, int],
-    stride: Optional[Tuple[int, int]],
-    hw_dims: Tuple[int, int],
+    patch_size: int | tuple[int, int],
+    stride: Optional[tuple[int, int]],
+    hw_dims: tuple[int, int],
     *,
     receptive_field_radius: int = 0,
     non_overlap: bool = True,
     end_align: Optional[bool] = None,  # only used if non_overlap=False
-) -> Tuple[
-    int, int, int, int, int,  # ndim, H_dim, W_dim, H, W
-    int, int, int, int,       # ph, pw, sh, sw
-    int, int,                 # H_pad, W_pad
-    int, int, int, int,       # pad_bottom, pad_right, (pad_top=0), (pad_left=0)
-    int, int                  # win_h, win_w
+) -> tuple[
+    int,
+    int,
+    int,
+    int,
+    int,  # ndim, H_dim, W_dim, H, W
+    int,
+    int,
+    int,
+    int,  # ph, pw, sh, sw
+    int,
+    int,  # H_pad, W_pad
+    int,
+    int,
+    int,
+    int,  # pad_bottom, pad_right, (pad_top=0), (pad_left=0)
+    int,
+    int,  # win_h, win_w
 ]:
     """
     Returns:
@@ -211,7 +238,7 @@ def _normalize_hw_args(
             W_pad = W
 
     pad_bottom = max(0, H_pad - H)
-    pad_right  = max(0, W_pad - W)
+    pad_right = max(0, W_pad - W)
     pad_top = 0
     pad_left = 0
 
@@ -219,25 +246,37 @@ def _normalize_hw_args(
     win_w = pw + 2 * receptive_field_radius
 
     return (
-        ndim, H_dim, W_dim, H, W,
-        ph, pw, sh, sw,
-        H_pad, W_pad,
-        pad_bottom, pad_right, pad_top, pad_left,
-        win_h, win_w,
+        ndim,
+        H_dim,
+        W_dim,
+        H,
+        W,
+        ph,
+        pw,
+        sh,
+        sw,
+        H_pad,
+        W_pad,
+        pad_bottom,
+        pad_right,
+        pad_top,
+        pad_left,
+        win_h,
+        win_w,
     )
 
 
 def tiling_splitting_strategy(
     signal_shape: Sequence[int],
     *,
-    patch_size: int | Tuple[int, int],
+    patch_size: int | tuple[int, int],
     receptive_field_radius: int = 0,
-    stride: Optional[Tuple[int, int]] = None,
-    hw_dims: Tuple[int, int] = (-2, -1),
+    stride: Optional[tuple[int, int]] = None,
+    hw_dims: tuple[int, int] = (-2, -1),
     non_overlap: bool = True,
     end_align: Optional[bool] = None,  # used when non_overlap=False
-    pad_mode: str = "reflect",         # advisory; not applied here
-) -> Tuple[List[Index], Dict]:
+    pad_mode: str = "reflect",  # advisory; not applied here
+) -> tuple[list[Index], dict]:
     """
     Uniform-batching tiler with per-tile padding.
 
@@ -255,15 +294,31 @@ def tiling_splitting_strategy(
       # piece now has uniform window size across all tiles; stack and run Prior.
     """
     (
-        ndim, H_dim, W_dim, H, W,
-        ph, pw, sh, sw,
-        H_pad, W_pad,
-        _pad_bottom, _pad_right, _pad_top, _pad_left,
-        win_h, win_w,
+        ndim,
+        H_dim,
+        W_dim,
+        H,
+        W,
+        ph,
+        pw,
+        sh,
+        sw,
+        H_pad,
+        W_pad,
+        _pad_bottom,
+        _pad_right,
+        _pad_top,
+        _pad_left,
+        win_h,
+        win_w,
     ) = _normalize_hw_args(
-        signal_shape, patch_size, stride, hw_dims,
+        signal_shape,
+        patch_size,
+        stride,
+        hw_dims,
         receptive_field_radius=receptive_field_radius,
-        non_overlap=non_overlap, end_align=end_align,
+        non_overlap=non_overlap,
+        end_align=end_align,
     )
     signal_shape = torch.Size(signal_shape)
 
@@ -283,10 +338,10 @@ def tiling_splitting_strategy(
             h_starts = list(range(0, max(H - ph, 0) + 1, sh))
             w_starts = list(range(0, max(W - pw, 0) + 1, sw))
 
-    global_slices: List[Index] = []
-    crop_slices: List[Index] = []
-    target_slices: List[Index] = []
-    pad_specs: List[Tuple[int, int, int, int]] = []
+    global_slices: list[Index] = []
+    crop_slices: list[Index] = []
+    target_slices: list[Index] = []
+    pad_specs: list[tuple[int, int, int, int]] = []
 
     rf = receptive_field_radius
 
@@ -317,10 +372,12 @@ def tiling_splitting_strategy(
             w_bot = min(H, w_bot_desired)
             w_right = min(W, w_right_desired)
 
-            need_h_top = max(0, 0 - w_top_desired)         # == rf - p_top if p_top<rf
-            need_h_bot = max(0, w_bot_desired - H)         # == p_bot+rf - H if beyond bottom
-            need_w_left = max(0, 0 - w_left_desired)       # == rf - p_left if p_left<rf
-            need_w_right = max(0, w_right_desired - W)     # == p_right+rf - W if beyond right
+            need_h_top = max(0, 0 - w_top_desired)  # == rf - p_top if p_top<rf
+            need_h_bot = max(0, w_bot_desired - H)  # == p_bot+rf - H if beyond bottom
+            need_w_left = max(0, 0 - w_left_desired)  # == rf - p_left if p_left<rf
+            need_w_right = max(
+                0, w_right_desired - W
+            )  # == p_right+rf - W if beyond right
 
             # Slices into original tensor (no OOB)
             win_sl = [slice(None)] * ndim
@@ -354,13 +411,13 @@ def tiling_splitting_strategy(
             crop_slices.append(crop_sl)
             target_slices.append(tgt_sl)
 
-    metadata: Dict = {
-        "signal_shape": torch.Size(signal_shape),   # original (unpadded) output shape
+    metadata: dict = {
+        "signal_shape": torch.Size(signal_shape),  # original (unpadded) output shape
         "hw_dims": (H_dim, W_dim),
         "crop_slices": crop_slices,
         "target_slices": target_slices,
-        "pad_specs": pad_specs,                     # per-tile padding for uniform windows
-        "window_shape": (win_h, win_w),             # uniform H×W after per-tile pad
+        "pad_specs": pad_specs,  # per-tile padding for uniform windows
+        "window_shape": (win_h, win_w),  # uniform H×W after per-tile pad
         "inner_patch_size": (ph, pw),
         "grid_shape": (len(h_starts), len(w_starts)),
         "pad_mode": pad_mode,

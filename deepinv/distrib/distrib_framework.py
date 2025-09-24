@@ -1,18 +1,16 @@
 import os
-from typing import Callable, Optional, List, Dict, Tuple, Union, Sequence, TYPE_CHECKING
+from typing import Callable, Optional, Union, Sequence
 
 import torch
 import torch.distributed as dist
-import torch.nn.functional as F
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
 
-if TYPE_CHECKING:
-    from .strategies import DistributedSignalStrategy
+from .strategies import DistributedSignalStrategy
 
-Index = Tuple[Union[slice, int], ...]
+Index = tuple[Union[slice, int], ...]
 
 
 # =========================
@@ -76,7 +74,11 @@ class DistributedContext:
                 # Backend decision is per-node:
                 #   - If each node has at least as many *visible* GPUs as processes per node -> NCCL
                 #   - Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
-                if cuda_ok and dist.is_nccl_available() and (self.local_world_size <= visible_gpus):
+                if (
+                    cuda_ok
+                    and dist.is_nccl_available()
+                    and (self.local_world_size <= visible_gpus)
+                ):
                     backend = "nccl"
                 else:
                     backend = "gloo"
@@ -96,7 +98,9 @@ class DistributedContext:
         elif self.device_mode == "gpu":
             # Force GPU mode (require CUDA)
             if not torch.cuda.is_available() or visible_gpus == 0:
-                raise RuntimeError("GPU mode requested but CUDA not available or no visible GPUs")
+                raise RuntimeError(
+                    "GPU mode requested but CUDA not available or no visible GPUs"
+                )
             dev_index = self.local_rank % visible_gpus
             self.device = torch.device(f"cuda:{dev_index}")
             torch.cuda.set_device(self.device)
@@ -140,9 +144,11 @@ class DistributedContext:
     # ----------------------
     # Sharding
     # ----------------------
-    def local_indices(self, num_items: int) -> List[int]:
+    def local_indices(self, num_items: int) -> list[int]:
         if self.sharding == "round_robin":
-            indices = [i for i in range(num_items) if (i % self.world_size) == self.rank]
+            indices = [
+                i for i in range(num_items) if (i % self.world_size) == self.rank
+            ]
         elif self.sharding == "block":
             per_rank = (num_items + self.world_size - 1) // self.world_size
             start = self.rank * per_rank
@@ -150,13 +156,15 @@ class DistributedContext:
             indices = list(range(start, end))
         else:
             raise ValueError("sharding must be either 'round_robin' or 'block'.")
-        
+
         # Warning for efficiency, but allow empty indices (don't raise error)
         if self.is_dist and len(indices) == 0 and self.rank == 0:
-            print(f"Warning: Some ranks have no work items to process "
-                  f"(num_items={num_items}, world_size={self.world_size}). "
-                  f"Consider reducing world_size or increasing the workload for better efficiency.")
-        
+            print(
+                f"Warning: Some ranks have no work items to process "
+                f"(num_items={num_items}, world_size={self.world_size}). "
+                f"Consider reducing world_size or increasing the workload for better efficiency."
+            )
+
         return indices
 
     # ----------------------
@@ -197,28 +205,36 @@ class DistributedMeasurements:
     No collectives are used here; we assume each rank can construct its own locals.
     """
 
-    def __init__(self,
-                 ctx: DistributedContext,
-                 num_items: Optional[int] = None,
-                 *,
-                 factory: Optional[Callable[[int, torch.device, Optional[Dict]], torch.Tensor]] = None,
-                 measurements_list: Optional[Sequence[torch.Tensor]] = None,
-                 shared: Optional[Dict] = None,
-                 dtype: Optional[torch.dtype] = None):
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        num_items: Optional[int] = None,
+        *,
+        factory: Optional[
+            Callable[[int, torch.device, Optional[dict]], torch.Tensor]
+        ] = None,
+        measurements_list: Optional[Sequence[torch.Tensor]] = None,
+        shared: Optional[dict] = None,
+        dtype: Optional[torch.dtype] = None,
+    ):
         self.ctx = ctx
         self.dtype = dtype
         self.shared = shared
 
-        if (factory is None and measurements_list is None) or (factory is not None and measurements_list is not None):
+        if (factory is None and measurements_list is None) or (
+            factory is not None and measurements_list is not None
+        ):
             raise ValueError("Provide either factory or measurements_list.")
         if num_items is None and factory is not None:
             raise ValueError("Must provide num_items if using factory.")
-        
+
         self.num_items = num_items if num_items is not None else len(measurements_list)
-        self.local_idx: List[int] = ctx.local_indices(num_items)
-        self._global_to_local: Dict[int, int] = {g: j for j, g in enumerate(self.local_idx)}
-        
-        self.local: List[torch.Tensor] = []
+        self.local_idx: list[int] = ctx.local_indices(num_items)
+        self._global_to_local: dict[int, int] = {
+            g: j for j, g in enumerate(self.local_idx)
+        }
+
+        self.local: list[torch.Tensor] = []
         if factory is not None:
             for i in self.local_idx:
                 y = factory(i, ctx.device, shared)
@@ -234,10 +250,10 @@ class DistributedMeasurements:
     def __len__(self):
         return self.num_items
 
-    def indices(self) -> List[int]:
+    def indices(self) -> list[int]:
         return self.local_idx
 
-    def get_local(self) -> List[torch.Tensor]:
+    def get_local(self) -> list[torch.Tensor]:
         return self.local
 
     def get_by_global_index(self, i: int) -> torch.Tensor:
@@ -262,17 +278,20 @@ class DistributedSignal:
         signal.update_(new_data)  # Automatically synchronized
         signal.add_(-lr * gradient)  # Automatically synchronized
     """
-    def __init__(self,
-                 ctx: DistributedContext,
-                 shape: Sequence[int],
-                 dtype: Optional[torch.dtype] = None,
-                 init: Optional[torch.Tensor] = None,
-                 sync_src: int = 0):
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        shape: Sequence[int],
+        dtype: Optional[torch.dtype] = None,
+        init: Optional[torch.Tensor] = None,
+        sync_src: int = 0,
+    ):
         self.ctx = ctx
         self.dtype = dtype or torch.float32
         self._shape = torch.Size(shape)
         self._sync_src = sync_src
-        
+
         if init is None:
             self._data = torch.zeros(self._shape, device=ctx.device, dtype=self.dtype)
         else:
@@ -303,7 +322,9 @@ class DistributedSignal:
 
     def clone(self):
         """Clone the signal (creates new DistributedSignal)."""
-        new_signal = DistributedSignal(self.ctx, self.shape, self.dtype, sync_src=self._sync_src)
+        new_signal = DistributedSignal(
+            self.ctx, self.shape, self.dtype, sync_src=self._sync_src
+        )
         new_signal._data.copy_(self._data)
         new_signal._sync()
         return new_signal
@@ -312,7 +333,7 @@ class DistributedSignal:
         """Optional: consensus ops if your algorithm needs it."""
         self.ctx.all_reduce_(self._data, op=op)
         return self
-    
+
     @property
     def shape(self) -> torch.Size:
         return self._data.shape
@@ -341,19 +362,22 @@ class DistributedPhysics(Physics):
     """
     Holds only local physics operators. Exposes fast local and compatible global APIs.
     """
-    def __init__(self,
-                 ctx: DistributedContext,
-                 num_ops: int,
-                 factory: Callable[[int, torch.device, Optional[Dict]], Physics],
-                 *,
-                 shared: Optional[Dict] = None,
-                 dtype: Optional[torch.dtype] = None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        num_ops: int,
+        factory: Callable[[int, torch.device, Optional[dict]], Physics],
+        *,
+        shared: Optional[dict] = None,
+        dtype: Optional[torch.dtype] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.ctx = ctx
         self.dtype = dtype or torch.float32
         self.num_ops = num_ops
-        self.local_idx: List[int] = ctx.local_indices(num_ops)
+        self.local_idx: list[int] = ctx.local_indices(num_ops)
 
         # Broadcast shared object (lightweight) once (root=0) if present
         self.shared = shared
@@ -363,18 +387,18 @@ class DistributedPhysics(Physics):
             self.shared = obj[0]
 
         # Build local physics
-        self.local_physics: List[Physics] = []
+        self.local_physics: list[Physics] = []
         for i in self.local_idx:
             p_i = factory(i, ctx.device, self.shared)
             self.local_physics.append(p_i)
 
     # -------- local fast path --------
-    def A_local(self, x: torch.Tensor, **kwargs) -> List[torch.Tensor]:
+    def A_local(self, x: torch.Tensor, **kwargs) -> list[torch.Tensor]:
         return [p.A(x, **kwargs) for p in self.local_physics]
 
     # Optional: global assembly (for compatibility/debug)
     def A(self, x: torch.Tensor, **kwargs) -> TensorList:
-        pairs = list(zip(self.local_idx, self.A_local(x, **kwargs)))
+        pairs = list(zip(self.local_idx, self.A_local(x, **kwargs), strict=False))
         if not self.ctx.is_dist:
             out = [None] * self.num_ops
             for i, t in pairs:
@@ -403,11 +427,17 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     Linear extension with local adjoint / vjp that reduce with a single all_reduce.
     """
 
-    def __init__(self, ctx: DistributedContext, num_ops: int, factory, *,
-                 shared: Optional[Dict] = None,
-                 reduction: str = "sum",
-                 dtype: Optional[torch.dtype] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        num_ops: int,
+        factory,
+        *,
+        shared: Optional[dict] = None,
+        reduction: str = "sum",
+        dtype: Optional[torch.dtype] = None,
+        **kwargs,
+    ):
         LinearPhysics.__init__(self, A=lambda x: x, A_adjoint=lambda y: y, **kwargs)
         self.reduction_mode = reduction
         super().__init__(ctx, num_ops, factory, shared=shared, dtype=dtype, **kwargs)
@@ -417,18 +447,24 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
                 raise ValueError("factory must return LinearPhysics instances.")
 
     # ---- local (fast) ----
-    def A_adjoint_local(self, y_local: List[torch.Tensor], **kwargs) -> torch.Tensor:
+    def A_adjoint_local(self, y_local: list[torch.Tensor], **kwargs) -> torch.Tensor:
         if len(y_local) == 0:
             # Return zeros with proper shape for empty local set
             return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        contribs = [p.A_adjoint(y_i, **kwargs) for p, y_i in zip(self.local_physics, y_local)]
+        contribs = [
+            p.A_adjoint(y_i, **kwargs) for p, y_i in zip(self.local_physics, y_local, strict=False)
+        ]
         return torch.stack(contribs, dim=0).sum(0)
 
-    def A_vjp_local(self, x: torch.Tensor, v_local: List[torch.Tensor], **kwargs) -> torch.Tensor:
+    def A_vjp_local(
+        self, x: torch.Tensor, v_local: list[torch.Tensor], **kwargs
+    ) -> torch.Tensor:
         if len(v_local) == 0:
             # Return zeros with proper shape for empty local set
             return torch.zeros_like(x)
-        contribs = [p.A_vjp(x, v_i, **kwargs) for p, v_i in zip(self.local_physics, v_local)]
+        contribs = [
+            p.A_vjp(x, v_i, **kwargs) for p, v_i in zip(self.local_physics, v_local, strict=False)
+        ]
         return torch.stack(contribs, dim=0).sum(0)
 
     # ---- global (compat) ----
@@ -437,12 +473,12 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             # handle 0.0 placeholder for empty local set
             x_like = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
             x_like = x_like.expand(())  # scalar
-        
+
         # Ensure all ranks participate in collective even with empty data
         if self.ctx.is_dist:
             # For ranks with empty local sets, x_like should be zeros
             self.ctx.all_reduce_(x_like, op="sum")
-        
+
         if self.reduction_mode == "mean":
             x_like = x_like / float(self.num_ops)
         return x_like
@@ -469,15 +505,19 @@ class DistributedDataFidelity:
       - computes grad via local VJP and all-reduces a single x-shaped tensor
     """
 
-    def __init__(self,
-                 ctx: DistributedContext,
-                 physics: Union[DistributedPhysics, DistributedLinearPhysics],
-                 measurements: DistributedMeasurements,
-                 *,
-                 data_fidelity_factory: Optional[Callable[[int, torch.device, Optional[Dict]], object]] = None,
-                 data_fidelity_list: Optional[Sequence[object]] = None,
-                 shared: Optional[Dict] = None,
-                 reduction: str = "sum"):
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        physics: Union[DistributedPhysics, DistributedLinearPhysics],
+        measurements: DistributedMeasurements,
+        *,
+        data_fidelity_factory: Optional[
+            Callable[[int, torch.device, Optional[dict]], object]
+        ] = None,
+        data_fidelity_list: Optional[Sequence[object]] = None,
+        shared: Optional[dict] = None,
+        reduction: str = "sum",
+    ):
         self.ctx = ctx
         self.physics = physics
         self.meas = measurements
@@ -486,26 +526,31 @@ class DistributedDataFidelity:
 
         local_idx = physics.local_idx
         if data_fidelity_factory is not None:
-            self.local_df = [data_fidelity_factory(i, ctx.device, shared) for i in local_idx]
+            self.local_df = [
+                data_fidelity_factory(i, ctx.device, shared) for i in local_idx
+            ]
         elif data_fidelity_list is not None:
             self.local_df = [data_fidelity_list[i] for i in local_idx]
         else:
             raise ValueError("Provide data_fidelity_factory or data_fidelity_list.")
 
         # Sanity: indices alignment
-        assert local_idx == self.meas.indices(), \
-            "Physics and measurements must shard the same global indices under the same context."
+        assert (
+            local_idx == self.meas.indices()
+        ), "Physics and measurements must shard the same global indices under the same context."
 
     # ---- loss ----
     @torch.no_grad()
     def fn(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
         # Local forward
-        y_pred_local = self.physics.A_local(X.tensor, **kwargs)  # list aligned with local_idx
+        y_pred_local = self.physics.A_local(
+            X.tensor, **kwargs
+        )  # list aligned with local_idx
         y_true_local = self.meas.get_local()
 
         # Local accumulation (each DF returns a scalar per-batch; we sum)
         loss = X.tensor.new_zeros(())
-        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local):
+        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local, strict=False):
             # Use the distance function directly since we already have A(x) = yhat
             loss = loss + df.d(yhat, y, **kwargs)
 
@@ -524,7 +569,7 @@ class DistributedDataFidelity:
 
         # Local residuals: dℓ/dy_i
         v_local = []
-        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local):
+        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local, strict=False):
             v_local.append(df.d.grad(yhat, y, **kwargs))
 
         # Local VJP into x-shape
@@ -533,7 +578,10 @@ class DistributedDataFidelity:
         else:
             # Fallback: generic physics with manual vjp (requires per-op support).
             if len(v_local) > 0:
-                contribs = [p.A_vjp(X.tensor, v_i, **kwargs) for p, v_i in zip(self.physics.local_physics, v_local)]
+                contribs = [
+                    p.A_vjp(X.tensor, v_i, **kwargs)
+                    for p, v_i in zip(self.physics.local_physics, v_local, strict=False)
+                ]
                 x_grad_local = torch.stack(contribs, dim=0).sum(0)
             else:
                 x_grad_local = torch.zeros_like(X.tensor)
@@ -574,7 +622,7 @@ class DistributedPrior:
         strategy: Union[str, DistributedSignalStrategy] = "smart_tiling",
         signal_shape: Sequence[int],
         strategy_kwargs: Optional[dict] = None,
-        **kwargs
+        **kwargs,
     ):
         self.ctx = ctx
         self.prior = prior
@@ -587,6 +635,7 @@ class DistributedPrior:
         # Create or set the strategy
         if isinstance(strategy, str):
             from .strategies import create_strategy
+
             strategy_kwargs = strategy_kwargs or {}
             self.strategy = create_strategy(strategy, signal_shape, **strategy_kwargs)
         else:
@@ -600,16 +649,21 @@ class DistributedPrior:
             raise ValueError("Strategy produced zero patches.")
 
         # determine local patch indices for this rank
-        self.local_indices: List[int] = list(self.ctx.local_indices(self.num_patches))
+        self.local_indices: list[int] = list(self.ctx.local_indices(self.num_patches))
 
         # Check for insufficient work distribution
         if self.ctx.is_dist and self.ctx.rank == 0:
-            ranks_with_work = sum(1 for rank in range(self.ctx.world_size) 
-                                 if len(self.ctx.local_indices(self.num_patches)) > 0)
+            ranks_with_work = sum(
+                1
+                for rank in range(self.ctx.world_size)
+                if len(self.ctx.local_indices(self.num_patches)) > 0
+            )
             if ranks_with_work < self.ctx.world_size:
-                print(f"Warning: Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
-                      f"Some ranks will have no work. "
-                      f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks.")
+                print(
+                    f"Warning: Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
+                    f"Some ranks will have no work. "
+                    f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks."
+                )
 
     # ---- public ops -------------------------------------------------------
 
@@ -624,7 +678,7 @@ class DistributedPrior:
     def _apply_op(self, X: DistributedSignal, *, op: str, **kwargs) -> torch.Tensor:
         """
         Apply prior operation (grad/prox) using the distributed strategy.
-        
+
         This method:
         1. Extracts local patches using the strategy
         2. Applies batching as defined by the strategy
@@ -634,11 +688,13 @@ class DistributedPrior:
         """
         # Handle empty case early
         if not self.local_indices:
-            out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+            out_local = torch.zeros(
+                self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype
+            )
             if self.ctx.is_dist:
                 self.ctx.all_reduce_(out_local, op="sum")
             return out_local
-            
+
         # Get the prior operation function
         if op == "grad":
             if not hasattr(self.prior, "grad"):
@@ -665,7 +721,9 @@ class DistributedPrior:
             processed_batches.append(result)
 
         # 4. Unpack results back to individual patches
-        processed_patches = self.strategy.unpack_batched_results(processed_batches, len(patches))
+        processed_patches = self.strategy.unpack_batched_results(
+            processed_batches, len(patches)
+        )
 
         # 5. Pair with global indices
         if len(processed_patches) != len(self.local_indices):
@@ -674,16 +732,16 @@ class DistributedPrior:
                 f"and local indices ({len(self.local_indices)})"
             )
 
-        processed_pairs = list(zip(self.local_indices, processed_patches))
+        processed_pairs = list(zip(self.local_indices, processed_patches, strict=False))
 
         # 6. Initialize output tensor and apply reduction strategy
-        out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+        out_local = torch.zeros(
+            self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype
+        )
         self.strategy.reduce_patches(out_local, processed_pairs)
-        
+
         # 7. All-reduce to combine results from all ranks
         if self.ctx.is_dist:
             self.ctx.all_reduce_(out_local, op="sum")
-            
+
         return out_local
-
-
