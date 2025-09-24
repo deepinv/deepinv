@@ -24,7 +24,7 @@ volume_data = (
     dinv.utils.load_np_url(
         "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
     )
-    .clone()[::-1, ...]
+    .flip(0)
     .unsqueeze(0)
     .unsqueeze(0)
 )
