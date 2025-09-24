@@ -9,6 +9,8 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
 
+from deepinv.distrib.utils_new import tiling_splitting_strategy, tiling2d_reduce_fn
+
 Index = Tuple[Union[slice, int], ...]
 
 
@@ -552,8 +554,7 @@ class DistributedPrior:
     Distributed prior where:
       • Splits are computed at __init__ from the *global* signal shape.
       • Each rank processes only its local split indices.
-      • grad/prox: compute local results, gather to rank 0, call user reduce_fn(List[Tensor])->Tensor,
-        broadcast the final tensor to all ranks.
+      • grad/prox: compute local results, apply custom reduction function locally, then all-reduce.
 
     Parameters
     ----------
@@ -564,9 +565,9 @@ class DistributedPrior:
         If 'tiling2d', pass tile options via splitting_kwargs.
     signal_shape : Sequence[int]
         Full tensor shape of the signal to be processed (e.g. BCHW).
-    reduce_fn : Callable[[List[torch.Tensor]], torch.Tensor]
-        User-provided reduction function applied on rank 0 that receives the global ordered list of
-        processed pieces and returns a single tensor (same shape as signal).
+    reduce_fn : Callable[[torch.Tensor, List[Tuple[int, torch.Tensor]], Dict], None]
+        User-provided reduction function that takes (out_local, local_pairs, global_metadata) and
+        fills out_local tensor in-place. Default is tiling2d_reduce_fn for tiling strategies.
     splitting_kwargs : dict
         Extra args to the splitting strategy (e.g., tile size/stride).
     """
@@ -578,7 +579,7 @@ class DistributedPrior:
         *,
         splitting_strategy: Union[str, Callable[[torch.Size], Tuple[List[Index], Dict]]],
         signal_shape: Sequence[int],
-        reduce_fn: Optional[Callable[[List[torch.Tensor], Dict], torch.Tensor]] = None,
+        reduce_fn: Optional[Callable[[torch.Tensor, List[Tuple[int, torch.Tensor]], Dict], None]] = None,
         splitting_kwargs: Optional[dict] = None,
         batching: bool = True,
     ):
@@ -589,7 +590,6 @@ class DistributedPrior:
             self.prior.to(ctx.device)
 
         self.signal_shape = torch.Size(signal_shape)
-        self.reduce_fn = reduce_fn
         self.splitting_kwargs = splitting_kwargs or {}
         self.batching = batching  # Keep the user-specified batching preference
 
@@ -597,14 +597,17 @@ class DistributedPrior:
         if callable(splitting_strategy):
             self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
         elif splitting_strategy == "tiling2d":
-            from .utils_new import tiling_splitting_strategy
             self._global_slices, self._global_metadata = tiling_splitting_strategy(
                 self.signal_shape, **self.splitting_kwargs
             )
-            # Use the efficient tiling2d reduction approach
-            self.reduce_fn = "tiling2d" if reduce_fn is None else reduce_fn
         else:
             raise ValueError(f"Unknown splitting_strategy: {splitting_strategy}")
+
+        # Set default reduce_fn if not provided
+        if reduce_fn is None:
+            self.reduce_fn = tiling2d_reduce_fn
+        else:
+            self.reduce_fn = reduce_fn
 
         self.num_splits = len(self._global_slices)
         if self.num_splits == 0:
@@ -622,17 +625,6 @@ class DistributedPrior:
                       f"Some ranks will have no work. "
                       f"Current: {self.num_splits} patches for {self.ctx.world_size} ranks.")
 
-        # If distributed, ensure all ranks share the same slices ordering and metadata (broadcast from rank 0)
-        # if self.ctx.is_dist:
-        #     obj = [self._global_slices if self.ctx.rank == 0 else None]
-        #     dist.broadcast_object_list(obj, src=0)
-        #     self._global_slices = obj[0]
-            
-        #     # Also broadcast metadata to ensure consistency
-        #     meta_obj = [self._global_metadata if self.ctx.rank == 0 else None]
-        #     dist.broadcast_object_list(meta_obj, src=0)
-        #     self._global_metadata = meta_obj[0]
-
     # ---- public ops -------------------------------------------------------
 
     def grad(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
@@ -645,75 +637,23 @@ class DistributedPrior:
 
     def _apply_op(self, X: DistributedSignal, *, op: str, **kwargs) -> torch.Tensor:
         """
-        op in {"grad", "prox"} – calls prior.op on each local split, gathers, reduces on rank 0, broadcasts.
+        op in {"grad", "prox"} – calls prior.op on each local split, applies custom reduction locally, 
+        then all-reduces the result tensor.
         """
-        # 1) local compute
+        # 1) Compute local processed patches
         local_pairs = self._compute_local_pairs(X, op=op, **kwargs)
 
-        # Efficient tiling2d reduction using NCCL all_reduce
-        if self.ctx.is_dist and self.reduce_fn == "tiling2d":
-            # Initialize output tensor with zeros
-            out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
-            
-            # Each rank fills in its local patches
-            crop_slices = self._global_metadata["crop_slices"]
-            target_slices = self._global_metadata["target_slices"]
-
-            for idx, tens in local_pairs:
-                c_sl = crop_slices[idx]
-                t_sl = target_slices[idx]
-                out_local[t_sl] = tens[c_sl]
-
-            self.ctx.all_reduce_(out_local, op="sum")
-            return out_local
-
-        # Fallback to the gather-based approach for other cases
-        # 2) gather all (idx, tensor) pairs
-        if self.ctx.is_dist:
-            gathered = [None] * self.ctx.world_size
-            # All ranks participate even if local_pairs is empty
-            dist.all_gather_object(gathered, local_pairs)
-            all_pairs = []
-            for part in gathered:
-                all_pairs.extend(part)
-        else:
-            all_pairs = local_pairs
-
-        # 3) assemble into the global ordered list (by index)
-        pieces: List[Optional[torch.Tensor]] = [None] * self.num_splits
-        for idx, tens in all_pairs:
-            pieces[idx] = tens
+        # 2) Initialize output tensor with zeros
+        out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
         
-        # Handle case where more ranks than patches - some pieces may be missing
-        if any(p is None for p in pieces):
-            missing = [i for i, p in enumerate(pieces) if p is None]
-            if self.ctx.rank == 0:
-                print(f"Warning: {len(missing)} pieces missing (ranks > patches). "
-                      f"Missing indices: {missing[:10]}{'...' if len(missing) > 10 else ''}")
-            
-            # For missing pieces, we need to create dummy tensors or handle gracefully
-            # This should not happen in a correct tiling setup, but let's be robust
-            if len(missing) > 0:
-                raise RuntimeError(f"Missing pieces for splits: {missing[:10]}{'...' if len(missing) > 10 else ''}. "
-                                 f"This indicates more ranks ({self.ctx.world_size}) than patches ({self.num_splits}). "
-                                 f"Consider reducing world_size or using a different tiling strategy.")
-
-        # 4) reduce on rank 0, broadcast tensor result
+        # 3) Apply user-defined reduction function locally
+        self.reduce_fn(out_local, local_pairs, self._global_metadata)
+        
+        # 4) All-reduce to combine results from all ranks
         if self.ctx.is_dist:
-            if self.ctx.rank == 0:
-                from .utils import tiling_reduce_fn
-                out = tiling_reduce_fn(pieces, self._global_metadata)
-                out = out.to(self.ctx.device, dtype=X.tensor.dtype)
-            else:
-                out = torch.empty(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
-
-            # broadcast to everyone
-            self.ctx.broadcast_(out, src=0)
-            return out
-        else:
-            from .utils import tiling_reduce_fn
-            out = tiling_reduce_fn(pieces, self._global_metadata).to(self.ctx.device, dtype=X.tensor.dtype)
-            return out
+            self.ctx.all_reduce_(out_local, op="sum")
+            
+        return out_local
 
     def _compute_local_pairs(self, X: DistributedSignal, *, op: str, **kwargs) -> List[Tuple[int, torch.Tensor]]:
         """

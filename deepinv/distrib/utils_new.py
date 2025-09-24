@@ -3,6 +3,32 @@ import torch
 
 Index = Tuple[slice, ...]
 
+
+def tiling2d_reduce_fn(out_local: torch.Tensor, local_pairs: List[Tuple[int, torch.Tensor]], global_metadata: Dict) -> None:
+    """
+    Default reduction function for tiling2d strategy.
+    
+    This function fills the out_local tensor with the processed patches from local_pairs,
+    using the metadata to determine where each patch should be placed in the output tensor.
+    
+    Parameters
+    ----------
+    out_local : torch.Tensor
+        The output tensor to fill (should be initialized to zeros).
+    local_pairs : List[Tuple[int, torch.Tensor]]
+        List of (global_index, processed_tensor) pairs from this rank.
+    global_metadata : Dict
+        Metadata from the splitting strategy containing crop_slices and target_slices.
+    """
+    crop_slices = global_metadata["crop_slices"]
+    target_slices = global_metadata["target_slices"]
+    
+    for idx, processed_tensor in local_pairs:
+        c_sl = crop_slices[idx]
+        t_sl = target_slices[idx]
+        # Extract the valid part of the processed patch and place it in the output
+        out_local[t_sl] = processed_tensor[c_sl]
+
 def _normalize_hw_args(
     signal_shape: Sequence[int],
     patch_size: int | Tuple[int, int],
