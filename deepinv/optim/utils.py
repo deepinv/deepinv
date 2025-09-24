@@ -1093,15 +1093,16 @@ def least_squares_implicit_backward(
     else:
         trigger = torch.ones(1, device=y.device, dtype=y.dtype)
     extra_kwargs = kwargs if kwargs else None
+    dtype = y.dtype if not torch.is_complex(y) else y.real.dtype
     if gamma is None:
-        gamma = torch.zeros((), device=y.device, dtype=y.dtype)
+        gamma = torch.zeros((), device=y.device, dtype=dtype)
     if isinstance(gamma, Tensor) and gamma.ndim > 0:
         if gamma.size(0) != y.size(0):
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
     if not isinstance(gamma, Tensor):
-        gamma = torch.as_tensor(gamma, device=y.device, dtype=y.dtype)
+        gamma = torch.as_tensor(gamma, device=y.device, dtype=dtype)
     return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)
 
 
