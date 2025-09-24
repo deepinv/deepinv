@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
+import torch
 import torch.nn as nn
 from torch import Tensor
-from torch.optim import Optimizer
 from deepinv.loss.adversarial.base import DiscriminatorMetric, AdversarialLoss
 from deepinv.utils.mixins import MultiOperatorMixin
 
@@ -54,7 +54,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
 
         Simple example (assuming a pretrained discriminator):
 
-        >>> y, x_net = torch.randn(2, 1, 2, 64, 64) # B,C,H,W
+        >>> y, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
         >>>
         >>> from deepinv.physics import Inpainting
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
@@ -68,6 +68,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         >>> physics = Inpainting((2, 64, 64), mask=0.8)
         >>>
         >>> # Dataloader takes exact same form as input data
+        >>> from torch.utils.data import DataLoader
         >>> dataloader = DataLoader([(torch.randn(2, 64, 64), torch.randn(2, 64, 64)) for _ in range(2)]) # x, y
         >>>
         >>> loss = UAIRLoss(
@@ -75,7 +76,8 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         ...     physics_generator=physics_generator,
         ... )
         >>>
-        >>> l = loss(y, x_net, physics)
+        >>> from deepinv.models import MedianFilter
+        >>> l = loss(y=y, x_net=x_net, physics=physics, model=MedianFilter())
         >>> l.backward()
 
     """
@@ -88,7 +90,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         domain: str = None,
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
-        optimizer_D: Optimizer = None,
+        optimizer_D: torch.optim.Optimizer = None,
         physics_generator: PhysicsGenerator = None,
         device="cpu",
         **kwargs,

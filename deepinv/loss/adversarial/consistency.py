@@ -46,9 +46,9 @@ class SupAdversarialLoss(AdversarialLoss):
         >>>
         >>> from deepinv.models import DCGANDiscriminator
         >>> D = DCGANDiscriminator() # assume pretrained discriminator
-        >>>
+        >>> from deepinv.loss.adversarial import SupAdversarialLoss
         >>> loss = SupAdversarialLoss(D=D)
-        >>> l = loss(x, x_net)
+        >>> l = loss(x=x, x_net=x_net)
         >>> l.backward()
     """
 
@@ -99,13 +99,17 @@ class UnsupAdversarialLoss(AdversarialLoss):
 
         Simple example (assuming a pretrained discriminator):
 
-        >>> y, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
-        >>>
         >>> from deepinv.models import DCGANDiscriminator
-        >>> D = DCGANDiscriminator() # assume pretrained discriminator
+        >>> from deepinv.loss.adversarial import UnsupAdversarialLoss
+        >>> from deepinv.physics import Denoising
         >>>
+        >>> x, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
+        >>> physics = Denoising()
+        >>> y = physics(x)
+        >>>
+        >>> D = DCGANDiscriminator() # assume pretrained discriminator
         >>> loss = UnsupAdversarialLoss(D=D)
-        >>> l = loss(y, x_net)
+        >>> l = loss(y=y, x_net=x_net, physics=physics)
         >>> l.backward()
     """
 
@@ -210,6 +214,7 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
         >>> from deepinv.models import SkipConvDiscriminator
         >>> from deepinv.physics import MRI
         >>> from deepinv.physics.generator import GaussianMaskGenerator
+        >>> from deepinv.models import MedianFilter # any model
         >>> from torch.utils.data import DataLoader
         >>>
         >>> D = SkipConvDiscriminator(img_size=(64, 64), in_channels=2) # assume pretrained discriminator
@@ -222,13 +227,14 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
         >>> # Dataloader takes exact same form as input data
         >>> dataloader = DataLoader([(torch.randn(2, 64, 64), torch.randn(2, 64, 64)) for _ in range(2)]) # x, y
         >>>
+        >>> from deepinv.loss.adversarial import MultiOperatorUnsupAdversarialLoss
         >>> loss = MultiOperatorUnsupAdversarialLoss(
         ...     D=D,
         ...     physics_generator=physics_generator,
         ...     dataloader=dataloader
         ... )
         >>>
-        >>> l = loss(y, x_net, physics)
+        >>> l = loss(y=y, x_net=x_net, physics=physics, model=MedianFilter())
         >>> l.backward()
     """
 
