@@ -133,7 +133,7 @@ class AdversarialLoss(Loss):
 
         If discriminator optimizer does not exist, then this does nothing.
 
-        :param nn.Module model: generator model, used to detect if the loss is being
+        :param torch.nn.Module model: generator model, used to detect if the loss is being
             used in training or evaluation mode. If it is in evaluation mode, then this
             function does nothing.
         """
@@ -184,7 +184,7 @@ class AdversarialLoss(Loss):
     def load_model(self, filename, device=None, strict: bool = True) -> dict:
         """Load discriminator from checkpoint.
 
-        :param str ckpt_pretrained: checkpoint filename.
+        :param str, pathlib.Path filename: checkpoint filename.
         :param torch.device, str device: device to load model onto.
         :param bool strict: strict load weights to model.
         """
@@ -202,7 +202,7 @@ class AdversarialLoss(Loss):
         r"""
         Save the discriminator.
 
-        :param str, Path filename: filename to save to
+        :param str, pathlib.Path filename: filename to save to
         """
         torch.save(
             {

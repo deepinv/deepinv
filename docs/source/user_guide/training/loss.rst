@@ -145,7 +145,7 @@ Several specialized losses are available for MRI reconstruction, particularly se
 Adversarial Learning
 --------------------
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game.
-These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN, by passing in a custom :class:`discriminator metric <DiscriminatorMetric>`.
+These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN, by passing in a custom :class:`discriminator metric <deepinv.loss.adversarial.DiscriminatorMetric>`.
 We implement various popular (supervised and unsupervised) adversarial training frameworks below.
 
 Discriminators are trained inside the adversarial losses by passing in a optimizer.

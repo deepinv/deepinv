@@ -176,7 +176,7 @@ loss = [
 
 
 # %%
-# We are now ready to train the networks using the usual :class:`deepinv.training.Trainer`.
+# We are now ready to train the networks using the usual :class:`deepinv.Trainer`.
 #
 # .. warning::
 #     GAN training is notoriously challenging and unstable, and training a well-trained GAN is beyond the scope of this example.
@@ -234,7 +234,7 @@ loss = adversarial.UAIRLoss(
 
 
 # %%
-# We are now ready to train the networks using the usual :class:`deepinv.training.Trainer`.
+# We are now ready to train the networks using the usual :class:`deepinv.Trainer`.
 #
 # .. warning::
 #     GAN training is notoriously challenging and unstable, and training a well-trained GAN is beyond the scope of this example.
