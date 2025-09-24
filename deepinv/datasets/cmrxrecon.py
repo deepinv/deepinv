@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
-from deepinv.datasets.utils import loadmat
+from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
@@ -165,7 +165,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     def _loadmat(self, fname: Union[str, Path, os.PathLike]) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""
         return next(
-            v for k, v in loadmat(fname, mat73=True).items() if not k.startswith("__")
+            v for k, v in load_mat(fname, mat73=True).items() if not k.startswith("__")
         )
 
     def _retrieve_metadata(
