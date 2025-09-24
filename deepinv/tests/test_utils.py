@@ -1017,3 +1017,27 @@ def test_default_tex(latex_exists, monkeypatch):
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
     deepinv.utils.plotting.enable_tex()
+
+
+def test_io():
+    file = deepinv.io.load_url(
+        "https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF"
+    )
+    assert deepinv.io.load_raster(file, patch=False).shape == (1, 929, 699)
+
+    x = deepinv.io.load_raster(file, patch=True)
+    assert next(x).shape == (1, 11, 699)
+    assert len(list(x)) == 929 // 11
+
+    # Test patches are patched correctly
+    assert next(deepinv.io.load_raster(file, patch=(2, 5))).shape == (1, 2, 5)
+    assert next(deepinv.io.load_raster(file, patch=5)).shape == (1, 5, 5)
+
+    assert len(list(deepinv.io.load_raster(file, patch=(3, 699)))) == 310
+    assert len(list(deepinv.io.load_raster(file, patch=(929, 3)))) == 233
+
+    # Test patch start
+    assert (
+        len(list(deepinv.io.load_raster(file, patch=(3, 699), patch_start=(920, 0))))
+        == 3
+    )

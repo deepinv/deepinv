@@ -47,8 +47,6 @@ def load_nifti(path: Union[str, Path]) -> torch.Tensor:
 
 
 # TODO load h5 ISMRM
-# TODO load GDAL COSAR
-# TODO load GEOTIFF
 
 
 def load_torch(path: Union[str, Path], device=None) -> torch.Tensor:
@@ -118,12 +116,14 @@ def load_mat(fname: str, mat73: bool = False) -> dict[str, np.ndarray]:
 def load_raster(
     filepath: str,
     patch: Union[bool, int, tuple[int, int]] = False,
+    patch_start: Optional[tuple[int, int]] = (0, 0),
     transform: Optional[Callable] = None,
 ) -> Union[torch.Tensor, Iterator[torch.Tensor]]:
     """
     Load a raster image and return patches as tensors using `rasterio`.
 
     This function allows you to stream patches from large rasters e.g. satellite imagery, SAR etc.
+    and supports all file formats supported by `rasterio`.
 
     :param str filepath: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc.
     :param bool, int, tuple[int, int], patch: Patch extraction mode.
@@ -131,7 +131,8 @@ def load_raster(
         * ``True``: yield patches based on the raster's internal block windows.
             - If no block windows are available, raises ``RuntimeError``.
             - If any block has a dimension of 1 (strip layout), a warning is raised.
-        * ``int`` or ``(int, int)``: yield patches of the manually specified size.
+        * ``int`` or ``(int, int)``: yield patches of the manually specified size `h, w`.
+    :param tuple[int, int] patch_start: h and w indices from which to start taking patches. Defaults to `0,0`.
     :param Callable, None transform: Optional transform applied to each patch.
 
     :return: Either (where C is the band dimension)
@@ -142,8 +143,7 @@ def load_raster(
 
     :Examples:
 
-    >>> assert 1==0
-    >>> from deepinv.utils.io import load_raster, load_url
+    >>> from deepinv.utils.io_utils import load_raster, load_url
     >>> file = load_url("https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF")
     >>> x = load_raster(file, patch=False) # Load whole image
     >>> x.shape
@@ -153,11 +153,11 @@ def load_raster(
     torch.Size([1, 11, 699])
     >>> all_patches = list(x) # Load all patches into memory
     >>> len(all_patches)
-    43
+    84
     >>> from torch.utils.data import DataLoader
     >>> dataloader = DataLoader(all_patches, batch_size=2) # You can use this for training
     >>>
-    >>> x = load_raster(file, patch=128) # Patch via manual size
+    >>> x = load_raster(file, patch=128, patch_start=(200, 200)) # Patch via manual size, pick away from origin
     >>> next(x).shape
     torch.Size([1, 128, 128])
     """
@@ -215,14 +215,14 @@ def load_raster(
                 return
 
             elif isinstance(patch, int):
-                patch_w, patch_h = patch, patch
+                patch_h, patch_w = patch, patch
             elif isinstance(patch, tuple) and len(patch) == 2:
-                patch_w, patch_h = patch
+                patch_h, patch_w = patch
             else:
                 raise ValueError(f"Invalid value for patch: {patch}")
 
-            for y in range(0, src.height, patch_h):
-                for x in range(0, src.width, patch_w):
+            for y in range(patch_start[0], src.height, patch_h):
+                for x in range(patch_start[1], src.width, patch_w):
                     window = rasterio.windows.Window(
                         x,
                         y,
