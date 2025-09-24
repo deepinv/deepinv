@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
-from deepinv.distrib.utils_new import tiling_splitting_strategy
 
 Index = Tuple[Union[slice, int], ...]
 
@@ -140,14 +139,22 @@ class DistributedContext:
     # ----------------------
     def local_indices(self, num_items: int) -> List[int]:
         if self.sharding == "round_robin":
-            return [i for i in range(num_items) if (i % self.world_size) == self.rank]
+            indices = [i for i in range(num_items) if (i % self.world_size) == self.rank]
         elif self.sharding == "block":
             per_rank = (num_items + self.world_size - 1) // self.world_size
             start = self.rank * per_rank
             end = min(start + per_rank, num_items)
-            return list(range(start, end))
+            indices = list(range(start, end))
         else:
             raise ValueError("sharding must be either 'round_robin' or 'block'.")
+        
+        # Warning for efficiency, but allow empty indices (don't raise error)
+        if self.is_dist and len(indices) == 0 and self.rank == 0:
+            print(f"Warning: Some ranks have no work items to process "
+                  f"(num_items={num_items}, world_size={self.world_size}). "
+                  f"Consider reducing world_size or increasing the workload for better efficiency.")
+        
+        return indices
 
     # ----------------------
     # Collectives
@@ -374,6 +381,7 @@ class DistributedPhysics(Physics):
         # NOTE: use all_gather_object only for small N or debugging.
         # For production, prefer tensor collectives with metadata. Kept simple here.
         gathered = [None] * self.ctx.world_size
+        # All ranks participate in all_gather_object, even if pairs is empty
         dist.all_gather_object(gathered, pairs)
         all_pairs = []
         for part in gathered:
@@ -408,13 +416,15 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     # ---- local (fast) ----
     def A_adjoint_local(self, y_local: List[torch.Tensor], **kwargs) -> torch.Tensor:
         if len(y_local) == 0:
-            return 0.0
+            # Return zeros with proper shape for empty local set
+            return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
         contribs = [p.A_adjoint(y_i, **kwargs) for p, y_i in zip(self.local_physics, y_local)]
         return torch.stack(contribs, dim=0).sum(0)
 
     def A_vjp_local(self, x: torch.Tensor, v_local: List[torch.Tensor], **kwargs) -> torch.Tensor:
         if len(v_local) == 0:
-            return 0.0
+            # Return zeros with proper shape for empty local set
+            return torch.zeros_like(x)
         contribs = [p.A_vjp(x, v_i, **kwargs) for p, v_i in zip(self.local_physics, v_local)]
         return torch.stack(contribs, dim=0).sum(0)
 
@@ -424,7 +434,12 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             # handle 0.0 placeholder for empty local set
             x_like = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
             x_like = x_like.expand(())  # scalar
-        self.ctx.all_reduce_(x_like, op="sum")
+        
+        # Ensure all ranks participate in collective even with empty data
+        if self.ctx.is_dist:
+            # For ranks with empty local sets, x_like should be zeros
+            self.ctx.all_reduce_(x_like, op="sum")
+        
         if self.reduction_mode == "mean":
             x_like = x_like / float(self.num_ops)
         return x_like
@@ -491,8 +506,9 @@ class DistributedDataFidelity:
             # Use the distance function directly since we already have A(x) = yhat
             loss = loss + df.d(yhat, y, **kwargs)
 
-        # Global reduction
-        self.ctx.all_reduce_(loss, op="sum")
+        # Global reduction - all ranks participate even if they have no local data
+        if self.ctx.is_dist:
+            self.ctx.all_reduce_(loss, op="sum")
         if self.reduction == "mean":
             loss = loss / float(self.physics.num_ops)
         return loss
@@ -513,14 +529,18 @@ class DistributedDataFidelity:
             x_grad_local = self.physics.A_vjp_local(X.tensor, v_local, **kwargs)
         else:
             # Fallback: generic physics with manual vjp (requires per-op support).
-            contribs = [p.A_vjp(X.tensor, v_i, **kwargs) for p, v_i in zip(self.physics.local_physics, v_local)]
-            x_grad_local = torch.stack(contribs, dim=0).sum(0) if len(contribs) else 0.0
+            if len(v_local) > 0:
+                contribs = [p.A_vjp(X.tensor, v_i, **kwargs) for p, v_i in zip(self.physics.local_physics, v_local)]
+                x_grad_local = torch.stack(contribs, dim=0).sum(0)
+            else:
+                x_grad_local = torch.zeros_like(X.tensor)
 
         if not torch.is_tensor(x_grad_local):
             x_grad_local = torch.zeros_like(X.tensor)
 
-        # Global reduction
-        self.ctx.all_reduce_(x_grad_local, op="sum")
+        # Global reduction - all ranks participate even if they have no local data
+        if self.ctx.is_dist:
+            self.ctx.all_reduce_(x_grad_local, op="sum")
         if self.reduction == "mean":
             x_grad_local = x_grad_local / float(self.physics.num_ops)
 
@@ -571,15 +591,17 @@ class DistributedPrior:
         self.signal_shape = torch.Size(signal_shape)
         self.reduce_fn = reduce_fn
         self.splitting_kwargs = splitting_kwargs or {}
-        self.batching = False
+        self.batching = batching  # Keep the user-specified batching preference
 
         # --- compute global ordered list of slices once (independent of rank) ---
         if callable(splitting_strategy):
             self._global_slices, self._global_metadata = splitting_strategy(self.signal_shape, **self.splitting_kwargs)
         elif splitting_strategy == "tiling2d":
+            from .utils_new import tiling_splitting_strategy
             self._global_slices, self._global_metadata = tiling_splitting_strategy(
                 self.signal_shape, **self.splitting_kwargs
             )
+            # Use the efficient tiling2d reduction approach
             self.reduce_fn = "tiling2d" if reduce_fn is None else reduce_fn
         else:
             raise ValueError(f"Unknown splitting_strategy: {splitting_strategy}")
@@ -591,11 +613,25 @@ class DistributedPrior:
         # determine local split indices for this rank
         self.local_split_indices: List[int] = list(self.ctx.local_indices(self.num_splits))
 
-        # If distributed, ensure all ranks share the same slices ordering (broadcast from rank 0)
-        if self.ctx.is_dist:
-            obj = [self._global_slices if self.ctx.rank == 0 else None]
-            dist.broadcast_object_list(obj, src=0)
-            self._global_slices = obj[0]
+        # Check for insufficient work distribution
+        if self.ctx.is_dist and self.ctx.rank == 0:
+            ranks_with_work = sum(1 for rank in range(self.ctx.world_size) 
+                                 if len(self.ctx.local_indices(self.num_splits)) > 0)
+            if ranks_with_work < self.ctx.world_size:
+                print(f"Warning: Only {ranks_with_work}/{self.ctx.world_size} ranks have patches to process. "
+                      f"Some ranks will have no work. "
+                      f"Current: {self.num_splits} patches for {self.ctx.world_size} ranks.")
+
+        # If distributed, ensure all ranks share the same slices ordering and metadata (broadcast from rank 0)
+        # if self.ctx.is_dist:
+        #     obj = [self._global_slices if self.ctx.rank == 0 else None]
+        #     dist.broadcast_object_list(obj, src=0)
+        #     self._global_slices = obj[0]
+            
+        #     # Also broadcast metadata to ensure consistency
+        #     meta_obj = [self._global_metadata if self.ctx.rank == 0 else None]
+        #     dist.broadcast_object_list(meta_obj, src=0)
+        #     self._global_metadata = meta_obj[0]
 
     # ---- public ops -------------------------------------------------------
 
@@ -614,8 +650,12 @@ class DistributedPrior:
         # 1) local compute
         local_pairs = self._compute_local_pairs(X, op=op, **kwargs)
 
+        # Efficient tiling2d reduction using NCCL all_reduce
         if self.ctx.is_dist and self.reduce_fn == "tiling2d":
+            # Initialize output tensor with zeros
             out_local = torch.zeros(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
+            
+            # Each rank fills in its local patches
             crop_slices = self._global_metadata["crop_slices"]
             target_slices = self._global_metadata["target_slices"]
 
@@ -627,10 +667,11 @@ class DistributedPrior:
             self.ctx.all_reduce_(out_local, op="sum")
             return out_local
 
-
+        # Fallback to the gather-based approach for other cases
         # 2) gather all (idx, tensor) pairs
         if self.ctx.is_dist:
             gathered = [None] * self.ctx.world_size
+            # All ranks participate even if local_pairs is empty
             dist.all_gather_object(gathered, local_pairs)
             all_pairs = []
             for part in gathered:
@@ -638,21 +679,31 @@ class DistributedPrior:
         else:
             all_pairs = local_pairs
 
-
         # 3) assemble into the global ordered list (by index)
         pieces: List[Optional[torch.Tensor]] = [None] * self.num_splits
         for idx, tens in all_pairs:
             pieces[idx] = tens
-        # sanity check
+        
+        # Handle case where more ranks than patches - some pieces may be missing
         if any(p is None for p in pieces):
             missing = [i for i, p in enumerate(pieces) if p is None]
-            raise RuntimeError(f"Missing pieces for splits (did all ranks produce their parts?): {missing}")
+            if self.ctx.rank == 0:
+                print(f"Warning: {len(missing)} pieces missing (ranks > patches). "
+                      f"Missing indices: {missing[:10]}{'...' if len(missing) > 10 else ''}")
+            
+            # For missing pieces, we need to create dummy tensors or handle gracefully
+            # This should not happen in a correct tiling setup, but let's be robust
+            if len(missing) > 0:
+                raise RuntimeError(f"Missing pieces for splits: {missing[:10]}{'...' if len(missing) > 10 else ''}. "
+                                 f"This indicates more ranks ({self.ctx.world_size}) than patches ({self.num_splits}). "
+                                 f"Consider reducing world_size or using a different tiling strategy.")
 
         # 4) reduce on rank 0, broadcast tensor result
         if self.ctx.is_dist:
             if self.ctx.rank == 0:
-                out = self.reduce_fn(pieces, self._global_metadata)
-                out.to(self.ctx.device, dtype=X.tensor.dtype)
+                from .utils import tiling_reduce_fn
+                out = tiling_reduce_fn(pieces, self._global_metadata)
+                out = out.to(self.ctx.device, dtype=X.tensor.dtype)
             else:
                 out = torch.empty(self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype)
 
@@ -660,7 +711,8 @@ class DistributedPrior:
             self.ctx.broadcast_(out, src=0)
             return out
         else:
-            out = self.reduce_fn(pieces, self._global_metadata).to(self.ctx.device, dtype=X.tensor.dtype)
+            from .utils import tiling_reduce_fn
+            out = tiling_reduce_fn(pieces, self._global_metadata).to(self.ctx.device, dtype=X.tensor.dtype)
             return out
 
     def _compute_local_pairs(self, X: DistributedSignal, *, op: str, **kwargs) -> List[Tuple[int, torch.Tensor]]:
@@ -701,6 +753,10 @@ class DistributedPrior:
                     )
                 pieces.append(piece)
 
+            # Handle empty case (rank has no work)
+            if len(pieces) == 0:
+                return pairs  # Return empty list
+            
             batch = torch.cat(pieces, dim=0)
             results = fn(batch)                                       # same leading batch dim
             if results.shape[0] != len(self.local_split_indices):
@@ -711,11 +767,19 @@ class DistributedPrior:
             pairs = list(zip(self.local_split_indices, [results[i][None, :] for i in range(results.shape[0])]))
             return pairs
         
+        # Non-batching case: apply proper padding workflow for consistency
+        pad_specs = self._global_metadata["pad_specs"]
+        pad_mode = self._global_metadata.get("pad_mode", "reflect")
+        
         for idx in self.local_split_indices:
             slc = self._global_slices[idx]
-            # NOTE: use a copy for safety (some priors may write in-place)
+            # Extract piece and apply padding (same as batching case)
             piece = X.tensor[slc].clone()
+            piece = F.pad(piece, pad=pad_specs[idx], mode=pad_mode)
+            
+            # Apply prior to padded piece
             res = fn(piece)
+            
             # Keep result on current device; reduce_fn will run on rank 0 and convert as needed
             pairs.append((idx, res))
         return pairs
