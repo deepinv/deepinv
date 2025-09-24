@@ -20,8 +20,8 @@ class XrayTransform:
         handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.
         To handle standard PyTorch pipelines, :class:`XrayTransform` is instantiated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
 
-    :param dict[str, Any] projection_geometry: Dictionary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
-    :param dict[str, Any] object_geometry:  Dictionary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
+    :param dict[str, Any] projection_geometry: Dictionary containing the parameters of the projection geometry in the format produced by ``astra.create_proj_geom()``. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
+    :param dict[str, Any] object_geometry:  Dictionary containing the parameters of the object geometry in the format produced by ``astra.create_vol_geom()``. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
     :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.
 
     .. note::
