@@ -14,6 +14,7 @@ import subprocess
 import os
 import inspect
 import pathlib
+import requests
 import torchvision.transforms as transforms
 import PIL
 import io
@@ -1019,7 +1020,91 @@ def test_default_tex(latex_exists, monkeypatch):
     deepinv.utils.plotting.enable_tex()
 
 
-def test_io():
+def test_io_dicom():
+    pytest.importorskip(
+        "pydicom",
+        reason="This test requires pydicom. It should be "
+        "installed with `pip install pydicom`",
+    )
+    file = deepinv.io.load_url(
+        "https://github.com/robyoung/dicom-test-files/raw/refs/heads/master/data/pydicom/693_J2KI.dcm"
+    )
+    assert deepinv.io.load_dicom(file).shape == (512, 512)
+
+
+def test_io_nifti(tmp_path):
+    pytest.importorskip(
+        "nibabel",
+        reason="This test requires nibabel. It should be "
+        "installed with `pip install nibabel`",
+    )
+    with open(tmp_path / "tmp.nii.gz", "wb") as f:
+        f.write(
+            requests.get(
+                "https://github.com/neurolabusc/niivue-images/raw/refs/heads/main/Iguana.nii.gz"
+            ).content
+        )
+
+    assert deepinv.io.load_nifti(tmp_path / "tmp.nii.gz").shape == (
+        1,
+        210,
+        256,
+        179,
+    )  # 3D volume
+
+
+def test_io_ismrmd():
+    file = deepinv.io.load_url(
+        deepinv.utils.demo.get_image_url("demo_fastmri_brain_multicoil.h5")
+    )
+    assert deepinv.io.load_ismrmd(file, data_name="kspace", data_slice=0).shape == (
+        2,
+        4,
+        512,
+        213,
+    )  # CNHW, 4 coils
+    assert deepinv.io.load_ismrmd(
+        file, data_name="kspace", data_slice=(0, slice(0, 2))
+    ).shape == (
+        2,
+        2,
+        512,
+        213,
+    )  # CNHW, 2 coils
+    assert deepinv.io.load_ismrmd(file, data_name="kspace").shape == (
+        2,
+        16,
+        4,
+        512,
+        213,
+    )  # BCNHW
+
+
+def test_io_torch():
+    assert deepinv.io.load_torch(
+        deepinv.utils.load_url(deepinv.utils.demo.get_image_url("CT100_256x256_0.pt"))
+    ).shape == (256, 256)
+
+
+def test_io_np():
+    assert deepinv.io.load_np(
+        deepinv.utils.load_url(
+            deepinv.utils.demo.get_image_url(
+                "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy"
+            )
+        )
+    ).shape == (217, 181)
+    assert deepinv.utils.demo.load_example(
+        "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy"
+    ).shape == (217, 181)
+
+
+def test_io_raster():
+    pytest.importorskip(
+        "rasterio",
+        reason="This test requires rasterio. It should be "
+        "installed with `pip install rasterio`",
+    )
     file = deepinv.io.load_url(
         "https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF"
     )
@@ -1041,3 +1126,6 @@ def test_io():
         len(list(deepinv.io.load_raster(file, patch=(3, 699), patch_start=(920, 0))))
         == 3
     )
+
+    # Test transform
+    assert deepinv.io.load_raster(file, patch=True, transform=lambda x: x)

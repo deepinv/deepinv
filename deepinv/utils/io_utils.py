@@ -7,17 +7,13 @@ import numpy as np
 import torch
 from deepinv.utils.mixins import MRIMixin
 
-# TODO user guide and API for all loaders here + in demo
-# TODO docs and docstrings
-# TODO tests (pydicom, nibabel, mat73, scipy to datasets op deps)
-
 
 def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
     """Load image from DICOM file.
 
     Requires `pydicom` to be installed. Install it with `pip install pydicom`.
 
-    :param str, Path fname: path to DICOM file.
+    :param str, Path fname: path to DICOM file or buffer.
     :return: torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
     try:
@@ -26,9 +22,8 @@ def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
         raise ImportError(
             "load_dicom requires pydicom, which is not installed. Please install it with `pip install pydicom`."
         )
-    return (
-        torch.from_numpy(pydicom.dcmread(str(fname)).pixel_array).float().unsqueeze(0)
-    )
+    fname = str(fname) if isinstance(fname, Path) else fname
+    return torch.from_numpy(pydicom.dcmread(fname).pixel_array).float().unsqueeze(0)
 
 
 def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
@@ -48,17 +43,23 @@ def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
     return torch.from_numpy(nib.load(fname).get_fdata()).float().unsqueeze(0)
 
 
-def load_ismrmd(fname: Union[str, Path], data_name: str = "kspace") -> torch.Tensor:
+def load_ismrmd(
+    fname: Union[str, Path],
+    data_name: str = "kspace",
+    data_slice: Optional[tuple] = None,
+) -> torch.Tensor:
     """Load complex MRI data from ISMRMD format.
 
-    Uses `h5py` to load data specified by `data_name` key.
+    Uses `h5py` to load data specified by `data_name` key. The data is assumed to be stored in complex type.
 
     .. note::
-        To speed up loading, load the data yourself using `h5py` and perform slicing/indexing before converting to tensor.
+        To speed up loading, slice/index the data before converting to tensor.
 
     :param str, pathlib.Path fname: file to load.
     :param str data_name: key of data in file, defaults to "kspace".
-    :return: data loaded in :class:`torch.Tensor` of shape `(2, ...)` containing real and imaginary parts.
+    :param tuple data_slice: slice or index to use before converting to tensor, such as `int`, `slice` or `tuple` of these.
+    :return: data loaded in :class:`torch.Tensor` of shape `(2, ...)` containing real and imaginary parts,
+        where `...` are dimensions of the raw data.
     """
     try:
         import h5py
@@ -69,6 +70,7 @@ def load_ismrmd(fname: Union[str, Path], data_name: str = "kspace") -> torch.Ten
 
     with h5py.File(fname, "r") as hf:
         data = hf[data_name]
+        data = data[()] if data_slice is None else data[data_slice]
         data = MRIMixin.from_torch_complex(torch.from_numpy(data).unsqueeze(0)).squeeze(
             0
         )
@@ -154,7 +156,7 @@ def load_raster(
 
     This function requires `rasterio`, and should not rely on external GDAL dependencies. Install it with `pip install rasterio`.
 
-    :param str fname: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc.
+    :param str fname: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc., or buffer.
     :param bool, int, tuple[int, int], patch: Patch extraction mode.
         * ``False`` (default): return the entire image as a :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.
         * ``True``: yield patches based on the raster's internal block windows.
