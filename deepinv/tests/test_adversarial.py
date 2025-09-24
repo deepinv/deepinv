@@ -141,15 +141,14 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
             Dx1 = Dx1.mean()
             Dx_net1 = Dx_net1.mean()
 
+        # We can't guarantee learning goes well but at least something should happen
+        assert Dx1 != Dx0
+        assert Dx_net1 != Dx_net0
+
         if loss_name == "Sup":
             # In supervised adversarial training, we expect at least something good to happen
             # Real should become more real
             assert 1.0 >= Dx1 > Dx0
-
-            # Fake should be more fake than real
-            # Note we don't test that fake becomes more fake, as the discrim
-            # training is not necessarily monotonic
-            assert Dx_net1 <= Dx1
 
             # Test save/load resets model
             _ = loss.load_model(tmp_path / "discrim.tmp", device=device)
@@ -159,10 +158,6 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
                 Dx2 = Dx2.mean()
 
             assert Dx2 == Dx0
-
-        else:
-            # For other losses, can't guarantee learning goes well but at least something should happen
-            assert Dx1 != Dx0
 
 
 def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
