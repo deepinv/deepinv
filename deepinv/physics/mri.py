@@ -1,4 +1,5 @@
 from typing import Optional, Union
+from warnings import warn
 import numpy as np
 import torch
 from torch import Tensor
@@ -425,7 +426,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
                 use_cupy = cp.cuda.is_available()
             except ImportError:
-                warnings.warn(
+                warn(
                     "cupy is not installed, using cpu for coil map estimation. Install cupy to speed up computation."
                 )
                 use_cupy = False
