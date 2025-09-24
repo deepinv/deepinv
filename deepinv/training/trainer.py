@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from deepinv.datasets.base import check_dataset
-from deepinv.loss import SupLoss, BaseLossScheduler
+from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
@@ -258,18 +258,10 @@ class Trainer:
         self._setup_logging(train=train, **kwargs)
 
     def _setup_data(self):
-        if (
-            self.train_dataloader is not None
-            and type(self.train_dataloader) is not list
-        ):
-            self.train_dataloader = [self.train_dataloader]
-
-        if self.val_dataloader is not None and type(self.val_dataloader) is not list:
-            self.val_dataloader = [self.val_dataloader]
-
-        if self.test_dataloader is not None and type(self.test_dataloader) is not list:
-            self.test_dataloader = [self.test_dataloader]
-
+        """
+        Set up data and physics before running an experience.
+        """
+        # default value when dataloaders are not defined
         if self.train_dataloader is None:
             self.train_dataloader = []
         if self.val_dataloader is None:
@@ -277,41 +269,42 @@ class Trainer:
         if self.test_dataloader is None:
             self.test_dataloader = []
 
-        for loader in self.train_dataloader + (
-            self.val_dataloader if self.val_dataloader is not None else []
-        ):
-            if loader is not None:
-                check_dataset(loader.dataset)
+        # ensure that train, val, and test are list for format consistency
+        if not isinstance(self.train_dataloader, list):
+            self.train_dataloader = [self.train_dataloader]
+        if not isinstance(self.val_dataloader, list):
+            self.val_dataloader = [self.val_dataloader]
+        if not isinstance(self.test_dataloader, list):
+            self.test_dataloader = [self.test_dataloader]
 
-        if self.train_dataloader is not None:
-            self.G = len(self.train_dataloader)
+        # ???
+        for loader in self.train_dataloader + self.val_dataloader:
+            check_dataset(loader.dataset)
 
-        if self.physics_generator is not None and not self.online_measurements:
-            warnings.warn(
-                "Physics generator is provided but online_measurements is False. Physics generator will not be used."
-            )
-        elif (
-            self.physics_generator is not None
-            and self.online_measurements
-            and self.loop_random_online_physics
-        ):
-            warnings.warn(
-                "Generated measurements repeat each epoch. Ensure that dataloader is not shuffling."
-            )
+        # ???
+        self.G = len(self.train_dataloader)
 
-        # make physics and data_loaders of list type
-        if type(self.physics) is not list:
+        # ensure that physics is a list for format consistency
+        if not isinstance(self.physics, list):
             self.physics = [self.physics]
 
-        if (
-            self.physics_generator is not None
-            and type(self.physics_generator) is not list
-        ):
-            self.physics_generator = [self.physics_generator]
+        # online measurements setting
+        if self.physics_generator is not None:
+            if not self.online_measurements:
+                warnings.warn("Since `online_measurement` is False, `physics` will not be used to generate degraded images.")
+            elif self.loop_random_online_physics:
+                warnings.warn(
+                    "Generated measurements repeat each epoch." \
+                    "Ensure that dataloader is not shuffling."
+                )
+
+            # ensure that physics_generator is a list for format consistency
+            if not isinstance(self.physics_generator, list):
+                self.physics_generator = [self.physics_generator]
 
     def _setup_logging(self, train=True, **kwargs):
         r"""
-        Set up the training process.
+        Set up loggers before running an experience.
 
         It initializes the loggers and transforms some attributes to list if needed.
 
