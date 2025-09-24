@@ -422,6 +422,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         if use_cupy:  # pragma: no cover
             try:
                 import cupy as cp
+
                 use_cupy = cp.cuda.is_available()
             except ImportError:
                 warnings.warn(
@@ -438,12 +439,14 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
             cupy_maps = cp.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False, device=cupy_y.device).run()
+                    EspiritCalib(
+                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                    ).run()
                     for yb in cupy_y
                 ]
-            ) 
+            )
             torch_maps = torch.from_dlpack(cupy_maps)
-        
+
         else:
             device = sp.Device(-1)
             maps = np.stack(
@@ -452,7 +455,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                     for yb in complex_y.numpy(force=True)
                 ]
             )
-            
+
             torch_maps = torch.from_numpy(maps)
 
         return torch_maps
