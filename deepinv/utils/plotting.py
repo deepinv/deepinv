@@ -15,7 +15,7 @@ import torchvision.transforms.functional as F
 
 from PIL import Image
 
-from deepinv.utils.signal import normalize_signal, complex_abs
+from deepinv.utils.signals import normalize_signal, complex_abs
 
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable

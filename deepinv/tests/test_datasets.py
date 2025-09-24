@@ -39,7 +39,7 @@ from deepinv.datasets.utils import (
     Rescale,
     ToComplex,
 )
-from deepinv.utils.io import load_mat
+from deepinv.utils.io_utils import load_mat
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI

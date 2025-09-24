@@ -17,7 +17,7 @@ from deepinv.datasets.utils import (
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
-from deepinv.utils.io import load_mat
+from deepinv.utils.io_utils import load_mat
 from deepinv.datasets.base import ImageDataset
 
 
