@@ -419,30 +419,43 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                 "sigpy is required to estimate sens maps. Install it using pip install sigpy"
             )
 
-        device = sp.Device(-1)
         if use_cupy:  # pragma: no cover
             try:
-                import cupy
-
-                device = sp.Device(0) if cupy.cuda.is_available() else sp.Device(-1)
+                import cupy as cp
+                use_cupy = cp.cuda.is_available()
             except ImportError:
-                pass
+                warnings.warn(
+                    "cupy is not installed, using cpu for coil map estimation. Install cupy to speed up computation."
+                )
+                use_cupy = False
 
-        maps = np.stack(
-            [
-                EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
-                for yb in MRIMixin.to_torch_complex(y).numpy()
-            ]
-        )
+        complex_y = MRIMixin.to_torch_complex(y)
         if use_cupy:  # pragma: no cover
-            try:
-                import cupy
+            if y.device.type == "cuda":
+                cupy_y = cp.from_dlpack(complex_y)
+            else:
+                cupy_y = cp.from_dlpack(complex_y.to("cuda"))
 
-                maps = cupy.asnumpy(maps)
-            except (ImportError, ModuleNotFoundError):
-                pass
+            cupy_maps = cp.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False, device=cupy_y.device).run()
+                    for yb in cupy_y
+                ]
+            ) 
+            torch_maps = torch.from_dlpack(cupy_maps)
+        
+        else:
+            device = sp.Device(-1)
+            maps = np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    for yb in complex_y.numpy(force=True)
+                ]
+            )
+            
+            torch_maps = torch.from_numpy(maps)
 
-        return torch.from_numpy(maps)
+        return torch_maps
 
 
 class DynamicMRI(MRI, TimeMixin):
