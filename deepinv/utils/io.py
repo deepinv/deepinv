@@ -1,9 +1,11 @@
-from typing import Union
+from typing import Callable, Optional, Union, Iterator
 from pathlib import Path
+from warnings import warn
 from io import BytesIO
 import requests
 import numpy as np
 import torch
+from deepinv.utils.mixins import MRIMixin
 
 # TODO user guide and API for all loaders here + in demo
 # TODO docs and docstrings
@@ -111,3 +113,123 @@ def load_mat(fname: str, mat73: bool = False) -> dict[str, np.ndarray]:
         raise ImportError(
             "load_mat requires scipy, which is not installed. Install it with `pip install scipy`."
         )
+
+
+def load_raster(
+    filepath: str,
+    patch: Union[bool, int, tuple[int, int]] = False,
+    transform: Optional[Callable] = None,
+) -> Union[torch.Tensor, Iterator[torch.Tensor]]:
+    """
+    Load a raster image and return patches as tensors using `rasterio`.
+
+    This function allows you to stream patches from large rasters e.g. satellite imagery, SAR etc.
+
+    :param str filepath: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc.
+    :param bool, int, tuple[int, int], patch: Patch extraction mode.
+        * ``False`` (default): return the entire image as a :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.
+        * ``True``: yield patches based on the raster's internal block windows.
+            - If no block windows are available, raises ``RuntimeError``.
+            - If any block has a dimension of 1 (strip layout), a warning is raised.
+        * ``int`` or ``(int, int)``: yield patches of the manually specified size.
+    :param Callable, None transform: Optional transform applied to each patch.
+
+    :return: Either (where C is the band dimension)
+        * a full image :class:`torch.Tensor` of shape `(C, H, W)`, if ``patch=False``, or
+        * an iterator of torch tensors over patches of shape `(C, h, w)`, if ``patch=True`` or a size is specified, where `h,w` is the patch size.
+
+    |sep|
+
+    :Examples:
+
+    >>> assert 1==0
+    >>> from deepinv.utils.io import load_raster, load_url
+    >>> file = load_url("https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF")
+    >>> x = load_raster(file, patch=False) # Load whole image
+    >>> x.shape
+    torch.Size([1, 929, 699])
+    >>> x = load_raster(file, patch=True) # Patch via internal block size
+    >>> next(x).shape
+    torch.Size([1, 11, 699])
+    >>> all_patches = list(x) # Load all patches into memory
+    >>> len(all_patches)
+    43
+    >>> from torch.utils.data import DataLoader
+    >>> dataloader = DataLoader(all_patches, batch_size=2) # You can use this for training
+    >>>
+    >>> x = load_raster(file, patch=128) # Patch via manual size
+    >>> next(x).shape
+    torch.Size([1, 128, 128])
+    """
+    try:
+        import rasterio
+    except ImportError:
+        raise ImportError(
+            "load_raster requires rasterio, which is not installed. Install it with `pip install rasterio`."
+        )
+
+    def _process_array(arr: np.ndarray) -> torch.Tensor:
+        """Validate, normalize dimensions, handle complex data, and apply transform."""
+        arr: torch.Tensor = torch.from_numpy(arr).squeeze(
+            0
+        )  # Remove single-band dimension if exists
+        if arr.ndim == 2:
+            if arr.is_complex():
+                arr = MRIMixin.from_torch_complex(arr.unsqueeze(0)).squeeze(
+                    0
+                )  # (2, H, W)
+            else:
+                arr = arr.unsqueeze(0)  # (1, H, W)
+        elif arr.ndim == 3:
+            if arr.is_complex():
+                raise RuntimeError(
+                    "If array is complex, it cannot have a band dimension."
+                )
+        else:
+            raise RuntimeError("Array should have band, x and y dimensions.")
+
+        if transform:
+            arr = transform(arr)
+        return arr.float()  # (C, H, W)
+
+    if patch is False:
+        with rasterio.open(filepath) as src:
+            return _process_array(src.read())
+
+    def _patch_generator() -> Iterator[torch.Tensor]:
+        with rasterio.open(filepath) as src:
+
+            if patch is True:
+                block_windows = list(
+                    src.block_windows(1)
+                )  # use band 1 as representative
+                if not block_windows:
+                    raise RuntimeError("No block windows available for this raster.")
+                for _, window in block_windows:
+                    w, h = window.width, window.height
+                    if w == 1 or h == 1:
+                        warn(
+                            f"Block window {window} returns patches of width or height 1. Consider manually setting a patch size."
+                        )
+                    yield _process_array(src.read(window=window))
+                return
+
+            elif isinstance(patch, int):
+                patch_w, patch_h = patch, patch
+            elif isinstance(patch, tuple) and len(patch) == 2:
+                patch_w, patch_h = patch
+            else:
+                raise ValueError(f"Invalid value for patch: {patch}")
+
+            for y in range(0, src.height, patch_h):
+                for x in range(0, src.width, patch_w):
+                    window = rasterio.windows.Window(
+                        x,
+                        y,
+                        min(patch_w, src.width - x),
+                        min(patch_h, src.height - y),
+                    )
+                    yield _process_array(src.read(window=window))
+            return
+
+    return _patch_generator()
