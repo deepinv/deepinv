@@ -12,9 +12,11 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomgraphy` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
+- Fix `TomographyWithAstra` failing due to missing subpackage imports (:gh:`747` by `Alexander Skorikov`_)
 
 
 v0.3.4
@@ -444,3 +446,4 @@ Authors
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
+.. _Alexander Skorikov: https://github.com/askorikov
