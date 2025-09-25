@@ -80,6 +80,7 @@ Image Loading
    :nosignatures:
 
     deepinv.utils.load_dicom
+    deepinv.utils.load_nifti
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch

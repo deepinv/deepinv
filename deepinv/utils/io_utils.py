@@ -13,7 +13,7 @@ def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
 
     Requires `pydicom` to be installed. Install it with `pip install pydicom`.
 
-    :param str, Path fname: path to DICOM file or buffer.
+    :param str, pathlib.Path fname: path to DICOM file or buffer.
     :return: torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
     try:
@@ -157,12 +157,11 @@ def load_raster(
     This function requires `rasterio`, and should not rely on external GDAL dependencies. Install it with `pip install rasterio`.
 
     :param str fname: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc., or buffer.
-    :param bool, int, tuple[int, int], patch: Patch extraction mode.
-        * ``False`` (default): return the entire image as a :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.
-        * ``True``: yield patches based on the raster's internal block windows.
-            - If no block windows are available, raises ``RuntimeError``.
-            - If any block has a dimension of 1 (strip layout), a warning is raised.
-        * ``int`` or ``(int, int)``: yield patches of the manually specified size `h, w`.
+    :param bool, int, tuple[int, int], patch: Patch extraction mode. If ``False`` (default), return the entire image as a
+        :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.
+        If ``True``, yield patches based on the raster's internal block windows
+        (if no block windows are available, raises error; if any block has a dimension of 1 (strip layout), raise warning).
+        If ``int`` or ``(int, int)``, yield patches of the manually specified size `h, w`.
     :param tuple[int, int] patch_start: h and w indices from which to start taking patches. Defaults to `0,0`.
     :param Callable, None transform: Optional transform applied to each patch.
 

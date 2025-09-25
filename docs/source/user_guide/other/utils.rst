@@ -63,7 +63,7 @@ Logging
    * - :func:`deepinv.utils.get_timestamp`
      - Get current timestamp string.
 
-.. _image-loading:
+.. _io-utils:
 
 Image Loading
 -------------
