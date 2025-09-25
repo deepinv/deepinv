@@ -88,7 +88,7 @@ def least_squares(
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
     :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to :math:`\infty` (no regularization).
-    :param str solver: solver to be used.
+    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
@@ -102,9 +102,9 @@ def least_squares(
 
     if gamma is None:
         gamma = torch.tensor(0.0, device=y.device)
-        no_gamma = True
+        gamma_provided = False
     else:
-        no_gamma = False
+        gamma_provided = True
 
         if not isinstance(gamma, Tensor):
             gamma = torch.tensor(gamma, device=y.device)
@@ -131,7 +131,7 @@ def least_squares(
             gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if not no_gamma else None
+        eta = 1 / gamma if gamma_provided else None
         x, _ = lsqr(
             A,
             AT,
@@ -158,7 +158,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if not no_gamma:
+            if gamma_provided:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -205,7 +205,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if no_gamma and not overcomplete and not complete:
+        if not gamma_provided and not overcomplete and not complete:
             x = AT(x)
     return x
 
