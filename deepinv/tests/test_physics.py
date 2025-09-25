@@ -101,6 +101,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "FisherTippett",
     "SaltPepper",
 ]
 
@@ -849,7 +850,8 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device, rng):
+@pytest.mark.parametrize("implicit_backward_solver", [True, False])
+def test_pseudo_inverse(name, device, rng, implicit_backward_solver):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -860,6 +862,7 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
@@ -1178,6 +1181,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.GammaNoise(l)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l)
     else:
         raise Exception("Noise model not found")
 

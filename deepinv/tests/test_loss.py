@@ -24,6 +24,7 @@ LOSSES = [
     "vortex",
     "ensure",
     "ensure_mri",
+    "reducedresolution",
 ]
 
 LIST_SURE = [
@@ -143,6 +144,8 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 T_i=dinv.transform.RandomNoise(), T_e=dinv.transform.Shift()
             )
         )
+    elif loss_name == "reducedresolution":
+        loss.append(dinv.loss.ReducedResolutionLoss())
     else:
         raise Exception("The loss doesnt exist")
 
@@ -312,6 +315,7 @@ def test_losses(
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
 
     if loss_name == "ensure_mri":
+        # Modify test to use a MRI physics instead
         imsize = (2, *imsize[1:])
         gen = dinv.physics.generator.GaussianMaskGenerator(
             imsize, acceleration=2, rng=rng, device=device
@@ -319,12 +323,22 @@ def test_losses(
         physics = dinv.physics.MRI(**gen.step(), device=device)
         loss = dinv.loss.mri.ENSURELoss(0.01, gen, rng=rng)
         dataset = _dataset(physics, tmp_path, imsize, device)
+    elif loss_name == "reducedresolution":
+        # Modify test to use a downsampling physics instead
+        imsize = (1, 16, 16)
+        physics = dinv.physics.Downsampling(filter=None, factor=2, device=device)
+        dataset = _dataset(physics, tmp_path, imsize, device)
 
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
     backbone = dinv.models.AutoEncoder(
         dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=64, dim_hid=16
-    ).to(device)
+    )
+
+    if loss_name == "reducedresolution":
+        # Modify test to use a network that doesn't require specification of
+        # image size, since this loss must pass in image at different sizes
+        backbone = dinv.models.UNet(1, 1, scales=2)
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone, device=device)
@@ -352,6 +366,7 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
+        disable_train_metrics=(loss_name == "reducedresolution"),
     )
 
     # test the untrained model
@@ -666,3 +681,43 @@ def test_stacked_loss(device, imsize):
     loss_value = loss(x=x, y=y, x_net=x_net, physics=physics, model=f)
 
     assert loss_value > 0
+
+
+@pytest.mark.parametrize(
+    "physics_name", ["downsampling", "downsamplingmatlab", "blur", "blurfft"]
+)
+def test_reducedresolution_shapes(physics_name, device):
+    metric = dinv.metric.PSNR()
+    loss = dinv.loss.ReducedResolutionLoss()
+    model = dinv.models.ArtifactRemoval(DummyModel(), device=device)
+    model = loss.adapt_model(model)
+    x = torch.rand(1, 1, 16, 16, device=device)
+
+    if physics_name == "downsampling":
+        physics = dinv.physics.Downsampling(filter=None, factor=2, device=device)
+    elif physics_name == "downsamplingmatlab":
+        physics = dinv.physics.DownsamplingMatlab(factor=2, device=device)
+    elif physics_name == "blur":
+        physics = dinv.physics.Blur(
+            filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+        )
+    elif physics_name == "blurfft":
+        physics = dinv.physics.BlurFFT(
+            x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+        )
+    else:
+        raise ValueError(
+            "Physics must be downsampling, downsamplingmatlab, blur or blurFFT"
+        )
+
+    y = physics(x)
+
+    model.eval()
+    x_hat_eval = model(y, physics)  # just adjoint
+    assert x_hat_eval.shape == x.shape
+    assert metric(x_hat_eval, x) < 50
+
+    model.train()
+    x_hat_train = model(y, physics)
+    assert x_hat_train.shape == y.shape
+    assert metric(x_hat_train, y) < 50

@@ -9,10 +9,30 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
+
+Changed
+^^^^^^^
+- (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+
+Fixed
+^^^^^
+- Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
+- Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
+
+
+v0.3.4
+------
+New Features
+^^^^^^^^^^^^
 - Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 - Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
+- Reduced resolution self-supervised loss (:gh:`735` by `Andrew Wang`_)
+- Add dinv.utils.disable_tex to disable LaTeX (:gh:`726` by `Andrew Wang`_)
+- Add BSDS500 dataset (:gh:`749` by `Johannes Hertrich`_ and `Sebastian Neumayer`_)
+- O(1) memory backprop for linear solver and example (:gh:`739` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -27,6 +47,8 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
+- Fix numerical instability of Bicgstab solver(:gh:`739` by `Minh Hai Nguyen`_)
+
 
 v0.3.3
 ------
@@ -430,3 +452,4 @@ Authors
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
+.. _Louise Friot Giroux: https://github.com/Louisefg
