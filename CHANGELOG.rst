@@ -18,6 +18,7 @@ Changed
 - load_url helper function moved to io
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 - utils/signal.py renamed to signals.py to avoid stdlib conflict (:gh:`768` by `Andrew Wang`_)
+- utils.get_data_home now creates folder if not exist (:gh:`768` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
