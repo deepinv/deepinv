@@ -54,6 +54,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
 
         Simple example (assuming a pretrained discriminator):
 
+        >>> from deepinv.loss.adversarial import UAIRLoss
         >>> y, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
         >>>
         >>> from deepinv.physics import Inpainting
