@@ -56,15 +56,18 @@ def get_data_home() -> Path:
 
     :return: pathlib Path for data home
     """
-    data_home = os.environ.get("DEEPINV_DATA", None)
+    data_home = os.environ.get("DEEPINV_DATA")
     if data_home is not None:
-        return Path(data_home)
+        path = Path(data_home)
+    else:
+        data_home = os.environ.get("XDG_DATA_HOME")
+        if data_home is not None:
+            path = Path(data_home) / "deepinv"
+        else:
+            path = Path(".") / "datasets"
 
-    data_home = os.environ.get("XDG_DATA_HOME", None)
-    if data_home is not None:
-        return Path(data_home) / "deepinv"
-
-    return Path(".") / "datasets"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def load_dataset(
