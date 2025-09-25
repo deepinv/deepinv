@@ -21,6 +21,7 @@ def get_timestamp() -> str:
     sep = "_" if platform.system() == "Windows" else ":"
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
+
 class RunLogger(ABC):
     """
     Abstract base class for logging training runs.

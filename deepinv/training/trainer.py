@@ -291,10 +291,12 @@ class Trainer:
         # online measurements setting
         if self.physics_generator is not None:
             if not self.online_measurements:
-                warnings.warn("Since `online_measurement` is False, `physics` will not be used to generate degraded images.")
+                warnings.warn(
+                    "Since `online_measurement` is False, `physics` will not be used to generate degraded images."
+                )
             elif self.loop_random_online_physics:
                 warnings.warn(
-                    "Generated measurements repeat each epoch." \
+                    "Generated measurements repeat each epoch."
                     "Ensure that dataloader is not shuffling."
                 )
 
