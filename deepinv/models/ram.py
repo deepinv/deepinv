@@ -262,7 +262,10 @@ class RAM(Reconstructor, Denoiser):
                 "Either physics, sigma or gain must be provided to the RAM model."
             )
 
-        max_val = y.abs().amax(dim=(1, 2, 3), keepdim=False)
+        if isinstance(y, TensorList):
+            max_val = y[0].abs().amax(dim=(1, 2, 3), keepdim=False)
+        else:
+            max_val = y.abs().amax(dim=(1, 2, 3), keepdim=False)
 
         rescale_val = torch.where(
             max_val > 5 * self.sigma_threshold,
@@ -270,11 +273,16 @@ class RAM(Reconstructor, Denoiser):
             max_val,
         )
 
+        if isinstance(y, TensorList):
+            for yi in y:
+                yi /= rescale_val.view([yi.shape[0]] + [1] * (yi.ndim - 1))
+        else:
+            y = y / rescale_val.view([y.shape[0]] + [1] * (y.ndim - 1))
+
         if physics is None:
             physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
         x_temp = physics.A_adjoint(y)
-        y = y / rescale_val.view([y.shape[0]] + [1] * (y.ndim - 1))
 
         sigma, gain = self.obtain_sigma_gain(
             physics, sigma, gain, rescale_val, device=y.device
@@ -298,7 +306,7 @@ class RAM(Reconstructor, Denoiser):
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
         out = physics.remove_pad(out) * rescale_val.view(
-            [y.shape[0]] + [1] * (y.ndim - 1)
+            [out.shape[0]] + [1] * (out.ndim - 1)
         )
 
         return out
