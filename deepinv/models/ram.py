@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from pathlib import Path
-
+from warnings import warn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -340,6 +340,10 @@ class RAM(Reconstructor, Denoiser):
                 sigma = sigma.abs().max()
         else:
             sigma = sigma / rescale_val
+            if hasattr(physics.noise_model, "sigma"):
+                warn(
+                    "Both sigma provided to the model and a noise model in the physics. The sigma provided to the model will be used."
+                )
 
         if gain is None:
             gain = (
@@ -352,6 +356,10 @@ class RAM(Reconstructor, Denoiser):
                 gain = gain.abs().max()
         else:
             gain = gain / rescale_val
+            if hasattr(physics.noise_model, "gain"):
+                warn(
+                    "Both gain provided to the model and a noise model in the physics. The gain provided to the model will be used."
+                )
 
         if not isinstance(sigma, torch.Tensor) and not isinstance(sigma, TensorList):
             sigma = torch.tensor(sigma, device=device)
