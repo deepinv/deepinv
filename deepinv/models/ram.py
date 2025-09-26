@@ -263,10 +263,11 @@ class RAM(Reconstructor, Denoiser):
             )
 
         if isinstance(y, TensorList):
-            max_val = y[0].abs().amax(dim=(1, 2, 3), keepdim=False)
+            max_val = y[0].abs().reshape(y[0].size(0), -1).amax(dim=1, keepdim=False)
         else:
-            max_val = y.abs().amax(dim=(1, 2, 3), keepdim=False)
+            max_val = y.abs().reshape(y.size(0), -1).amax(dim=1, keepdim=False)
 
+        # rescale elements in the batch where max_val > 5 * sigma_threshold
         rescale_val = torch.where(
             max_val > 5 * self.sigma_threshold,
             torch.tensor(1.0, device=max_val.device, dtype=max_val.dtype),
@@ -285,7 +286,11 @@ class RAM(Reconstructor, Denoiser):
         x_temp = physics.A_adjoint(y)
 
         sigma, gain = self.obtain_sigma_gain(
-            physics, sigma, gain, rescale_val, device=y.device
+            physics=physics,
+            sigma=sigma,
+            gain=gain,
+            rescale_val=rescale_val,
+            device=y.device,
         )
 
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)

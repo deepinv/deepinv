@@ -857,14 +857,13 @@ def test_varnet(varnet_type, device):
 
 
 @pytest.mark.parametrize("use_physics", [True, False])
-@pytest.mark.parametrize("scale", [-5, 5])
+@pytest.mark.parametrize("scale", [1e-5, 1e5])
 def test_ram_scale(scale, device, use_physics):
     model = dinv.models.RAM(device=device)
     imsize = (1, 64, 64)
 
     batch_size = 2
     sigma = torch.ones(batch_size, device=device) * 0.1  # batch
-    scale = 10**scale
     if use_physics:
         physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
     else:
