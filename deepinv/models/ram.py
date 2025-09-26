@@ -44,7 +44,7 @@ class RAM(Reconstructor, Denoiser):
       >>> x = dinv.utils.load_example("butterfly.png")
       >>> physics = dinv.physics.Downsampling(filter="bicubic")
       >>> y = physics(x)
-      >>> model = dinv.models.RAM(pretrained=True) # or any of the models listed below
+      >>> model = dinv.models.RAM(pretrained=True)
       >>> x_hat = model(y, physics) # Model inference
       >>> dinv.metric.PSNR()(x_hat, x)
       tensor([31.9902])
@@ -246,6 +246,12 @@ class RAM(Reconstructor, Denoiser):
         r"""
         Reconstructs a signal estimate from measurements y
 
+        .. note::
+
+            The noise levels `(sigma and gain)` can be kept as None if a :class:`deepinv.physics.GaussianNoise`
+            :class:`deepinv.physics.PoissonNoise` or :class:`deepinv.physics.PoissonGaussianNoise` noise model with
+            is specified in the physics. If both are provided, the `(sigma, gain)` values provided to the model will be used.
+
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         :param float, torch.Tensor sigma: Gaussian noise level. Ignored if noise_model already specified in physics.
@@ -257,22 +263,22 @@ class RAM(Reconstructor, Denoiser):
                 "Either physics, sigma or gain must be provided to the RAM model."
             )
 
-        if physics is None:
-            gain = self.gain_threshold if gain is None else gain
-            sigma = self.sigma_threshold if sigma is None else sigma
+        max_val = y.abs().amax(dim=(1, 2, 3), keepdim=False)
 
-            physics = dinv.physics.Denoising(
-                noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
-            )
+        rescale_val = torch.where(
+            max_val > 5 * self.sigma_threshold,
+            torch.tensor(1.0, device=max_val.device, dtype=max_val.dtype),
+            max_val,
+        )
+
+        if physics is None:
+            physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
         x_temp = physics.A_adjoint(y)
-
-        max_val = x_temp.abs().max()
-        rescale_val = 1.0 if max_val > 5 * self.sigma_threshold else max_val
-        y = y / rescale_val
+        y = y / rescale_val.view([y.shape[0]] + [1] * (y.ndim - 1))
 
         sigma, gain = self.obtain_sigma_gain(
-            physics=physics, y=y, sigma=sigma, gain=gain, rescale_val=rescale_val
+            physics, sigma, gain, rescale_val, device=y.device
         )
 
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
@@ -292,54 +298,53 @@ class RAM(Reconstructor, Denoiser):
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
-        out = physics.remove_pad(out) * rescale_val
+        out = physics.remove_pad(out) * rescale_val.view(
+            [y.shape[0]] + [1] * (y.ndim - 1)
+        )
 
         return out
 
-    def obtain_sigma_gain(
-        self, physics=None, y=None, sigma=None, gain=None, rescale_val=1.0
-    ):
+    def obtain_sigma_gain(self, physics, sigma, gain, rescale_val, device="cpu"):
         r"""
         Defines the sigma and gain values to be used in the model.
 
         If a noise model is specified in the physics, the sigma and gain values will be taken from the noise model.
         Else, the sigma and gain values will be set to the thresholds defined in the model (if not provided).
 
-        :param deepinv.physics.Physics physics: Physics model
-        :param torch.Tensor y: Measurements
+        :param deepinv.physics.LinearPhysics physics: Physics operator
         :param float, torch.Tensor sigma: Gaussian noise level. If None, will be set to the threshold.
         :param float, torch.Tensor gain: Poisson noise level. If None, will be set to the threshold.
-        :param float rescale_val: Rescale value to apply to the sigma and gain values.
+        :param torch.Tensor rescale_val: Rescale value to apply to the sigma and gain values.
+        :param str, torch.device device: Device to which the sigma and gain values should be moved.
         """
-        if hasattr(physics, "noise_model"):
-            if sigma is not None or gain is not None:
-                warn(
-                    "noise_model specified in physics. Parameters passed to sigma or gain will be ignored."
-                )
-
+        if sigma is None:
             sigma = (
                 physics.noise_model.sigma / rescale_val
                 if hasattr(physics.noise_model, "sigma")
                 else self.sigma_threshold
+                * torch.ones(rescale_val.size(0), device=device)
             )
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
+        else:
+            sigma = sigma / rescale_val
 
+        if gain is None:
             gain = (
                 physics.noise_model.gain / rescale_val
                 if hasattr(physics.noise_model, "gain")
                 else self.gain_threshold
+                * torch.ones(rescale_val.size(0), device=device)
             )
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
-            gain = self.gain_threshold if gain is None else gain
-            sigma = self.sigma_threshold if sigma is None else sigma
+            gain = gain / rescale_val
 
         if not isinstance(sigma, torch.Tensor) and not isinstance(sigma, TensorList):
-            sigma = torch.tensor(sigma, device=y.device)
+            sigma = torch.tensor(sigma, device=device)
         if not isinstance(gain, torch.Tensor) and not isinstance(gain, TensorList):
-            gain = torch.tensor(gain, device=y.device)
+            gain = torch.tensor(gain, device=device)
 
         return sigma, gain
 
