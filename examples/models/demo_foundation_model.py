@@ -262,7 +262,6 @@ max_epochs = 20
 trainer = dinv.Trainer(
     model=model,
     physics=physics_train,
-    eval_interval=5,
     ckp_interval=max_epochs - 1,
     metrics=losses[0],
     early_stop=True,
