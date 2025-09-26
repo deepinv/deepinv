@@ -20,14 +20,3 @@ Please refer to the :ref:`user guide <trainer>` for more information.
 
     deepinv.train
     deepinv.test
-
-Adversarial Training
---------------------
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.training.AdversarialTrainer
-    deepinv.training.AdversarialOptimizer

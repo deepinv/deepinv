@@ -9,14 +9,20 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add multi-operator unsup adversarial loss (:gh:`409` by `Andrew Wang`_)
+- Add SkipConvDiscriminator and Real-ESRGAN discrimiantor (:gh:`409` by `Andrew Wang`_)
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`)
 
 Changed
 ^^^^^^^
+
+- Adversarial losses can be cleanly trained in normal Trainer (:gh:`409` by `Andrew Wang`_)
+- Deprecate adversarial trainer (:gh:`409` by `Andrew Wang`_)
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
+- Fix UAIR loss (:gh:`409` by `Andrew Wang`_)
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 

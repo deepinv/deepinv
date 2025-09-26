@@ -69,6 +69,7 @@ Mixins
 
         deepinv.utils.MRIMixin
         deepinv.utils.TimeMixin
+        deepinv.utils.MultiOperatorMixin
 
 Other
 -----

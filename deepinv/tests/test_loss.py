@@ -721,3 +721,69 @@ def test_reducedresolution_shapes(physics_name, device):
     x_hat_train = model(y, physics)
     assert x_hat_train.shape == y.shape
     assert metric(x_hat_train, y) < 50
+
+
+@pytest.mark.parametrize("multioperator_mode", ["multi_physics", "physics_generator"])
+def test_moi(rng, multioperator_mode):
+    # Physics that just returns its dummy
+    class DummyPhysics(dinv.physics.Physics):
+        def __init__(self, dummy: int, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.dummy = dummy
+
+        def A(self, *args, **kwargs):
+            return self.dummy
+
+        def update_parameters(self, dummy: int = None, **kwargs):
+            self.dummy = dummy
+            super().update_parameters(**kwargs)
+
+    # Transparent metric that returns just 1st param
+    class DummyMetric(dinv.loss.metric.Metric):
+        def forward(self, x_net=None, x=None, *args, **kwargs):
+            return x_net
+
+    # Transparent model that returns physics dummy
+    class DummyModel(dinv.models.Reconstructor):
+        def forward(self, y, physics: DummyPhysics, **kwargs):
+            return physics.dummy
+
+    model = DummyModel()
+    metric = DummyMetric()
+
+    if multioperator_mode == "multi_physics":
+        # Loss should randomly pick a new dummy physics from its list
+        loss = dinv.loss.MOILoss(
+            physics=[DummyPhysics(i) for i in range(9999)],
+            physics_generator=None,
+            metric=metric,
+            rng=rng,
+        )
+    elif multioperator_mode == "physics_generator":
+        # Loss should generate a new dummy param
+        class DummyPhysicsGenerator(dinv.physics.generator.PhysicsGenerator):
+            def step(self, *args, **kwargs):
+                return {
+                    "dummy": torch.randint(999, 9999, size=(1,), generator=rng).item()
+                }
+
+        loss = dinv.loss.MOILoss(
+            physics=None,
+            physics_generator=DummyPhysicsGenerator(),
+            metric=metric,
+            rng=rng,
+        )
+    else:
+        raise ValueError("multioperator_mode invalid")
+
+    # Test that loss generates then returns a new dummy
+    physics = DummyPhysics(5728)
+    dummy2 = loss(None, physics, model)
+    assert dummy2 != 5728
+    assert physics.dummy == 5728  # original physics not changed
+
+    # Test that loss generates then returns a new dummy
+    dummy3 = loss(None, physics, model)
+    assert dummy3 != 5728
+    assert dummy3 != dummy2
+    assert physics.dummy == 5728  # original physics not changed
