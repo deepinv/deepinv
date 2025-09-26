@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from warnings import warn
 from pathlib import Path
 
 import torch
