@@ -253,8 +253,8 @@ class RAM(Reconstructor, Denoiser):
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float, torch.Tensor sigma: Gaussian noise level. Ignored if noise_model already specified in physics.
-        :param float, torch.Tensor gain: Poisson noise level. Ignored if noise_model already specified in physics.
+        :param float, torch.Tensor sigma: Gaussian noise level.
+        :param float, torch.Tensor gain: Poisson noise level.
         :return: torch.Tensor: reconstructed signal estimate
         """
         if physics is None and sigma is None and gain is None:
