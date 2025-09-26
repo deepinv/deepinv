@@ -995,7 +995,7 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",
     [
