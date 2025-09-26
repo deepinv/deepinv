@@ -247,9 +247,9 @@ class RAM(Reconstructor, Denoiser):
 
         .. note::
 
-            The noise levels `(sigma and gain)` can be kept as None if a :class:`deepinv.physics.GaussianNoise`
+            The noise levels `sigma` and `gain` can be kept as `None` if a :class:`deepinv.physics.GaussianNoise`,
             :class:`deepinv.physics.PoissonNoise` or :class:`deepinv.physics.PoissonGaussianNoise` noise model with
-            is specified in the physics. If both are provided, the `(sigma, gain)` values provided to the model will be used.
+            is specified in the physics. If both are provided, the `sigma` and `gain` values provided to the model will be used.
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
