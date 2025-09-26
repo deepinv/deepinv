@@ -46,6 +46,7 @@ from .mixins import TimeMixin, MRIMixin
 from .compat import zip_strict
 from .io_utils import (
     load_dicom,
+    load_nifti,
     load_url,
     load_np,
     load_torch,
