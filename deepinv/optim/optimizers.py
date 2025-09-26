@@ -140,6 +140,7 @@ class BaseOptim(Reconstructor):
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
+    :param bool show_progress_bar: show progress bar during optimization.
     :return: a torch model that solves the optimization problem.
     """
 
