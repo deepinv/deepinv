@@ -13,7 +13,7 @@ from torch import Tensor
 import torch
 import torch.nn.functional as F
 
-from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
+from deepinv.datasets.mri.fastmri import FastMRISliceDataset, MRISliceTransform
 from deepinv.datasets.utils import loadmat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator

@@ -25,18 +25,31 @@ def get_weights_url(model_name, file_name):
     )
 
 
-def test_pad(model, L, modulo=16):
+def test_pad(model, L, dim=2, modulo=16):
     """
     Pads the image to fit the model's expected image size.
 
     Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
     """
-    h, w = L.size()[-2:]
+    if dim == 2:
+        h, w = L.size()[-2:]
+    else:
+        d, h, w = L.size()[-3:]
     padding_bottom = int(np.ceil(h / modulo) * modulo - h)
     padding_right = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
+    if dim == 3:
+        padding_w = int(np.ceil(d / modulo) * modulo - w)
+    else:
+        L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
+    if dim == 3:
+        L = torch.nn.ReplicationPad3d((0, padding_right, 0, padding_bottom, 0, padding_w))(
+            L
+        )
     E = model(L)
-    E = E[..., :h, :w]
+    if dim == 2:
+        E = E[..., :h, :w]
+    else:
+        E = E[..., :d, :h, :w]
     return E
 
 

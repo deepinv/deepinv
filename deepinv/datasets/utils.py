@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from numpy import ndarray
 
 from torch import randn, Tensor, stack, zeros_like
+import torch
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
@@ -211,3 +212,12 @@ class Crop(Module):
 
     def forward(self, x: Tensor):
         return torchvision_crop(x, *self.size)
+
+
+def torch_shuffle(x: list, generator: torch.Generator = None) -> list:
+    """Shuffle list reproducibly using torch generator.
+    :param list x: list to be shuffled
+    :param torch.Generator generator: torch Generator.
+    :return list: shuffled list
+    """
+    return [x[i] for i in torch.randperm(len(x), generator=generator).tolist()]

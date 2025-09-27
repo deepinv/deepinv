@@ -332,7 +332,8 @@ class BaseOptim(Reconstructor):
         if self.custom_init:
             init_X = self.custom_init(y, physics)
         else:
-            x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
+            x_init = physics.A_adjoint(y)
+            z_init = x_init.clone()
             init_X = {"est": (x_init, z_init)}
         F = (
             F_fn(
