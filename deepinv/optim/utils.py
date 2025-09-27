@@ -7,7 +7,7 @@ import torch.nn as nn
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
-from typing import Callable, Union, Optional
+from typing import Callable
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -37,12 +37,12 @@ def least_squares(
     A: Callable,
     AT: Callable,
     y: Tensor,
-    z: Optional[Union[Tensor, float]] = 0.0,
-    init: Optional[Tensor] = None,
-    gamma: Optional[Union[float, Tensor]] = None,
+    z: Tensor | float | None = 0.0,
+    init: Tensor | None = None,
+    gamma: float | Tensor | None = None,
     parallel_dim: int = 0,
-    AAT: Optional[Callable] = None,
-    ATA: Optional[Callable] = None,
+    AAT: Callable | None = None,
+    ATA: Callable | None = None,
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
@@ -869,7 +869,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         y: Tensor,
         z: Tensor,
         init: Tensor,
-        gamma: Union[float, Tensor],
+        gamma: float | Tensor,
         trigger: Tensor = None,
         extra_kwargs: dict = None,
     ):
@@ -986,7 +986,7 @@ def least_squares_implicit_backward(
     y: Tensor,
     z: Tensor = None,
     init: Tensor = None,
-    gamma: Union[float, Tensor] = None,
+    gamma: float | Tensor = None,
     **kwargs,
 ) -> Tensor:
     r"""

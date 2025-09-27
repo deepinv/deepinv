@@ -1,6 +1,6 @@
 import numbers
 import os
-from typing import Optional, Sequence
+from typing import Sequence
 
 import torch
 import torch.nn as nn
@@ -61,8 +61,8 @@ class Restormer(Denoiser):
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",
         dual_pixel_task: bool = False,
-        pretrained: Optional[str] = "denoising",
-        device: Optional[torch.device] = None,
+        pretrained: str | None = "denoising",
+        device: torch.device | None = None,
     ) -> None:
         super(Restormer, self).__init__()
 

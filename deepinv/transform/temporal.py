@@ -1,4 +1,4 @@
-from typing import Union, Iterable
+from typing import Iterable
 import torch
 from deepinv.transform.base import Transform, TransformParam
 
@@ -59,7 +59,7 @@ class ShiftTime(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        amounts: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        amounts: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         roll = torch.roll if self.padding == "wrap" else self.roll_reflect_1d

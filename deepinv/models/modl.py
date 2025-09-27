@@ -1,4 +1,3 @@
-from typing import Union
 from torch.nn import Module
 
 from deepinv.optim.optimizers import create_iterator
@@ -23,7 +22,7 @@ class MoDL(BaseUnfold):
 
     def __init__(
         self,
-        denoiser: Union[Denoiser, Module] = None,
+        denoiser: Denoiser | Module = None,
         num_iter: int = 3,
     ):
         # Select the data fidelity term

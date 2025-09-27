@@ -1,6 +1,6 @@
 import sys
 from collections import deque
-from typing import Union, Callable
+from typing import Callable
 from types import MappingProxyType
 
 import torch
@@ -87,7 +87,7 @@ class BaseSampling(Reconstructor):
         thresh_conv: float = 1e-3,
         crit_conv: str = "residual",
         thinning: int = 10,
-        history_size: Union[int, bool] = 5,
+        history_size: int | bool = 5,
         verbose: bool = False,
     ):
         super(BaseSampling, self).__init__()
@@ -117,8 +117,8 @@ class BaseSampling(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        x_init: Union[torch.Tensor, dict, None] = None,
-        seed: Union[int, None] = None,
+        x_init: torch.Tensor | dict | None = None,
+        seed: int | None = None,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -141,9 +141,9 @@ class BaseSampling(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        x_init: Union[torch.Tensor, dict, None] = None,
-        seed: Union[int, None] = None,
-        g_statistics: Union[Callable, list[Callable]] = (lambda d: d["x"],),
+        x_init: torch.Tensor | dict | None = None,
+        seed: int | None = None,
+        g_statistics: Callable | list[Callable] = (lambda d: d["x"],),
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -344,7 +344,7 @@ class BaseSampling(Reconstructor):
 
 
 def create_iterator(
-    iterator: Union[SamplingIterator, str], cur_params, **kwargs
+    iterator: SamplingIterator | str, cur_params, **kwargs
 ) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
@@ -362,7 +362,7 @@ def create_iterator(
 
 
 def sampling_builder(
-    iterator: Union[SamplingIterator, str],
+    iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
     prior: Prior,
     params_algo: dict = MappingProxyType({}),
@@ -370,7 +370,7 @@ def sampling_builder(
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,
     thinning: int = 10,
-    history_size: Union[int, bool] = 5,
+    history_size: int | bool = 5,
     verbose: bool = False,
     callback: Callable = lambda X, **kwargs: None,
     **kwargs,

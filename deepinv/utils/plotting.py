@@ -2,7 +2,6 @@ import os
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Union
 from types import MappingProxyType
 from functools import partial
 from warnings import warn
@@ -689,10 +688,10 @@ def plot_inset(
     fig=None,
     axs=None,
     labels: list[str] = (),
-    label_loc: Union[tuple, list] = (0.03, 0.03),
-    extract_loc: Union[tuple, list] = (0.0, 0.0),
+    label_loc: tuple | list = (0.03, 0.03),
+    extract_loc: tuple | list = (0.0, 0.0),
     extract_size: float = 0.2,
-    inset_loc: Union[tuple, list] = (0.0, 0.5),
+    inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
     return_fig: bool = False,
     return_axs=False,
@@ -868,8 +867,8 @@ def plot_inset(
 
 
 def plot_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
@@ -989,8 +988,8 @@ def plot_videos(
 
 
 def save_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     figsize: tuple[int] = None,

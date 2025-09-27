@@ -5,7 +5,6 @@ from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
-from typing import Union
 
 
 class EPLL(nn.Module):
@@ -87,7 +86,7 @@ class EPLL(nn.Module):
         self,
         y,
         physics,
-        sigma: Union[float, torch.Tensor] = None,
+        sigma: float | torch.Tensor = None,
         x_init: torch.Tensor = None,
         betas: list[float] = None,
         batch_size: int = -1,

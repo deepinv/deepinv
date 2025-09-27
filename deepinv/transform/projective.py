@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import Union, Iterable
+from typing import Iterable
 
 import numpy as np
 import torch
@@ -52,7 +52,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
 
 
 def apply_homography(
-    im: Union[torch.Tensor, Image.Image],
+    im: torch.Tensor | Image.Image,
     theta_x: float = 0.0,
     theta_y: float = 0.0,
     theta_z: float = 0.0,
@@ -67,7 +67,7 @@ def apply_homography(
     verbose: bool = False,
     device="cpu",
     **kwargs,
-) -> Union[torch.Tensor, Image.Image]:
+) -> torch.Tensor | Image.Image:
     r"""Perform homography (projective transformation).
 
     Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.
@@ -246,15 +246,15 @@ class Homography(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        theta_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        theta_z: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        shift_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        shift_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        skew: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
+        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        skew: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
         **params,
     ) -> torch.Tensor:
         return torch.cat(

@@ -19,7 +19,7 @@ Key modifications:
 
 from pathlib import Path
 from contextlib import contextmanager
-from typing import Any, Callable, NamedTuple, Optional, Union
+from typing import Any, Callable, NamedTuple
 from collections import defaultdict
 import pickle
 import warnings
@@ -94,13 +94,13 @@ class SimpleFastMRISliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: Union[str, Path],
+        root_dir: str | Path,
         anatomy: str = "knee",
-        file_name: Union[str, Path] = None,
+        file_name: str | Path = None,
         train: bool = True,
         sample_index: int = None,
         train_percent: float = 1.0,
-        transform: Optional[Callable] = None,
+        transform: Callable | None = None,
         download: bool = False,
     ):
         if anatomy not in ("knee", "brain", None):
@@ -296,7 +296,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         metadata: dict[str, Any]
 
     @contextmanager
-    def metadata_cache_manager(self, root: Union[str, Path], samples: Any):
+    def metadata_cache_manager(self, root: str | Path, samples: Any):
         """Read/write metadata cache file for populating list of sample ids.
 
         :param Union[str, pathlib.Path] root: root dir to save to metadata cache
@@ -335,16 +335,16 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        target_root: Optional[Union[str, Path]] = None,
+        root: str | Path,
+        target_root: str | Path | None = None,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
-        metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
-        slice_index: Union[str, int] = "all",
-        subsample_volumes: Optional[float] = 1.0,
-        transform: Optional[Callable] = None,
-        filter_id: Optional[Callable] = None,
-        rng: Optional[torch.Generator] = None,
+        metadata_cache_file: str | Path = "dataset_cache.pkl",
+        slice_index: str | int = "all",
+        subsample_volumes: float | None = 1.0,
+        transform: Callable | None = None,
+        filter_id: Callable | None = None,
+        rng: torch.Generator | None = None,
     ) -> None:
         self.root = root
         self.transform = transform if transform is not None else MRISliceTransform()
@@ -409,7 +409,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
             self.samples = list(filter(filter_id, self.samples))
 
     @staticmethod
-    def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> dict[str, Any]:
+    def _retrieve_metadata(fname: str | Path | os.PathLike) -> dict[str, Any]:
         """Open file and retrieve metadata.
         Metadata includes number of slices in volume.
 
@@ -578,9 +578,9 @@ class MRISliceTransform(MRIMixin):
 
     def __init__(
         self,
-        mask_generator: Optional[BaseMaskGenerator] = None,
+        mask_generator: BaseMaskGenerator | None = None,
         seed_mask_generator: bool = True,
-        estimate_coil_maps: Union[bool, int] = False,
+        estimate_coil_maps: bool | int = False,
         acs: int = None,
         prewhiten: tuple[slice, slice] = False,
         normalize: bool = False,
@@ -619,7 +619,7 @@ class MRISliceTransform(MRIMixin):
         )
 
     def generate_mask(
-        self, kspace: torch.Tensor, seed: Union[str, int]
+        self, kspace: torch.Tensor, seed: str | int
     ) -> torch.Tensor:
         """Simulate mask from mask generator.
 
@@ -705,7 +705,7 @@ class MRISliceTransform(MRIMixin):
         target: torch.Tensor,
         kspace: torch.Tensor,
         mask: torch.Tensor = None,
-        seed: Union[str, int] = None,
+        seed: str | int = None,
         metadata: dict = None,
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor, dict]:

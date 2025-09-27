@@ -1,4 +1,3 @@
-from typing import Union
 import os
 import csv
 from datetime import datetime
@@ -38,7 +37,7 @@ class AverageMeter:
         self.std = 0.0
         self.sum2 = 0.0
 
-    def update(self, val: Union[np.ndarray, float, int], n: int = 1) -> None:
+    def update(self, val: np.ndarray | float | int, n: int = 1) -> None:
         """Process new scalar value(s) and update the stored aggregates.
 
         :param numpy.ndarray, float, int val: either array (i.e. batch) of values or single value

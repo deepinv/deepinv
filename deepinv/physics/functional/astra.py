@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any
 
 import torch
 import numpy as np
@@ -154,7 +154,7 @@ class XrayTransform:
             return 1.0
 
     def __call__(
-        self, x: torch.Tensor, out: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, out: torch.Tensor | None = None
     ) -> torch.Tensor:
         r"""Forward projection.
 
@@ -195,7 +195,7 @@ class XrayTransform:
                 return parent.domain_shape
 
             def __call__(
-                self, x: torch.Tensor, out: Optional[torch.Tensor] = None
+                self, x: torch.Tensor, out: torch.Tensor | None = None
             ) -> torch.Tensor:
                 r"""Backprojection.
 
@@ -358,12 +358,12 @@ class AutogradTransform(torch.autograd.Function):
 
 def create_projection_geometry(
     geometry_type: str,
-    detector_spacing: Union[int, tuple[int, int]],
-    n_detector_pixels: Union[int, tuple[int, int]],
+    detector_spacing: int | tuple[int, int],
+    n_detector_pixels: int | tuple[int, int],
     angles: torch.Tensor,
     is_2d: bool = False,
-    geometry_parameters: Optional[dict[str, Any]] = None,
-    geometry_vectors: Optional[torch.Tensor] = None,
+    geometry_parameters: dict[str, Any] | None = None,
+    geometry_vectors: torch.Tensor | None = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "projection geometry", a dict of parameters
     used by ``astra`` to parametrize the geometry of the detector and the x-ray source.
@@ -504,7 +504,7 @@ def create_object_geometry(
     n_slices: int = 1,
     is_2d: bool = True,
     spacing: tuple[float, ...] = (1.0, 1.0),
-    bounding_box: Optional[tuple[float, ...]] = None,
+    bounding_box: tuple[float, ...] | None = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
     used by ``astra`` to parametrize the reconstruction grid.

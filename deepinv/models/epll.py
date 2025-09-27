@@ -2,7 +2,6 @@ import torch
 from deepinv.optim.epll import EPLL
 from deepinv.physics import Denoising, GaussianNoise
 from .base import Denoiser
-from typing import Union
 from deepinv.optim.utils import GaussianMixtureModel
 
 
@@ -50,7 +49,7 @@ class EPLLDenoiser(Denoiser):
     def forward(
         self,
         x: torch.Tensor,
-        sigma: Union[float, torch.Tensor, list[float]],
+        sigma: float | torch.Tensor | list[float],
         betas: list[float] = None,
         batch_size: int = -1,
     ) -> torch.Tensor:

@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch
 from torch import Tensor
 from deepinv.loss.loss import Loss
-from typing import Optional
 
 
 class DiscriminatorMetric:
@@ -30,7 +29,7 @@ class DiscriminatorMetric:
 
     def __init__(
         self,
-        metric: Optional[nn.Module] = None,
+        metric: nn.Module | None = None,
         real_label: float = 1.0,
         fake_label: float = 0.0,
         no_grad: bool = False,

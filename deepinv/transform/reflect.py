@@ -1,4 +1,4 @@
-from typing import Union, Iterable
+from typing import Iterable
 import torch
 from deepinv.transform.base import Transform, TransformParam
 import itertools
@@ -21,7 +21,7 @@ class Reflect(Transform):
     def __init__(
         self,
         *args,
-        dim: Union[int, list[int]] = (-2, -1),
+        dim: int | list[int] = (-2, -1),
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -53,7 +53,7 @@ class Reflect(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        dims: Union[torch.Tensor, Iterable] = tuple(),
+        dims: torch.Tensor | Iterable = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Reflect image in axes given in dim.

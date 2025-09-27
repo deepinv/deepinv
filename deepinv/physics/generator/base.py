@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from typing import Union
 from hashlib import sha256
 
 
@@ -102,7 +101,7 @@ class PhysicsGenerator(nn.Module):
 
         return self.step_func(batch_size, seed, **kwargs)
 
-    def rng_manual_seed(self, seed: Union[int, str] = None):
+    def rng_manual_seed(self, seed: int | str = None):
         r"""
         Sets the seed for the random number generator.
 

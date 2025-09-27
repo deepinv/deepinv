@@ -148,7 +148,7 @@ class WaveletDenoiser(Denoiser):
 
     @staticmethod
     def _expand_ths_as(
-        ths: Union[float, torch.Tensor], x: torch.Tensor
+        ths: float | torch.Tensor, x: torch.Tensor
     ) -> torch.Tensor:
         r"""
         Expand the threshold to the same shape as the input tensor.
@@ -162,7 +162,7 @@ class WaveletDenoiser(Denoiser):
             raise ValueError(f"Invalid threshold type: {type(ths)}")
 
     def prox_l0(
-        self, x: torch.Tensor, ths: Union[float, torch.Tensor] = 0.1
+        self, x: torch.Tensor, ths: float | torch.Tensor = 0.1
     ) -> torch.Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.

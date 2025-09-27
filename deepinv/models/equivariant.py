@@ -1,4 +1,3 @@
-from typing import Optional
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser
 
@@ -43,7 +42,7 @@ class EquivariantDenoiser(Denoiser):
     """
 
     def __init__(
-        self, denoiser: Denoiser, transform: Optional[Transform] = None, random=True
+        self, denoiser: Denoiser, transform: Transform | None = None, random=True
     ):
         super().__init__()
         self.denoiser = denoiser

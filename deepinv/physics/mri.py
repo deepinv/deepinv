@@ -1,4 +1,3 @@
-from typing import Optional, Union
 import numpy as np
 import torch
 from torch import Tensor
@@ -78,8 +77,8 @@ class MRI(MRIMixin, DecomposablePhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device="cpu",
         **kwargs,
@@ -224,9 +223,9 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        coil_maps: Optional[Union[Tensor, int]] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        coil_maps: Tensor | int | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device=torch.device("cpu"),
         **kwargs,
@@ -536,7 +535,7 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: Optional[torch.Tensor] = None) -> MRI:
+    def to_static(self, mask: torch.Tensor | None = None) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.

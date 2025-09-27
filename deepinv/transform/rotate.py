@@ -1,4 +1,4 @@
-from typing import Union, Iterable, Optional
+from typing import Iterable
 import torch
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
@@ -34,7 +34,7 @@ class Rotate(Transform):
         limits: float = 360.0,
         multiples: float = 1.0,
         positive: bool = False,
-        interpolation_mode: Optional[InterpolationMode] = None,
+        interpolation_mode: InterpolationMode | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -68,7 +68,7 @@ class Rotate(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        theta: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.

@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Callable
+from typing import Sequence, Callable
 from pathlib import Path
 from tqdm import tqdm
 import h5py
@@ -80,7 +80,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         acc: int = 6,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
-        metadata_cache_file: Union[str, Path] = "skmtea_dataset_cache.pkl",
+        metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
 

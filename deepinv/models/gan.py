@@ -9,7 +9,6 @@ from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
-from typing import Optional
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -295,7 +294,7 @@ class CSGMGenerator(Reconstructor):
 
     def __init__(
         self,
-        backbone_generator: Optional[nn.Module] = None,
+        backbone_generator: nn.Module | None = None,
         inf_max_iter: int = 2500,
         inf_tol: float = 1e-4,
         inf_lr: float = 1e-2,

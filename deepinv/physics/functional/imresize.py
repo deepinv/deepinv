@@ -81,7 +81,7 @@ def padding(
     dim: int,
     pad_pre: int,
     pad_post: int,
-    padding_type: Optional[str] = "reflect",
+    padding_type: str | None = "reflect",
 ) -> torch.Tensor:
 
     if padding_type is None:
@@ -219,8 +219,8 @@ def cast_output(x: torch.Tensor, dtype: _D) -> torch.Tensor:
 def resize_1d(
     x: torch.Tensor,
     dim: int,
-    size: Optional[int],
-    scale: Optional[float],
+    size: int | None,
+    scale: float | None,
     kernel: str = "cubic",
     sigma: float = 2.0,
     padding_type: str = "reflect",
@@ -295,8 +295,8 @@ def resize_1d(
 
 def imresize_matlab(
     x: torch.Tensor,
-    scale: Optional[float] = None,
-    sizes: Optional[tuple[int, int]] = None,
+    scale: float | None = None,
+    sizes: tuple[int, int] | None = None,
     kernel: str = "cubic",
     sigma: float = 2,
     padding_type: str = "reflect",

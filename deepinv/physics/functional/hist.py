@@ -7,7 +7,7 @@ Copy from: https://github.com/francois-rozet/torchist/blob/master/torchist/__ini
 import torch
 
 from torch import Size, Tensor, BoolTensor
-from typing import Union, Sequence
+from typing import Sequence
 
 
 def ravel_multi_index(coords: Tensor, shape: Size) -> torch.Tensor:
@@ -84,13 +84,13 @@ def quantize(x: Tensor, bins: Tensor, low: Tensor, upp: Tensor) -> torch.Tensor:
 
 def histogramdd(
     x: Tensor,
-    bins: Union[int, Sequence[int]] = 10,
-    low: Union[float, Sequence[float]] = None,
-    upp: Union[float, Sequence[float]] = None,
+    bins: int | Sequence[int] = 10,
+    low: float | Sequence[float] = None,
+    upp: float | Sequence[float] = None,
     bounded: bool = False,
     weights: Tensor = None,
     sparse: bool = False,
-    edges: Union[Tensor, Sequence[Tensor]] = None,
+    edges: Tensor | Sequence[Tensor] = None,
 ) -> torch.Tensor:
     r"""
     Computes the multidimensional histogram of a tensor.
