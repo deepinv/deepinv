@@ -1,4 +1,5 @@
-from typing import Any, Union, Optional
+from __future__ import annotations
+from typing import Any
 from types import MappingProxyType
 from warnings import warn
 import math
@@ -441,12 +442,12 @@ class TomographyWithAstra(LinearPhysics):
         self,
         img_size: tuple[int, ...],
         num_angles: int = 180,
-        num_detectors: Optional[Union[int, tuple[int, ...]]] = None,
+        num_detectors: int | tuple[int, ...] | None = None,
         angular_range: tuple[float, float] = (0, torch.pi),
-        detector_spacing: Union[float, tuple[float, float]] = 1.0,
+        detector_spacing: float | tuple[float, float] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
-        bounding_box: Optional[tuple[float, ...]] = None,
-        angles: Optional[torch.Tensor] = None,
+        bounding_box: tuple[float, ...] | None = None,
+        angles: torch.Tensor | None = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, Any] = MappingProxyType(
             {
@@ -454,9 +455,9 @@ class TomographyWithAstra(LinearPhysics):
                 "detector_radius": 20.0,
             }
         ),
-        geometry_vectors: Optional[torch.Tensor] = None,
+        geometry_vectors: torch.Tensor | None = None,
         normalize: bool = False,
-        device: Union[torch.device, str] = torch.device("cuda"),
+        device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
         super().__init__(**kwargs)

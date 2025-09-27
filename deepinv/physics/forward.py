@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Optional, Callable
+from typing import Callable
 import warnings
 import copy
 import inspect
@@ -46,7 +46,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(
         self,
         A: Callable = lambda x, **kwargs: x,
-        noise_model: Optional[NoiseModel] = None,
+        noise_model: NoiseModel | None = None,
         sensor_model: Callable = lambda x: x,
         solver: str = "gradient_descent",
         max_iter: int = 50,
@@ -840,7 +840,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
+def compose(*physics: Physics | LinearPhysics, **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
@@ -1150,7 +1150,7 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: Optional[NoiseModel] = None, **kwargs):
+    def __init__(self, noise_model: NoiseModel | None = None, **kwargs):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
         super().__init__(noise_model=noise_model, **kwargs)
@@ -1219,7 +1219,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return Adjoint.apply
 
 
-def stack(*physics: Union[Physics, LinearPhysics]):
+def stack(*physics: Physics | LinearPhysics):
     r"""
     Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 

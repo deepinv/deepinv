@@ -1,6 +1,6 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
-from typing import Union
 
 
 def to_complex_denoiser(denoiser, mode="real_imag"):
@@ -16,7 +16,7 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
 
     class ComplexDenoiser(Denoiser):
         def __init__(
-            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs
+            self, denoiser: torch.nn.Module | Denoiser, mode: str, *args, **kwargs
         ):
             super().__init__(*args, **kwargs)
             self.mode = mode

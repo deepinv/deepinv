@@ -1,6 +1,6 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
-from typing import Optional
 
 
 class PGDIteration(OptimIterator):
@@ -182,7 +182,7 @@ class PMDIteration(OptimIterator):
 
     """
 
-    def __init__(self, bregman_potential: Optional[Bregman] = None, **kwargs):
+    def __init__(self, bregman_potential: Bregman | None = None, **kwargs):
         if bregman_potential is None:
             bregman_potential = BregmanL2()
         super(PMDIteration, self).__init__(**kwargs)

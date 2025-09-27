@@ -1,5 +1,6 @@
+from __future__ import annotations
 from warnings import warn
-from typing import Optional, Callable, Union
+from typing import Callable
 from pathlib import Path
 import math
 from numpy import ndarray
@@ -181,9 +182,9 @@ class TensorDataset(ImageDataset):
     def __init__(
         self,
         *,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        params: Optional[dict[str, Tensor]] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        params: dict[str, Tensor] | None = None,
     ):
         super().__init__()
 
@@ -327,12 +328,12 @@ class ImageFolder(ImageDataset):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        x_path: Optional[str] = None,
-        y_path: Optional[str] = None,
-        loader: Callable[[Union[str, Path]], Tensor] = None,
-        estimate_params: Optional[Callable[[Tensor, Tensor], dict]] = None,
-        transform: Optional[Union[Callable, tuple[Callable, Callable]]] = None,
+        root: str | Path,
+        x_path: str | None = None,
+        y_path: str | None = None,
+        loader: Callable[[str | Path], Tensor] = None,
+        estimate_params: Callable[[Tensor, Tensor], dict] | None = None,
+        transform: Callable | tuple[Callable, Callable] | None = None,
     ):
         super().__init__()
         self.root = Path(root)

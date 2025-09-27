@@ -1,4 +1,5 @@
-from typing import Union, Iterable
+from __future__ import annotations
+from typing import Iterable
 import torch
 from deepinv.transform.base import Transform, TransformParam
 
@@ -44,7 +45,7 @@ class CPABDiffeomorphism(Transform):
         zero_boundary: bool = True,
         volume_perservation: bool = True,
         override: bool = True,
-        device: Union[str, torch.device] = "cpu",
+        device: str | torch.device = "cpu",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -82,7 +83,7 @@ class CPABDiffeomorphism(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        diffeo: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        diffeo: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Transform image deterministically.

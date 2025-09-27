@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Iterable
+from typing import Iterable
 
 import torch
 from torch import Tensor
@@ -28,7 +28,7 @@ class RandomNoise(Transform):
         self,
         *args,
         noise_type: str = "gaussian",
-        sigma: Union[int, tuple[int, int]] = 0.1,
+        sigma: int | tuple[int, int] = 0.1,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -77,7 +77,7 @@ class RandomPhaseError(Transform):
     :param int, tuple[int, int] scale: scale parameters :math:`s_e` and :math:`s_o` or range to pick randomly.
     """
 
-    def __init__(self, *args, scale: Union[int, tuple[int, int]] = 0.2, **kwargs):
+    def __init__(self, *args, scale: int | tuple[int, int] = 0.2, **kwargs):
         super().__init__(*args, **kwargs)
         self.scale = scale
         self.flatten_video_input = False
@@ -102,8 +102,8 @@ class RandomPhaseError(Transform):
     def _transform(
         self,
         y,
-        se: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        so: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        se: torch.Tensor | Iterable | TransformParam = tuple(),
+        so: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> Tensor:
         out = []

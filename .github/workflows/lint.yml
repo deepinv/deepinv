@@ -24,4 +24,4 @@ jobs:
       - name: Check Python 3.9 backward compatibility
         run: |
           pip install vermin
-          vermin --eval-annotations -vvv --feature union-types deepinv examples | grep "3.10" && exit 1 || true
+          vermin -vvv deepinv examples | grep "3.10" && exit 1 || true

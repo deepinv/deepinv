@@ -1,5 +1,5 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional
 import warnings
 
 import torch
@@ -29,7 +29,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         self,
         img_size: tuple,
         acceleration: int = 4,
-        center_fraction: Optional[float] = None,
+        center_fraction: float | None = None,
         rng: torch.Generator = None,
         device="cpu",
         *args,
@@ -97,7 +97,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         pass
 
     def step(
-        self, batch_size=1, seed: int = None, img_size: Optional[tuple] = None, **kwargs
+        self, batch_size=1, seed: int = None, img_size: tuple | None = None, **kwargs
     ) -> dict:
         r"""
         Create a mask of vertical lines.

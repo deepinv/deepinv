@@ -1,5 +1,6 @@
+from __future__ import annotations
 import time as time
-from typing import Callable, Union
+from typing import Callable
 from torch import Tensor
 from warnings import warn
 
@@ -89,9 +90,9 @@ class ULA(BaseSampling):
         self,
         y: Tensor,
         physics: Physics,
-        seed: Union[None, int] = None,
-        x_init: Union[None, Tensor] = None,
-        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+        g_statistics: list[Callable] | Callable = lambda d: d["x"],
     ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -191,9 +192,9 @@ class SKRock(BaseSampling):
         self,
         y: Tensor,
         physics: Physics,
-        seed: Union[None, int] = None,
-        x_init: Union[None, Tensor] = None,
-        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+        g_statistics: list[Callable] | Callable = lambda d: d["x"],
     ) -> tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.

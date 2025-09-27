@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Union, Optional
 
 import torch
 import torch.nn as nn
@@ -52,7 +51,7 @@ class AugmentConsistencyLoss(Loss):
         self,
         T_i: Transform = None,
         T_e: Transform = None,
-        metric: Optional[Union[Metric, nn.Module]] = None,
+        metric: Metric | nn.Module | None = None,
         no_grad: bool = True,
         rng: torch.Generator = None,
         *args,

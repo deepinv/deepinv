@@ -1,10 +1,10 @@
+from __future__ import annotations
 import torch
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.unfolded.unfolded import BaseUnfold
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import DataFidelity, L2
-from typing import Optional
 
 
 class BaseDEQ(BaseUnfold):
@@ -145,8 +145,8 @@ class BaseDEQ(BaseUnfold):
 
 def DEQ_builder(
     iteration,
-    params_algo: Optional[dict] = None,
-    data_fidelity: Optional[DataFidelity] = None,
+    params_algo: dict | None = None,
+    data_fidelity: DataFidelity | None = None,
     prior=None,
     F_fn=None,
     g_first=False,

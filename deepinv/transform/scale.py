@@ -1,5 +1,6 @@
 # code from https://github.com/jscanvic/Scale-Equivariant-Imaging
-from typing import Union, Iterable
+from __future__ import annotations
+from typing import Iterable
 import torch
 import torch.nn.functional as F
 from deepinv.transform.base import Transform, TransformParam
@@ -89,8 +90,8 @@ class Scale(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        factor: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        center: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        factor: torch.Tensor | Iterable | TransformParam = tuple(),
+        center: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Scale image given scale parameters.

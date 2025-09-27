@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, Union
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -78,7 +77,7 @@ class WeightedSplittingLoss(SplittingLoss):
         def __init__(
             self,
             weight: torch.Tensor,
-            metric: Union[Metric, torch.nn.Module],
+            metric: Metric | torch.nn.Module,
             expand: bool = True,
         ):
             super().__init__()
@@ -97,7 +96,7 @@ class WeightedSplittingLoss(SplittingLoss):
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
         eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
     ):
         if metric is None:
             metric = torch.nn.MSELoss()
@@ -179,10 +178,10 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
-        noise_model: Optional[GaussianNoise] = None,
+        noise_model: GaussianNoise | None = None,
         alpha: float = 0.75,
         eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
     ):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
@@ -314,7 +313,7 @@ class Phase2PhaseLoss(SplittingLoss):
         self,
         img_size: tuple[int],
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
         device="cpu",
     ):
         if metric is None:
@@ -344,7 +343,7 @@ class Phase2PhaseLoss(SplittingLoss):
             self.metric = TimeAveragingMetric(self.metric)
 
     @staticmethod
-    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None):
         r"""Override splitting to actually remove masked pixels. In Phase2Phase, this corresponds to masked phases (i.e. time steps).
 
         :param torch.Tensor mask: Phase2Phase mask
@@ -395,7 +394,7 @@ class Phase2PhaseLoss(SplittingLoss):
         class Phase2PhaseModel(self.SplittingModel):
             @staticmethod
             def split(
-                mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None
+                mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None
             ):
                 return Phase2PhaseLoss.split(mask, y, physics)
 
@@ -501,9 +500,9 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     def __init__(
         self,
         img_size: tuple[int],
-        split_size: Union[int, tuple[int]] = 2,
+        split_size: int | tuple[int] = 2,
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
         device="cpu",
     ):
         if metric is None:

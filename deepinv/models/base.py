@@ -1,5 +1,5 @@
+from __future__ import annotations
 import torch
-from typing import Union
 import numpy as np
 
 
@@ -37,7 +37,7 @@ class Denoiser(torch.nn.Module):
 
     @staticmethod
     def _handle_sigma(
-        sigma: Union[float, torch.Tensor],
+        sigma: float | torch.Tensor,
         batch_size: int = None,
         ndim: int = None,
         device: torch.device = None,

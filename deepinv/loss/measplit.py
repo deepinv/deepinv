@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, Union
 from warnings import warn
 import torch
 from deepinv.physics import Inpainting, Physics
@@ -93,9 +92,9 @@ class SplittingLoss(Loss):
 
     def __init__(
         self,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
         split_ratio: float = 0.9,
-        mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
+        mask_generator: BernoulliSplittingMaskGenerator | None = None,
         eval_n_samples: int = 5,
         eval_split_input: bool = True,
         eval_split_output: bool = False,
@@ -116,7 +115,7 @@ class SplittingLoss(Loss):
         self.normalize_loss = normalize_loss
 
     @staticmethod
-    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None):
         r"""Perform splitting given mask
 
         :param torch.Tensor mask: splitting mask of shape (B,C,H,W)
@@ -381,7 +380,7 @@ class Neighbor2Neighbor(Loss):
 
     """
 
-    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None, gamma=2.0):
+    def __init__(self, metric: Metric | torch.nn.Module | None = None, gamma=2.0):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()

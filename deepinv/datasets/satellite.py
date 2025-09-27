@@ -1,4 +1,5 @@
-from typing import Union, Callable
+from __future__ import annotations
+from typing import Callable
 from types import MappingProxyType
 from pathlib import Path
 import os
@@ -86,7 +87,7 @@ class NBUDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: Union[str, Path],
+        root_dir: str | Path,
         satellite: str = "gaofen-1",
         return_pan: bool = False,
         transform_ms: Callable = None,

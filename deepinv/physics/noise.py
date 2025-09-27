@@ -1,6 +1,7 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
-from typing import Callable, Union, Optional
+from typing import Callable
 from collections.abc import Iterable
 import warnings
 import deepinv as dinv
@@ -246,8 +247,8 @@ class GaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        sigma: Union[float, torch.Tensor] = 0.1,
-        rng: Optional[torch.Generator] = None,
+        sigma: float | torch.Tensor = 0.1,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([sigma, rng])
         super().__init__(rng=rng)
@@ -437,8 +438,8 @@ class UniformGaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        sigma_min: Union[float, torch.Tensor] = 0.0,
-        sigma_max: Union[float, torch.Tensor] = 0.5,
+        sigma_min: float | torch.Tensor = 0.0,
+        sigma_max: float | torch.Tensor = 0.5,
         rng: torch.Generator = None,
     ):
         device = _infer_device([sigma_min, sigma_max, rng])
@@ -510,10 +511,10 @@ class PoissonNoise(NoiseModel):
 
     def __init__(
         self,
-        gain: Union[float, torch.Tensor] = 1.0,
+        gain: float | torch.Tensor = 1.0,
         normalize: bool = True,
         clip_positive: bool = False,
-        rng: Optional[torch.Generator] = None,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([gain, rng])
         super().__init__(rng=rng)
@@ -635,11 +636,11 @@ class PoissonGaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        gain: Union[float, torch.Tensor] = 1.0,
-        sigma: Union[float, torch.Tensor] = 0.1,
+        gain: float | torch.Tensor = 1.0,
+        sigma: float | torch.Tensor = 0.1,
         clip_positive: bool = False,
         min_gain: [float, torch.Tensor] = 1e-12,
-        rng: Union[torch.Generator, None] = None,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([gain, sigma, rng])
         super().__init__(rng=rng)
@@ -723,9 +724,7 @@ class UniformNoise(NoiseModel):
 
     """
 
-    def __init__(
-        self, a: Union[float, torch.Tensor] = 0.1, rng: torch.Generator = None
-    ):
+    def __init__(self, a: float | torch.Tensor = 0.1, rng: torch.Generator = None):
         device = _infer_device([a, rng])
         super().__init__(rng=rng)
 
@@ -786,8 +785,8 @@ class LogPoissonNoise(NoiseModel):
 
     def __init__(
         self,
-        N0: Union[float, torch.Tensor] = 1024.0,
-        mu: Union[float, torch.Tensor] = 1 / 50.0,
+        N0: float | torch.Tensor = 1024.0,
+        mu: float | torch.Tensor = 1 / 50.0,
         rng: torch.Generator = None,
     ):
         device = _infer_device([N0, mu, rng])
@@ -853,8 +852,8 @@ class SaltPepperNoise(NoiseModel):
 
     def __init__(
         self,
-        p: Union[float, torch.Tensor] = 0.025,
-        s: Union[float, torch.Tensor] = 0.025,
+        p: float | torch.Tensor = 0.025,
+        s: float | torch.Tensor = 0.025,
         rng: torch.Generator = None,
     ):
         device = _infer_device([p, s, rng])
