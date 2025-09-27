@@ -106,7 +106,7 @@ siren_net = dinv.models.SIREN(
     omega0={"encoding": 30.0, "siren": 2.0},
     device=device,
 ).to(device)
-# Define the Deep Image Prior model with the SIREN network
+# Define the Implicit Neural Representation model with the SIREN network
 f = dinv.models.ImplicitNeuralRepresentation(
     siren_net,
     learning_rate=lr,

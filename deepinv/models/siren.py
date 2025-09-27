@@ -251,8 +251,8 @@ class ImplicitNeuralRepresentation(Reconstructor):
 
     .. note::
 
-        The learning rate provided by default is a typical value when training the model on a large image but 
-        it needs to be tuned as it may be not optimal.  
+        The learning rate provided by default is a typical value when training the model on a large image. 
+        In practice, we recommend to tune it as it may be not optimal.  
 
     :param torch.nn.Module siren_net: SIREN network.
     :param list, tuple img_size: Size `(C,H,W)` of the input grid of pixels :math:`z`.
