@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import math
 import torch
 import torch.nn as nn
-from typing import Optional
 from tqdm import tqdm
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.loss.mc import MCLoss
 
-# Adapted from https://github.com/vsitzmann/siren by V. Sitzmann, J. N.P. Martel and A. W. Bergman, 
+# Adapted from https://github.com/vsitzmann/siren by V. Sitzmann, J. N.P. Martel and A. W. Bergman,
 # and https://github.com/TheoHanon/Spherical-Implicit-Neural-Representation by T. Hanon.
 
 
@@ -24,7 +25,7 @@ def get_mgrid(shape):
 
 
 def nabla(
-    y: torch.Tensor, x: torch.Tensor, grad_outputs: Optional[torch.Tensor] = None
+    y: torch.Tensor, x: torch.Tensor, grad_outputs: torch.Tensor | None = None
 ) -> torch.Tensor:
     r"""Computes the vector-Jacobian-product (VJP) of y w.r.t. x on the direction of grad_outputs.
 
@@ -179,7 +180,7 @@ class SIREN(nn.Module):
 
     .. note::
 
-        The frequency factors :math:`\omega_0` for the encoding and the SIREN are set to the default values 
+        The frequency factors :math:`\omega_0` for the encoding and the SIREN are set to the default values
         in the original paper. In practice, we recommend experimenting with different values.
 
     :param int input_dim: Input dimension for the positional encoding. E.g., 2 for a 2D image.
@@ -197,8 +198,8 @@ class SIREN(nn.Module):
         encoding_dim: int,
         out_channels: int,
         siren_dims: list[int],
-        omega0: Optional[dict] = None,
-        bias: Optional[dict] = None,
+        omega0: dict | None = None,
+        bias: dict | None = None,
         device: str = "cpu",
     ) -> None:
 
@@ -251,8 +252,8 @@ class ImplicitNeuralRepresentation(Reconstructor):
 
     .. note::
 
-        The learning rate provided by default is a typical value when training the model on a large image. 
-        In practice, we recommend to tune it as it may be not optimal.  
+        The learning rate provided by default is a typical value when training the model on a large image.
+        In practice, we recommend to tune it as it may be not optimal.
 
     :param torch.nn.Module siren_net: SIREN network.
     :param list, tuple img_size: Size `(C,H,W)` of the input grid of pixels :math:`z`.
