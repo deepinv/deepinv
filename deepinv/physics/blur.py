@@ -1,5 +1,5 @@
+from __future__ import annotations
 from warnings import warn
-from typing import Union
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
@@ -184,7 +184,7 @@ class Downsampling(LinearPhysics):
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
-    def check_factor(self, factor: Union[int, float, Tensor]) -> int:
+    def check_factor(self, factor: int | float | Tensor) -> int:
         """Check new downsampling factor.
 
         :param int, float, torch.Tensor factor: downsampling factor to be checked and cast to `int`. If :class:`torch.Tensor`,
@@ -212,7 +212,7 @@ class Downsampling(LinearPhysics):
     def update_parameters(
         self,
         filter: Tensor = None,
-        factor: Union[int, float, Tensor] = None,
+        factor: int | float | Tensor = None,
         **kwargs,
     ):
         r"""
@@ -848,7 +848,7 @@ class DownsamplingMatlab(Downsampling):
 
     def __init__(
         self,
-        factor: Union[int, float] = 2,
+        factor: int | float = 2,
         kernel: str = "cubic",
         padding: str = "reflect",
         antialiasing: bool = True,
@@ -860,7 +860,7 @@ class DownsamplingMatlab(Downsampling):
         self.padding = padding
         self.antialiasing = antialiasing
 
-    def A(self, x, factor: Union[int, float] = None, **kwargs):
+    def A(self, x, factor: int | float = None, **kwargs):
         """Downsample forward operator
 
         :param torch.Tensor x: input image
@@ -876,7 +876,7 @@ class DownsamplingMatlab(Downsampling):
             padding_type=self.padding,
         )
 
-    def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
+    def A_adjoint(self, y, factor: int | float = None, **kwargs):
         """Downsample adjoint operator via autograd.
 
         :param torch.Tensor y: input measurement

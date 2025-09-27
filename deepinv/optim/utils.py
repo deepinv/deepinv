@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.utils import zeros_like
 import torch
 from torch import Tensor
@@ -7,7 +8,7 @@ import torch.nn as nn
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
-from typing import Callable, Union, Optional
+from typing import Callable
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -37,12 +38,12 @@ def least_squares(
     A: Callable,
     AT: Callable,
     y: Tensor,
-    z: Optional[Union[Tensor, float]] = 0.0,
-    init: Optional[Tensor] = None,
-    gamma: Optional[Union[float, Tensor]] = None,
+    z: Tensor | float | None = 0.0,
+    init: Tensor | None = None,
+    gamma: float | Tensor | None = None,
     parallel_dim: int = 0,
-    AAT: Optional[Callable] = None,
-    ATA: Optional[Callable] = None,
+    AAT: Callable | None = None,
+    ATA: Callable | None = None,
     solver: str = "CG",
     max_iter: int = 100,
     tol: float = 1e-6,
@@ -869,7 +870,7 @@ class LeastSquaresSolver(torch.autograd.Function):
         y: Tensor,
         z: Tensor,
         init: Tensor,
-        gamma: Union[float, Tensor],
+        gamma: float | Tensor,
         trigger: Tensor = None,
         extra_kwargs: dict = None,
     ):
@@ -986,17 +987,17 @@ def least_squares_implicit_backward(
     y: Tensor,
     z: Tensor = None,
     init: Tensor = None,
-    gamma: Union[float, Tensor] = None,
+    gamma: float | Tensor = None,
     **kwargs,
 ) -> Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
-    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. 
+    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
 
-    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details. 
-    
+    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details.
+
     Let :math:`h(z, y, \theta, \gamma)` denote the output of the least squares solver, i.e. the solution of the following problem:
-    
+
     .. math::
 
         h(z, y, \theta, \gamma) = \underset{x}{\arg\min} \; \frac{\gamma}{2}\|A_\theta x-y\|^2 + \frac{1}{2}\|x-z\|^2
@@ -1014,8 +1015,8 @@ def least_squares_implicit_backward(
         \left( \frac{\partial h}{\partial z} \right)^{\top} v               &= \frac{1}{\gamma} M v \\
         \left( \frac{\partial h}{\partial y} \right)^{\top} v               &= A_\theta M v \\
         \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
-        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
-        
+        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta}
+
     where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
 
     .. note::
@@ -1040,7 +1041,7 @@ def least_squares_implicit_backward(
 
     .. tip::
 
-        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations. 
+        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations.
 
     :param deepinv.physics.LinearPhysics physics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
