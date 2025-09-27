@@ -8,13 +8,14 @@ Last update: July 9th, 2020 (KST)
 """
 
 import math
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import torch
 from torch.nn import functional as F
 
-_I = Optional[int]
-_D = Optional[torch.dtype]
+if TYPE_CHECKING:
+    _I = int | None
+    _D = torch.dtype | None
 
 
 def cubic_contribution(x: torch.Tensor, a: float = -0.5) -> torch.Tensor:
