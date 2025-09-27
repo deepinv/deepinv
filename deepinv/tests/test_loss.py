@@ -354,7 +354,7 @@ def test_losses(
     trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
-        eval_dataloader=test_dataloader,
+        val_dataloader=test_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         losses=loss,
@@ -363,10 +363,9 @@ def test_losses(
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=(loss_name == LOSSES[0]),  # save time
+        log_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
-        log_train_batch=(loss_name == "sup_log_train_batch"),
-        disable_train_metrics=(loss_name == "reducedresolution"),
+        log_every_step=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model

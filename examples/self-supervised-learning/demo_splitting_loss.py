@@ -156,7 +156,7 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    plot_images=False,
+    log_images=False,
     save_path=None,
     verbose=True,
     show_progress_bar=False,
@@ -172,7 +172,7 @@ model = trainer.train()
 # trained model improves on the no-learning reconstruction by ~7dB.
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader)
 
 
