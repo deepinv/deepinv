@@ -819,7 +819,10 @@ class Trainer:
         def forward(self, y, physics, **kwargs):
             if kwargs:
                 warnings.warn(
-                    f"Received unexpected keyword arguments: {kwargs.keys()}. They will be ignored."
+                    f"The learning-free model in Trainer expects no keyword argument, but got {list(kwargs.keys())}. "
+                    "You might be using metrics which pass extra arguments to the trained model but the learning-free model does not use them.",
+                    UserWarning,
+                    stacklevel=1,
                 )
             return self.trainer.no_learning_inference(y, physics)
 
