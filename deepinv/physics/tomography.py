@@ -39,6 +39,10 @@ class Tomography(LinearPhysics):
 
         The measurements are not normalized by the image size, thus the norm of the operator depends on the image size.
 
+    .. note::
+
+        This operator only handles 2D images. For more advanced use-cases, see the :class:`deepinv.physics.TomographyWithAstra` operator which handles 2D and 3D geometries.
+
     .. warning::
 
         The adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
@@ -55,9 +59,7 @@ class Tomography(LinearPhysics):
     :param bool fbp_interpolate_boundary: the :func:`filtered back-projection <deepinv.physics.Tomography.A_dagger>` usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
-    :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
-        In this case the operator norm is approximately given by :math:`\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}`,
-        If ``False``, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
+    :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``False``)
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
     :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
 
@@ -106,9 +108,6 @@ class Tomography(LinearPhysics):
                   [ 0.0000, -0.0452,  0.0989]]]])
 
 
-    .. note::
-
-        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(
@@ -158,7 +157,7 @@ class Tomography(LinearPhysics):
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
-        self.normalize = normalize
+        self.normalize = False
         self.radon = Radon(
             img_width,
             theta,
@@ -181,7 +180,22 @@ class Tomography(LinearPhysics):
         else:
             self.filter = RampFilter(dtype=dtype, device=device)
 
-    def A(self, x, **kwargs):
+        if normalize:
+            self.operator_norm = self.compute_norm(
+                torch.randn(
+                    (img_width, img_width),
+                    generator=torch.Generator(self.device).manual_seed(0),
+                    device=self.device,
+                )[None, None]
+            ).sqrt()
+            self.normalize = normalize
+
+    def A(self, x, **kwargs) -> torch.Tensor:
+        """Forward projection.
+
+        :param torch.Tensor x: input of shape [B,C,H,W]
+        :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
+        """
         if self.img_width is None:
             self.img_width = x.shape[-1]
         if self.fan_beam or self.adjoint_via_backprop:
@@ -189,10 +203,11 @@ class Tomography(LinearPhysics):
         else:
             output = ApplyRadon.apply(x, self.radon, self.iradon, False)
         if self.normalize:
-            output = output / x.shape[-1]
+            output = output / self.operator_norm
+
         return output
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y, **kwargs) -> torch.Tensor:
         r"""
         Computes the filtered back-projection (FBP) of the measurements.
 
@@ -205,8 +220,8 @@ class Tomography(LinearPhysics):
             By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
 
 
-        :param torch.Tensor y: measurements
-        :return torch.Tensor: noisy measurements
+        :param torch.Tensor y: measurements of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells
+        :return: filtered back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:
             if self.fan_beam:
@@ -217,7 +232,7 @@ class Tomography(LinearPhysics):
                 self.A_adjoint(y, **kwargs) * torch.pi / (2 * len(self.radon.theta))
             )
             if self.normalize:
-                output = output * output.shape[-1] ** 2
+                output = output * self.operator_norm**2
         else:
             y = self.iradon.filter(y)
             output = (
@@ -226,13 +241,14 @@ class Tomography(LinearPhysics):
                 / (2 * len(self.iradon.theta))
             )
             if self.normalize:
-                output = output * output.shape[-1]
+                output = output * self.operator_norm
+
         if self.fbp_interpolate_boundary:
             output = output[:, :, 2:-2, 2:-2]
             output = torch.nn.functional.pad(output, (2, 2, 2, 2), mode="replicate")
         return output
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y, **kwargs) -> torch.Tensor:
         r"""
         Computes adjoint of the tomography operator.
 
@@ -240,8 +256,8 @@ class Tomography(LinearPhysics):
 
             The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
 
-        :param torch.Tensor y: measurements
-        :return torch.Tensor: noisy measurements
+        :param torch.Tensor y: measurements of shape [B,C,A,N]
+        :return: scaled back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:
             if self.img_width is None:
@@ -267,12 +283,14 @@ class Tomography(LinearPhysics):
                     self.img_width,
                 )
 
-            return self._auto_grad_adjoint_fn(y)
+            output = self._auto_grad_adjoint_fn(y)
         else:
             output = ApplyRadon.apply(y, self.radon, self.iradon, True)
-            if self.normalize:
-                output = output / output.shape[-1]
-            return output
+
+        if self.normalize:
+            output = output / self.operator_norm
+
+        return output
 
 
 class TomographyWithAstra(LinearPhysics):
@@ -435,6 +453,11 @@ class TomographyWithAstra(LinearPhysics):
                     [[-1.4643, -0.2128,  1.3425,  2.8803, -0.6605],
                     [ 0.9605,  1.1056,  4.2324, -3.5795, -0.1718],
                     [ 0.9207,  1.6948,  1.6556, -1.6624,  0.9960]]]]], device='cuda:0')
+
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(
@@ -621,7 +644,7 @@ class TomographyWithAstra(LinearPhysics):
         r"""Pseudo-inverse estimated using filtered back-projection.
 
         :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: torch.Tensor filtered back-projection of shape [B,C,...,H,W]
+        :return: filtered back-projection of shape [B,C,...,H,W]
         """
 
         filtered_y = self.filter(y, dim=-1)
@@ -635,7 +658,7 @@ class TomographyWithAstra(LinearPhysics):
         """Approximation of the adjoint.
 
         :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: torch.Tensor filtered back-projection of shape [B,C,...,H,W]
+        :return: scaled back-projection of shape [B,C,...,H,W]
         """
         out = AutogradTransform.apply(y, self.xray_transform.T)
         if self.normalize:
