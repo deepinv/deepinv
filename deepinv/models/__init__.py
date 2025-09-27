@@ -11,6 +11,7 @@ from .wavdict import WaveletDenoiser, WaveletDictDenoiser
 from .GSPnP import GSDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
+from .siren import ImplicitNeuralRepresentation, SIREN
 from .diffunet import DiffUNet
 from .swinir import SwinIR
 from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
@@ -37,4 +38,3 @@ from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
-from .siren import SIREN

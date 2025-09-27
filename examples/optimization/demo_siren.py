@@ -41,12 +41,12 @@ from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
-torch.manual_seed(1)
+torch.manual_seed(0)
 
 # %%
 # Load dataset
 # ------------
-# For simplicity, we perform all the experiments on the same dataset Levin09.
+# For simplicity, we perform all the experiments on the same dataset 'set3c'.
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
@@ -98,7 +98,7 @@ y = physics(x)
 iterations = 1000
 lr = 1e-2
 # Define the SIREN architecture and the hyperparameters
-backbone = dinv.models.SIREN(
+siren_net = dinv.models.SIREN(
     input_dim=2,
     encoding_dim=64,
     siren_dims=[64] * 5,
@@ -106,9 +106,9 @@ backbone = dinv.models.SIREN(
     omega0={"encoding": 30.0, "siren": 2.0},
     device=device,
 ).to(device)
-# Define the Deep Image Prior model with the SIREN backbone
-f = dinv.models.DeepImagePrior(
-    backbone,
+# Define the Deep Image Prior model with the SIREN network
+f = dinv.models.ImplicitNeuralRepresentation(
+    siren_net,
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
@@ -140,7 +140,7 @@ y = physics(x)
 # %%
 iterations = 500
 lr = 5e-3
-backbone = dinv.models.SIREN(
+siren_net = dinv.models.SIREN(
     input_dim=2,
     encoding_dim=64,
     siren_dims=[64] * 5,
@@ -149,8 +149,8 @@ backbone = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.DeepImagePrior(
-    backbone,
+f = dinv.models.ImplicitNeuralRepresentation(
+    siren_net,
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
@@ -190,7 +190,7 @@ y = physics(x)
 # %%
 iterations = 500
 lr = 1e-2
-backbone = dinv.models.SIREN(
+siren_net = dinv.models.SIREN(
     input_dim=2,
     encoding_dim=32,
     siren_dims=[32] * 5,
@@ -199,8 +199,8 @@ backbone = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.DeepImagePrior(
-    backbone,
+f = dinv.models.ImplicitNeuralRepresentation(
+    siren_net,
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
@@ -216,7 +216,7 @@ dip = f(y, physics_f, z=get_mgrid(y.shape[2:]), shape=y.shape)
 
 # %%
 # Super-resolution by evaluating the trained network at a finer grid
-dip_super_resolved = f.generator(get_mgrid(x.shape[2:])).view(x.shape)  # compute PSNR
+dip_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape)  # compute PSNR
 print(f"DIP PSNR: {dinv.metric.PSNR()(y, dip).item():.2f} dB")
 print(
     f"super-resolved DIP PSNR: {dinv.metric.PSNR()(x, dip_super_resolved.clip(0,1)).item():.2f} dB"
@@ -271,7 +271,7 @@ physics_f = Gradient()
 # %%
 iterations = 1000
 lr = 1e-2
-backbone = dinv.models.SIREN(
+siren_net = dinv.models.SIREN(
     input_dim=2,
     encoding_dim=64,
     siren_dims=[64] * 5,
@@ -280,8 +280,8 @@ backbone = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.DeepImagePrior(
-    backbone,
+f = dinv.models.ImplicitNeuralRepresentation(
+    siren_net,
     learning_rate=lr,
     iterations=iterations,
     verbose=True,

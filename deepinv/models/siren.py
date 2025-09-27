@@ -2,6 +2,13 @@ import math
 import torch
 import torch.nn as nn
 from typing import Optional
+from tqdm import tqdm
+from .base import Reconstructor
+from deepinv.utils.decorators import _deprecated_alias
+from deepinv.loss.mc import MCLoss
+
+# Adapted from https://github.com/vsitzmann/siren by V. Sitzmann, J. N.P. Martel and A. W. Bergman, 
+# and https://github.com/TheoHanon/Spherical-Implicit-Neural-Representation by T. Hanon.
 
 
 def get_mgrid(shape):
@@ -37,7 +44,7 @@ def nabla(
 
 class TVPrior(nn.Module):
     r"""
-    Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1,2}`.
+    Total variation (TV) prior :math:`\reg{x} = \| D x \|_{1}`.
 
     The TV prior is computed using the continuous definition of the gradient, i.e., :math:`D x = \nabla x`.
     """
@@ -51,15 +58,14 @@ class FourierPE(nn.Module):
     r"""
     Fourier Positional Encoding.
 
-    Computes the positional encoding :math:`\psi(x)` by applying a learnable linear transformation followed by a sinusoidal activation.
-    For an input :math:`x`, the encoding is given by
+    Maps the input :math:`z`onto the Fourier domain by applying a learnable linear map followed by a sinusoidal activation function.
+
+    For an input :math:`z`, the encoding :math:`\psi(z)` is given by
 
     .. math::
-        z = \Omega(x),
-        \quad
-        \psi(x) = \sin\bigl(\omega_0\,z\bigr),
+        \psi(z) = \sin\bigl(\omega_0\,\Omega\,z\bigr),
 
-    where :math:`\Omega:\mathbb{R}^{\text{input_dim}} \rightarrow \mathbb{R}^{\text{output_dim}}` is a linear mapping and :math:`\omega_0` is a frequency factor.
+    where :math:`\Omega:\mathbb{R}^{\text{input_dim}} \rightarrow \mathbb{R}^{\text{output_dim}}` is a learnable weight matrix encoding frequencies and :math:`\omega_0` is a fixed frequency factor.
 
     :param int input_dim: Dimensionality of the input.
     :param int output_dim: Number of output features (atoms).
@@ -76,7 +82,7 @@ class FourierPE(nn.Module):
     ) -> None:
 
         super().__init__()
-        self.register_buffer("omega0", torch.tensor(omega0, dtype=torch.float32))
+        self.omega0 = omega0
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.linear = nn.Linear(self.input_dim, self.output_dim, bias)
@@ -96,14 +102,14 @@ class Sin(nn.Module):
     Applies the sine activation function with a frequency scaling factor :math:`\omega_0`:
 
     .. math::
-        \text{Sin}(x) = \sin(\omega_0 \, x)
+        \text{sin}(x) = \sin(\omega_0 \, x)
 
     :param float omega0: Frequency scaling factor.
     """
 
     def __init__(self, omega0: float = 1.0) -> None:
         super().__init__()
-        self.register_buffer("omega0", torch.tensor(omega0, dtype=torch.float32))
+        self.omega0 = omega0
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sin(self.omega0 * x)
@@ -111,24 +117,20 @@ class Sin(nn.Module):
 
 class SinMLP(nn.Module):
     r"""
-    Multi-layer perceptron with sinusoidal activations.
+    Multi-layer perceptron with sinusoidal activation functions.
 
-    Defines a feedforward neural network that computes a mapping
-    :math:`f: \mathbb{R}^{\text{input\_dim}} \to \mathbb{R}^{\text{output\_dim}}` via a series of fully-connected layers interleaved with a sinusoidal activation function.
-
-    If :math:`x` is the input, then the network computes
+    If :math:`z` is the input, then the network computes
 
     .. math::
-        f(x) = W_L\,\phi\Bigl(W_{L-1}\,\phi\bigl(\cdots\,\phi(W_1\,x+b_1)\bigr)+b_{L-1}\Bigr)+b_L,
+        f(z) = W_L\,\sin\Bigl(\omega_0\,W_{L-1}\,\sin\bigl(\cdots\,\sin(\omega_0\,W_1\,z+b_1)\bigr)+b_{L-1}\Bigr)+b_L,
 
-    where :math:`\phi` denotes the sinusoidal activation function and :math:`W_i` and :math:`b_i` are the weight matrices
-    and bias vectors of each layer, respectively.
+    where :math:`W_i` and :math:`b_i` are the weight matrices and bias vectors of each layer, respectively.
 
     :param int input_dim: Dimensionality of the input.
     :param int output_dim: Dimensionality of the output.
     :param List[int] hidden_dims: The widths of hidden layers.
     :param bool bias: If True, each linear layer includes a bias term. Default is True.
-    :param float omega0: Frequency scaling factor for the sinusoidal activation. Default is 1.0.
+    :param float omega0: Frequency scaling factor :math:`\omega_0` for the sinusoidal activation. Default is 1.0.
     """
 
     def __init__(
@@ -154,7 +156,6 @@ class SinMLP(nn.Module):
         self.activation = Sin(omega0=omega0)
 
     def init_weights(self) -> None:
-        r"""Initialize the weights of the SIREN."""
         with torch.no_grad():
             for layer in self.layers:
                 nn.init.uniform_(
@@ -174,13 +175,18 @@ class SIREN(nn.Module):
     r"""
     Sinusoidal Implicit Representation Network (SIREN) proposed by :footcite:t:`sitzmann2020implicit`.
 
-    Maps inputs through a Fourier positional encoding onto a SinMLP.
+    The network is composed of a Fourier positional encoding followed by a SinMLP.
+
+    .. note::
+
+        The frequency factors :math:`\omega_0` for the encoding and the SIREN are set to the default values 
+        in the original paper. In practice, we recommend experimenting with different values.
 
     :param int input_dim: Input dimension for the positional encoding. E.g., 2 for a 2D image.
     :param int encoding_dim: Output dimension of the positional encoding.
     :param int out_channels: Number of channels for the output image. 1 for grayscale, 3 for RGB.
     :param List[int] siren_dims: Hidden‐layer sizes for the SIREN.
-    :param dict omega0: Frequency factors for the positional encoding and SIREN, respectively. If None, defaults to {"encoding": 20.0, "siren": 1.0}.
+    :param dict omega0: Frequency factors for the positional encoding and SIREN, respectively. If None, defaults to {"encoding": 30.0, "siren": 1.0}.
     :param dict bias: Whether the positional encoding and SIREN include a bias term, respectively. If None, defaults to {"encoding": False, "siren": False}.
     :param str device: Device to run the model on. Default is "cpu".
     """
@@ -199,9 +205,10 @@ class SIREN(nn.Module):
         super().__init__()
 
         if omega0 is None:
-            omega0 = {"encoding": 20.0, "siren": 1.0}
+            omega0 = {"encoding": 30.0, "siren": 1.0}
         if bias is None:
             bias = {"encoding": True, "siren": False}
+
         self.pe = FourierPE(
             input_dim=input_dim,
             output_dim=encoding_dim,
@@ -220,3 +227,95 @@ class SIREN(nn.Module):
         x = self.pe(x)
         x = self.siren(x)
         return x
+
+
+class ImplicitNeuralRepresentation(Reconstructor):
+    r"""
+
+    Implicit Neural Representation reconstruction.
+
+    This method reconstructs an image by minimizing the loss function
+
+    .. math::
+
+        \min_{\theta}  \|y-Af_{\theta}(z)\|_2^2 + \lambda \|\nabla f_\theta(z)\|_1
+
+    where :math:`z` is an input grid of pixels, and :math:`f_{\theta}` is a SIREN model with parameters
+    :math:`\theta`. The minimization should be stopped early to avoid overfitting. The method uses the Adam
+    optimizer.
+
+    .. note::
+
+        To use this method, you need to instanciate the SIREN model :math:`f_\theta(z)` independently.
+
+
+    .. note::
+
+        The learning rate provided by default is a typical value when training the model on a large image but 
+        it needs to be tuned as it may be not optimal.  
+
+    :param torch.nn.Module siren_net: SIREN network.
+    :param list, tuple img_size: Size `(C,H,W)` of the input grid of pixels :math:`z`.
+    :param int iterations: Number of optimization iterations.
+    :param float learning_rate: Learning rate of the Adam optimizer.
+    :param float regul_param: Regularization parameter :math:`\lambda`for the TV prior.
+    :param bool verbose: If ``True``, print progress.
+    :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
+    """
+
+    @_deprecated_alias(input_size="img_size")
+    def __init__(
+        self,
+        siren_net,
+        img_size,
+        iterations=2500,
+        learning_rate=1e-4,
+        verbose=False,
+        re_init=False,
+        regul_param=None,
+    ):
+        super().__init__()
+        self.siren_net = siren_net
+        self.max_iter = int(iterations)
+        self.lr = learning_rate
+        self.verbose = verbose
+        self.re_init = re_init
+        self.img_size = img_size
+
+        self.loss = MCLoss()
+        self.prior = TVPrior()
+        self.regul_param = regul_param
+
+    def forward(self, y, physics, z=None, shape=None, **kwargs):
+        r"""
+        Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
+        problem.
+
+        :param torch.Tensor y: Measurement.
+        :param torch.Tensor physics: Physics model.
+        :param torch.Tensor z: Input grid of pixels on which the SIREN network is trained.
+        :param tuple shape: If provided, the output is reshaped to this shape.
+        """
+        if self.re_init:
+            for layer in self.siren_net.children():
+                if hasattr(layer, "reset_parameters"):
+                    layer.reset_parameters()
+
+        self.siren_net.requires_grad_(True)
+        z.requires_grad_(True)
+        optimizer = torch.optim.Adam(self.siren_net.parameters(), lr=self.lr)
+        for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
+            x = self.siren_net(z)
+            if shape is not None:
+                x = x.view(shape)
+            error = self.loss(y=y, x_net=x, physics=physics)
+            if self.regul_param is not None:
+                error += self.regul_param * self.prior(x, z)
+            optimizer.zero_grad()
+            error.backward()
+            optimizer.step()
+
+        out = self.siren_net(z)
+        if shape is not None:
+            return out.view(shape)
+        return out

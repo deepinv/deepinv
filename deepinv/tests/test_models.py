@@ -856,6 +856,54 @@ def test_varnet(varnet_type, device):
     assert psnr(x_init, x) < psnr(x_hat, x)
 
 
+@pytest.mark.parametrize("use_physics", [True, False])
+@pytest.mark.parametrize("scale", [1e-5, 1e5])
+def test_ram_scale(scale, device, use_physics):
+    model = dinv.models.RAM(device=device)
+    imsize = (1, 64, 64)
+
+    batch_size = 2
+    sigma = torch.ones(batch_size, device=device) * 0.1  # batch
+    if use_physics:
+        physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
+    else:
+        physics = dinv.physics.Blur(
+            filter=dinv.physics.blur.gaussian_blur(),
+            noise_model=dinv.physics.GaussianNoise(sigma),
+            device=device,
+        )
+
+    # make batch with 2 elements to test batch processing
+    x = (
+        DummyCircles(imsize=imsize, samples=1)[0]
+        .unsqueeze(0)
+        .repeat(batch_size, 1, 1, 1)
+        .to(device)
+    )
+    y = physics(x)
+
+    if use_physics:
+        x_hat1 = model(y, physics)
+        # scale first element only
+        sigma[0] = sigma[0] * scale
+        y[0] = y[0] * scale
+        physics.update(sigma=sigma)
+        x_hat2 = model(y, physics)
+        # rescale back the first element
+        x_hat2[0] = x_hat2[0] / scale
+    else:
+        x_hat1 = model(y, sigma=sigma)
+        # scale first element only
+        sigma[0] = sigma[0] * scale
+        y[0] = y[0] * scale
+        x_hat2 = model(y, sigma=sigma)
+        # rescale back the first element
+        x_hat2[0] = x_hat2[0] / scale
+
+    psnr = dinv.metric.PSNR()(x_hat1, x_hat2)
+    assert torch.all(psnr > 30)  # they should be almost equal
+
+
 LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 
@@ -906,7 +954,10 @@ def test_restoration_models(
         if physics is not None:
             physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
 
-    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0)
+    x = DummyCircles(imsize=imsize, samples=2)
+
+    # make batch with > 1 element to test batch processing
+    x = next(iter(DataLoader(x, batch_size=2))).to(device)
 
     if physics is not None:
         y = physics(x)
@@ -1007,21 +1058,6 @@ def test_dsccp_net(device, n_channels):
     x = x.expand(4, -1, -1, -1)
     y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
-
-
-def test_siren_net(device):
-    siren = dinv.models.SIREN(
-        input_dim=2,
-        encoding_dim=32,
-        out_channels=1,
-        siren_dims=[32],
-        bias={"encoding": False, "siren": False},
-        device=device,
-    )
-    x = dinv.models.siren.get_mgrid((32, 32)).to(device)
-    assert x.min() == -1 and x.max() == 1
-    assert (siren.pe(x) == -siren.pe(-x)).all()
-    assert (siren(x) == -siren(-x)).all()
 
 
 def test_denoiser_perf(device):

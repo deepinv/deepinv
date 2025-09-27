@@ -4,7 +4,6 @@ import numpy as np
 from tqdm import tqdm
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
-from deepinv.models.siren import TVPrior
 
 
 def add_module(self, module):
@@ -84,7 +83,7 @@ class ConvDecoder(nn.Module):
         self.net.add(nn.BatchNorm2d(channels, affine=True))
         self.net.add(nn.Conv2d(channels, output_channels, 1, 1, padding=0, bias=True))
 
-    def forward(self, x, scale_out=1, **kwargs):
+    def forward(self, x, scale_out=1):
         r"""
         Forward pass through the ConvDecoder network.
 
@@ -137,7 +136,6 @@ class DeepImagePrior(Reconstructor):
         learning_rate=1e-2,
         verbose=False,
         re_init=False,
-        regul_param=None,
     ):
         super().__init__()
         self.generator = generator
@@ -150,10 +148,8 @@ class DeepImagePrior(Reconstructor):
         from deepinv.loss.mc import MCLoss
 
         self.loss = MCLoss()
-        self.prior = TVPrior()
-        self.regul_param = regul_param
 
-    def forward(self, y, physics, z=None, shape=None, **kwargs):
+    def forward(self, y, physics, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -165,8 +161,6 @@ class DeepImagePrior(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
-        :param torch.Tensor z: Input latent variable. If ``None``, a random noise is generated.
-        :param tuple shape: If provided, the output is reshaped to this shape.
         """
         if self.re_init:
             for layer in self.generator.children():
@@ -174,22 +168,14 @@ class DeepImagePrior(Reconstructor):
                     layer.reset_parameters()
 
         self.generator.requires_grad_(True)
-        if z is None:
-            z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
-
+        z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
-        z.requires_grad_(True)
+
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            if shape is not None:
-                x = x.view(shape)
             error = self.loss(y=y, x_net=x, physics=physics)
-            if self.regul_param is not None:
-                error += self.regul_param * self.prior(x, z)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
 
-        if shape is not None:
-            return self.generator(z).view(shape)
         return self.generator(z)
