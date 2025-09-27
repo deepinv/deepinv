@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os
@@ -14,6 +16,7 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
+from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
@@ -758,7 +761,10 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    no_learning_model = self._NoLearningModel(trainer=self)
+                    metric = l(
+                        x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
+                    )
                     self.logs_metrics_no_learning[k].update(
                         metric.detach().cpu().numpy()
                     )
@@ -804,6 +810,18 @@ class Trainer:
             )
 
         return x_nl
+
+    class _NoLearningModel(Reconstructor):
+        def __init__(self, *, trainer: Trainer):
+            super().__init__()
+            self.trainer = trainer
+
+        def forward(self, y, physics, **kwargs):
+            if kwargs:
+                warnings.warn(
+                    f"Received unexpected keyword arguments: {kwargs.keys()}. They will be ignored."
+                )
+            return self.trainer.no_learning_inference(y, physics)
 
     def step(
         self,
