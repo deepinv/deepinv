@@ -3,7 +3,7 @@ from .base import Denoiser
 from typing import Union
 
 
-def to_complex_denoiser(denoiser, mode="real_imag"):
+def to_complex_denoiser(denoiser, mode="real_imag", norm_factor=1.0) -> torch.nn.Module:
     r"""
     Converts a denoiser with real inputs into the one with complex inputs.
 
@@ -16,18 +16,19 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
 
     class ComplexDenoiser(Denoiser):
         def __init__(
-            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs
+            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, norm_factor: float = 1, *args, **kwargs
         ):
             super().__init__(*args, **kwargs)
             self.mode = mode
             self.denoiser = denoiser
+            self.norm_factor = norm_factor
 
         def forward(self, x, sigma=None):
             if self.mode == "real_imag":
                 x_real = x.real
                 x_imag = x.imag
-                noisy_batch = torch.cat((x_real, x_imag), 0)
-                denoised_batch = self.denoiser(noisy_batch, sigma)
+                noisy_batch = torch.cat((x_real, x_imag), 0) * self.norm_factor
+                denoised_batch = self.denoiser(noisy_batch, sigma) / self.norm_factor
                 return (
                     denoised_batch[: x_real.shape[0], ...]
                     + 1j * denoised_batch[x_real.shape[0] :, ...]
@@ -35,12 +36,12 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
             elif self.mode == "abs_angle":
                 x_mag = torch.abs(x)
                 x_phase = torch.angle(x)
-                noisy_batch = torch.cat((x_mag, x_phase), 0)
-                denoised_batch = self.denoiser(noisy_batch, sigma)
+                noisy_batch = torch.cat((x_mag, x_phase), 0) * self.norm_factor
+                denoised_batch = self.denoiser(noisy_batch, sigma) / self.norm_factor
                 return denoised_batch[: x_mag.shape[0], ...] * torch.exp(
                     1j * denoised_batch[x_mag.shape[0] :, ...]
                 )
             else:
                 raise ValueError("style must be 'real_imag' or 'abs_angle'.")
 
-    return ComplexDenoiser(denoiser, mode)
+    return ComplexDenoiser(denoiser, mode, norm_factor=norm_factor)
