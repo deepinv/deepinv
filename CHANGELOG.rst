@@ -17,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Use the learning-free model for learning-free metrics in Trainer (:gh:`788` by `Jérémy Scanvic`_)
 - Fix device dirac_like and bilinear, bicubic and gaussian filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test RAM scaling issues (:gh:`785` by `Julian Tachella`_)
