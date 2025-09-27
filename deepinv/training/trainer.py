@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import warnings
 from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os
@@ -7,6 +8,7 @@ from tqdm import tqdm
 import torch
 
 from pathlib import Path
+from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -14,6 +16,7 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
+from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
@@ -213,24 +216,26 @@ class Trainer:
     """
 
     model: torch.nn.Module
-    physics: Physics | list[Physics]
-    optimizer: torch.optim.Optimizer | None
+    physics: Union[Physics, list[Physics]]
+    optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
+    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
+        SupLoss()
+    )
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
+    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Metric | list[Metric] = field(default_factory=PSNR)
+    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
     disable_train_metrics: bool = False
-    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_pretrained: str | None = None
-    save_path: str | Path = "."
+    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
+    ckpt_pretrained: Union[str, None] = None
+    save_path: Union[str, Path] = "."
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
@@ -410,7 +415,7 @@ class Trainer:
         _ = self.load_model()
 
     def load_model(
-        self, ckpt_pretrained: str | Path = None, strict: bool = True
+        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
     ) -> dict:
         """Load model from checkpoint.
 
@@ -756,7 +761,10 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    no_learning_model = self._NoLearningModel(trainer=self)
+                    metric = l(
+                        x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
+                    )
                     self.logs_metrics_no_learning[k].update(
                         metric.detach().cpu().numpy()
                     )
@@ -802,6 +810,21 @@ class Trainer:
             )
 
         return x_nl
+
+    class _NoLearningModel(Reconstructor):
+        def __init__(self, *, trainer: Trainer):
+            super().__init__()
+            self.trainer = trainer
+
+        def forward(self, y, physics, **kwargs):
+            if kwargs:
+                warnings.warn(
+                    f"The learning-free model in Trainer expects no keyword argument, but got {list(kwargs.keys())}. "
+                    "You might be using metrics which pass extra arguments to the trained model but the learning-free model does not use them.",
+                    UserWarning,
+                    stacklevel=1,
+                )
+            return self.trainer.no_learning_inference(y, physics)
 
     def step(
         self,
@@ -1255,7 +1278,7 @@ class Trainer:
     def test(
         self,
         test_dataloader,
-        save_path: str | Path = None,
+        save_path: Union[str, Path] = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
@@ -1338,7 +1361,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Loss | list[Loss] | None = None,
+    losses: Union[Loss, list[Loss], None] = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
