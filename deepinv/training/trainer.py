@@ -15,6 +15,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -70,9 +71,9 @@ class Trainer:
 
     .. note::
 
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
-        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
-        a dictionary with the setup for wandb.
+        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
+        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``. The user can also customize the setup of wandb and MLflow
+        by providing a dictionary for the parameters ``wandb_setup`` or ``mlflow_setup`` respectively.
 
     Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
     **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
@@ -199,9 +200,16 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+    :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
+
+    |sep|
+
+    :MLflow:
+
+    :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
+    :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
     """
 
     model: torch.nn.Module
@@ -230,7 +238,9 @@ class Trainer:
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
+    mlflow_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
+    mlflow_setup: dict = field(default_factory=dict)
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
@@ -285,6 +295,15 @@ class Trainer:
                 "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
             )
 
+        if (
+            self.mlflow_setup != {}
+            and self.mlflow_setup is not None
+            and not self.mlflow_vis
+        ):  # pragma: no cover
+            warnings.warn(
+                "mlflow_vis is False but mlflow_setup is provided. Mlflow deactivated (mlflow_vis=False)."
+            )
+
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
@@ -307,6 +326,12 @@ class Trainer:
 
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
+
+        if self.mlflow_vis:
+            import mlflow
+
+            if mlflow.active_run() is None:
+                mlflow.start_run(**self.mlflow_setup)
 
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
@@ -413,15 +438,28 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
+            if "mlflow_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
+                self.mlflow_setup["run_id"] = checkpoint["mlflow_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
-        Log the metrics to wandb.
+        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
+        """
+        warnings.warn(
+            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.log_metrics_mlops(self, logs=logs, step=step, train=train)
 
-        It logs the metrics to wandb.
+    def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
+        r"""
+        Log the metrics to MLOps tools including wandb and MLflow.
+
+        It logs the metrics to wandb and MLflow.
 
         :param dict logs: Dictionary containing the metrics to log.
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
@@ -437,6 +475,11 @@ class Trainer:
             import wandb
 
             wandb.log(logs, step=step)
+
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.log_metrics(logs, step=step)
 
     def check_clip_grad(self):
         r"""
@@ -822,7 +865,7 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
-            self.log_metrics_wandb(logs, step=train_ite, train=train)
+            self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
@@ -843,12 +886,12 @@ class Trainer:
                 logs["step"] = train_ite
             elif train:
                 logs["step"] = epoch
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
             elif self.log_train_batch:  # train=False
                 logs["step"] = train_ite
-                self.log_metrics_wandb(logs, step=train_ite, train=train)
+                self.log_metrics_mlops(logs, step=train_ite, train=train)
             else:
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
 
             self.plot(
                 epoch,
@@ -906,6 +949,13 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch, step=epoch)
 
+            if self.mlflow_vis:
+                import mlflow
+
+                image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_metrics({"step": epoch}, step=epoch)
+                mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
+
         if save_images:
             # save images
             for k, img in enumerate(imgs):
@@ -954,6 +1004,11 @@ class Trainer:
             import wandb
 
             state["wandb_id"] = wandb.run.id
+
+        if self.mlflow_vis:
+            import mlflow
+
+            state["mlflow_id"] = mlflow.active_run().info.run_id
 
         torch.save(
             state,
@@ -1190,8 +1245,12 @@ class Trainer:
         if self.wandb_vis:
             import wandb
 
-            wandb.save("model.h5")
             wandb.finish()
+
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.end_run()
 
         return self.model
 
@@ -1216,8 +1275,11 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = (self.wandb_vis, self.log_train_batch)
+
+        # Disable mlops and visualization during testing
+        former_values = (self.wandb_vis, self.mlflow_vis, self.log_train_batch)
         self.wandb_vis = False
+        self.mlflow_vis = False
         self.log_train_batch = False
 
         self.reset_metrics()
@@ -1243,7 +1305,7 @@ class Trainer:
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        self.wandb_vis, self.log_train_batch = aux
+        self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
 
         if self.verbose:
             print("Test results:")
