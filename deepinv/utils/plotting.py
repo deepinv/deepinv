@@ -178,7 +178,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
             vis_array.append(out)
         if vis_array != []:
             vis_array = torch.cat(vis_array)
-            grid_image = make_grid(vis_array, nrow=vis_array[0].shape[0])
+            grid_image = make_grid(vis_array, nrow=imgs[0].shape[0])
         else:
             grid_image = None
 
