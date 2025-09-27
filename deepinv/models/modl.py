@@ -1,3 +1,4 @@
+from __future__ import annotations
 from torch.nn import Module
 
 from deepinv.optim.optimizers import create_iterator

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.sampling.utils import projbox
 import torch
 import numpy as np

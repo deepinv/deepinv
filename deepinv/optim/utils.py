@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.utils import zeros_like
 import torch
 from torch import Tensor

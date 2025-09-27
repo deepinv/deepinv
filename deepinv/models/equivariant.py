@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser
 

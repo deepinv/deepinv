@@ -16,6 +16,7 @@ Key modifications:
 - Remove redundant challenge parameter
 - Clean up messy fastmri code
 """
+from __future__ import annotations
 
 from pathlib import Path
 from contextlib import contextmanager

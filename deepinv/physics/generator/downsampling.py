@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter

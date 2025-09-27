@@ -1,3 +1,4 @@
+from __future__ import annotations
 from contextlib import nullcontext
 
 import torch.nn as nn

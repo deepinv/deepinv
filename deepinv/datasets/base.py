@@ -1,3 +1,4 @@
+from __future__ import annotations
 from warnings import warn
 from typing import Callable
 from pathlib import Path

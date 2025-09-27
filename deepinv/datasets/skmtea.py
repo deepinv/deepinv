@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Sequence, Callable
 from pathlib import Path
 from tqdm import tqdm

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import time as time
 from typing import Callable
 from torch import Tensor

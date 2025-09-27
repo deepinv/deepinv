@@ -1,3 +1,4 @@
+from __future__ import annotations
 import warnings
 from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os

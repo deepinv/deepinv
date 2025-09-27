@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 from deepinv.physics.functional import dst1
 import numpy as np

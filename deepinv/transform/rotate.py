@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Iterable
 import torch
 from torchvision.transforms.functional import rotate

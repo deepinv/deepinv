@@ -1,3 +1,4 @@
+from __future__ import annotations
 from torch import Tensor
 from deepinv.models import DRUNet
 from deepinv.models.base import Denoiser

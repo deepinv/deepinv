@@ -1,4 +1,5 @@
 # code from https://github.com/jscanvic/Scale-Equivariant-Imaging
+from __future__ import annotations
 from typing import Iterable
 import torch
 import torch.nn.functional as F

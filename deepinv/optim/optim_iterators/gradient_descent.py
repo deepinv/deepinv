@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
 
