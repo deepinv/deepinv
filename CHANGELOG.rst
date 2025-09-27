@@ -23,6 +23,7 @@ Fixed
 - Fix and test RAM scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
+- All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 
 
 v0.3.4
