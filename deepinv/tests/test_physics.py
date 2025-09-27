@@ -1,8 +1,8 @@
+from __future__ import annotations
 import os
 import shutil
 import copy
 from math import sqrt
-from typing import Optional
 import pytest
 import warnings
 
@@ -1462,7 +1462,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1476,7 +1476,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
