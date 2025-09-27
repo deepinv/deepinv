@@ -19,7 +19,7 @@ import torchkbnufft as tkbn
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
-from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
+from deepinv.utils import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -153,8 +153,9 @@ class RadioInterferometry(LinearPhysics):
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
-image_gdth = load_np_url(get_image_url("3c353_gdth.npy"))
-image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
+image_gdth = (
+    load_np_url(get_image_url("3c353_gdth.npy")).unsqueeze(0).unsqueeze(0).to(device)
+)
 
 
 def to_logimage(im, rescale=False, dr=5000):
@@ -186,8 +187,7 @@ plot(
 # so that the possibility of point sources appearing on the boundaries of pixels can be reduced.
 # Here, this factor is ``1.5``.
 
-uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
-uv = torch.from_numpy(uv).to(device)
+uv = load_np_url(get_degradation_url("uv_coordinates.npy")).to(device)
 
 scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 
@@ -224,8 +224,9 @@ y = y + tau * noise
 # We here provide the Briggs-weighting scheme associated to the above uv-sampling pattern.
 
 # load pre-computed Briggs weighting
-nWimag = load_np_url(get_degradation_url("briggs_weight.npy"))
-nWimag = torch.from_numpy(nWimag).reshape(1, 1, -1).to(device)
+nWimag = (
+    load_np_url(get_degradation_url("briggs_weight.npy")).reshape(1, 1, -1).to(device)
+)
 
 # apply natural weighting and Briggs weighting to measurements
 y *= nWimag / tau
