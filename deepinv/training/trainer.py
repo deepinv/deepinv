@@ -218,9 +218,7 @@ class Trainer:
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = (
-        SupLoss()
-    )
+    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None

@@ -724,9 +724,7 @@ class UniformNoise(NoiseModel):
 
     """
 
-    def __init__(
-        self, a: float | torch.Tensor = 0.1, rng: torch.Generator = None
-    ):
+    def __init__(self, a: float | torch.Tensor = 0.1, rng: torch.Generator = None):
         device = _infer_device([a, rng])
         super().__init__(rng=rng)
 

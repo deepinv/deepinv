@@ -52,9 +52,7 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(
-    url: str, save_path: str | Path, extract: bool = False
-) -> None:
+def download_archive(url: str, save_path: str | Path, extract: bool = False) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
     :param str url: URL of archive.

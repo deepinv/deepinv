@@ -169,9 +169,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             v for k, v in loadmat(fname, mat73=True).items() if not k.startswith("__")
         )
 
-    def _retrieve_metadata(
-        self, fname: str | Path | os.PathLike
-    ) -> dict[str, Any]:
+    def _retrieve_metadata(self, fname: str | Path | os.PathLike) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.

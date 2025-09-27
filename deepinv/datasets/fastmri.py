@@ -16,6 +16,7 @@ Key modifications:
 - Remove redundant challenge parameter
 - Clean up messy fastmri code
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -619,9 +620,7 @@ class MRISliceTransform(MRIMixin):
             "ACS size not specified. Either define fixed acs, or ensure metadata has acs attribute, or pass in  mask_generator with fixed ACS size."
         )
 
-    def generate_mask(
-        self, kspace: torch.Tensor, seed: str | int
-    ) -> torch.Tensor:
+    def generate_mask(self, kspace: torch.Tensor, seed: str | int) -> torch.Tensor:
         """Simulate mask from mask generator.
 
         :param torch.Tensor kspace: input fully-sampled kspace of shape (2, (N,) H, W) where (N,) is optional multicoil

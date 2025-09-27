@@ -3,6 +3,7 @@ NumPy-style histograms in PyTorch
 
 Copy from: https://github.com/francois-rozet/torchist/blob/master/torchist/__init__.py
 """
+
 from __future__ import annotations
 
 import torch
