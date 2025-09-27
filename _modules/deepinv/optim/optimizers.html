@@ -1,0 +1,1142 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.optim.optimizers &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/optim/optimizers';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/optim/optimizers.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.optim.optimizers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.optim.optimizers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.optim_iterators</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.fixed_point</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedPoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.prior</span><span class="w"> </span><span class="kn">import</span> <span class="n">Zero</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+
+
+<div class="viewcode-block" id="BaseOptim">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseOptim</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for optimization algorithms, consists in iterating a fixed-point operator.</span>
+
+<span class="sd">    Module solving the problem</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{equation}</span>
+<span class="sd">        \label{eq:min_prob}</span>
+<span class="sd">        \tag{1}</span>
+<span class="sd">        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},</span>
+<span class="sd">        \end{equation}</span>
+
+
+<span class="sd">    where the first term :math:`\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}` enforces data-fidelity, the second</span>
+<span class="sd">    term :math:`\regname:\xset\mapsto \mathbb{R}_{+}` acts as a regularization and</span>
+<span class="sd">    :math:`\lambda &gt; 0` is a regularization parameter. More precisely, the data-fidelity term penalizes the discrepancy</span>
+<span class="sd">    between the data :math:`y` and the forward operator :math:`A` applied to the variable :math:`x`, as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \datafid{x}{y} = \distance{Ax}{y}</span>
+
+<span class="sd">    where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward</span>
+<span class="sd">    operator (see :class:`deepinv.physics.Physics`)</span>
+
+<span class="sd">    Optimization algorithms for minimising the problem above can be written as fixed point algorithms,</span>
+<span class="sd">    i.e. for :math:`k=1,2,...`</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)</span>
+
+
+<span class="sd">    where :math:`x_k` is a variable converging to the solution of the minimization problem, and</span>
+<span class="sd">    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.</span>
+
+<span class="sd">    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.</span>
+
+<span class="sd">    If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,</span>
+<span class="sd">    the value of the cost function is computed along the iterations and can be used for convergence criterion.</span>
+<span class="sd">    Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing</span>
+<span class="sd">    the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.</span>
+<span class="sd">    More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau &gt; 0`,</span>
+<span class="sd">    the following update rule is applied at each iteration :math:`k`:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \text{ while } F(x_k) - F(x_{k+1}) &lt; \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau</span>
+
+<span class="sd">    The variable ``params_algo`` is a dictionary containing all the relevant parameters for running the algorithm.</span>
+<span class="sd">    If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.</span>
+<span class="sd">    If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.</span>
+
+<span class="sd">    The variable ``data_fidelity`` is a list of instances of :class:`deepinv.optim.DataFidelity` (or a single instance).</span>
+<span class="sd">    If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.</span>
+<span class="sd">    The same holds for the variable ``prior`` which is a list of instances of :class:`deepinv.optim.Prior` (or a single instance).</span>
+
+<span class="sd">    .. doctest::</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; # This minimal example shows how to use the BaseOptim class to solve the problem</span>
+<span class="sd">        &gt;&gt;&gt; #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1</span>
+<span class="sd">        &gt;&gt;&gt; # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Create the measurement operator A</span>
+<span class="sd">        &gt;&gt;&gt; A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)</span>
+<span class="sd">        &gt;&gt;&gt; A_forward = lambda v: A @ v</span>
+<span class="sd">        &gt;&gt;&gt; A_adjoint = lambda v: A.transpose(0, 1) @ v</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the physics model associated to this operator</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the measurement y</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.tensor([2, 2], dtype=torch.float64)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the data fidelity term</span>
+<span class="sd">        &gt;&gt;&gt; data_fidelity = dinv.optim.data_fidelity.L2()</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the prior</span>
+<span class="sd">        &gt;&gt;&gt; prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the parameters of the algorithm</span>
+<span class="sd">        &gt;&gt;&gt; params_algo = {&quot;stepsize&quot;: 0.5, &quot;lambda&quot;: 1.0}</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the fixed-point iterator</span>
+<span class="sd">        &gt;&gt;&gt; iterator = dinv.optim.optim_iterators.PGDIteration()</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Define the optimization algorithm</span>
+<span class="sd">        &gt;&gt;&gt; optimalgo = dinv.optim.BaseOptim(iterator,</span>
+<span class="sd">        ...                     data_fidelity=data_fidelity,</span>
+<span class="sd">        ...                     params_algo=params_algo,</span>
+<span class="sd">        ...                     prior=prior)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Run the optimization algorithm</span>
+<span class="sd">        &gt;&gt;&gt; with torch.no_grad(): xhat = optimalgo(y, physics)</span>
+<span class="sd">        &gt;&gt;&gt; print(xhat)</span>
+<span class="sd">        tensor([1., 1.], dtype=torch.float64)</span>
+
+
+<span class="sd">    :param deepinv.optim.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.</span>
+<span class="sd">    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,</span>
+<span class="sd">        e.g. the stepsize, regularization parameter, denoising standard deviation.</span>
+<span class="sd">        Each value of the dictionary can be either Iterable (distinct value for each iteration) or</span>
+<span class="sd">        a single float (same value for each iteration).</span>
+<span class="sd">        Default: ``{&quot;stepsize&quot;: 1.0, &quot;lambda&quot;: 1.0}``. See :any:`optim-params` for more details.</span>
+<span class="sd">    :param list, deepinv.optim.DataFidelity: data-fidelity term.</span>
+<span class="sd">        Either a single instance (same data-fidelity for each iteration) or a list of instances of</span>
+<span class="sd">        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None``.</span>
+<span class="sd">    :param list, deepinv.optim.Prior: regularization prior.</span>
+<span class="sd">        Either a single instance (same prior for each iteration) or a list of instances of</span>
+<span class="sd">        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.</span>
+<span class="sd">    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.</span>
+<span class="sd">    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``&quot;residual&quot;`` (residual</span>
+<span class="sd">        of the iterate norm) or ``&quot;cost&quot;`` (on the cost function). Default: ``&quot;residual&quot;``</span>
+<span class="sd">    :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.</span>
+<span class="sd">    :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.</span>
+<span class="sd">    :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.</span>
+<span class="sd">    :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.</span>
+<span class="sd">    :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.</span>
+<span class="sd">    :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.</span>
+<span class="sd">    :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.</span>
+<span class="sd">    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),</span>
+<span class="sd">        the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,</span>
+<span class="sd">        and with the observation `y` if the adjoint is not defined. Default: ``None``.</span>
+<span class="sd">    :param Callable get_output: get the image output given the current dictionary update containing primal</span>
+<span class="sd">        and auxiliary variables ``X = {(&#39;est&#39; : (primal, aux)}``. Default : ``X[&#39;est&#39;][0]``.</span>
+<span class="sd">    :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations.</span>
+<span class="sd">        Default: ``False``.</span>
+<span class="sd">    :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.</span>
+<span class="sd">    :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.</span>
+<span class="sd">    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.</span>
+<span class="sd">    :param bool verbose: whether to print relevant information of the algorithm during its run,</span>
+<span class="sd">        such as convergence criterion at each iterate. Default: ``False``.</span>
+<span class="sd">    :param bool show_progress_bar: show progress bar during optimization.</span>
+<span class="sd">    :return: a torch model that solves the optimization problem.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">,</span>
+        <span class="n">params_algo</span><span class="o">=</span><span class="n">MappingProxyType</span><span class="p">({</span><span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}),</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">crit_conv</span><span class="o">=</span><span class="s2">&quot;residual&quot;</span><span class="p">,</span>
+        <span class="n">thres_conv</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">early_stop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">has_cost</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">backtracking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">gamma_backtracking</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">eta_backtracking</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">custom_metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">get_output</span><span class="o">=</span><span class="k">lambda</span> <span class="n">X</span><span class="p">:</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">anderson_acceleration</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">history_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">beta_anderson_acc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">eps_anderson_acc</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">early_stop</span> <span class="o">=</span> <span class="n">early_stop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span> <span class="o">=</span> <span class="n">crit_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span> <span class="o">=</span> <span class="n">show_progress_bar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span> <span class="o">=</span> <span class="n">backtracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma_backtracking</span> <span class="o">=</span> <span class="n">gamma_backtracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta_backtracking</span> <span class="o">=</span> <span class="n">eta_backtracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_converged</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thres_conv</span> <span class="o">=</span> <span class="n">thres_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_metrics</span> <span class="o">=</span> <span class="n">custom_metrics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">custom_init</span> <span class="o">=</span> <span class="n">custom_init</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span> <span class="o">=</span> <span class="n">get_output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="o">=</span> <span class="n">has_cost</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_algo</span><span class="p">,</span> <span class="n">MappingProxyType</span><span class="p">):</span>
+            <span class="n">params_algo</span> <span class="o">=</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.</span>
+        <span class="k">if</span> <span class="s2">&quot;g_param&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;g_param&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.</span>
+        <span class="k">if</span> <span class="s2">&quot;lambda&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;lambda&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..</span>
+        <span class="k">if</span> <span class="s2">&quot;beta&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># By default, each parameter in ``params_algo` is a list.</span>
+        <span class="c1"># If given as a single number, we convert it to a list of 1 element.</span>
+        <span class="c1"># If given as a list of more than 1 element, it should have lenght ``max_iter``.</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+                <span class="n">params_algo</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_algo</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_algo</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;The number of elements in the parameter </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> is inferior to max_iter.&quot;</span>
+                    <span class="p">)</span>
+        <span class="c1"># If ``stepsize`` is a list of more than 1 element, backtracking is impossible.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;stepsize&quot;</span> <span class="ow">in</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False.&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># If no cost function, backtracking is impossible.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Backtracking impossible when no cost function is given. Setting backtracking to False.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># keep track of initial parameters in case they are changed during optimization (e.g. backtracking)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_params_algo</span> <span class="o">=</span> <span class="n">params_algo</span>
+
+        <span class="c1"># By default, ``self.prior`` should be a list of elements of the class :class:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.</span>
+        <span class="k">if</span> <span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="p">[</span><span class="n">Zero</span><span class="p">()]</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prior</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="p">[</span><span class="n">prior</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">prior</span>
+
+        <span class="c1"># By default, ``self.data_fidelity`` should be a list of elements of the class :class:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="p">[</span><span class="n">data_fidelity</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+
+        <span class="c1"># Initialize the fixed-point module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fixed_point</span> <span class="o">=</span> <span class="n">FixedPoint</span><span class="p">(</span>
+            <span class="n">iterator</span><span class="o">=</span><span class="n">iterator</span><span class="p">,</span>
+            <span class="n">update_params_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_params_fn</span><span class="p">,</span>
+            <span class="n">update_data_fidelity_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_data_fidelity_fn</span><span class="p">,</span>
+            <span class="n">update_prior_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_prior_fn</span><span class="p">,</span>
+            <span class="n">check_iteration_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">check_iteration_fn</span><span class="p">,</span>
+            <span class="n">check_conv_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">check_conv_fn</span><span class="p">,</span>
+            <span class="n">init_metrics_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">init_metrics_fn</span><span class="p">,</span>
+            <span class="n">init_iterate_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">init_iterate_fn</span><span class="p">,</span>
+            <span class="n">update_metrics_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_metrics_fn</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">early_stop</span><span class="o">=</span><span class="n">early_stop</span><span class="p">,</span>
+            <span class="n">anderson_acceleration</span><span class="o">=</span><span class="n">anderson_acceleration</span><span class="p">,</span>
+            <span class="n">history_size</span><span class="o">=</span><span class="n">history_size</span><span class="p">,</span>
+            <span class="n">beta_anderson_acc</span><span class="o">=</span><span class="n">beta_anderson_acc</span><span class="p">,</span>
+            <span class="n">eps_anderson_acc</span><span class="o">=</span><span class="n">eps_anderson_acc</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">show_progress_bar</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss.metric.distortion</span><span class="w"> </span><span class="kn">import</span> <span class="n">PSNR</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">psnr</span> <span class="o">=</span> <span class="n">PSNR</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseOptim.update_params_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_params_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_params_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each parameter ``params_algo``, selects the parameter value for iteration ``it``</span>
+<span class="sd">        (if this parameter depends on the iteration number).</span>
+
+<span class="sd">        :param int it: iteration number.</span>
+<span class="sd">        :return: a dictionary containing the parameters at iteration ``it``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cur_params_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">it</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_algo</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">cur_params_dict</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.update_prior_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_prior_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_prior_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each prior function in `prior`, selects the prior value for iteration ``it``</span>
+<span class="sd">        (if this prior depends on the iteration number).</span>
+
+<span class="sd">        :param int it: iteration number.</span>
+<span class="sd">        :return: the prior at iteration ``it``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cur_prior</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">[</span><span class="n">it</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cur_prior</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.update_data_fidelity_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_data_fidelity_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_data_fidelity_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each data_fidelity function in `data_fidelity`, selects the data_fidelity value for iteration ``it``</span>
+<span class="sd">        (if this data_fidelity depends on the iteration number).</span>
+
+<span class="sd">        :param int it: iteration number.</span>
+<span class="sd">        :return: the data_fidelity at iteration ``it``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cur_data_fidelity</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">[</span><span class="n">it</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">cur_data_fidelity</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.init_iterate_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.init_iterate_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_iterate_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the iterate of the algorithm.</span>
+<span class="sd">        The first iterate is stored in a dictionary of the form ``X = {&#39;est&#39;: (x_0, u_0), &#39;cost&#39;: F_0}`` where:</span>
+
+<span class="sd">            * ``est`` is a tuple containing the first primal and auxiliary iterates.</span>
+<span class="sd">            * ``cost`` is the value of the cost function at the first iterate.</span>
+
+<span class="sd">        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.</span>
+<span class="sd">        A custom initialization is possible with the custom_init argument.</span>
+
+<span class="sd">        :param torch.Tensor y: measurement vector.</span>
+<span class="sd">        :param deepinv.physics: physics of the problem.</span>
+<span class="sd">        :param F_fn: function that computes the cost function.</span>
+<span class="sd">        :return: a dictionary containing the first iterate of the algorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_algo</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_params_algo</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="p">)</span>  <span class="c1"># reset parameters to initial values</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_init</span><span class="p">:</span>
+            <span class="n">init_X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_init</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_init</span><span class="p">,</span> <span class="n">z_init</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">init_X</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">x_init</span><span class="p">,</span> <span class="n">z_init</span><span class="p">)}</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">F_fn</span><span class="p">(</span>
+                <span class="n">init_X</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_data_fidelity_fn</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_prior_fn</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_params_fn</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">physics</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="ow">and</span> <span class="n">F_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">init_X</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span>
+        <span class="k">return</span> <span class="n">init_X</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.init_metrics_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.init_metrics_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_metrics_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_init</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the metrics.</span>
+
+<span class="sd">        Metrics are computed for each batch and for each iteration.</span>
+<span class="sd">        They are represented by a list of list, and ``metrics[metric_name][i,j]`` contains the metric ``metric_name``</span>
+<span class="sd">        computed for batch i, at iteration j.</span>
+
+<span class="sd">        :param dict X_init: dictionary containing the primal and auxiliary initial iterates.</span>
+<span class="sd">        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.</span>
+<span class="sd">        :return dict: A dictionary containing the metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">init</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">x_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X_init</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">x_init</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">x_gt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">psnr</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">psnr</span><span class="p">(</span><span class="n">x_init</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">x_gt</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">psnr</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="n">init</span><span class="p">[</span><span class="s2">&quot;psnr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">psnr</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span><span class="p">:</span>
+            <span class="n">init</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="n">init</span><span class="p">[</span><span class="s2">&quot;residual&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">custom_metric_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">init</span><span class="p">[</span><span class="n">custom_metric_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">init</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.update_metrics_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_metrics_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_metrics_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">X_prev</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function that compute all the metrics, across all batches, for the current iteration.</span>
+
+<span class="sd">        :param dict metrics: dictionary containing the metrics. Each metric is computed for each batch.</span>
+<span class="sd">        :param dict X_prev: dictionary containing the primal and dual previous iterates.</span>
+<span class="sd">        :param dict X: dictionary containing the current primal and dual iterates.</span>
+<span class="sd">        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.</span>
+<span class="sd">        :return dict: a dictionary containing the updated metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X_prev</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">):</span>
+                <span class="n">residual</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">((</span><span class="n">x_prev</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-06</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="p">)</span>
+                <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;residual&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residual</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x_gt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">psnr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psnr</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">x_gt</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;psnr&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psnr</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span><span class="p">:</span>
+                    <span class="n">F</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="p">(</span>
+                        <span class="n">custom_metric_name</span><span class="p">,</span>
+                        <span class="n">custom_metric_fn</span><span class="p">,</span>
+                    <span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">metrics</span><span class="p">[</span><span class="n">custom_metric_name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">custom_metric_fn</span><span class="p">(</span>
+                                <span class="n">metrics</span><span class="p">[</span><span class="n">custom_metric_name</span><span class="p">],</span> <span class="n">x_prev</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">metrics</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.check_iteration_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.check_iteration_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_iteration_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_prev</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs stepsize backtracking.</span>
+
+<span class="sd">        :param dict X_prev: dictionary containing the primal and dual previous iterates.</span>
+<span class="sd">        :param dict X: dictionary containing the current primal and dual iterates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">backtracking</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_cost</span> <span class="ow">and</span> <span class="n">X_prev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_prev</span> <span class="o">=</span> <span class="n">X_prev</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">x_prev</span> <span class="o">=</span> <span class="n">x_prev</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x_prev</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">F_prev</span><span class="p">,</span> <span class="n">F</span> <span class="o">=</span> <span class="n">X_prev</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span>
+            <span class="n">diff_F</span><span class="p">,</span> <span class="n">diff_x</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">F_prev</span> <span class="o">-</span> <span class="n">F</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_prev</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="n">stepsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">diff_F</span> <span class="o">&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma_backtracking</span> <span class="o">/</span> <span class="n">stepsize</span><span class="p">)</span> <span class="o">*</span> <span class="n">diff_x</span><span class="p">:</span>
+                <span class="n">check_iteration</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eta_backtracking</span> <span class="o">*</span> <span class="n">stepsize</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;Backtraking : new stepsize = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params_algo</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s1">.6f</span><span class="si">}</span><span class="s1">&#39;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">check_iteration</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="n">check_iteration</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.check_conv_fn">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.check_conv_fn">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_conv_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">X_prev</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks the convergence of the algorithm.</span>
+
+<span class="sd">        :param int it: iteration number.</span>
+<span class="sd">        :param dict X_prev: dictionary containing the primal and dual previous iterates.</span>
+<span class="sd">        :param dict X: dictionary containing the current primal and dual iterates.</span>
+<span class="sd">        :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span> <span class="o">==</span> <span class="s2">&quot;residual&quot;</span><span class="p">:</span>
+            <span class="n">x_prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X_prev</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">x_prev</span> <span class="o">=</span> <span class="n">x_prev</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x_prev</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">crit_cur</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">x_prev</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-06</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span> <span class="o">==</span> <span class="s2">&quot;cost&quot;</span><span class="p">:</span>
+            <span class="n">F_prev</span> <span class="o">=</span> <span class="n">X_prev</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span>
+            <span class="n">F</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;cost&quot;</span><span class="p">]</span>
+            <span class="n">crit_cur</span> <span class="o">=</span> <span class="p">((</span><span class="n">F_prev</span> <span class="o">-</span> <span class="n">F</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-06</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;convergence criteria not implemented&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">crit_cur</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">thres_conv</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_converged</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Iteration </span><span class="si">{</span><span class="n">it</span><span class="si">}</span><span class="s2">, current converge crit. = </span><span class="si">{</span><span class="n">crit_cur</span><span class="si">:</span><span class="s2">.2E</span><span class="si">}</span><span class="s2">, objective = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">thres_conv</span><span class="si">:</span><span class="s2">.2E</span><span class="si">}</span><span class="s2"> </span><span class="se">\r</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="BaseOptim.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs the fixed-point iteration algorithm for solving :ref:`(1) &lt;optim&gt;`.</span>
+
+<span class="sd">        :param torch.Tensor y: measurement vector.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.</span>
+<span class="sd">        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.</span>
+<span class="sd">        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.</span>
+<span class="sd">        :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)</span>
+<span class="sd">        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.</span>
+<span class="sd">                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">X</span><span class="p">,</span> <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_point</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="n">x_gt</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="n">compute_metrics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">compute_metrics</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">metrics</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_iterator</span><span class="p">(</span>
+    <span class="n">iteration</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bregman_potential</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function for creating an iterator, instance of the :class:`deepinv.optim.OptimIterator` class,</span>
+<span class="sd">    corresponding to the chosen minimization algorithm.</span>
+
+<span class="sd">    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,</span>
+<span class="sd">        or directly an optim iterator.</span>
+<span class="sd">        If an algorithm name (string), should be either ``&quot;PGD&quot;`` (proximal gradient descent), ``&quot;ADMM&quot;`` (ADMM),</span>
+<span class="sd">        ``&quot;HQS&quot;`` (half-quadratic splitting), ``&quot;CP&quot;`` (Chambolle-Pock) or ``&quot;DRS&quot;`` (Douglas Rachford).</span>
+<span class="sd">    :param list, deepinv.optim.Prior: regularization prior.</span>
+<span class="sd">                            Either a single instance (same prior for each iteration) or a list of instances of</span>
+<span class="sd">                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.</span>
+<span class="sd">    :param Callable F_fn: Custom user input cost function. default: None.</span>
+<span class="sd">    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False</span>
+<span class="sd">    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If no prior is given, we set it to a zero prior.</span>
+    <span class="k">if</span> <span class="n">prior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prior</span> <span class="o">=</span> <span class="n">Zero</span><span class="p">()</span>
+    <span class="c1"># If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.</span>
+    <span class="n">explicit_prior</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">prior</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">explicit_prior</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prior</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">prior</span><span class="o">.</span><span class="n">explicit_prior</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">F_fn</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">explicit_prior</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">F_fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data_fidelity</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">):</span>
+            <span class="n">prior_value</span> <span class="o">=</span> <span class="n">prior</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;g_param&quot;</span><span class="p">],</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prior_value</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">reg_value</span> <span class="o">=</span> <span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;lambda&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">prior_value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;lambda&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">):</span>
+                    <span class="n">reg_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;lambda&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">prior_value</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">reg_value</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">cur_params</span><span class="p">[</span><span class="s2">&quot;lambda&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">prior_value</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                        <span class="o">*</span> <span class="n">prior_value</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">data_fidelity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg_value</span>
+
+        <span class="n">has_cost</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># boolean to indicate if there is a cost function to evaluate along the iterations</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">has_cost</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># Create an instance of :class:`deepinv.optim.OptimIterator`.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">iteration</span><span class="p">,</span> <span class="nb">str</span>
+    <span class="p">):</span>  <span class="c1"># If the name of the algorithm is given as a string, the correspondong class is automatically called.</span>
+        <span class="n">iterator_fn</span> <span class="o">=</span> <span class="n">str_to_class</span><span class="p">(</span><span class="n">iteration</span> <span class="o">+</span> <span class="s2">&quot;Iteration&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">iterator_fn</span><span class="p">(</span>
+            <span class="n">g_first</span><span class="o">=</span><span class="n">g_first</span><span class="p">,</span>
+            <span class="n">F_fn</span><span class="o">=</span><span class="n">F_fn</span><span class="p">,</span>
+            <span class="n">has_cost</span><span class="o">=</span><span class="n">has_cost</span><span class="p">,</span>
+            <span class="n">bregman_potential</span><span class="o">=</span><span class="n">bregman_potential</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If the iteration is directly given as an instance of OptimIterator, nothing to do</span>
+        <span class="k">return</span> <span class="n">iteration</span>
+
+
+<div class="viewcode-block" id="optim_builder">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">optim_builder</span><span class="p">(</span>
+    <span class="n">iteration</span><span class="p">,</span>
+    <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">params_algo</span><span class="o">=</span><span class="n">MappingProxyType</span><span class="p">({</span><span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;g_param&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">}),</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">bregman_potential</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.</span>
+
+<span class="sd">    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,</span>
+<span class="sd">        or directly an optim iterator.</span>
+<span class="sd">        If an algorithm name (string), should be either ``&quot;GD&quot;`` (gradient descent),</span>
+<span class="sd">        ``&quot;PGD&quot;`` (proximal gradient descent), ``&quot;ADMM&quot;`` (ADMM),</span>
+<span class="sd">        ``&quot;HQS&quot;`` (half-quadratic splitting), ``&quot;CP&quot;`` (Chambolle-Pock) or ``&quot;DRS&quot;`` (Douglas Rachford).</span>
+<span class="sd">    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.</span>
+<span class="sd">    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,</span>
+<span class="sd">                            e.g. the stepsize, regularization parameter, denoising standard deviation.</span>
+<span class="sd">                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or</span>
+<span class="sd">                            a single float (same value for each iteration). See :any:`optim-params` for more details.</span>
+<span class="sd">                            Default: ``{&quot;stepsize&quot;: 1.0, &quot;lambda&quot;: 1.0}``.</span>
+<span class="sd">    :param list, deepinv.optim.DataFidelity: data-fidelity term.</span>
+<span class="sd">                            Either a single instance (same data-fidelity for each iteration) or a list of instances of</span>
+<span class="sd">                            :class:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.</span>
+<span class="sd">    :param list, deepinv.optim.Prior prior: regularization prior.</span>
+<span class="sd">                            Either a single instance (same prior for each iteration) or a list of instances of</span>
+<span class="sd">                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.</span>
+<span class="sd">    :param Callable F_fn: Custom user input cost function. default: ``None``.</span>
+<span class="sd">    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`</span>
+<span class="sd">    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.</span>
+<span class="sd">    :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.</span>
+<span class="sd">    :return: an instance of the :class:`deepinv.optim.BaseOptim` class.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_algo</span><span class="p">,</span> <span class="n">MappingProxyType</span><span class="p">):</span>
+        <span class="n">params_algo</span> <span class="o">=</span> <span class="n">params_algo</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">create_iterator</span><span class="p">(</span>
+        <span class="n">iteration</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+        <span class="n">F_fn</span><span class="o">=</span><span class="n">F_fn</span><span class="p">,</span>
+        <span class="n">g_first</span><span class="o">=</span><span class="n">g_first</span><span class="p">,</span>
+        <span class="n">bregman_potential</span><span class="o">=</span><span class="n">bregman_potential</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">BaseOptim</span><span class="p">(</span>
+        <span class="n">iterator</span><span class="p">,</span>
+        <span class="n">has_cost</span><span class="o">=</span><span class="n">iterator</span><span class="o">.</span><span class="n">has_cost</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+        <span class="n">params_algo</span><span class="o">=</span><span class="n">params_algo</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">str_to_class</span><span class="p">(</span><span class="n">classname</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">],</span> <span class="n">classname</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

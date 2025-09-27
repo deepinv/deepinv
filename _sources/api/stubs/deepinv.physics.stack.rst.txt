@@ -1,0 +1,9 @@
+﻿stack
+=====
+
+.. currentmodule:: deepinv.physics
+
+.. autofunction:: stack
+
+.. minigallery:: deepinv.physics.stack
+    :add-heading: Examples using ``stack``:

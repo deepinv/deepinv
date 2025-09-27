@@ -1,0 +1,81 @@
+
+
+.. _sphx_glr_auto_examples_external-libraries:
+
+External Libraries
+-------------------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the Astra tomography toolbox with deepinv, a popular toolbox for tomography with GPU acceleration.">
+
+.. only:: html
+
+  .. image:: /auto_examples/external-libraries/images/thumb/sphx_glr__demo_astra_tomography_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_external-libraries__demo_astra_tomography.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse. The following example and data are taken from :footciteaghabiglou2024r2d2. If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib.">
+
+.. only:: html
+
+  .. image:: /auto_examples/external-libraries/images/thumb/sphx_glr_demo_ri_basic_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_external-libraries_demo_ri_basic.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to load and prepare properly a HuggingFace dataset using the datasets library.">
+
+.. only:: html
+
+  .. image:: /auto_examples/external-libraries/images/thumb/sphx_glr_demo_hf_dataset_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_external-libraries_demo_hf_dataset.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Using HuggingFace datasets</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/external-libraries/_demo_astra_tomography
+   /auto_examples/external-libraries/demo_ri_basic
+   /auto_examples/external-libraries/demo_hf_dataset
+
