@@ -1,6 +1,6 @@
 r"""
 Solving inverse problems with sinusoidal representation networks (SIRENs)
-============================================================================
+=========================================================================
 
 This notebook presents several examples of inverse problems solved using the framework of Implicit Neural Representation (INR). It is based on the paper "SIREN" of :footcite:t:`sitzmann2020implicit`.
 
@@ -234,8 +234,6 @@ plot(
 # In the second part, we exploit the fact that INRs are intrisicly smooth continuous models; their gradient can be computed exactly with autograd. We show an example of an image recontruction problem where the forward operator :math:`A` is a gradient operator.
 
 # %%
-#
-# --------------------------------------
 # We aim at solving the problem:
 #
 # .. math::
