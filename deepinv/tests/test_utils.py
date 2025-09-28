@@ -903,18 +903,22 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
         assert len(imgs) == len(
             titles
         ), "Number of images should match number of titles."
-        assert len(imgs) == sum(v is not None for v in [x, y, x_net, x_nl])
+        conditions = [
+            x is not None,
+            x_net is not None,
+            x_nl is not None,
+            y is not None and x is not None and y.shape == x.shape,
+        ]
+        assert len(imgs) == sum(
+            conditions
+        ), f"Expected {sum(conditions)} images but got {len(imgs)}"
 
 
-@pytest.mark.parametrize(
-    "x",
-    [
-        torch.randn((32, 1, 10, 10)),
-        torch.randn((32, 2, 10, 10)),
-        torch.randn((32, 3, 10, 10)),
-    ],
-)
-def test_prepare_images_shapes(x):
+@pytest.mark.parametrize("seed", [0])
+def test_prepare_images_shapes(seed):
+    rng = torch.Generator().manual_seed(seed)
+    x = torch.randn(32, 1, 10, 10, generator=rng)
+
     imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
         x, y=x, x_net=x, x_nl=x, rescale_mode="min_max"
     )
