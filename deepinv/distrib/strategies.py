@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Sequence
 import torch
 from .utils import extract_and_pad_patch, tiling_splitting_strategy, tiling2d_reduce_fn
+
 Index = tuple[slice, ...]
 
 
@@ -220,7 +221,9 @@ class BasicStrategy(DistributedSignalStrategy):
         for positions in itertools.product(*[range(len(r)) for r in ranges]):
             # Create slice tuple
             slices = [slice(None)] * len(self.signal_shape)
-            for i, (dim, pos) in enumerate(zip(self.split_dims, positions, strict=False)):
+            for i, (dim, pos) in enumerate(
+                zip(self.split_dims, positions, strict=False)
+            ):
                 start, end = ranges[i][pos]
                 slices[dim] = slice(start, end)
 
@@ -314,28 +317,34 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             # Handle oversized patch case
             max_dim = max(H, W)
             min_dim = min(H, W)
-            
+
             # Reduce patch size to fit the image with some margin for receptive field
             safe_patch_size = min_dim - 2 * self.receptive_field_radius
-            
+
             if safe_patch_size <= 0:
                 # If even this doesn't work, use the whole image as a single patch
                 # and reduce receptive field radius
                 safe_patch_size = min_dim
-                safe_receptive_field = max(0, min_dim // 8)  # Use 12.5% of min dimension as padding
-                
+                safe_receptive_field = max(
+                    0, min_dim // 8
+                )  # Use 12.5% of min dimension as padding
+
                 if self.signal_shape[0] == 1:  # Only warn once per batch
-                    print(f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
-                          f"Using single patch mode with patch_size={safe_patch_size}, "
-                          f"receptive_field_radius={safe_receptive_field}")
-                
+                    print(
+                        f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
+                        f"Using single patch mode with patch_size={safe_patch_size}, "
+                        f"receptive_field_radius={safe_receptive_field}"
+                    )
+
                 self.patch_size = safe_patch_size
                 self.receptive_field_radius = safe_receptive_field
             else:
                 if self.signal_shape[0] == 1:  # Only warn once per batch
-                    print(f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
-                          f"Reducing patch_size to {safe_patch_size}")
-                
+                    print(
+                        f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
+                        f"Reducing patch_size to {safe_patch_size}"
+                    )
+
                 self.patch_size = safe_patch_size
 
         kwargs = {
@@ -355,17 +364,20 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             # Final fallback: use the whole image as a single patch with minimal padding
             H = self.signal_shape[self.hw_dims[0]]
             W = self.signal_shape[self.hw_dims[1]]
-            
-            print(f"Warning: Tiling strategy failed ({e}). Using whole image as single patch.")
-            
+
+            print(
+                f"Warning: Tiling strategy failed ({e}). Using whole image as single patch."
+            )
+
             # Create a single patch that covers the whole image
             ndim = len(self.signal_shape)
-            global_slice = tuple(slice(None) if i not in self.hw_dims 
-                                else slice(0, self.signal_shape[i]) 
-                                for i in range(ndim))
-            
+            global_slice = tuple(
+                slice(None) if i not in self.hw_dims else slice(0, self.signal_shape[i])
+                for i in range(ndim)
+            )
+
             self._global_slices = [global_slice]
-            
+
             # Create minimal metadata for single patch
             self._metadata = {
                 "pad_specs": [(0, 0, 0, 0)],  # No padding
@@ -403,14 +415,14 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         # into the batch dimension for processing, then reshape back
         # Input: list of [batch_size, C, H, W] tensors
         # Output: single [total_batch_size, C, H, W] tensor for processing
-        
+
         # Store metadata for unpacking
         self._batching_metadata = {
             "num_patches": len(patches),
             "original_batch_size": patches[0].shape[0] if patches else 0,
-            "patch_shape": expected_shape
+            "patch_shape": expected_shape,
         }
-        
+
         # Concatenate along batch dimension
         batch = torch.cat(patches, dim=0)
         return [batch]
@@ -430,21 +442,21 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             )
 
         result_batch = processed_batches[0]
-        
+
         # Use stored metadata if available
-        if hasattr(self, '_batching_metadata'):
+        if hasattr(self, "_batching_metadata"):
             metadata = self._batching_metadata
             expected_num_patches = metadata["num_patches"]
             original_batch_size = metadata["original_batch_size"]
-            
+
             if expected_num_patches != num_patches:
                 raise RuntimeError(
                     f"Metadata mismatch: expected {expected_num_patches} patches, got {num_patches}"
                 )
-            
+
             # Calculate expected total batch size
             expected_total_batch = original_batch_size * num_patches
-            
+
             if result_batch.shape[0] != expected_total_batch:
                 # Handle special cases
                 if num_patches == 1:
@@ -454,7 +466,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                         f"Result batch size {result_batch.shape[0]} != expected {expected_total_batch}. "
                         f"Expected {num_patches} patches × {original_batch_size} batch size each."
                     )
-            
+
             # Split back into patches
             patches = []
             for i in range(num_patches):
@@ -462,7 +474,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                 end_idx = (i + 1) * original_batch_size
                 patch = result_batch[start_idx:end_idx]
                 patches.append(patch)
-            
+
             return patches
         else:
             # Fallback for cases without metadata (single patch, etc.)

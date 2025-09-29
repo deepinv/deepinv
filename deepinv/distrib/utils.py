@@ -65,24 +65,24 @@ def extract_and_pad_patch(
     if pad_specs and idx < len(pad_specs):
         pad_mode = global_metadata.get("pad_mode", "reflect")
         pad_spec = pad_specs[idx]
-        
+
         # Validate padding specifications to avoid PyTorch errors
         if len(pad_spec) >= 4:  # (w_left, w_right, h_top, h_bottom)
             w_left, w_right, h_top, h_bottom = pad_spec[:4]
-            
+
             # Check if padding is reasonable compared to tensor dimensions
             if len(piece.shape) >= 2:
                 h_dim, w_dim = piece.shape[-2], piece.shape[-1]
-                
+
                 # Clamp padding to be at most the dimension size
                 w_left = min(w_left, w_dim)
                 w_right = min(w_right, w_dim)
                 h_top = min(h_top, h_dim)
                 h_bottom = min(h_bottom, h_dim)
-                
+
                 # Use the clamped padding
                 safe_pad_spec = (w_left, w_right, h_top, h_bottom) + pad_spec[4:]
-                
+
                 try:
                     piece = F.pad(piece, pad=safe_pad_spec, mode=pad_mode)
                 except RuntimeError as e:

@@ -452,7 +452,8 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             # Return zeros with proper shape for empty local set
             return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
         contribs = [
-            p.A_adjoint(y_i, **kwargs) for p, y_i in zip(self.local_physics, y_local, strict=False)
+            p.A_adjoint(y_i, **kwargs)
+            for p, y_i in zip(self.local_physics, y_local, strict=False)
         ]
         return torch.stack(contribs, dim=0).sum(0)
 
@@ -463,7 +464,8 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             # Return zeros with proper shape for empty local set
             return torch.zeros_like(x)
         contribs = [
-            p.A_vjp(x, v_i, **kwargs) for p, v_i in zip(self.local_physics, v_local, strict=False)
+            p.A_vjp(x, v_i, **kwargs)
+            for p, v_i in zip(self.local_physics, v_local, strict=False)
         ]
         return torch.stack(contribs, dim=0).sum(0)
 
