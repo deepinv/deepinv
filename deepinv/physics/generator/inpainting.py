@@ -90,7 +90,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self,
         batch_size=1,
         input_mask: torch.Tensor = None,
-        img_size: Optional[tuple] = None,
+        img_size: tuple | None = None,
         seed: int = None,
         **kwargs,
     ) -> dict:
@@ -181,7 +181,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         return pixelwise
 
     def batch_step(
-        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+        self, input_mask: torch.Tensor = None, img_size: tuple | None = None
     ) -> dict:
         r"""
         Create one batch of splitting mask.
@@ -288,7 +288,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         self.split_generator = split_generator
 
     def batch_step(
-        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+        self, input_mask: torch.Tensor = None, img_size: tuple | None = None
     ) -> dict:
         r"""
         Create one batch of splitting mask.
@@ -414,7 +414,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     def batch_step(
         self,
         input_mask: torch.Tensor = None,
-        img_size: Optional[tuple] = None,
+        img_size: tuple | None = None,
     ) -> dict:
         r"""
         Create one batch of splitting mask using Gaussian distribution.
@@ -527,7 +527,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         )
 
     def batch_step(
-        self, input_mask: torch.Tensor = None, img_size: Optional[tuple] = None
+        self, input_mask: torch.Tensor = None, img_size: tuple | None = None
     ) -> dict:
         r"""
         Create one batch of splitting mask.
@@ -588,7 +588,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
     def batch_step(
         self,
         input_mask: torch.Tensor = None,
-        img_size: Optional[tuple] = None,
+        img_size: tuple | None = None,
         persist_prev: bool = False,
     ) -> dict:
         r"""
