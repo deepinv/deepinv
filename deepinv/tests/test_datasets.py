@@ -128,7 +128,6 @@ def check_dataset_format(
                     metrics=None,
                 ).setup_train(train=True)
 
-
                 class DummyMetric(Metric):
                     def __init__(self):
                         super().__init__("dummy")

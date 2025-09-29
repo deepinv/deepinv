@@ -132,7 +132,9 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(
             dinv.loss.mri.ENSURELoss(
                 0.01,
-                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5, device=device),
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                    imsize, 0.5, device=device
+                ),
                 rng=rng,
             )
         )

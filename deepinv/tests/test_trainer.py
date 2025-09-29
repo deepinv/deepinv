@@ -774,7 +774,9 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
         assert loss_name == l.__class__.__name__
         assert all([abs(value - l.value) < 1e-6 for value in loss_history])
 
-    for k, (metric_name, metrics_history) in enumerate(trainer.eval_metrics_history.items()):
+    for k, (metric_name, metrics_history) in enumerate(
+        trainer.eval_metrics_history.items()
+    ):
         l = metrics[k]
         assert metric_name == l.__class__.__name__
         assert all([abs(value - l.value) < 1e-6 for value in metrics_history])
@@ -805,7 +807,13 @@ class DummyModel(dinv.models.Reconstructor):
 @pytest.mark.parametrize("disable_train_metrics", [True, False])
 @pytest.mark.parametrize("epochs", [4, 5])
 def test_model_forward_passes(
-    dummy_dataset, imsize, device, tmpdir, compute_losses_eval, disable_train_metrics, epochs
+    dummy_dataset,
+    imsize,
+    device,
+    tmpdir,
+    compute_losses_eval,
+    disable_train_metrics,
+    epochs,
 ):
     train_data = get_dummy_dataset(imsize=imsize, N=4, value=1.0)
     eval_data = get_dummy_dataset(imsize=imsize, N=2, value=1.0)
@@ -1002,18 +1010,19 @@ def test_trainer_speed(device):
         model=model,
         losses=losses,
         metrics=dinv.metric.PSNR(),
-        eval_interval=epochs+1,
+        eval_interval=epochs + 1,
         epochs=epochs,
         physics=physics,
         train_dataloader=dataloader,
         online_measurements=True,
         optimizer=optimizer,
-        ckp_interval=epochs+1,
+        ckp_interval=epochs + 1,
         show_progress_bar=True,
         verbose_individual_losses=True,
         disable_train_metrics=False,
         verbose=True,
-        device=device)
+        device=device,
+    )
 
     def do_epoch():
         for x in dataloader:
@@ -1024,7 +1033,6 @@ def test_trainer_speed(device):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-
 
     # warm up
     do_epoch()
@@ -1043,4 +1051,4 @@ def test_trainer_speed(device):
     time_trainer = end - start
 
     # 30% overhead allowed
-    assert time_trainer/time_naive < 1.3
+    assert time_trainer / time_naive < 1.3
