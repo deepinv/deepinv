@@ -9,6 +9,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import ToTensor
+from deepinv.loss import Metric
 import numpy as np
 
 from deepinv.datasets import (
@@ -127,6 +128,14 @@ def check_dataset_format(
                     metrics=None,
                 ).setup_train(train=True)
 
+
+                class DummyMetric(Metric):
+                    def __init__(self):
+                        super().__init__("dummy")
+
+                    def forward(self, x_net, x, **kwargs):
+                        return torch.tensor(0.0, device=x.device)
+
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
                 _ = trainer_test(
@@ -135,7 +144,7 @@ def check_dataset_format(
                     physics,
                     online_measurements=True,
                     compare_no_learning=False,
-                    metrics=None,
+                    metrics=DummyMetric(),
                 )
 
             except ValueError as e:

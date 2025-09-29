@@ -841,12 +841,11 @@ class Trainer:
             )
             loss += loss_cur
 
-            # detach the network output for metrics and plotting
-            if x_net is not None:
-                x_net = x_net.detach()
-
             # compute metrics
             if not (self.disable_train_metrics and train):
+                if x_net is not None:
+                    x_net = x_net.detach()
+
                 x_net, logs = self.compute_metrics(
                     x, x_net, y, physics_cur, logs, train=train, epoch=epoch
                 )
@@ -888,7 +887,7 @@ class Trainer:
                 physics_cur,
                 x,
                 y,
-                x_net,
+                x_net.detach() if x_net is not None else None,
                 train=train,
             )
 
@@ -1035,6 +1034,11 @@ class Trainer:
         if len(self.metrics) == 0:
             history = self.eval_loss_history[self.losses[k].__class__.__name__]
             lower_better = True
+            if len(history) == 0:
+                warnings.warn(
+                    "No metric provided and no eval loss computed yet, can't save best model."
+                )
+                return  # no eval loss computed yet
         else:
             history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
             lower_better = getattr(self.metrics[k], "lower_better", True)
