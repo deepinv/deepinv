@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from warnings import warn
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator
@@ -361,7 +361,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
-        center_block: Union[tuple[int], int] = (8, 8),
+        center_block: tuple[int] | int = (8, 8),
         device: torch.device = torch.device("cpu"),
         rng: torch.Generator = None,
         *args,
@@ -576,7 +576,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
     def __init__(
         self,
         img_size: tuple[int],
-        split_size: Union[int, tuple[int]] = 2,
+        split_size: int | tuple[int] = 2,
         device: torch.device = "cpu",
         rng: torch.Generator = None,
     ):
