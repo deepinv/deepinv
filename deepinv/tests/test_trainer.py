@@ -989,6 +989,7 @@ def test_out_dir_collision_detection(
 
                 trainer.train()
 
+
 def test_trainer_speed(device):
     if device == torch.device("cpu"):
         pytest.skip("Skip speed test on CPU")
@@ -1052,7 +1053,8 @@ def test_trainer_speed(device):
     # 30% overhead allowed
     assert time_trainer / time_naive < 1.3
 
-    assert time_trainer/time_naive < 1.3
+    assert time_trainer / time_naive < 1.3
+
 
 @pytest.mark.parametrize("model_performance", [40.0])
 @pytest.mark.parametrize("learning_free_performance", [20.0])
