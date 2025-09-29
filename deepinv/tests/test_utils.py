@@ -175,10 +175,13 @@ def test_tensorlist_methods(tensorlist):
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
 @pytest.mark.parametrize("length", [1, 2, 3, 4, 5])
-def test_dirac_like(shape, length):
-    rng = torch.Generator().manual_seed(0)
-    x = [torch.randn(shape, generator=rng) for _ in range(length)]
+def test_dirac_like(shape, length, device):
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = [torch.randn(shape, generator=rng, device=device) for _ in range(length)]
     h = deepinv.utils.dirac_like(x)
+
+    assert h.device == x[0].device
+
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")

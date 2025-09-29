@@ -18,6 +18,10 @@ Changed
 
 Fixed
 ^^^^^
+- Use the learning-free model for learning-free metrics in Trainer (:gh:`788` by `Jérémy Scanvic`_)
+- Fix device dirac_like and bilinear, bicubic and gaussian filters (:gh:`785` by `Julian Tachella`_)
+- Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
+- Fix and test RAM scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 - Save training loss history (:gh:`777` by `Julian Tachella`_)

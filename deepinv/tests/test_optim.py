@@ -890,7 +890,10 @@ least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_vali
 @pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("implicit_backward_solver", [False, True])
-def test_least_square_solvers(device, solver, physics_name, implicit_backward_solver):
+@pytest.mark.parametrize("gamma_scalar", [False, True])
+def test_least_square_solvers(
+    device, solver, physics_name, implicit_backward_solver, gamma_scalar
+):
     batch_size = 4
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
@@ -908,7 +911,10 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
     ).all()
 
     z = x.clone()
-    gamma = 1.0
+    if gamma_scalar:
+        gamma = 1.0
+    else:
+        gamma = torch.ones((batch_size, 1, 1, 1), device=device)
 
     x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
@@ -989,6 +995,7 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
+@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",
     [
@@ -997,9 +1004,8 @@ def test_condition_number(device):
     ],
 )
 @pytest.mark.parametrize("solver", solvers)
-def test_least_squares_implicit_backward(device, solver, physics_name):
+def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
     # Check that the backward gradient matches the finite difference gradient
-    batch_size = 1
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
@@ -1016,7 +1022,9 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check gradients w.r.t y, z, gamma
     y.requires_grad_(True)
     z = torch.randn_like(x).requires_grad_(True)
-    gamma = torch.tensor(0.4, dtype=dtype, requires_grad=True)
+    gamma = (
+        torch.rand((batch_size,), dtype=dtype, device=device, requires_grad=True) + 0.1
+    )
     init = torch.zeros_like(z).requires_grad_(False)
 
     # This check can be quite slow since it needs to compute finite differences in all directions
