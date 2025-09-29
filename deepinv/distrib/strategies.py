@@ -8,7 +8,7 @@ distributed signal processing, including splitting, batching, and reduction oper
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence
 import torch
-
+from .utils import extract_and_pad_patch, tiling_splitting_strategy, tiling2d_reduce_fn
 Index = tuple[slice, ...]
 
 
@@ -304,12 +304,11 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
     def _compute_tiling(self):
         """Compute tiling layout using existing utils."""
-        from .utils import tiling_splitting_strategy
 
         # Get image dimensions (assume 2D tiling on last two dimensions)
         H = self.signal_shape[self.hw_dims[0]]
         W = self.signal_shape[self.hw_dims[1]]
-        
+
         # Check if patch size is larger than image dimensions
         if self.patch_size >= max(H, W):
             # Handle oversized patch case
@@ -380,7 +379,6 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         self, X: torch.Tensor, local_indices: list[int]
     ) -> list[tuple[int, torch.Tensor]]:
         """Extract and pad local patches."""
-        from .utils import extract_and_pad_patch
 
         patches = []
         for idx in local_indices:
@@ -489,8 +487,6 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
     ) -> None:
         """Reduce patches using tiling metadata."""
-        from .utils import tiling2d_reduce_fn
-
         tiling2d_reduce_fn(out_tensor, local_pairs, self._metadata)
 
     def get_num_patches(self) -> int:

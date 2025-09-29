@@ -86,111 +86,15 @@ def extract_and_pad_patch(
                 try:
                     piece = F.pad(piece, pad=safe_pad_spec, mode=pad_mode)
                 except RuntimeError as e:
-                    # If padding still fails, skip padding and warn
-                    print(f"Warning: Padding failed for patch {idx}, skipping padding. Error: {e}")
+                    raise RuntimeError(f"Padding failed for patch {idx}: {e}")
             else:
                 # For 1D or scalar tensors, apply padding as-is if possible
                 try:
                     piece = F.pad(piece, pad=pad_spec, mode=pad_mode)
                 except RuntimeError as e:
-                    print(f"Warning: Padding failed for patch {idx}, skipping padding. Error: {e}")
+                    raise RuntimeError(f"Padding failed for patch {idx}: {e}")
 
     return piece
-
-
-def no_batching_strategy(
-    patches: list[torch.Tensor],
-) -> tuple[list[torch.Tensor], Callable[[list[torch.Tensor]], list[torch.Tensor]]]:
-    """
-    No batching strategy - returns patches as-is and an identity unpacking function.
-
-    Parameters
-    ----------
-    patches : List[torch.Tensor]
-        List of patches to process
-
-    Returns
-    -------
-    Tuple[List[torch.Tensor], Callable]
-        (batched_patches, unpack_fn) where batched_patches is the same as input
-        and unpack_fn extracts individual results from the processed batch
-    """
-
-    def unpack_fn(results: list[torch.Tensor]) -> list[torch.Tensor]:
-        return results
-
-    return patches, unpack_fn
-
-
-def uniform_batching_strategy(
-    patches: list[torch.Tensor],
-) -> tuple[list[torch.Tensor], Callable[[list[torch.Tensor]], list[torch.Tensor]]]:
-    """
-    Uniform batching strategy - combines all patches into a single batch tensor.
-
-    This assumes all patches have the same shape (after padding).
-
-    Parameters
-    ----------
-    patches : List[torch.Tensor]
-        List of uniform-shaped patches
-
-    Returns
-    -------
-    Tuple[List[torch.Tensor], Callable]
-        (batched_patches, unpack_fn) where batched_patches contains one batch tensor
-        and unpack_fn splits the result back into individual patches
-    """
-    if not patches:
-        return [], lambda x: []
-
-    # Verify all patches have the same shape
-    expected_shape = patches[0].shape
-    for i, patch in enumerate(patches):
-        if patch.shape != expected_shape:
-            raise RuntimeError(
-                f"Patch {i} has shape {patch.shape}, expected {expected_shape}"
-            )
-
-    # Combine into batch
-    batch = torch.cat(patches, dim=0)
-
-    def unpack_fn(results: list[torch.Tensor]) -> list[torch.Tensor]:
-        if len(results) != 1:
-            raise RuntimeError(f"Expected 1 batch result, got {len(results)}")
-
-        result_batch = results[0]
-        if result_batch.shape[0] != len(patches):
-            raise RuntimeError(
-                f"Result batch size {result_batch.shape[0]} != expected {len(patches)}"
-            )
-
-        # Split back into individual patches, keeping the original batch dimension
-        return [result_batch[i : i + 1] for i in range(len(patches))]
-
-        return [batch], unpack_fn
-
-
-def get_batching_strategy(strategy_name: str) -> Callable:
-    """
-    Get a batching strategy function by name.
-
-    Parameters
-    ----------
-    strategy_name : str
-        Name of the batching strategy ('uniform', 'no_batching')
-
-    Returns
-    -------
-    Callable
-        The batching strategy function
-    """
-    if strategy_name == "uniform":
-        return uniform_batching_strategy
-    elif strategy_name == "no_batching":
-        return no_batching_strategy
-    else:
-        raise ValueError(f"Unknown batching strategy: {strategy_name}")
 
 
 def _normalize_hw_args(
