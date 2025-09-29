@@ -214,20 +214,12 @@ The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/da
 The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods.
 These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective], including distortion [@zhang2018unreasonable] and perceptual [@blau2018perception] metrics.
 
-# Philosophy
 
-### Coding Practices
-
-DeepInverse is written in Python following modern test-driven practices.
-The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
-and is compliant with PEP8 using `black`. We adopt an object-oriented framework
-where base classes provide abstract functionality and interfaces,
-subclasses provide specific method implementations or special cases, reducing code duplication, facilitating users to implement new or specialized functionality while inheriting existing methods.
-
-### Documentation
+# Documentation, Testing, and Coding Practices
 
 The library provides a [**user guide**](https://deepinv.github.io/deepinv/user_guide.html), which also serves as a tutorial on computational imaging, [quickstart](https://deepinv.github.io/deepinv/quickstart.html) and in-depth [**examples**](https://deepinv.github.io/deepinv/auto_examples/index.html) for all levels of user, and individual [API documentation](https://deepinv.github.io/deepinv/API.html)
 for classes. The documentation is generated using Sphinx and Sphinx-Gallery [@najera2023sphinxgallery], tested using `doctest`, and uses consistent mathematical notation throughout.
+DeepInverse is written in Python following modern test-driven practices, see [contributing guidelines](https://deepinv.github.io/deepinv/contributing.html) for more information.
 
 # Research Use
 
