@@ -1,8 +1,8 @@
+from __future__ import annotations
 import torch.nn as nn
 from torch import Tensor
 from .base import GeneratorLoss
 from deepinv.physics import Physics
-from typing import Optional
 
 
 class UAIRGeneratorLoss(GeneratorLoss):
@@ -42,7 +42,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
         self,
         weight_adv: float = 0.5,
         weight_mc: float = 1,
-        metric: Optional[nn.Module] = None,
+        metric: nn.Module | None = None,
         D: nn.Module = None,
         device="cpu",
     ):

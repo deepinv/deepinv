@@ -981,7 +981,6 @@ def test_out_dir_collision_detection(
 
                 trainer.train()
 
-
 def test_trainer_speed(device):
     if device == torch.device("cpu"):
         pytest.skip("Skip speed test on CPU")
@@ -1044,3 +1043,53 @@ def test_trainer_speed(device):
 
     # 30% overhead allowed
     assert time_trainer/time_naive < 1.3
+    
+@pytest.mark.parametrize("model_performance", [40.0])
+@pytest.mark.parametrize("learning_free_performance", [20.0])
+def test_trained_model_not_used_for_no_learning_metrics(
+    dummy_dataset,
+    imsize,
+    device,
+    dummy_model,
+    tmpdir,
+    model_performance,
+    learning_free_performance,
+):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    metric = dinv.loss.PSNR()
+    trainer = dinv.Trainer(
+        model,
+        device=device,
+        save_path=tmpdir,
+        verbose=True,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=2,
+        losses=dinv.loss.SupLoss(),
+        metrics=metric,
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        online_measurements=True,
+        check_grad=True,
+    )
+
+    with patch.object(metric, "forward") as m:
+        trained_model = model
+
+        def fake_forward(x, y, physics=None, model=None, **kwargs):
+            if model is trained_model:
+                return torch.tensor(model_performance, device=device)
+            else:
+                return torch.tensor(learning_free_performance, device=device)
+
+        m.side_effect = fake_forward
+        metrics = trainer.test(dataloader)
+
+        assert math.isclose(metrics["PSNR"], model_performance)
+        assert math.isclose(metrics["PSNR no learning"], learning_free_performance)

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -31,7 +31,7 @@ class SupLoss(Loss):
         which is set as the mean squared error by default.
     """
 
-    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None):
+    def __init__(self, metric: Metric | torch.nn.Module | None = None):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
