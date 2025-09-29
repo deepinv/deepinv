@@ -161,10 +161,11 @@ class SinMLP(nn.Module):
             for layer in self.layers:
                 nn.init.uniform_(
                     layer.weight,
-                    -math.sqrt(6 / layer.in_features) / self.layer.omega_0,
-                    math.sqrt(6 / layer.in_features) / self.layer.omega_0,
+                    -math.sqrt(6 / layer.in_features) / self.activation.omega0,
+                    math.sqrt(6 / layer.in_features) / self.activation.omega0,
                 )
-                nn.init.zeros_(layer.bias)
+                if self.bias:
+                    nn.init.zeros_(layer.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         for layer in self.layers[:-1]:

@@ -1253,6 +1253,7 @@ def test_siren_net(device):
         bias={"encoding": False, "siren": False},
         device=device,
     )
+    siren.siren.init_weights()
     x = dinv.models.siren.get_mgrid((32, 32)).to(device)
     assert x.min() == -1 and x.max() == 1
     assert (siren.pe(x) == -siren.pe(-x)).all()
