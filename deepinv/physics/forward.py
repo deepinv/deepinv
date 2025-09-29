@@ -6,7 +6,6 @@ import inspect
 import collections.abc
 
 import torch
-import torch.distributed as dist
 from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
