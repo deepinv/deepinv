@@ -884,7 +884,12 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_valid"]
+least_squares_physics = [
+    "inpainting",
+    "super_resolution_circular",
+    "deblur_valid",
+    "MultiCoilMRI",
+]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
@@ -940,10 +945,10 @@ DTYPES = [torch.float32, torch.complex64]
 
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_linear_system(device, solver, dtype):
+def test_linear_system(device, solver, dtype, rng):
     # test the solution of linear systems with random matrices
     batch_size = 2
-    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
         mat = mat.adjoint() @ mat
@@ -954,7 +959,7 @@ def test_linear_system(device, solver, dtype):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T

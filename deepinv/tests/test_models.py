@@ -991,6 +991,13 @@ def test_restoration_models(
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 
+    if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
+        # Test backward pass
+        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        l.backward()
+    else:
+        pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
+
 
 def test_pannet():
     hrms_shape = (8, 16, 16)  # C,H,W
