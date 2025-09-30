@@ -900,11 +900,16 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         # Save tensors only
         gamma_orig_shape = gamma.shape
-        # For broadcasting with other tensors
-        if gamma.ndim > 0:
-            gamma = gamma.view(
-                -1, *[1] * (y.ndim - 1)
-            )  # reshape for broadcasting if needed
+        # For broadcasting with other tensors. Note we already have checked gamma shapes
+        # in forward, so the following is just for gamma batched but not shaped.
+        if gamma.ndim == 1:
+            if isinstance(solution, TensorList):
+                ndim = solution[0].ndim
+            else:
+                ndim = solution.ndim
+
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+
         ctx.save_for_backward(solution, y, z, gamma)
         # Save other non-tensor contexts
         ctx.physics = physics
