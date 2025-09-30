@@ -20,7 +20,7 @@ class Bregman(Potential):
         :param torch.Tensor x: Left variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Right variable :math:`y` at which the divergence is computed.
 
-        :return: (torch.tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y  \rangle`.
+        :return: (torch.Tensor) divergence :math:`h(x) - h(y) - \langle \nabla h(y), x-y  \rangle`.
         """
         return (
             self(x, *args, **kwargs)
@@ -38,7 +38,7 @@ class Bregman(Potential):
         :param torch.Tensor x: Variable :math:`x` at which the step is performed.
         :param torch.Tensor grad: Gradient of the minimized function at :math:`x`.
         :param float gamma: Step size.
-        :return: (torch.tensor) updated variable :math:`x`.
+        :return: (torch.Tensor) updated variable :math:`x`.
         """
         return self.grad_conj(self.grad(x, *args, **kwargs) - gamma * grad)
 
@@ -57,7 +57,7 @@ class BregmanL2(Bregman):
         Computes the L2 norm potential :math:`\phi(x) = \frac{1}{2} \|x\|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`h(x)`.
+        :return: (torch.Tensor) potential :math:`h(x)`.
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
@@ -66,7 +66,7 @@ class BregmanL2(Bregman):
         Computes the convex conjugate potential :math:`\phi^*(y) = \frac{1}{2} \|y\|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
@@ -75,7 +75,7 @@ class BregmanL2(Bregman):
         Calculates the gradient of the L2 norm :math:`\nabla \phi(x) = x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return x
 
@@ -84,7 +84,7 @@ class BregmanL2(Bregman):
         Calculates the gradient of the conjugate of the L2 norm :math:`\nabla \phi^*(x) = x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return x
 
@@ -95,7 +95,7 @@ class BregmanL2(Bregman):
         :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
 
-        :return: (torch.tensor) divergence :math:`\phi(x) - \phi(y) - \langle \nabla \phi(y), x-y`.
+        :return: (torch.Tensor) divergence :math:`\phi(x) - \phi(y) - \langle \nabla \phi(y), x-y`.
         """
         return 0.5 * torch.sum((x - y).reshape(x.shape[0], -1) ** 2, dim=-1)
 
@@ -117,7 +117,7 @@ class BurgEntropy(Bregman):
         The input :math:`x` must be postive.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`h(x)`.
+        :return: (torch.Tensor) potential :math:`h(x)`.
         """
         return -torch.sum(torch.log(x).reshape(x.shape[0], -1), dim=-1)
 
@@ -127,7 +127,7 @@ class BurgEntropy(Bregman):
         The input :math:`x` must be negative.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         n = torch.shape(x.reshape(x.shape[0], -1))[-1]
         return -torch.sum(torch.log(-x).reshape(x.shape[0], -1), dim=-1) - n
@@ -137,7 +137,7 @@ class BurgEntropy(Bregman):
         Calculates the gradient of Burg's entropy :math:`\nabla \phi(x) = - 1 / x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return -1 / x
 
@@ -146,7 +146,7 @@ class BurgEntropy(Bregman):
         Calculates the gradient of the conjugate of Burg's entropy :math:`\nabla h^*(x) = - 1 / x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         return -1 / x
 
@@ -167,7 +167,7 @@ class NegEntropy(Bregman):
         The input :math:`x` must be postive.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`\phi(x)`.
+        :return: (torch.Tensor) potential :math:`\phi(x)`.
         """
         return torch.sum((x * torch.log(x)).reshape(x.shape[0], -1), dim=-1)
 
@@ -177,7 +177,7 @@ class NegEntropy(Bregman):
         The input :math:`x` must be negative.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         return torch.sum(torch.exp(x - 1).reshape(x.shape[0], -1), dim=-1)
 
@@ -186,7 +186,7 @@ class NegEntropy(Bregman):
         Calculates the gradient of negative entropy :math:`\nabla \phi(x) = 1 + \log x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi`, computed in :math:`x`.
         """
         return 1 + torch.log(x)
 
@@ -195,7 +195,7 @@ class NegEntropy(Bregman):
         Calculates the gradient of the conjugate of negative entropy :math:`\nabla \phi^*(x) = 1 + \log x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \phi^*`, computed in :math:`x`.
         """
         return torch.exp(x - 1)
 
@@ -215,7 +215,7 @@ class Bregman_ICNN(Bregman):
         Computes the Bregman potential.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) potential :math:`\phi(x)`.
+        :return: (torch.Tensor) potential :math:`\phi(x)`.
         """
         return self.forw_model(x)
 
@@ -224,7 +224,7 @@ class Bregman_ICNN(Bregman):
         Computes the convex conjugate potential.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`\phi^*(y)`.
         """
         if self.conj_model is not None:
             return self.conj_model(x)

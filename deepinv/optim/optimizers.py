@@ -65,7 +65,7 @@ class BaseOptim(Reconstructor):
     By default, the intial iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
     Custom initialization can be defined with the ``custom_init`` class argument or via ``init`` argument in the ``forward`` method.
     In both cases, the custom intialization can be either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-    The output of the function or the fixed initialization should either be a tuple :math:`(x_0, z_0)`, a torch.tensor :math:`x_0` (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables.
+    The output of the function or the fixed initialization should either be a tuple :math:`(x_0, z_0)`, a torch.Tensor :math:`x_0` (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables.
 
     The variable ``data_fidelity`` is a list of instances of :class:`deepinv.optim.DataFidelity` (or a single instance).
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
@@ -160,10 +160,10 @@ class BaseOptim(Reconstructor):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
         The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`,
-        a torch.tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+        a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param Callable get_output: get the image output given the current dictionary update containing primal
@@ -425,7 +425,7 @@ class BaseOptim(Reconstructor):
         By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.
         A custom initialization is possible via the ``custom_init`` class argument or via the ``init`` argument in the ``forward`` method.
 
-        :param torch.tensor y: measurement vector.
+        :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
@@ -446,7 +446,7 @@ class BaseOptim(Reconstructor):
                 init_X = init
             else:
                 raise ValueError(
-                    f"Custom initial iterate must be a torch.tensor, a tuple, or a dict. Got {type(self.custom_init)}."
+                    f"Custom initial iterate must be a torch.Tensor, a tuple, or a dict. Got {type(self.custom_init)}."
                 )
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
@@ -475,7 +475,7 @@ class BaseOptim(Reconstructor):
         computed for batch i, at iteration j.
 
         :param dict X_init: dictionary containing the primal and auxiliary initial iterates.
-        :param torch.tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
         init = {}
@@ -505,7 +505,7 @@ class BaseOptim(Reconstructor):
         :param dict metrics: dictionary containing the metrics. Each metric is computed for each batch.
         :param dict X_prev: dictionary containing the primal and dual previous iterates.
         :param dict X: dictionary containing the current primal and dual iterates.
-        :param torch.tensor x_gt: ground truth image, required for PSNR computation. Default: None.
+        :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: None.
         :return dict: a dictionary containing the updated metrics.
         """
         if metrics is not None:
@@ -607,7 +607,7 @@ class BaseOptim(Reconstructor):
         to compute the gradient of the fixed point operator with respect to the input.
 
         :param dict X: dictionary defining the current update at the equilibrium point.
-        :param torch.tensor y: measurement vector.
+        :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
         """
 
@@ -684,17 +684,17 @@ class BaseOptim(Reconstructor):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
-        :param torch.tensor y: measurement vector.
+        :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
-        :param Callable, torch.tensor, tuple init:  initialization of the algorithm.
+        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
         if ``None`` (and the class ``custom_init``argument is ``None``), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
         Either a Callable function of the form ``init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
-        :param torch.tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
         :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)
         :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
-                Else, returns (torch.tensor, dict) the output of the algorithm and the metrics.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         train_context = (
             torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
@@ -1016,9 +1016,9 @@ class DRS(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm. 
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1128,9 +1128,9 @@ class GradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1261,9 +1261,9 @@ class HQS(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm. 
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
@@ -1393,9 +1393,9 @@ class ProximalGradientDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
@@ -1524,9 +1524,9 @@ class FISTA(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm. 
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
@@ -1631,9 +1631,9 @@ class MirrorDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm. 
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1736,9 +1736,9 @@ class ProximalMirrorDescent(BaseOptim):
     :param float gamma_backtracking: parameter :math:`\gamma` for the backtracking condition. Default: ``0.1``.
     :param float eta_backtracking: parameter :math:`\eta` for the backtracking stepsize update. Default: ``0.9``.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.tensor, tuple custom_init:  initialization of the algorithm. 
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
         Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
         If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
