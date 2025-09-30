@@ -14,6 +14,7 @@ from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
@@ -568,7 +569,7 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
+        if not isinstance(data, (tuple, list)) or len(data) < 2:
             raise ValueError(
                 "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
@@ -586,13 +587,18 @@ class Trainer:
                 "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
             )
 
-        if type(x) is list or type(x) is tuple:
-            x = [s.to(self.device) for s in x]
+        batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
+        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
+
+        if batch_size_x != batch_size_y:  # pragma: no cover
+            raise ValueError(
+                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+            )
+
+        if torch.isnan(x).all() and x.ndim <= 1:
+            x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
             x = x.to(self.device)
-
-        if x.numel() == 1 and torch.isnan(x):
-            x = None  # unsupervised case
 
         y = y.to(self.device)
         physics = self.physics[g]
