@@ -693,7 +693,7 @@ class BaseOptim(Reconstructor):
         :param torch.tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
         :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)
-        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.tensor`) the output of the algorithm.
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
                 Else, returns (torch.tensor, dict) the output of the algorithm and the metrics.
         """
         train_context = (
