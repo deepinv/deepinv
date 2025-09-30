@@ -531,6 +531,7 @@ def dummy_model(device):
 @pytest.mark.parametrize("measurements", [True, False])
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("generate_params", [True, False])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_dataloader_formats(
     non_blocking_plots,
     imsize,
@@ -540,6 +541,7 @@ def test_dataloader_formats(
     ground_truth,
     measurements,
     online_measurements,
+    batch_size,
     rng,
     tmpdir,
 ):
@@ -597,7 +599,7 @@ def test_dataloader_formats(
 
     model = dummy_model
     dataset = DummyDataset()
-    dataloader = DataLoader(dataset, batch_size=1)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
     physics = dinv.physics.Inpainting(img_size=imsize, mask=1.0, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
@@ -614,7 +616,7 @@ def test_dataloader_formats(
         epochs=1,
         physics=physics,
         physics_generator=generator2,
-        metrics=dinv.loss.MCLoss(),
+        metrics=dinv.metric.PSNR(),
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
