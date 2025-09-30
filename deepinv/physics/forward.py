@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Optional, Callable
+from typing import Callable
 import warnings
 import copy
 import inspect
@@ -10,8 +10,9 @@ from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
-from deepinv.optim.utils import least_squares, lsqr
+from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -45,7 +46,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(
         self,
         A: Callable = lambda x, **kwargs: x,
-        noise_model: Optional[NoiseModel] = None,
+        noise_model: NoiseModel | None = None,
         sensor_model: Callable = lambda x: x,
         solver: str = "gradient_descent",
         max_iter: int = 50,
@@ -355,6 +356,7 @@ class LinearPhysics(Physics):
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
 
     |sep|
 
@@ -417,6 +419,7 @@ class LinearPhysics(Physics):
         max_iter=50,
         tol=1e-4,
         solver="lsqr",
+        implicit_backward_solver: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -430,6 +433,13 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
         self.img_size = img_size
+        self.implicit_backward_solver = implicit_backward_solver
+
+        _lstsq_conv_iter = 20  # heuristic number of iterations for convergence
+        if self.implicit_backward_solver and self.max_iter < _lstsq_conv_iter:
+            warnings.warn(
+                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
+            )
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -643,22 +653,37 @@ class LinearPhysics(Physics):
         if solver is not None:
             self.solver = solver
 
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            solver=solver,
-            gamma=gamma,
-            verbose=verbose,
-            init=z,
-            z=z,
-            parallel_dim=[0],
-            ATA=self.A_adjoint_A,
-            AAT=self.A_A_adjoint,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                init=z,
+                z=z,
+                parallel_dim=[0],
+                ATA=self.A_adjoint_A,
+                AAT=self.A_A_adjoint,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=z,
+                init=z,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                parallel_dim=[0],
+                **kwargs,
+            )
 
     def A_dagger(
         self, y, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
@@ -679,20 +704,34 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
-
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            parallel_dim=[0],
-            AAT=self.A_A_adjoint,
-            verbose=verbose,
-            ATA=self.A_adjoint_A,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            solver=self.solver,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                parallel_dim=[0],
+                AAT=self.A_A_adjoint,
+                verbose=verbose,
+                ATA=self.A_adjoint_A,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=None,
+                init=None,
+                parallel_dim=[0],
+                gamma=1e8,  # Large gamma to approximate A_dagger
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
 
 
 class ComposedPhysics(Physics):
@@ -801,7 +840,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
+def compose(*physics: Physics | LinearPhysics, **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
@@ -1111,7 +1150,7 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: Optional[NoiseModel] = None, **kwargs):
+    def __init__(self, noise_model: NoiseModel | None = None, **kwargs):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
         super().__init__(noise_model=noise_model, **kwargs)
@@ -1180,7 +1219,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return Adjoint.apply
 
 
-def stack(*physics: Union[Physics, LinearPhysics]):
+def stack(*physics: Physics | LinearPhysics):
     r"""
     Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 

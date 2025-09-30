@@ -1,8 +1,8 @@
+from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Union
 from types import MappingProxyType
 from functools import partial
 from warnings import warn
@@ -18,6 +18,8 @@ from PIL import Image
 from deepinv.utils.signal import normalize_signal, complex_abs
 
 _DEFAULT_PLOT_FONTSIZE = 17
+_ENABLE_TEX = True  # Force enable/disable
+_CHECKED_TEX = False  # Whether checked tex problems
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -31,9 +33,41 @@ def get_default_plot_fontsize() -> int:
     return _DEFAULT_PLOT_FONTSIZE
 
 
+def disable_tex():
+    """Globally disable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = False
+
+
+def enable_tex():
+    """Globally enable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = True
+
+
+def get_enable_tex() -> bool:
+    """Get whether LaTeX is globally enabled"""
+    return _ENABLE_TEX
+
+
+def set_checked_tex(checked: bool):
+    """Set whether tex has been globally checked already."""
+    global _CHECKED_TEX
+    _CHECKED_TEX = checked
+
+
+def get_checked_tex() -> bool:
+    """Get whether tex has been globally checked already."""
+    return _CHECKED_TEX
+
+
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     import matplotlib.pyplot as plt
+    from matplotlib.texmanager import TexManager
+
+    global _CHECKED_TEX
+    global _ENABLE_TEX
 
     if fontsize is None:
         fontsize = get_default_plot_fontsize()
@@ -41,10 +75,27 @@ def config_matplotlib(fontsize=17):
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
-    plt.rcParams["text.latex.preamble"] = (
-        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
-    )
+
+    # If plot gives TeX errors, force disable TeX globally
+    # If no latex, then skip check
+    if not get_checked_tex() and shutil.which("latex"):
+        try:
+            TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
+        except RuntimeError as e:
+            if "latex was not able to process" in str(e).lower():
+                disable_tex()
+            else:
+                raise
+
+    # If no errors, don't check again
+    set_checked_tex(True)
+
+    if shutil.which("latex") and get_enable_tex():
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    else:
+        plt.rcParams["text.usetex"] = False
+        plt.rcParams["text.latex.preamble"] = ""
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -220,6 +271,7 @@ def plot(
     axs=None,
     return_fig=False,
     return_axs=False,
+    **imshow_kwargs,
 ):
     r"""
     Plots a list of images.
@@ -274,6 +326,8 @@ def plot(
     :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
+    :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
+        `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
     import matplotlib.pyplot as plt
 
@@ -326,7 +380,9 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            im = axs[r, i].imshow(
+                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+            )
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -640,10 +696,10 @@ def plot_inset(
     fig=None,
     axs=None,
     labels: list[str] = (),
-    label_loc: Union[tuple, list] = (0.03, 0.03),
-    extract_loc: Union[tuple, list] = (0.0, 0.0),
+    label_loc: tuple | list = (0.03, 0.03),
+    extract_loc: tuple | list = (0.0, 0.0),
     extract_size: float = 0.2,
-    inset_loc: Union[tuple, list] = (0.0, 0.5),
+    inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
     return_fig: bool = False,
     return_axs=False,
@@ -819,8 +875,8 @@ def plot_inset(
 
 
 def plot_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
@@ -940,8 +996,8 @@ def plot_videos(
 
 
 def save_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     figsize: tuple[int] = None,

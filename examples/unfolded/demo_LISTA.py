@@ -195,7 +195,6 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
 train_batch_size = 128 if torch.cuda.is_available() else 2
@@ -237,7 +236,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 model = trainer.train()

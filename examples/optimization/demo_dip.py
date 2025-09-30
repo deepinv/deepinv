@@ -116,3 +116,8 @@ plot(
 )
 
 # %%
+
+# %%
+# :References:
+#
+# .. footbibliography::

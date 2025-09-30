@@ -5,7 +5,6 @@ Vanilla Unfolded algorithm for super-resolution
 This is a simple example to show how to use vanilla unfolded Plug-and-Play.
 The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
 For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
-For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 """
 
 import deepinv as dinv
@@ -134,7 +133,6 @@ trainable_params = [
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
 model = unfolded_builder(
@@ -198,7 +196,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 model = trainer.train()

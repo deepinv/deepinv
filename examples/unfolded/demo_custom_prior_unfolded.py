@@ -164,7 +164,6 @@ data_fidelity = L2()
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
 model = ProximalGradientDescent(
@@ -224,7 +223,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 

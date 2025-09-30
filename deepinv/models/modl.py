@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 from torch.nn import Module
 
 from deepinv.optim.prior import PnP
@@ -23,7 +23,7 @@ class MoDL(BaseOptim):
 
     def __init__(
         self,
-        denoiser: Union[Denoiser, Module] = None,
+        denoiser: Denoiser | Module = None,
         num_iter: int = 3,
     ):
         # Select the data fidelity term

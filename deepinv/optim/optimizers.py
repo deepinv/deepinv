@@ -184,6 +184,7 @@ class BaseOptim(Reconstructor):
     :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
+    :param bool show_progress_bar: show progress bar during optimization.
     :return: a torch model that solves the optimization problem.
     """
 
@@ -217,6 +218,7 @@ class BaseOptim(Reconstructor):
         DEQ_history_size_backward=5,
         DEQ_beta_anderson_acc_backward=1.0,
         DEQ_eps_anderson_acc_backward=1e-4,
+        show_progress_bar=False,
         verbose=False,
         device=torch.device("cpu"),
         **kwargs,
@@ -226,6 +228,7 @@ class BaseOptim(Reconstructor):
         self.early_stop = early_stop
         self.crit_conv = crit_conv
         self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
         self.max_iter = max_iter
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
@@ -363,7 +366,8 @@ class BaseOptim(Reconstructor):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
-            verbose=verbose,
+            verbose=self.verbose,
+            show_progress_bar=self.show_progress_bar,
         )
 
         from deepinv.loss.metric.distortion import PSNR

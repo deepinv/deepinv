@@ -175,10 +175,13 @@ def test_tensorlist_methods(tensorlist):
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
 @pytest.mark.parametrize("length", [1, 2, 3, 4, 5])
-def test_dirac_like(shape, length):
-    rng = torch.Generator().manual_seed(0)
-    x = [torch.randn(shape, generator=rng) for _ in range(length)]
+def test_dirac_like(shape, length, device):
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = [torch.randn(shape, generator=rng, device=device) for _ in range(length)]
     h = deepinv.utils.dirac_like(x)
+
+    assert h.device == x[0].device
+
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
@@ -660,6 +663,57 @@ def test_get_GSPnP_params(operation, noise_level_img):
         assert max_iter > 0, "Max iterations should be positive."
 
 
+@pytest.mark.parametrize("to_float", [float, np.float32, np.float64])
+def test_AverageMeter(to_float):
+    rng = torch.Generator().manual_seed(0)
+    vals = torch.randn(10, generator=rng)
+
+    meter = deepinv.utils.AverageMeter("DummyValue", fmt=":f")
+    for val in vals:
+        meter.update(to_float(val.item()))
+
+    # Check that the aggregates are correct
+    assert math.isclose(meter.val, vals[-1].item()), "Current value is incorrect."
+    assert math.isclose(
+        meter.avg, vals.mean().item(), rel_tol=1e-5
+    ), "Average value is incorrect."
+    assert math.isclose(
+        meter.sum, vals.sum().item(), rel_tol=1e-5
+    ), "Sum value is incorrect."
+    assert meter.count == len(vals), "Count value is incorrect."
+    assert math.isclose(
+        meter.std, vals.std(correction=0).item(), rel_tol=1e-5
+    ), "Std value is incorrect."
+    assert math.isclose(
+        meter.sum2, (vals**2).sum().item(), rel_tol=1e-5
+    ), "Sum2 value is incorrect."
+    assert all(
+        math.isclose(a, b, rel_tol=1e-10)
+        for a, b in zip_strict(meter.vals, vals.tolist())
+    ), "Retained values are incorrect."
+
+    # Scalar aggregates should be instances of the builtin float type
+    scalar_attr_names = [
+        "val",
+        "avg",
+        "sum",
+        "count",
+        "std",
+        "sum2",
+    ]
+    for attr_name in scalar_attr_names:
+        attr_val = getattr(meter, attr_name)
+        assert (
+            type(attr_val) == float
+        ), f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
+
+    # The list of retained values should only contain (exact) float instances
+    for val in meter.vals:
+        assert (
+            type(val) == float
+        ), f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."
+
+
 @pytest.mark.parametrize("rng", [random.Random(0)])
 @pytest.mark.parametrize("n_meters", [1, 2])
 @pytest.mark.parametrize("n_updates", [10])
@@ -902,3 +956,66 @@ def test_zip_strict_behavior(force_polyfill):
     assert (
         list(zip_strict(force_polyfill=force_polyfill)) == []
     ), "Empty input should yield empty output."
+
+
+@pytest.mark.parametrize("latex_exists", [True, False])
+def test_default_tex(latex_exists, monkeypatch):
+    import matplotlib.pyplot as plt
+    import shutil
+
+    monkeypatch.setattr(
+        "shutil.which", lambda cmd: ("/usr/bin/latex" if latex_exists else None)
+    )
+
+    # Test default
+    assert deepinv.utils.plotting.get_enable_tex()
+
+    # Check latex only called when latex installed
+    if shutil.which("latex"):
+        deepinv.utils.plotting.set_checked_tex(False)
+        deepinv.utils.enable_tex()
+        with patch(
+            "matplotlib.texmanager.TexManager.get_text_width_height_descent"
+        ) as mock_func:
+            # Test the tex checking allows other non-latex errors through
+            mock_func.side_effect = RuntimeError("something non-latex related")
+            with pytest.raises(RuntimeError, match="something non-latex related"):
+                deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            assert not deepinv.utils.plotting.get_checked_tex()  # not checked
+            assert deepinv.utils.plotting.get_enable_tex()  # still enabled
+
+            # Test the tex checking happens
+            mock_func.reset_mock()
+            mock_func.side_effect = RuntimeError("latex was not able to process")
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_called_once()
+            # The check should now have disabled tex
+            assert not deepinv.utils.plotting.get_enable_tex()
+            assert deepinv.utils.plotting.get_checked_tex()  # and also checked now
+
+            # Test that the check no longer happens
+            mock_func.reset_mock()
+            deepinv.utils.plotting.config_matplotlib()
+            mock_func.assert_not_called()
+
+    # Test disabling works
+    deepinv.utils.disable_tex()
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Test enabling works, even with plotting
+    deepinv.utils.enable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert deepinv.utils.plotting.get_enable_tex()
+    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+
+    # Test plot has no side effect
+    deepinv.utils.disable_tex()
+    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    assert not deepinv.utils.plotting.get_enable_tex()
+    assert not plt.rcParams["text.usetex"]
+
+    # Finish test by resetting to default values
+    deepinv.utils.plotting.set_checked_tex(False)
+    deepinv.utils.plotting.enable_tex()
