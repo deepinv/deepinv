@@ -1,4 +1,5 @@
 import pytest
+import warnings
 import math
 import numpy as np
 import torch
@@ -574,7 +575,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
 
     # Other checks for weighted-splitting
     if loss_name in ("weighted-splitting", "robust-splitting"):
-        assert loss.metric.weight.shape == (1, imsize[-1])  # 1D in W dim
+        assert loss.metric.weights[imsize[-1]].shape == (1, imsize[-1])  # 1D in W dim
         with pytest.raises(ValueError):
             # Weighted metric needs same shape inputs
             loss.metric(torch.ones_like(y), torch.ones(*y.shape[:-1], y.shape[-1] + 2))
@@ -614,6 +615,23 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     if loss_name in ("weighted-splitting", "robust-splitting"):
         with pytest.warns(UserWarning, match="Recalculating weight"):
             l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+        # Revert shape, shouldn't recalculate again
+        x = torch.ones((batch_size, *imsize), device=device)
+        new_mask = torch.ones_like(x)
+        new_maps = torch.ones(
+            batch_size, 4, x.shape[-2], x.shape[-1], dtype=torch.complex64
+        )
+        physics.update(mask=new_mask, coil_maps=new_maps)
+        y = physics(x)
+        x_net = f(y, physics, update_parameters=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "error", message=".*Recalculating.*", category=UserWarning
+            )
+            _ = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+        assert len(loss.metric.weights) == 2  # weight cache
     else:
         loss.metric = torch.nn.MSELoss()
         l = loss(x_net=x_net, y=y, physics=physics, model=f)
