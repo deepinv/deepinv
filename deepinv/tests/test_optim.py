@@ -884,7 +884,12 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_valid"]
+least_squares_physics = [
+    "inpainting",
+    "super_resolution_circular",
+    "deblur_valid",
+    "MultiCoilMRI",
+]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
