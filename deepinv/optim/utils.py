@@ -122,11 +122,11 @@ def least_squares(
     Aty = AT(y)
 
     if gamma.ndim > 0:  # if batched gamma
-        if isinstance(y, TensorList):
-            batch_size = y[0].size(0)
+        if isinstance(Aty, TensorList):
+            batch_size = Aty[0].size(0)
             ndim = Aty[0].ndim
         else:
-            batch_size = y.size(0)
+            batch_size = Aty.size(0)
             ndim = Aty.ndim
 
         if gamma.size(0) != batch_size:
