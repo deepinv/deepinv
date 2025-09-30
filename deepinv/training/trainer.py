@@ -454,7 +454,7 @@ class Trainer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.log_metrics_mlops(self, logs=logs, step=step, train=train)
+        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
     def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
         r"""
