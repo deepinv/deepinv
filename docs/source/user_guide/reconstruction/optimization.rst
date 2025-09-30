@@ -233,7 +233,7 @@ For example, we can create the same proximal gradient algorithm as the one at th
 .. doctest::
 
     >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
-    >>> x_hat = model(y, physics)
+    >>> x_hat = model(y, physics, init = init)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
@@ -287,16 +287,17 @@ Some predefined optimizers are provided:
 
 .. _optim-params:
 
-Parameters
+Optimization Parameters
 ~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
-stepsize, regularization parameter, standard deviation of denoiser prior, etc.
-are stored in a dictionary ``"params_algo"``, whose typical entries are:
+stepsize, regularization parameter, standard deviation of denoiser prior can be passed as arguments to the constructor of the optimization algorithm.
+Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters. 
+
 
 .. list-table::
    :header-rows: 1
 
-   * - Key
+   * - Parameters name
      - Meaning
      - Recommended Values
    * - ``"stepsize"``
@@ -305,7 +306,7 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
        | should be smaller than :math:`1/(\|A\|_2^2)`.
-   * - ``"lambda"``
+   * - ``"lambda_reg"``
      - | Regularization parameter :math:`\lambda`
        | multiplying the regularization term.
      - Should be positive.
