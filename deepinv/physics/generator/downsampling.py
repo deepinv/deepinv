@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
@@ -36,8 +36,8 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        filters: Union[str, list[str]] = ("gaussian", "bilinear", "bicubic"),
-        factors: Union[int, list[int]] = (2, 4),
+        filters: str | list[str] = ("gaussian", "bilinear", "bicubic"),
+        factors: int | list[int] = (2, 4),
         psf_size: tuple[int, int] = None,
         rng: torch.Generator = None,
         device: str = "cpu",
