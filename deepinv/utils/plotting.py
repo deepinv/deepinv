@@ -326,7 +326,8 @@ def plot(
     :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
-    :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` call.
+    :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` call. See
+        `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
     import matplotlib.pyplot as plt
 
