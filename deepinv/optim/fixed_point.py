@@ -227,7 +227,7 @@ class FixedPoint(nn.Module):
                     otherwise.
         """
         X = (
-            self.init_iterate_fn(*args, init=init, F_fn=self.iterator.F_fn)
+            self.init_iterate_fn(*args, init, F_fn=self.iterator.F_fn)
             if self.init_iterate_fn
             else None
         )
