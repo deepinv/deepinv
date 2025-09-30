@@ -88,7 +88,9 @@ def least_squares(
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
-    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to :math:`\infty` (no regularization).
+    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
+        If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
+        If None, it is set to :math:`\infty` (no regularization).
     :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
@@ -116,20 +118,27 @@ def least_squares(
                 "Otherwise, the problem can become non-convex and the solvers are not designed for that."
                 "Continuing anyway..."
             )
+
+    Aty = AT(y)
+
     if gamma.ndim > 0:  # if batched gamma
-        if isinstance(y, TensorList):
-            batch_size = y[0].size(0)
-            ndim = y[0].ndim
+        if isinstance(Aty, TensorList):
+            batch_size = Aty[0].size(0)
+            ndim = Aty[0].ndim
         else:
-            batch_size = y.size(0)
-            ndim = y.ndim
+            batch_size = Aty.size(0)
+            ndim = Aty.ndim
 
         if gamma.size(0) != batch_size:
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
-        else:  # ensure gamma has ndim as y
+        elif gamma.ndim == 1:  # expand gamma to ATy
             gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+        elif gamma.ndim != ndim:
+            raise ValueError(
+                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+            )
 
     if solver == "lsqr":  # rectangular solver
         eta = 1 / gamma if gamma_provided else None
@@ -146,7 +155,6 @@ def least_squares(
         )
 
     else:
-        Aty = AT(y)
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
