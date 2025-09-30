@@ -21,6 +21,10 @@ jobs:
         run: |
           pip install ruff
           ruff check
+      - name: Install and run basedpyright
+        run: |
+          pip install basedpyright
+          basedpyright deepinv
       - name: Check Python 3.9 backward compatibility
         run: |
           pip install vermin
