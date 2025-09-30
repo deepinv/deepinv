@@ -271,6 +271,7 @@ def plot(
     axs=None,
     return_fig=False,
     return_axs=False,
+    **imshow_kwargs,
 ):
     r"""
     Plots a list of images.
@@ -325,6 +326,8 @@ def plot(
     :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
+    :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
+        `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
     import matplotlib.pyplot as plt
 
@@ -377,7 +380,9 @@ def plot(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            im = axs[r, i].imshow(
+                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+            )
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
