@@ -236,6 +236,8 @@ For example, we can create the same proximal gradient algorithm as the one at th
     >>> x_hat = model(y, physics, init = init)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
+By default, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
+Custom initialization can be defined via the ``init`` argument in the ``forward`` method.
 
 Some predefined optimizers are provided:
 
@@ -288,7 +290,7 @@ Some predefined optimizers are provided:
 .. _optim-params:
 
 Optimization Parameters
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
 stepsize, regularization parameter, standard deviation of denoiser prior can be passed as arguments to the constructor of the optimization algorithm.
 Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters. 
