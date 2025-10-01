@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -22,12 +23,15 @@ def get_timestamp() -> str:
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 
 
+@dataclass
 class RunLogger(ABC):
     """
     Abstract base class for logging training runs.
 
     TODO
     """
+
+    log_dir: str
 
     @abstractmethod
     def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
