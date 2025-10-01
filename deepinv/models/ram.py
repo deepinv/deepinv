@@ -188,7 +188,7 @@ class RAM(Reconstructor, Denoiser):
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         gamma = gamma * self.fact_realign
         gamma = gamma.clamp(min=1e-8)  # clamp to avoid negative or zero gamma
-        model_input = physics.prox_l2(x, y, gamma=gamma * self.fact_realign)
+        model_input = physics.prox_l2(x, y, gamma=gamma)
 
         return model_input
 
