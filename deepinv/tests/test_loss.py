@@ -149,9 +149,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
     elif loss_name == "reducedresolution_manual_physics":
         loss.append(
             dinv.loss.ReducedResolutionLoss(
-                physics=dinv.physics.Inpainting(
-                    img_size=imsize, device=device, mask=0.8, rng=rng
-                )
+                physics=dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
             )
         )
     else:
