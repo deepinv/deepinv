@@ -207,7 +207,7 @@ model = loss.adapt_model(model)
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop=True` in the trainer.
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -232,7 +232,7 @@ trainer = dinv.Trainer(
     compute_losses_eval=True,  # use self-supervised loss for evaluation
     metrics=None,
     eval_dataloader=test_dataloader,
-    early_stop=True,  # early stop using the self-supervised loss on the test set
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     online_measurements=True,
     device=device,
     save_path=None,

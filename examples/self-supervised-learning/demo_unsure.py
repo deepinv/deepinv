@@ -156,7 +156,7 @@ print(f"INIT. noise level {loss.sigma2.sqrt().item():.3f}")
 #
 #       We can use the same self-supervised loss for evaluation (without updating the noise level, which is equivalent to SURE with the estimated noise level),
 #       as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop=True` in the trainer.
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -170,7 +170,7 @@ trainer = dinv.Trainer(
     losses=loss,
     compute_losses_eval=True,  # use self-supervised loss for evaluation
     metrics=None,  # no supervised metrics
-    early_stop=True,  # early stop using the self-supervised loss on the test set
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,

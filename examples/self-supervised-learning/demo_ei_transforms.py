@@ -111,7 +111,7 @@ physics = dinv.physics.Inpainting((3, 256, 256), mask=0.6, device=device)
 # .. tip::
 #
 #       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop=True` in the trainer.
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 model = dinv.models.UNet(
     in_channels=3, out_channels=3, scales=2, circular_padding=True, batch_norm=False
@@ -134,7 +134,7 @@ model = dinv.Trainer(
     epochs=1,
     losses=losses,
     metrics=None,  # no supervised metrics
-    early_stop=True,  # we can use early stopping as we have a validation set
+    early_stop=2,  # we can use early stopping as we have a validation set
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,
