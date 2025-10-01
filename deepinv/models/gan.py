@@ -333,6 +333,7 @@ class CSGMGenerator(Reconstructor):
             - 1
         )
 
+    @torch.enable_grad()
     def optimize_z(self, z: Tensor, y: Tensor, physics: Physics):
         r"""Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
 
@@ -343,26 +344,25 @@ class CSGMGenerator(Reconstructor):
         :param Physics physics: forward model
         :return: optimized latent z
         """
-        with torch.enable_grad():
-            z = nn.Parameter(z)
-            optimizer = Adam([z], lr=self.inf_lr)
-            err_prev = 999
+        z = nn.Parameter(z)
+        optimizer = Adam([z], lr=self.inf_lr)
+        err_prev = 999
 
-            pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
-            for i in pbar:
-                x_hat = self.backbone_generator(z)
-                error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
-                optimizer.zero_grad()
-                error.backward()
-                optimizer.step()
+        pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
+        for i in pbar:
+            x_hat = self.backbone_generator(z)
+            error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
+            optimizer.zero_grad()
+            error.backward()
+            optimizer.step()
 
-                err_curr = error.item()
-                err_perc = abs(err_curr - err_prev) / err_curr
-                err_prev = err_curr
-                pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
+            err_curr = error.item()
+            err_perc = abs(err_curr - err_prev) / err_curr
+            err_prev = err_curr
+            pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
 
-                if err_perc < self.inf_tol:
-                    break
+            if err_perc < self.inf_tol:
+                break
         return z
 
     def forward(self, y: Tensor, physics: Physics, *args, **kwargs):
