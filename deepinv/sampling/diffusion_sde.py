@@ -10,7 +10,7 @@ from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 from copy import deepcopy
-
+import scipy as sp
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
     """
@@ -122,7 +122,7 @@ class BaseSDE(nn.Module):
         raise NotImplementedError
 
 
-class BaseDiffusionSDE(BaseSDE):
+class ReverseSDE(BaseSDE):
     r"""
     Define the Reverse-time Diffusion Stochastic Differential Equation.
 
@@ -213,8 +213,166 @@ class BaseDiffusionSDE(BaseSDE):
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
         return t
     
+class EDMDiffusionSDE(ReverseSDE):
 
-class DiffusionSDE(BaseDiffusionSDE):
+    def __init__(
+        self,
+        sigma_t: Callable,
+        scale_t: Callable,
+        sigma_prime_t: Callable = None,
+        scale_prime_t: Callable = None,
+        variance_preserving: bool = False,
+        alpha: float = 1.0,
+        denoiser: nn.Module = None,
+        solver: BaseSDESolver = None,
+        dtype=torch.float64,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
+        self.sigma_t = sigma_t
+        self.variance_preserving = variance_preserving
+        if scale_t is None:
+            if variance_preserving:
+                def scale_t(t):
+                    self.handle_time_step(t)
+                    return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+            else:
+                raise ValueError("scale_t must be provided if variance_preserving is False")
+        self.scale_t = scale_t
+
+        if sigma_prime_t is None:
+            def sigma_prime_t(t):
+                t = torch.tensor(self._handle_time_step(t), requires_grad=True)
+                s = self.sigma_t(t)
+                s.backward()
+                return t.grad.item()
+        self.sigma_prime_t = sigma_prime_t
+
+        if scale_prime_t is None:
+            if variance_preserving:
+                def scale_prime_t(t):
+                    self.handle_time_step(t)
+                    return -0.5 * self.sigma_t(t) ** 2 * (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+            else:
+                def scale_prime_t(t):
+                    t = torch.tensor(self._handle_time_step(t), requires_grad=True)
+                    s = self.scale_t(t)
+                    s.backward()
+                    return t.grad.item()
+        self.scale_prime_t = scale_prime_t
+
+        
+
+        def forward_drift(x, t, *args, **kwargs):
+            return (scale_prime_t(t) / scale_t(t)) * x
+
+        def forward_diffusion(t):
+            return torch.sqrt(2 * scale_t(t)**2 * sigma_t(t) * sigma_prime_t(t))
+
+        super().__init__(
+            forward_drift=forward_drift,
+            forward_diffusion=forward_diffusion,
+            alpha=alpha,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
+        )
+
+    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+        sigma = self.sigma_t(t)
+        scale = self.scale_t(t)
+        x_in = ((x / scale) + 1) / 2
+        sigma_in = sigma / 2
+        denoised = self.denoiser(
+            x_in.to(torch.float32),
+            sigma_in.to(torch.float32),
+            *args,
+            **kwargs,
+        ).to(self.dtype)
+        denoised = scale * denoised
+        score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
+        return score
+
+
+
+class SongDiffusionSDE(EDMDiffusionSDE):
+    r"""
+    Generative diffusion Stochastic Differential Equation.
+
+    This class implements the diffusion generative SDE based the formulation from :footcite:t:`song2020score`:
+
+    .. math::
+        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha}{2} \xi(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha \xi(t)} d w_t
+
+    where :math:`\beta(t)` is a time-dependent linear drift, :math:`\xi(t)` is a time-dependent linear diffusion, and
+    :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
+
+    It corresponds to the reverse-time SDE of the following forward-time SDE:
+
+    .. math::
+        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\xi(t)} d w_t 
+
+    :param Callable beta_t: a time-dependent linear drift of the forward-time SDE.
+    :param Callable xi_t: a time-dependent linear diffusion of the forward-time SDE.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
+    :param float alpha: the weighting factor of the diffusion term.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: device on which the computation is performed.
+    :param \*args: additional arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+
+    """
+    def __init__(
+        self,
+        beta_t: Callable,
+        xi_t: Callable,
+        alpha: float = 1.0,
+        denoiser: nn.Module = None,
+        solver: BaseSDESolver = None,
+        dtype=torch.float64,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
+
+        def B_t(self, t: Union[Tensor, float]) -> Tensor:
+            t = t.item() if torch.is_tensor(t)
+            return sp.integrate.quad(self.beta_t, 0, t)[0]
+
+        def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+            return np.exp(-self.B_t(t))
+
+        def scale_prime_t(self, t: Union[Tensor, float]) -> Tensor:
+            return - self.beta_t(t) * self.scale_t(t)
+
+        def sigma_t(self, t: Tensor | float) -> Tensor:
+            return (2 * sp.integrate.quad(lambda s: self.xi_t(s) / (self.scale_t(s) ** 2), 0, t)[0]) ** 0.5
+
+        def sigma_prime_t(self, t: Union[Tensor, float]) -> Tensor:
+            return (self.xi_t(t) / (self.scale_t(t) ** 2)) * (1 / self.sigma_t(t))
+
+        super().__init__(
+            forward_drift=forward_drift,
+            forward_diffusion=forward_diffusion,
+            alpha=alpha,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
+        )
+
+
+
+class EDMDiffusionSDE(ReverseSDE):
 
     def __init__(
         self,
@@ -235,7 +393,7 @@ class DiffusionSDE(BaseDiffusionSDE):
 
         if scale_prime_t is None:
             def scale_prime_t(t):
-                t = torch.tensor(self._handle_time_step(t), dtype=torch.float32, requires_grad=True)
+                t = torch.tensor(self._handle_time_step(t), requires_grad=True)
                 s = self.scale_t(t)
                 s.backward()
                 return t.grad.item()
@@ -243,7 +401,7 @@ class DiffusionSDE(BaseDiffusionSDE):
 
         if sigma_prime_t is None:
             def sigma_prime_t(t):
-                t = torch.tensor(self._handle_time_step(t), dtype=torch.float32, requires_grad=True)
+                t = torch.tensor(self._handle_time_step(t), requires_grad=True)
                 s = self.sigma_t(t)
                 s.backward()
                 return t.grad.item()
@@ -281,7 +439,9 @@ class DiffusionSDE(BaseDiffusionSDE):
         denoised = scale * denoised
         score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
         return score
-    
+
+
+
 
 class VarianceExplodingDiffusion(DiffusionSDE):
 
@@ -347,34 +507,6 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     
 
 class PredCorVarianceExplodingDiffusion(VarianceExplodingDiffusion):
-    r"""
-    `Variance-Exploding Stochastic Differential Equation (VE-SDE) with Predictor-Corrector Sampling, as detailed in 
-
-    The forward-time SDE is defined as follows:
-
-    .. math::
-        d x_t = g(t) d w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
-
-    The reverse-time SDE is defined as follows:
-
-    .. math::
-        d x_t = -\frac{1 + \alpha}{2} \sigma_{\mathrm{min}}^2 \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^{2t} \nabla \log p_t(x_t) dt + \sqrt{\alpha} \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t d w_t
-
-    where :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
-
-    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
-
-    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t(x_t)`.
-    :param float sigma_min: the minimum noise level.
-    :param float sigma_max: the maximum noise level.
-    :param float alpha: the weighting factor of the diffusion term.
-    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
-    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
-        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
-        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
-    :param torch.device device: device on which the computation is performed.
-    """
-
     def _init__(
         self,
         sigma_min = 0.02,
