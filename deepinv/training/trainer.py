@@ -88,6 +88,10 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
+        # resume training from a training checkpoint
+        self.epoch_start = 0
+        self.load_ckpt(self.ckpt_pretrained)
+
         self._setup_data()
         self._setup_logging()
 
@@ -202,10 +206,6 @@ class Trainer:
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        # resume training from a training checkpoint
-        self.epoch_start = 0
-        self.load_ckpt(self.ckpt_pretrained)
-
         # Init logger specific for the Trainer
         self.train_logger = getLogger("train_logger")
 
@@ -246,14 +246,14 @@ class Trainer:
             state = {
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
-                "loss": self.loss_history,
                 "optimizer": self.optimizer.state_dict() if self.optimizer else None,
                 "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+                "loss": self.loss_history,
                 "val_metrics": self.val_metrics_history_per_epoch,
             }
 
-        for logger in self.loggers:
-            logger.log_checkpoint(epoch=epoch, state=state, name=name)
+            for logger in self.loggers:
+                logger.log_checkpoint(epoch=epoch, state=state, name=name)
 
     def load_ckpt(
         self,
@@ -269,19 +269,19 @@ class Trainer:
         self.ckpt_pretrained = ckpt_pretrained
 
         if self.ckpt_pretrained is not None:
-            # Load model weights from the checkpoint
+            # Load checkpoint from file
             checkpoint = torch.load(
                 self.ckpt_pretrained, map_location=self.device, weights_only=False
             )
+
+            self.epoch_start = checkpoint["epoch"] + 1
             self.model.load_state_dict(checkpoint["state_dict"], strict=True)
-            # This is optional, you can always start a training
-            # from pretrained weights without loading the optimizer / scheduler
-            if "optimizer" in checkpoint and self.optimizer is not None:
+
+            # TODO
+            if self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
-            if "scheduler" in checkpoint and self.scheduler is not None:
+            if self.scheduler is not None:
                 self.scheduler.load_state_dict(checkpoint["scheduler"])
-            if "epoch" in checkpoint:
-                self.epoch_start = checkpoint["epoch"] + 1
 
             for logger in self.loggers:
                 logger.load_from_checkpoint(checkpoint)
@@ -292,8 +292,6 @@ class Trainer:
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-        out = None
-
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
@@ -304,11 +302,11 @@ class Trainer:
                 for param in self.model.parameters()
                 if param.grad is not None
             ]
-            norm_grads = torch.cat(grads).norm()
-            out = norm_grads.item()
-            self.check_grad_val.update(norm_grads.item())
+            norm_grads = torch.cat(grads).norm().item()
+            self.check_grad_val.update(norm_grads)
+            return norm_grads
 
-        return out
+        return None
 
     def get_samples_online(self, iterators, g):
         r"""
