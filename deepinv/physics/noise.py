@@ -891,6 +891,76 @@ class SaltPepperNoise(NoiseModel):
         return y
 
 
+class FisherTippettNoise(NoiseModel):
+    r"""
+    Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+    Distribution for modelling the noise of log-intensities images in SAR imaging.
+
+    .. warning:: This noise model does not support the random number generator.
+
+    :param float, torch.Tensor l: noise level.
+    """
+
+    def __init__(self, l=1.0):
+        super().__init__(rng=None)
+        if isinstance(l, int):
+            l = float(l)
+        self.register_buffer("l", self._float_to_tensor(l))
+
+    def forward(self, x, l=None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements (log-intensities)
+        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :returns: noisy measurements (log-intensities)
+        """
+        self.update_parameters(l=l, **kwargs)
+        self.to(x.device)
+        x = torch.exp(x)
+        gamma = GammaNoise(self.l)
+        return torch.log(gamma(x))
+
+
+class RicianNoise(NoiseModel):
+    r"""
+    RicianNoise: :math:`y = \sqrt{(x +\sigma \cdot  \mathcal{N}_1)^2 + \sigma \cdot \mathcal{N}_2^2}`
+
+    This noise model is often used in MRI imaging and has the property of keeping pixel intensities :math:`\geq 0`
+
+    .. warning:: All pixel intensities will become positive: this noise model may not be suited for data with negative intensities.
+
+    :param Union[float, torch.Tensor] sigma: Standard deviation used.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    """
+    def __init__(
+        self,
+        sigma: float | torch.Tensor = 0.1,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([sigma, rng])
+        super().__init__(rng=rng)
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
+
+    def forward(self, x, sigma=None):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param float, torch.Tensor sigma: standard deviation to be used.
+            If not `None`, it will overwrite the current noise level.
+        :returns: noisy measurements
+        """
+        self.update_parameters(sigma=sigma)
+        N1 = self.randn_like(x)
+        N2 = self.randn_like(x)
+        return torch.sqrt((self.sigma * N1 + x)**2 + (self.sigma * N2)**2)
+
+
+
 def _infer_device(
     device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
 ) -> torch.device:
@@ -922,33 +992,3 @@ def _infer_device(
     return input_devices.pop() if input_devices else default
 
 
-class FisherTippettNoise(NoiseModel):
-    r"""
-    Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
-
-    Distribution for modelling the noise of log-intensities images in SAR imaging.
-
-    .. warning:: This noise model does not support the random number generator.
-
-    :param float, torch.Tensor l: noise level.
-    """
-
-    def __init__(self, l=1.0):
-        super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
-
-    def forward(self, x, l=None, **kwargs):
-        r"""
-        Adds the noise to measurements x
-
-        :param torch.Tensor x: measurements (log-intensities)
-        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
-        :returns: noisy measurements (log-intensities)
-        """
-        self.update_parameters(l=l, **kwargs)
-        self.to(x.device)
-        x = torch.exp(x)
-        gamma = GammaNoise(self.l)
-        return torch.log(gamma(x))
