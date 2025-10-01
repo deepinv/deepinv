@@ -35,7 +35,7 @@ x = dinv.utils.load_example("butterfly.png", device=device)
 physics = dinv.physics.BlurFFT(
     x.shape[1:],
     filter=dinv.physics.blur.gaussian_blur((5, 5)),
-    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+    noise_model=dinv.physics.GaussianNoise(sigma=0.1, rng=torch.Generator(device=x.device).manual_seed(123)),
     device=device,
 )
 
@@ -96,6 +96,11 @@ dinv.utils.plot(
     ],
     figsize=(10, 5),
 )
+
+
+# sphinx_gallery_start_ignore
+assert dinv.metric.PSNR()(x_hat1, x).item() > 19
+# sphinx_gallery_end_ignore
 
 # %%
 # 🎉 Well done, you now know how to use pretrained models!
