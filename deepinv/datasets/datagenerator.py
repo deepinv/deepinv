@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
     from deepinv.transform import Transform
-    from typing import Any, Optional
+    from typing import Any
 
 
 def _register_deprecated_attr(
@@ -27,7 +27,7 @@ def _register_deprecated_attr(
     attr_underscore_name: str,
     attr_initial_value: Any,
     deprecation_message: str,
-    doc: Optional[str] = None,
+    doc: str | None = None,
 ) -> None:
     """Deprecate an instance attribute.
 
@@ -119,7 +119,7 @@ class HDF5Dataset(ImageDataset):
         f: Any,
         *,
         train: bool,
-        split: Optional[str],
+        split: str | None,
         load_physics_generator_params: bool,
     ) -> None:
         # Process ground truths
