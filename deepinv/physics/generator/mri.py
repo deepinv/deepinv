@@ -104,7 +104,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
         :param int batch_size: batch_size.
         :param int seed: optional: the seed for the random number generator, to reseed on-the-fly.
-        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
+        :param tuple img_size: if not `None`, generate masks of this 2D image shape and override `img_size` attribute, must be of form `(H, W)`.
 
         :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.
         :rtype: dict
@@ -210,7 +210,7 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
 
     The mask is repeated across channels and randomly varies across batch dimension.
 
-    Algorithm taken from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    Algorithm taken from :footcite:t:`millard2023theoretical`.
 
     :Examples:
 
