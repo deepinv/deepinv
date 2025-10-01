@@ -101,8 +101,9 @@ class Trainer:
     :param int max_batch_steps: Number of gradient steps per iteration.
         Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``.
+    :param bool early_stop: If ``True``, the training stops when the first evaluation metric is not improving. Default is ``False``.
         The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+    :param int early_stop_patience: Number of validation steps with no improvement after which training will be stopped if ``early_stop=True``. Default is ``3``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`.
@@ -115,24 +116,32 @@ class Trainer:
 
     :Evaluation:
 
+    - **Supervised**: If ground-truth data is available for validation, use any :ref:`full reference metric <full-reference-metrics>`,
+        e.g. `metrics=dinv.metric.PSNR()`.
+    - **Self-supervised**: If no ground-truth data is available for validation, it is still possible to validate using
+        i) :ref:`no reference metrics <no-reference-metrics>`, e.g. `metrics=dinv.metric.NIQE()`, or ii) :ref:`self-supervised
+        losses with `compute_losses_eval=True` and `metrics=None`.
+        If self-supervised losses are used we recommend setting `disable_train_metrics=True`
+        to avoid computing metrics on `model.train()` mode.
+
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool disable_train_metrics: if `False`, metrics are computed both during training and testing on their respective data.
-        In this case, the metrics are computed using the model prediction during training (i.e in `model.train()` mode) to avoid an additional
-        forward pass. If `True` (default), do not compute metrics during training on train set.
+    :param bool disable_train_metrics: If `True` (default), do not compute metrics during training on train set.
+        If `False`, all metrics are computed both during training on the training dataloader.
         .. warning::
 
-            When using self-supervised losses for validation (i.e., with compute_losses_eval=True and metrics=[]),
-            we recommend setting disable_train_metrics=True to avoid computing metrics on train mode.
+            If `disable_train_metrics=False` the metrics are computed using the model prediction during training (i.e in `model.train()` mode) to avoid an additional
+            forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode.
 
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
         This is useful for visualising train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
+    :param bool compute_losses_eval: If ``True``, the losses are computed during evaluation. Default is ``False``.
 
     .. tip::
         If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
@@ -199,7 +208,6 @@ class Trainer:
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
-    :param bool compute_losses_eval: If ``True``, the losses are computed during evaluation. Default is ``False``.
 
     |sep|
 
@@ -228,6 +236,7 @@ class Trainer:
     losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
+    early_stop_patience: int = 3
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
     physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
@@ -1173,11 +1182,12 @@ class Trainer:
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric) * self.eval_interval
 
-        early_stop = epoch > 2 * self.eval_interval + best_epoch
+        early_stop = epoch > self.early_stop_patience * self.eval_interval + best_epoch
         if early_stop and self.verbose:
             print(
                 "Early stopping triggered as validation metrics have not improved in "
-                "the last 3 validation steps, disable it with early_stop=False"
+                f"the last {self.early_stop_patience} validation steps, disable it with early_stop=False, or"
+                f"modify early_stop_patience to wait for more validation steps."
             )
 
         return early_stop
