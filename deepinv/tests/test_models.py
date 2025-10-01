@@ -53,6 +53,7 @@ LINEAR_OPERATORS = [
     "deblur_valid",
     "super_resolution_circular",
     "MRI",
+    "MultiCoilMRI",
     "pansharpen_circular",
 ]  # this is a reduced list of linear operators for testing restoration models.
 
@@ -916,13 +917,13 @@ def test_restoration_models(
     device, pretrained, model_name, physics_name, channels, rng, whsize
 ):
 
-    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+    if channels == 1 and physics_name in ["demosaicing", "MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
 
     if channels == 2 and physics_name == "demosaicing":
         pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
 
-    if channels == 3 and physics_name == "MRI":
+    if channels == 3 and physics_name in ["MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
 
     if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
@@ -989,6 +990,13 @@ def test_restoration_models(
         assert torch.all(psnr_out > psnr_in)
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
+
+    if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
+        # Test backward pass
+        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        l.backward()
+    else:
+        pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
 
 
 def test_pannet():
