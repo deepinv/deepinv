@@ -296,7 +296,7 @@ class HDF5Dataset(ImageDataset):
     @property
     def unsupervised(self) -> bool:
         """Test if the split is unsupervised (i.e. contains no ground truths)."""
-        return hasattr(self, "x")
+        return not hasattr(self, "x")
 
     def _register_deprecated_attributes(self) -> None:
         import h5py

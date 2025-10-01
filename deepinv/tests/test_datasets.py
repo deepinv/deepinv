@@ -10,6 +10,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import ToTensor
 import numpy as np
+import h5py
 
 from deepinv.datasets import (
     DIV2K,
@@ -54,7 +55,7 @@ from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer, test as trainer_test
 from deepinv.tests.dummy import DummyModel
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import io
 
 
@@ -201,8 +202,111 @@ def test_base_dataset():
             check_dataset(MyDataset(bad_dataset_input))
 
 
+SPLIT_NAMES = ["train", "test", "val", "dummy"]
+
+
+@pytest.mark.parametrize("train", [True, False])
+@pytest.mark.parametrize("split", [*SPLIT_NAMES, None])
+@pytest.mark.parametrize("with_transform", [False, True])
+@pytest.mark.parametrize("load_physics_generator_params", [True, False])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("complex_dtype", [torch.complex64, torch.complex128])
+@pytest.mark.parametrize("length", [10])
+@pytest.mark.parametrize("with_params", [False, True])
+@pytest.mark.parametrize("unsupervised", [False, True])
+@pytest.mark.parametrize("close", [False, True])
+@pytest.mark.parametrize("stack_size", [1, 2, 3])
+def test_hdf5dataset(
+    tmpdir,
+    train,
+    split,
+    with_transform,
+    load_physics_generator_params,
+    dtype,
+    complex_dtype,
+    length,
+    with_params,
+    unsupervised,
+    close,
+    stack_size,
+):
+    path = f"{tmpdir}/dummy.h5"
+
+    if with_transform:
+        transform = MagicMock(side_effect=lambda x: x)
+    else:
+        transform = None
+
+    # Populate a HDF5 file
+    with h5py.File(path, "w") as f:
+        # The stacked attribute is expected to be present only if stack_size > 1,
+        # even though stacked = 1 could be meaningful.
+        if stack_size > 1:
+            f.attrs["stacked"] = stack_size
+
+        def populate_dummy_data(field_name):
+            data = np.random.randn(length, 1, 4, 4)
+            f.create_dataset(
+                field_name,
+                shape=data.shape,
+                data=data,
+                dtype=data.dtype,
+            )
+
+        for split_name in SPLIT_NAMES:
+            if not unsupervised:
+                populate_dummy_data(f"x_{split_name}")
+
+            for stack_idx in range(stack_size):
+                subfield_suffix = f"{stack_idx}" if stack_size > 1 else ""
+                populate_dummy_data(f"y{subfield_suffix}_{split_name}")
+
+            if with_params:
+                param_name = "kernel"
+                field_name = f"{param_name}_{split_name}"
+                populate_dummy_data(f"{param_name}_{split_name}")
+
+    dataset = HDF5Dataset(
+        path,
+        train=train,
+        split=split,
+        transform=transform,
+        load_physics_generator_params=load_physics_generator_params,
+        dtype=dtype,
+        complex_dtype=complex_dtype,
+    )
+
+    # Test HDF5Dataset.__len__
+    assert (
+        len(dataset) == length
+    ), f"Dataset length should be {length} but got {len(dataset)}."
+
+    # Test HDF5Dataset.__getitem__
+    idx = 0
+    entry = dataset[idx]
+    expected_entry_length = 3 if load_physics_generator_params else 2
+    assert (
+        len(entry) == expected_entry_length
+    ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+
+    if transform is not None:
+        assert transform.called == (
+            not unsupervised
+        ), "Transform should be called if and only if it is supervised."
+
+    # Test HDF5Dataset.unsupervised
+    assert dataset.unsupervised == unsupervised, "Dataset supervision label mismatch."
+
+    # Test HDF5Dataset.close
+    if close:
+        dataset.close()
+        # Reading should fail after closing
+        with pytest.raises(ValueError):
+            _ = dataset[idx]
+
+
 @pytest.mark.parametrize("physgen", [None, "mask"])
-def test_hdfdataset(physgen):
+def test_hdf5dataset_generate_dataset(physgen):
     img_size = (1, 4, 4)
     dataset = MyDataset(torch.zeros(1, *img_size))
     physics = Inpainting(img_size, mask=0.5)
