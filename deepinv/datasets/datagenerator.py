@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union, Callable
+from typing import TYPE_CHECKING, Callable
 
 from tqdm import tqdm
 import os
@@ -90,7 +90,7 @@ class HDF5Dataset(ImageDataset):
         path: str,
         train: bool = True,
         split: str = None,
-        transform: Union[Transform, Callable] = None,
+        transform: Transform | Callable = None,
         load_physics_generator_params: bool = False,
         dtype: torch.dtype = torch.float,
         complex_dtype: torch.dtype = torch.cfloat,
@@ -359,8 +359,8 @@ def generate_dataset(
     supervised: bool = True,
     verbose: bool = True,
     show_progress_bar: bool = False,
-    device: Union[torch.device, str] = "cpu",
-) -> Union[str, list[str]]:
+    device: torch.device | str = "cpu",
+) -> str | list[str]:
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
 
@@ -480,7 +480,7 @@ def generate_dataset(
         x0 = x0.to(device).unsqueeze(0)
 
         # get initial measurement for initial image
-        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, Union[dict, None]]:
+        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, dict | None]:
             if physics_generator is None:
                 return physics[g](x), None
             else:

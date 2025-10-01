@@ -17,6 +17,7 @@ from deepinv.datasets import (
     Urban100HR,
     Set14HR,
     CBSD68,
+    BSDS500,
     LsdirHR,
     FMD,
     Kohler,
@@ -544,6 +545,45 @@ def test_load_cbsd68_dataset(download_cbsd68):
             dtype=Tensor if totensor else PIL_Image,
             allow_non_tensor=not totensor,
         )
+
+
+@pytest.fixture
+def download_bsds500(download=True):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "BSDS500"
+
+    # Download BSDS500 raw dataset from github
+    try:
+        BSDS500(tmp_data_dir, download=download)
+    except ImportError:
+        download = False
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    if download:
+        shutil.rmtree(tmp_data_dir)
+
+
+@pytest.mark.parametrize("train", [True, False])
+@pytest.mark.parametrize("totensor", [True, False])
+@pytest.mark.parametrize("rotate", [True, False])
+def test_load_bsds500_dataset(download_bsds500, train, totensor, rotate):
+    """Check that dataset contains 400 + 100 PIL images."""
+    totensor = ToTensor() if totensor else None
+    check_dataset_format(
+        BSDS500(
+            download_bsds500,
+            download=False,
+            transform=totensor,
+            train=train,
+            rotate=rotate,
+        ),
+        length=400 if train else 100,
+        dtype=Tensor if totensor else PIL_Image,
+        allow_non_tensor=not totensor,
+    )
 
 
 @pytest.fixture
