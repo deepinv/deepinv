@@ -441,6 +441,12 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         backbone = dinv.models.MedianFilter()
     elif "splitting" in loss_name:
         if physics_name == "MultiCoilMRI":
+            pytest.importorskip(
+                "sigpy",
+                reason="This test requires sigpy. It should be "
+                "installed with `pip install "
+                "sigpy`",
+            )
             physics_generator = dinv.physics.generator.GaussianMaskGenerator(
                 imsize, acceleration=2, device=device, rng=rng
             )
