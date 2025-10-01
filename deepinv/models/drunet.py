@@ -191,7 +191,7 @@ class DRUNet(torch.nn.Module):
         """
         complex_input = False
         if x.is_complex():
-            x =  MRIMixin.from_torch_complex(x)
+            x = MRIMixin.from_torch_complex(x)
         if isinstance(sigma, torch.Tensor):
             if self.dim == 2:
                 if sigma.ndim > 0:
@@ -234,9 +234,9 @@ class DRUNet(torch.nn.Module):
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif self.dim ==2 and (x.size(2) < 32 or x.size(3) < 32):
+        elif self.dim == 2 and (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
-        elif self.dim==3:
+        elif self.dim == 3:
             x = test_pad(self.forward_unet, x, dim=3, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)

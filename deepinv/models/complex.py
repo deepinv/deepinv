@@ -16,7 +16,12 @@ def to_complex_denoiser(denoiser, mode="real_imag", norm_factor=1.0) -> torch.nn
 
     class ComplexDenoiser(Denoiser):
         def __init__(
-            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, norm_factor: float = 1, *args, **kwargs
+            self,
+            denoiser: Union[torch.nn.Module, Denoiser],
+            mode: str,
+            norm_factor: float = 1,
+            *args,
+            **kwargs,
         ):
             super().__init__(*args, **kwargs)
             self.mode = mode

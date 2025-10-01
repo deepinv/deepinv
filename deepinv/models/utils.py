@@ -42,9 +42,9 @@ def test_pad(model, L, dim=2, modulo=16):
     else:
         L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
     if dim == 3:
-        L = torch.nn.ReplicationPad3d((0, padding_right, 0, padding_bottom, 0, padding_w))(
-            L
-        )
+        L = torch.nn.ReplicationPad3d(
+            (0, padding_right, 0, padding_bottom, 0, padding_w)
+        )(L)
     E = model(L)
     if dim == 2:
         E = E[..., :h, :w]
