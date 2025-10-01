@@ -414,7 +414,7 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y, physics, F_fn=None):
+    def init_iterate_fn(self, y, physics, init=None, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -422,23 +422,25 @@ class BaseOptim(Reconstructor):
             * ``est`` is a tuple containing the first primal and auxiliary iterates.
             * ``cost`` is the value of the cost function at the first iterate.
 
-        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.
-        A custom initialization is possible via the ``custom_init`` class argument or via the ``init`` argument in the ``forward`` method.
+        By default, the first (primal and dual) iterate of the algorithm is chosen as :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
+        A custom initialization is possible via the ``custom_init`` class argument or via the ``init`` argument.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
+        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
+        Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
+        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
         self.params_algo = (
             self.init_params_algo.copy()
         )  # reset parameters to initial values
-        if self.custom_init:
-            if isinstance(self.custom_init, Callable):
-                init = self.custom_init(y, physics)
-            else:
-                init = self.custom_init
-            if isinstance(init, torch.tensor):
+        init = init if init is not None else self.custom_init
+        if init is not None:
+            if callable(init):
+                init = init(y, physics)
+            if isinstance(init, torch.Tensor):
                 init_X = {"est": (init,)}
             elif isinstance(init, tuple):
                 init_X = {"est": init}
