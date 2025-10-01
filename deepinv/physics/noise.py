@@ -934,6 +934,7 @@ class RicianNoise(NoiseModel):
     :param Union[float, torch.Tensor] sigma: Standard deviation used.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
+
     def __init__(
         self,
         sigma: float | torch.Tensor = 0.1,
@@ -945,20 +946,22 @@ class RicianNoise(NoiseModel):
         sigma = sigma.to(device)
         self.register_buffer("sigma", sigma)
 
-    def forward(self, x, sigma=None):
+    def forward(self, x : torch.Tensor, sigma : float | torch.Tensor = None, seed : int =None):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
-        :param float, torch.Tensor sigma: standard deviation to be used.
+        :param float, torch.Tensor, None sigma: standard deviation to be used.
             If not `None`, it will overwrite the current noise level.
+        :param int, None seed: the seed for the random number generator.
         :returns: noisy measurements
         """
         self.update_parameters(sigma=sigma)
+        self.rng_manual_seed(seed)
+
         N1 = self.randn_like(x)
         N2 = self.randn_like(x)
-        return torch.sqrt((self.sigma * N1 + x)**2 + (self.sigma * N2)**2)
-
+        return torch.sqrt((self.sigma * N1 + x) ** 2 + (self.sigma * N2) ** 2)
 
 
 def _infer_device(
@@ -990,5 +993,3 @@ def _infer_device(
         )
 
     return input_devices.pop() if input_devices else default
-
-
