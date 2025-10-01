@@ -1,0 +1,29 @@
+from pathlib import Path
+
+import numpy as np
+from numpy.lib.format import open_memmap
+
+import torch
+
+def load_np(fname: str | Path, as_memmap=False, start_coords=[], patch_size=[]) -> torch.Tensor:
+    """Load numpy array from file as torch tensor.
+
+    :param str, pathlib.Path fname: file to load.
+    :param bool, as_memmap: open this file as a memmap and return
+    :param tuple | list, start_coords: starting indices when patch is to be extracted
+    :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
+    :return: :class:`torch.Tensor` containing loaded numpy array.
+    """
+    if len(start_coords) != 0:
+        arr = open_memmap(fname)
+        assert len(start_coords) == len(arr.shape) # I am assuming here that the images are single channel / have no channel on disk. To fix so start_coords can be different length for other cases
+        if isinstance(patch_size, int):
+            patch_size = [patch_size for i in range(len(start_coords))]
+        assert len(start_coords) == len(patch_size)
+
+        # We should check that we're not out of bound here?
+        return torch.from_numpy(arr[tuple(slice(s, s + p) for s, p in zip(start_coords, patch_size))])
+    elif as_memmap:
+        return open_memmap(fname)
+    else:
+        return torch.from_numpy(np.load(fname, allow_pickle=False))

@@ -1,6 +1,9 @@
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils.io_utils import load_np
 
+import random
+import os
 
 class PatchDataset(ImageDataset):
     r"""
@@ -43,3 +46,60 @@ class PatchDataset(ImageDataset):
             patch = self.transform(patch)
 
         return patch.reshape(self.shape) if self.shape else patch
+
+class PatchDataset3D(ImageDataset):
+    def __init__(self, im_dir, patch_size=64, stride=32):
+        self.patch_size = patch_size
+        self.stride = stride
+        self.im_dir = im_dir
+
+        self.imgs = os.listdir(im_dir) # add a check here to ensure only nifti and/or npy files are included?
+        # self.shapes = [load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs]
+        # to keep things as simple and close to the PatchDataset example, assume all files have same shape
+        D, H, W = load_np(os.path.join(im_dir, self.imgs[0]), as_memmap=True).shape
+
+        self.patches_per_image_d = (D - patch_size) // stride + 1
+        self.patches_per_image_h = (H - patch_size) // stride + 1
+        self.patches_per_image_w = (W - patch_size) // stride + 1
+
+        self.patches_per_image = (
+            self.patches_per_image_d
+            * self.patches_per_image_h
+            * self.patches_per_image_w
+        )
+
+    def __len__(self):
+        return len(self.imgs) * self.patches_per_image
+
+    def __getitem__(self, idx):
+        vol_idx = idx // self.patches_per_image
+        idx_in_vol = idx % self.patches_per_image
+        fpath = os.path.join(self.im_dir, self.imgs[vol_idx])
+
+        per_h_w = self.patches_per_image_h * self.patches_per_image_w
+        id = idx_in_vol // per_h_w
+        rem = idx_in_vol %  per_h_w
+        ih  = rem // self.patches_per_image_w
+        iw  = rem %  self.patches_per_image_w
+
+        return load_np(fpath, start_coords=[id * self.stride, ih * self.stride, iw * self.stride], patch_size=self.patch_size).unsqueeze(0)
+    
+
+class AlternativePatchDataset3D(ImageDataset):
+    def __init__(self, im_dir, patch_size=64):
+        self.patch_size = patch_size
+        self.im_dir = im_dir
+
+        self.imgs = os.listdir(im_dir) # add a check here to ensure only nifti and/or npy files are included?
+        self.shapes = [load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs]
+
+
+    def __len__(self):
+        return len(self.imgs)
+
+    def __getitem__(self, idx):
+        fpath = os.path.join(self.im_dir, self.imgs[idx])
+        shape = self.shapes[idx]
+
+        # We use random here: need to make a fix for deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
+        return load_np(fpath, start_coords=[random.randint(self.patch_size, shape[0] - self.patch_size), random.randint(self.patch_size, shape[1] - self.patch_size), random.randint(self.patch_size, shape[2] - self.patch_size)], patch_size=self.patch_size).unsqueeze(0)
