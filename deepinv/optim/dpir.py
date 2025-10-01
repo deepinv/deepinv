@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 from torch import Tensor
 from deepinv.models import DRUNet
 from deepinv.models.base import Denoiser
@@ -55,7 +55,7 @@ class DPIR(BaseOptim):
 
     def __init__(
         self,
-        sigma: Union[float, Tensor] = 0.1,
+        sigma: float | Tensor = 0.1,
         denoiser: Denoiser = None,
         device="cuda",
     ):

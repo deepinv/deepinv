@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 from warnings import warn
 
 import torch
@@ -39,7 +38,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     def __init__(
         self,
-        denoiser: Union[Denoiser, nn.Module] = None,
+        denoiser: Denoiser | nn.Module = None,
         sensitivity_model: nn.Module = None,
         num_cascades: int = 12,
         mode: str = "varnet",
@@ -78,7 +77,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
         )
 
     def backbone_inference(
-        self, tensor_in: Tensor, physics: Union[MRI, MultiCoilMRI], y: Tensor
+        self, tensor_in: Tensor, physics: MRI | MultiCoilMRI, y: Tensor
     ) -> torch.Tensor:
         """Perform inference on input tensor.
 
@@ -123,7 +122,7 @@ class VarNetBlock(nn.Module):
     :param bool estimate_x: whether estimate images x, or kspaces y.
     """
 
-    def __init__(self, denoiser: Union[Denoiser, nn.Module], estimate_x: bool = True):
+    def __init__(self, denoiser: Denoiser | nn.Module, estimate_x: bool = True):
         super().__init__()
 
         self.denoiser = denoiser

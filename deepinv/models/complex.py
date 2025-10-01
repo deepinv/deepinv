@@ -1,6 +1,6 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
-from typing import Union
 
 
 def to_complex_denoiser(denoiser, mode="real_imag", norm_factor=1.0) -> torch.nn.Module:

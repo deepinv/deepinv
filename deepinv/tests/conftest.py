@@ -68,7 +68,7 @@ def non_blocking_plots():
         # Use a non-interactive backend to avoid blocking the tests
         matplotlib.use("Agg", force=True)
         plt.close("all")
-        # NOTE: Why do we reload matplotlib.pyplot?
+        # Reload matplotlib.pyplot to force usage
         importlib.reload(plt)
         yield
     finally:

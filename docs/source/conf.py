@@ -77,6 +77,9 @@ autodoc_inherit_docstrings = False
 bibtex_footbibliography_backrefs = True
 # for sitemap
 html_baseurl = "https://deepinv.github.io/deepinv/"
+html_extra_path = ["robots.txt"]
+# Include reStructuredText sources
+html_copy_source = True
 # the default scheme makes for wrong urls so we specify it properly here
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
@@ -149,10 +152,20 @@ def process_docstring(app, what, name, obj, options, lines):
             lines.append("")
 
 
+# Prevent indexing of viewcode pages by adding a meta noindex tag
+# See also: https://developers.google.com/search/docs/crawling-indexing/block-indexing
+def _noindex_viewcode(app, pagename, templatename, context, doctree):
+    if pagename.startswith("_modules/"):
+        context["metatags"] = (
+            context.get("metatags", "") + '\n<meta name="robots" content="noindex">\n'
+        )
+
+
 def setup(app):
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
+    app.connect("html-page-context", _noindex_viewcode)
 
 
 # ---------- doctest configuration -----------------------------------------
