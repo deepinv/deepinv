@@ -7,7 +7,10 @@ pytestmark = pytest.mark.skipif(
     sys.version_info < (3, 10),
     reason="Stable Diffusion (diffusers/transformers) requires Python >= 3.10",
 )
-
+pytest.importorskip(
+    "transformers", reason="Install the 'latent' extra to run this test."
+)
+pytest.importorskip("diffusers", reason="Install the 'latent' extra to run this test.")
 
 import torch
 from torch import nn, Tensor
