@@ -12,6 +12,7 @@ New Features
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
+- Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
