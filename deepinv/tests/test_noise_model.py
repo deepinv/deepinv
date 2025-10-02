@@ -41,6 +41,8 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu, rng=rng)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s, rng=rng)
+    elif noise_type == "Speckle":
+        noise_model = dinv.physics.SpeckleNoise(rng=rng)
     else:
         raise Exception("Noise model not found")
 
