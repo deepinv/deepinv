@@ -12,6 +12,7 @@ from .GSPnP import GSDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
 from .diffunet import DiffUNet
+from .latentden import LatentDiffusion
 from .swinir import SwinIR
 from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
 from .bm3d import BM3D

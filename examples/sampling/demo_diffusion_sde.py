@@ -51,7 +51,7 @@ We implement various data-fidelity terms in `the user guide <https://deepinv.git
 # In this first example, we use the Variance-Exploding SDE, whose forward process is defined as:
 #
 # .. math::
-#     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
+#     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.
 
 import torch
 import deepinv as dinv
@@ -81,7 +81,6 @@ num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-
 
 sigma_min = 0.005
 sigma_max = 5
@@ -177,7 +176,7 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 1.0  # guidance strength
+weight = 3.0  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(

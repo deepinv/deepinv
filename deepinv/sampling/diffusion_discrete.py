@@ -1,0 +1,518 @@
+import torch
+from torch import Tensor
+import torch.nn as nn
+import numpy as np
+from tqdm import tqdm
+from deepinv.physics import Physics
+from deepinv.models.latentden import LatentDiffusion
+
+
+class DDIMDiffusion(nn.Module):
+    r"""
+    DDIM sampler with generic :math:`\eta \ge 0`.
+
+    For each step :math:`t \rightarrow t-1`, with cumulative schedule
+    :math:`\bar{\alpha}_t`, define the proxy clean latent
+
+    .. math::
+        z_0(z_t)
+        \;=\;
+        \frac{z_t - \sqrt{1-\bar{\alpha}_t}\,\epsilon_\theta(z_t,t)}
+             {\sqrt{\bar{\alpha}_t}}.
+
+    The **generic DDIM** update (Song et al., 2020) is
+
+    .. math::
+        z_{t-1}
+        \;=\;
+        \sqrt{\bar{\alpha}_{t-1}}\, z_0
+        \;+\;
+        \sqrt{1-\bar{\alpha}_{t-1}-\sigma_t^2}\,\epsilon_\theta
+        \;+\;
+        \sigma_t\,\xi,\qquad \xi\sim\mathcal{N}(0,I),
+
+    where the noise scale :math:`\sigma_t` is controlled by :math:`\eta`:
+
+    .. math::
+        \sigma_t
+        \;=\;
+        \eta
+        \sqrt{\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}}
+        \sqrt{1-\frac{\bar{\alpha}_t}{\bar{\alpha}_{t-1}}}\, .
+
+    Special cases
+    -------------
+    * :math:`\eta=0`: deterministic DDIM (no :math:`\xi` term).
+    * :math:`\eta>0`: stochastic sampling with variance :math:`\sigma_t^2`.
+
+    Parameters
+    ----------
+    beta_min : float
+        Minimum value of the linear :math:`\beta_t` schedule.
+    beta_max : float
+        Maximum value of the linear :math:`\beta_t` schedule.
+    num_train_timesteps : int
+        Training horizon :math:`T` used to build schedules.
+    num_inference_steps : int
+        Number of sampling steps.
+    model : LatentDiffusion | None
+        Latent model exposing ``forward(x, t, prompt=...)``, ``encode(x)``,
+        and ``decode(z)``; its ``forward`` must predict :math:`\epsilon_\theta`.
+    prompt : str
+        Text prompt to condition the model (passed through unchanged).
+    dtype : torch.dtype
+        Computation dtype used inside the sampler.
+    device : torch.device | None
+        Target device. Defaults to CUDA if available, else CPU.
+    """
+
+    def __init__(
+        self,
+        beta_min: float = 0.00085,
+        beta_max: float = 0.012,
+        num_train_timesteps: int = 1000,
+        num_inference_steps: int = 200,
+        model: LatentDiffusion | None = None,
+        prompt: str = "",
+        dtype: torch.dtype = torch.float64,
+        device: torch.device | None = None,
+    ) -> None:
+        super().__init__()
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.beta_min = float(beta_min)
+        self.beta_max = float(beta_max)
+        self.beta_d = self.beta_max - self.beta_min
+        self.num_train_timesteps = int(num_train_timesteps)
+        self.num_inference_steps = int(num_inference_steps)
+        self.model = model
+        self.prompt = prompt
+        self.dtype = dtype
+        self.device = device
+
+        self.alphas_cumprod = self.get_alpha_prod(
+            beta_start=beta_min,
+            beta_end=beta_max,
+            num_train_timesteps=num_train_timesteps,
+        )[4].to(self.device, self.dtype)
+
+    def get_alpha_prod(
+        self,
+        beta_start: float = 0.1 / 1000,
+        beta_end: float = 20 / 1000,
+        num_train_timesteps: int = 1000,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        r"""
+        Build sequences derived from :math:`\bar{\alpha}_t` for denoising.
+
+        Returns (in order)
+        ------------------
+        reduced_alpha_cumprod : torch.Tensor
+            :math:`\sqrt{(1-\bar{\alpha}_t) / \bar{\alpha}_t}`.
+        sqrt_recip_alphas_cumprod : torch.Tensor
+            :math:`\sqrt{1 / \bar{\alpha}_t}`.
+        sqrt_recipm1_alphas_cumprod : torch.Tensor
+            :math:`\sqrt{1 / \bar{\alpha}_t - 1}`.
+        sqrt_1m_alphas_cumprod : torch.Tensor
+            :math:`\sqrt{1 - \bar{\alpha}_t}`.
+        sqrt_alphas_cumprod : torch.Tensor
+            :math:`\sqrt{\bar{\alpha}_t}`.
+        """
+        betas = torch.linspace(
+            beta_start, beta_end, num_train_timesteps, dtype=torch.float16
+        )
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(
+            alphas.cpu(), axis=0
+        )  # \bar{\alpha}_t (NumPy by design)
+
+        torch_ab = torch.as_tensor(alphas_cumprod)
+        sqrt_alphas_cumprod = torch.sqrt(torch_ab)
+        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - torch_ab)
+        reduced_alpha_cumprod = torch.div(sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod)
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / torch_ab)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / torch_ab - 1.0)
+
+        return (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
+            sqrt_alphas_cumprod,
+        )
+
+    def forward(
+        self,
+        sample: Tensor,
+        eta: float = 0.0,
+        noise: Tensor | None = None,
+    ) -> Tensor:
+        r"""
+        Run **generic DDIM** sampling (with :math:`\eta \ge 0`).
+
+        Parameters
+        ----------
+        sample : torch.Tensor
+            Initial latent :math:`z_T` of shape ``(B, C, H, W)``.
+        eta : float, optional
+            DDIM stochasticity parameter. ``0.0`` yields deterministic DDIM;
+            ``>0`` injects noise with scale :math:`\sigma_t`. Default: ``0.0``.
+        noise : torch.Tensor | None, optional
+            Optional precomputed noise tensor (same shape as ``sample``). If
+            provided and ``eta>0``, it is used instead of sampling a new one.
+
+        Returns
+        -------
+        torch.Tensor
+            The last predicted clean latent :math:`z_0`.
+        """
+        if self.model is None:
+            raise RuntimeError("DDIMDiffusion.model is None.")
+
+        step_ratio = self.num_train_timesteps // self.num_inference_steps
+        # Creates integer timesteps by multiplying by ratio.
+        timesteps = (
+            (np.arange(0, self.num_inference_steps) * step_ratio)
+            .round()[::-1]
+            .copy()
+            .astype(np.int64)
+        )
+        timesteps += 1
+
+        last_pred_z0: Tensor | None = None
+
+        for timestep in tqdm(timesteps, desc="DDIM Sampling", total=len(timesteps)):
+            # 1) previous step (= t-1)
+            prev_timestep = (
+                timestep - self.num_train_timesteps // self.num_inference_steps
+            )
+
+            # 2) schedule terms
+            alpha_prod_t = self.alphas_cumprod[timestep]
+            alpha_prod_t_prev = (
+                self.alphas_cumprod[prev_timestep]
+                if prev_timestep >= 0
+                else self.alphas_cumprod[0]
+            )
+            beta_prod_t = 1.0 - alpha_prod_t  # == (1 - \bar{α}_t)
+
+            # 3) predict ε_θ and z0(z_t)
+            eps = self.model(
+                x=sample.to(torch.float16),
+                t=torch.tensor([timestep], device=self.device, dtype=torch.float16),
+                prompt=self.prompt,
+            ).to(self.dtype)
+
+            pred_z0 = (sample - beta_prod_t.sqrt() * eps) / alpha_prod_t.sqrt()
+            last_pred_z0 = pred_z0
+
+            # 4) compute σ_t for generic DDIM
+            #    σ_t = η * sqrt((1-ᾱ_{t-1})/(1-ᾱ_t)) * sqrt(1 - ᾱ_t/ᾱ_{t-1}})
+            #    (safe if prev_timestep < 0: ᾱ_{t-1} term falls back to ᾱ_0)
+            sigma_t = (
+                float(eta)
+                * torch.sqrt((1.0 - alpha_prod_t_prev) / (1.0 - alpha_prod_t))
+                * torch.sqrt(1.0 - (alpha_prod_t / alpha_prod_t_prev))
+            )
+
+            # 5) direction term (sqrt(1-ᾱ_{t-1}-σ_t^2) * ε̂)
+            dir_coeff = torch.sqrt(
+                torch.clamp(1.0 - alpha_prod_t_prev - sigma_t**2, min=0.0)
+            )
+            pred_dir = dir_coeff * eps
+
+            # 6) DDIM update with optional noise term
+            if sigma_t > 0.0:
+                if noise is None:
+                    noise_t = torch.randn_like(
+                        sample, device=self.device, dtype=self.dtype
+                    )
+                else:
+                    noise_t = noise.to(device=self.device, dtype=self.dtype)
+                sample = (
+                    alpha_prod_t_prev.sqrt() * pred_z0 + pred_dir + sigma_t * noise_t
+                )
+            else:
+                sample = alpha_prod_t_prev.sqrt() * pred_z0 + pred_dir
+
+            sample = sample.detach()
+
+        assert last_pred_z0 is not None
+        return last_pred_z0
+
+
+class PSLDDiffusionPosterior(nn.Module):
+    r"""
+    DDIM sampler with **PSLD** latent correction (generic :math:`\eta \ge 0`).
+
+    For each step :math:`t \to t-1`, we:
+      1) predict :math:`\hat z_0 = z_0(z_t)`,
+      2) take a **generic DDIM** update to :math:`z'_{t-1}` (with noise scale :math:`\sigma_t`),
+      3) apply a **PSLD** correction by subtracting a gradient step w.r.t. the current latent :math:`z_t`.
+
+    **Generic DDIM update** (Song et al., 2020):
+    with cumulative schedule :math:`\bar{\alpha}_t`,
+    \[
+        \hat z_0
+        =
+        \frac{z_t - \sqrt{1-\bar{\alpha}_t}\,\hat\epsilon}{\sqrt{\bar{\alpha}_t}},
+        \qquad
+        z_{t-1}
+        =
+        \sqrt{\bar{\alpha}_{t-1}}\,\hat z_0
+        +
+        \sqrt{1-\bar{\alpha}_{t-1}-\sigma_t^2}\,\hat\epsilon
+        +
+        \sigma_t\,\xi,\;\;\xi\sim\mathcal{N}(0,I),
+    \]
+    where
+    \[
+        \sigma_t
+        =
+        \eta
+        \sqrt{\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}}
+        \sqrt{1-\frac{\bar{\alpha}_t}{\bar{\alpha}_{t-1}}}.
+    \]
+    * :math:`\eta=0` → deterministic DDIM; :math:`\eta>0` injects noise.
+
+    **PSLD loss** (evaluated via VAE decode/encode):
+    \[
+        \mathcal{L}_\text{PSLD}(z_t)
+        =
+        \omega\,\|A(x(\hat z_0)) - y\|
+        +
+        \gamma\,\|\mathrm{Enc}(\Pi(x(\hat z_0))) - \hat z_0\|,
+        \quad x(\hat z_0)=\mathrm{Dec}(\hat z_0),
+        \quad \Pi(x)=A^\*y + (I-A^\*A)\,x.
+    \]
+    The PSLD correction is: :math:`z_{t-1} \leftarrow z'_{t-1} - \eta_t \nabla_{z_t}\mathcal{L}_\text{PSLD}`.
+
+    Parameters
+    ----------
+    beta_min : float
+        Minimum value of the linear :math:`\beta_t` schedule.
+    beta_max : float
+        Maximum value of the linear :math:`\beta_t` schedule.
+    alpha : float
+        (Unused, kept for API compatibility.)
+    num_train_timesteps : int
+        Training horizon :math:`T` used to build schedules.
+    num_inference_steps : int
+        Number of sampling steps.
+    model : LatentDiffusion | None
+        Latent model exposing ``forward(x, t, prompt=...)``, ``encode(x)``, and ``decode(z)``.
+    dtype : torch.dtype
+        Computation dtype.
+    device : torch.device
+        Target device.
+    """
+
+    def __init__(
+        self,
+        beta_min: float = 0.00085,
+        beta_max: float = 0.012,
+        num_train_timesteps: int = 1000,
+        num_inference_steps: int = 200,
+        model: LatentDiffusion | None = None,
+        dtype: torch.dtype = torch.float64,
+        device: torch.device | None = None,
+    ) -> None:
+        super().__init__()
+
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.beta_min = float(beta_min)
+        self.beta_max = float(beta_max)
+        self.beta_d = self.beta_max - self.beta_min
+        self.num_train_timesteps = int(num_train_timesteps)
+        self.num_inference_steps = int(num_inference_steps)
+        self.model = model
+        self.dtype = dtype
+        self.device = device
+
+        self.alphas_cumprod = self.get_alpha_prod(
+            beta_start=beta_min,
+            beta_end=beta_max,
+            num_train_timesteps=num_train_timesteps,
+        )[4].to(self.device, self.dtype)
+
+    def get_alpha_prod(
+        self,
+        beta_start: float = 0.1 / 1000,
+        beta_end: float = 20 / 1000,
+        num_train_timesteps: int = 1000,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        r"""
+        Build alpha-derived sequences used for timestep mappings.
+
+        Returns (in order):
+            ``reduced_alpha_cumprod``,
+            ``sqrt_recip_alphas_cumprod``,
+            ``sqrt_recipm1_alphas_cumprod``,
+            ``sqrt_1m_alphas_cumprod``,
+            ``sqrt_alphas_cumprod``.
+        """
+        betas = torch.linspace(
+            beta_start, beta_end, num_train_timesteps, dtype=torch.float16
+        )
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # \bar{α}_t (NumPy by design)
+
+        ab = torch.as_tensor(alphas_cumprod)
+        sqrt_alphas_cumprod = torch.sqrt(ab)
+        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - ab)
+        reduced_alpha_cumprod = torch.div(sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod)
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / ab)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / ab - 1.0)
+
+        return (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
+            sqrt_alphas_cumprod,
+        )
+
+    def forward(
+        self,
+        sample: Tensor,
+        y: Tensor,
+        forward_model: Physics,
+        dps_eta: float = 1.0,
+        gamma: float = 1e-1,
+        omega: float = 1.0,
+        DDIM_eta: float = 0.0,
+        noise: Tensor | None = None,
+    ) -> Tensor:
+        r"""
+        Run **generic DDIM** with **PSLD** correction.
+
+        For each step :math:`t \to t-1`, compute :math:`\hat z_0(z_t)`, take the
+        generic DDIM update (noise scale :math:`\sigma_t` controlled by ``DDIM_eta``),
+        then subtract a PSLD gradient step (size ``dps_eta``) computed w.r.t.
+        the current noisy latent :math:`z_t`.
+
+        Parameters
+        ----------
+        sample : torch.Tensor
+            Current noisy latent :math:`z_t`, shape ``(B, C, H, W)``.
+        y : torch.Tensor
+            Measurement in the range/shape expected by ``forward_model.A``.
+        forward_model : Physics
+            Linear measurement operator with ``A`` and ``A_adjoint``.
+        dps_eta : float, optional
+            PSLD gradient step size :math:`\eta_t` (kept constant here).
+        gamma : float, optional
+            Weight of the latent "gluing" term.
+        omega : float, optional
+            Weight of the data-consistency term.
+        DDIM_eta : float, optional
+            **DDIM** stochasticity parameter. ``0.0`` → deterministic DDIM;
+            ``>0`` injects noise with scale :math:`\sigma_t`.
+        noise : torch.Tensor | None, optional
+            Precomputed noise (same shape as ``sample``) to use when ``DDIM_eta>0``.
+
+        Returns
+        -------
+        torch.Tensor
+            Last predicted clean latent :math:`\hat z_0`.
+        """
+        if self.model is None:
+            raise RuntimeError("PSLDDiffusionPosterior.model is None.")
+
+        step_ratio = self.num_train_timesteps // self.num_inference_steps
+        if step_ratio <= 0:
+            raise ValueError(
+                "num_train_timesteps must be >= num_inference_steps and both > 0."
+            )
+
+        timesteps = (
+            (np.arange(0, self.num_inference_steps) * step_ratio)
+            .round()[::-1]
+            .copy()
+            .astype(np.int64)
+        )
+        timesteps += 1
+
+        loop = tqdm(timesteps, desc="PSLD", total=len(timesteps))
+        last_pred_x0: Tensor | None = None
+
+        for timestep in loop:
+            prev_timestep = (
+                timestep - self.num_train_timesteps // self.num_inference_steps
+            )
+
+            alpha_prod_t = self.alphas_cumprod[timestep]
+            alpha_prod_t_prev = (
+                self.alphas_cumprod[prev_timestep]
+                if prev_timestep >= 0
+                else self.alphas_cumprod[0]
+            )
+            beta_prod_t = 1.0 - alpha_prod_t
+
+            # --- predict ε and z0 from current z_t
+            sample = sample.detach().requires_grad_(True)
+            eps = self.model(
+                x=sample.to(torch.float16),
+                t=torch.tensor([timestep], device=self.device, dtype=torch.float16),
+                prompt="",  # unconditional for PSLD by default
+            ).to(self.dtype)
+
+            z0 = (sample - beta_prod_t.sqrt() * eps) / alpha_prod_t.sqrt()
+            last_pred_x0 = z0
+
+            # --- Generic DDIM step to z'_{t-1} (η may be > 0)
+            # σ_t = η * sqrt((1-ᾱ_{t-1})/(1-ᾱ_t)) * sqrt(1 - ᾱ_t/ᾱ_{t-1}})
+            sigma_t = (
+                float(DDIM_eta)
+                * torch.sqrt((1.0 - alpha_prod_t_prev) / (1.0 - alpha_prod_t))
+                * torch.sqrt(1.0 - (alpha_prod_t / alpha_prod_t_prev))
+            )
+
+            dir_coeff = torch.sqrt(
+                torch.clamp(1.0 - alpha_prod_t_prev - sigma_t**2, min=0.0)
+            )
+            pred_dir = dir_coeff * eps
+
+            if sigma_t > 0.0:
+                noise_t = (
+                    torch.randn_like(sample, device=self.device, dtype=self.dtype)
+                    if noise is None
+                    else noise.to(device=self.device, dtype=self.dtype)
+                )
+                zt_prime = alpha_prod_t_prev.sqrt() * z0 + pred_dir + sigma_t * noise_t
+            else:
+                zt_prime = alpha_prod_t_prev.sqrt() * z0 + pred_dir  # η=0 branch
+
+            # --- PSLD loss built from z0(z_t); gradient w.r.t. z_t
+            x = self.model.decode(z0.half())
+            meas_pred = forward_model.A(x.float())
+            residual = meas_pred - y
+            data_loss = torch.norm(residual)  # no σ_y scaling (by design)
+
+            # Projection-based "gluing"
+            ortho = x.float() - forward_model.A_adjoint(meas_pred)  # (I - A^*A) x
+            para = forward_model.A_adjoint(y)  # A^* y
+            projected = (para + ortho).clamp_(-1, 1)
+
+            recon_z = self.model.encode(projected.half())
+            glue_loss = torch.linalg.norm(recon_z.float() - z0.float())
+
+            total = omega * data_loss + gamma * glue_loss
+
+            grad = torch.autograd.grad(
+                total, sample, create_graph=False, retain_graph=False
+            )[0]
+
+            # --- PSLD correction on z'_{t-1}
+            sample = (zt_prime.detach() - float(dps_eta) * grad.detach()).to(self.dtype)
+
+            loop.set_postfix(
+                loss=float(data_loss.detach().cpu()),
+                gluing=float(glue_loss.detach().cpu()),
+            )
+
+        assert last_pred_x0 is not None
+        return last_pred_x0.detach()
