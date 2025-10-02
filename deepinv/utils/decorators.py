@@ -29,3 +29,37 @@ def _deprecated_alias(**aliases):
         return wrapper
 
     return decorator
+
+
+def _deprecated_func(func):
+    """Decorator to mark a function or method as deprecated."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(
+            f"Function '{func.__name__}' is deprecated and will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _deprecated_class(cls):
+    """Decorator to mark a class as deprecated."""
+
+    old_init = cls.__init__
+
+    @functools.wraps(old_init)
+    def new_init(self, *args, **kwargs):
+        warnings.warn(
+            f"Class '{cls.__name__}' is deprecated and will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        old_init(self, *args, **kwargs)
+
+    cls.__init__ = new_init
+
+    return cls

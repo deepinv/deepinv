@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 from deepinv.physics.functional import dst1
 import numpy as np
@@ -5,7 +6,6 @@ import torch
 
 from deepinv.physics.forward import LinearPhysics
 from deepinv.utils.decorators import _deprecated_alias
-from typing import Optional
 
 
 @_deprecated_alias(input_shape="img_size", output_shape="output_size")
@@ -88,7 +88,7 @@ def generate_diagonal(
     mode: str,
     dtype=torch.cfloat,
     device="cpu",
-    generator: Optional[torch.Generator] = None,
+    generator: torch.Generator | None = None,
 ):
     r"""
     Generate a random tensor as the diagonal matrix.
