@@ -107,7 +107,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 # Define the Implicit Neural Representation model with the SIREN network
-f = dinv.models.ImplicitNeuralRepresentation(
+f = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -149,7 +149,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.ImplicitNeuralRepresentation(
+f = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -199,7 +199,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.ImplicitNeuralRepresentation(
+f = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -278,7 +278,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.ImplicitNeuralRepresentation(
+f = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,

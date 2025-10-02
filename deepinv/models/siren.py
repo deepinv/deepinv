@@ -19,8 +19,7 @@ def get_mgrid(shape):
     :param tuple shape: The shape of the grid to generate. E.g., (H, W) for a 2D grid.
     """
     tensors = tuple([torch.linspace(-1, 1, steps=steps) for steps in shape])
-    mgrid = torch.stack(torch.meshgrid(*tensors), dim=-1)
-    mgrid = mgrid.reshape(-1, len(shape))
+    mgrid = torch.cartesian_prod(*tensors)
     return mgrid
 
 
@@ -93,7 +92,7 @@ class FourierPE(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear(x)
-        return torch.sin(self.omega0 * x)
+        return Sin(omega0=self.omega0)(x)
 
 
 class Sin(nn.Module):
@@ -184,6 +183,10 @@ class SIREN(nn.Module):
         The frequency factors :math:`\omega_0` for the encoding and the SIREN are set to the default values
         in the original paper. In practice, we recommend experimenting with different values.
 
+    .. warning::
+
+        SIREN reconstruction is currently experimental and it is subject to breaking changes.
+
     :param int input_dim: Input dimension for the positional encoding. E.g., 2 for a 2D image.
     :param int encoding_dim: Output dimension of the positional encoding.
     :param int out_channels: Number of channels for the output image. 1 for grayscale, 3 for RGB.
@@ -231,7 +234,7 @@ class SIREN(nn.Module):
         return x
 
 
-class ImplicitNeuralRepresentation(Reconstructor):
+class SirenReconstructor(Reconstructor):
     r"""
 
     Implicit Neural Representation reconstruction.
@@ -256,11 +259,15 @@ class ImplicitNeuralRepresentation(Reconstructor):
         The learning rate provided by default is a typical value when training the model on a large image.
         In practice, we recommend to tune it as it may be not optimal.
 
+    .. warning::
+
+        SIREN reconstruction is currently experimental and it is subject to breaking changes.
+
     :param torch.nn.Module siren_net: SIREN network.
     :param list, tuple img_size: Size `(C,H,W)` of the input grid of pixels :math:`z`.
     :param int iterations: Number of optimization iterations.
     :param float learning_rate: Learning rate of the Adam optimizer.
-    :param float regul_param: Regularization parameter :math:`\lambda`for the TV prior.
+    :param float regul_param: Regularization parameter :math:`\lambda` for the TV prior.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
     """
@@ -304,7 +311,8 @@ class ImplicitNeuralRepresentation(Reconstructor):
                     layer.reset_parameters()
 
         self.siren_net.requires_grad_(True)
-        z.requires_grad_(True)
+        if z is None:
+            z = get_mgrid(self.img_size[1:]).to(y.device)
         optimizer = torch.optim.Adam(self.siren_net.parameters(), lr=self.lr)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.siren_net(z)
