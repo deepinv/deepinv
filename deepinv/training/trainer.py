@@ -117,13 +117,18 @@ class Trainer:
 
     :Evaluation:
 
-    - **Supervised**: If ground-truth data is available for validation, use any :ref:`full reference metric <full-reference-metrics>`,
-        e.g. `metrics=dinv.metric.PSNR()`.
-    - **Self-supervised**: If no ground-truth data is available for validation, it is still possible to validate using
-        i) :ref:`no reference metrics <no-reference-metrics>`, e.g. `metrics=dinv.metric.NIQE()`, or ii) :ref:`self-supervised
-        losses <self-supervised-losses>` with `compute_losses_eval=True` and `metrics=None`.
-        If self-supervised losses are used we recommend setting `disable_train_metrics=True`
-        to avoid computing metrics on `model.train()` mode.
+    .. note::
+
+        - **Supervised evaluation**: If ground-truth data is available for validation, use any
+          :ref:`full reference metric <full-reference-metrics>`, e.g. ``metrics=dinv.metric.PSNR()``.
+
+        - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
+          still possible to validate using i) :ref:`no reference metrics
+          <no-reference-metrics>`, e.g. ``metrics=dinv.metric.NIQE()``, or ii)
+          :ref:`self-supervised losses <self-supervised-losses>` with
+          ``compute_losses_eval=True`` and ``metrics=None``. If self-supervised losses
+          are used we recommend setting ``disable_train_metrics=True`` to avoid computing
+          metrics in ``model.train()`` mode.
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
@@ -132,6 +137,7 @@ class Trainer:
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
     :param bool disable_train_metrics: If `True` (default), do not compute metrics during training on train set.
         If `False`, all metrics are computed both during training on the training dataloader.
+
         .. warning::
 
             If `disable_train_metrics=False` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
