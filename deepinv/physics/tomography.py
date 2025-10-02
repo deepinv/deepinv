@@ -93,24 +93,24 @@ class Tomography(LinearPhysics):
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
         >>> angles = torch.linspace(0, 45, steps=3)
-        >>> physics = Tomography(angles=angles, img_width=4, circle=True)
+        >>> physics = Tomography(angles=angles, img_width=4, circle=True, normalize=True)
         >>> physics(x)
-        tensor([[[[ 0.0000, -0.1791, -0.1719],
-                  [-0.5713, -0.4521, -0.5177],
-                  [ 0.0340,  0.1448,  0.2334],
-                  [ 0.0000, -0.0448, -0.0430]]]])
+        tensor([[[[ 0.0000, -0.0780, -0.0748],
+                [-0.2487, -0.1968, -0.2254],
+                [ 0.0148,  0.0631,  0.1016],
+                [ 0.0000, -0.0195, -0.0187]]]])
 
         Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:
 
         >>> from deepinv.physics import Tomography
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image
-        >>> physics = Tomography(angles=3, img_width=4, circle=True)
+        >>> physics = Tomography(angles=3, img_width=4, circle=True, normalize=True)
         >>> physics(x)
-        tensor([[[[ 0.0000, -0.1806,  0.0500],
-                  [-0.5713, -0.6076, -0.6815],
-                  [ 0.0340,  0.3175,  0.0167],
-                  [ 0.0000, -0.0452,  0.0989]]]])
+        tensor([[[[ 0.0000, -0.0788,  0.0218],
+                [-0.2492, -0.2651, -0.2973],
+                [ 0.0148,  0.1385,  0.0073],
+                [ 0.0000, -0.0197,  0.0432]]]])
 
 
     """
@@ -412,7 +412,8 @@ class TomographyWithAstra(LinearPhysics):
             ...        geometry_parameters={
             ...            'source_radius': 20.,
             ...            'detector_radius': 20.
-            ...        }
+            ...        },
+            ...        normalize=False
             ...    )
             >>> sinogram = physics(x)
             >>> print(sinogram)
@@ -445,7 +446,8 @@ class TomographyWithAstra(LinearPhysics):
             ...        geometry_parameters={
             ...            'source_radius': 20.,
             ...            'detector_radius': 20.
-            ...       }
+            ...       },
+            ...        normalize=False
             ...    )
             >>> sinogram = physics(x)
             >>> print(sinogram)
