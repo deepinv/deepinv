@@ -992,7 +992,7 @@ def test_out_dir_collision_detection(
                 trainer.train()
 
 
-def test_trainer_speed(device):
+def test_trainer_speed(device):  # pragma: no cover
     if device == torch.device("cpu"):
         pytest.skip("Skip speed test on CPU")
     img_size = (3, 64, 64)
