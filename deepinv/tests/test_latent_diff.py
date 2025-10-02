@@ -1,8 +1,17 @@
 # tests/test_diffusion_discrete.py
 from __future__ import annotations
 import pytest
+import sys
+
+pytestmark = pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Stable Diffusion (diffusers/transformers) requires Python >= 3.10",
+)
+
+
 import torch
 from torch import nn, Tensor
+
 
 # Import the samplers under test
 from deepinv.sampling import DDIMDiffusion, PSLDDiffusionPosterior

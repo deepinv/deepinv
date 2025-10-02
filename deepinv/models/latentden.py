@@ -45,7 +45,6 @@ class LatentDiffusion(nn.Module):
         from transformers import CLIPTextModel, CLIPTokenizer
         from diffusers import AutoencoderKL, UNet2DConditionModel
 
-
         # --- Load components directly from the SD-1.5 repo ---
         # UNet (noise predictor)
         self.unet: UNet2DConditionModel = UNet2DConditionModel.from_pretrained(
