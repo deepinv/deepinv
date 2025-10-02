@@ -313,6 +313,7 @@ class SirenReconstructor(Reconstructor):
         self.siren_net.requires_grad_(True)
         if z is None:
             z = get_mgrid(self.img_size[1:]).to(y.device)
+        z.requires_grad_(True)
         optimizer = torch.optim.Adam(self.siren_net.parameters(), lr=self.lr)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.siren_net(z)
