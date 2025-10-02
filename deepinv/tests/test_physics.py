@@ -1,8 +1,8 @@
+from __future__ import annotations
 import os
 import shutil
 import copy
 from math import sqrt
-from typing import Optional
 import pytest
 import warnings
 
@@ -95,6 +95,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "FisherTippett",
     "SaltPepper",
 ]
 
@@ -837,7 +838,8 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device, rng):
+@pytest.mark.parametrize("implicit_backward_solver", [True, False])
+def test_pseudo_inverse(name, device, rng, implicit_backward_solver):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -848,6 +850,7 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
@@ -1166,6 +1169,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.GammaNoise(l)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l)
     else:
         raise Exception("Noise model not found")
 
@@ -1464,7 +1469,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1478,7 +1483,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -2227,3 +2232,11 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
+
+
+def test_downsampling_default_filter_depreciation():
+    with pytest.warns(
+        UserWarning,
+        match="deprecated",
+    ):
+        _ = dinv.physics.Downsampling()

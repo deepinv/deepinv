@@ -1,5 +1,5 @@
+from __future__ import annotations
 from warnings import warn
-from typing import Union
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
@@ -31,7 +31,7 @@ class Downsampling(LinearPhysics):
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
     :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
@@ -62,12 +62,18 @@ class Downsampling(LinearPhysics):
     def __init__(
         self,
         img_size=None,
-        filter=None,
+        filter="warn",
         factor=2,
         device="cpu",
         padding="circular",
         **kwargs,
     ):
+        if filter == "warn":
+            warn(
+                'Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter="bicubic" as a sensible anti-aliasing filter if you are not sure which one to use.',
+                stacklevel=2,
+            )
+            filter = None
         super().__init__(**kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
@@ -178,7 +184,7 @@ class Downsampling(LinearPhysics):
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
-    def check_factor(self, factor: Union[int, float, Tensor]) -> int:
+    def check_factor(self, factor: int | float | Tensor) -> int:
         """Check new downsampling factor.
 
         :param int, float, torch.Tensor factor: downsampling factor to be checked and cast to `int`. If :class:`torch.Tensor`,
@@ -206,7 +212,7 @@ class Downsampling(LinearPhysics):
     def update_parameters(
         self,
         filter: Tensor = None,
-        factor: Union[int, float, Tensor] = None,
+        factor: int | float | Tensor = None,
         **kwargs,
     ):
         r"""
@@ -236,14 +242,16 @@ class Downsampling(LinearPhysics):
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(self.device)
             elif filter == "gaussian":
-                filter = gaussian_blur(sigma=(self.factor, self.factor)).to(self.device)
+                filter = gaussian_blur(
+                    sigma=(self.factor, self.factor), device=self.device
+                )
             elif filter == "bilinear":
-                filter = bilinear_filter(self.factor).to(self.device)
+                filter = bilinear_filter(self.factor, device=self.device)
             elif filter == "bicubic":
-                filter = bicubic_filter(self.factor).to(self.device)
+                filter = bicubic_filter(self.factor, device=self.device)
             elif filter == "sinc":
-                filter = sinc_filter(self.factor, length=4 * self.factor).to(
-                    self.device
+                filter = sinc_filter(
+                    self.factor, length=4 * self.factor, device=self.device
                 )
 
             self.register_buffer("filter", filter)
@@ -630,7 +638,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
-def gaussian_blur(sigma=(1, 1), angle=0):
+def gaussian_blur(sigma=(1, 1), angle=0, device="cpu"):
     r"""
     Gaussian blur filter.
 
@@ -657,6 +665,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
         if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
     :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
+    :param str device: cpu or cuda
     """
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma)
@@ -665,7 +674,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     c = int(s / 0.3 + 1)
     k_size = 2 * c + 1
 
-    delta = torch.arange(k_size)
+    delta = torch.arange(k_size, device=device)
 
     x, y = torch.meshgrid(delta, delta, indexing="ij")
     x = x - c
@@ -754,7 +763,7 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     return filter
 
 
-def bilinear_filter(factor=2):
+def bilinear_filter(factor=2, device="cpu"):
     r"""
     Bilinear filter.
 
@@ -772,17 +781,18 @@ def bilinear_filter(factor=2):
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
     :param int factor: downsampling factor
+    :param str device: cpu or cuda
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
-    x = torch.arange(start=-factor + 0.5, end=factor, step=1) / factor
+    x = torch.arange(start=-factor + 0.5, end=factor, step=1, device=device) / factor
     w = 1 - x.abs()
     w = torch.outer(w, w)
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def bicubic_filter(factor=2):
+def bicubic_filter(factor=2, device="cpu"):
     r"""
     Bicubic filter.
 
@@ -801,10 +811,14 @@ def bicubic_filter(factor=2):
     for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
 
     :param int factor: downsampling factor
+    :param str device: cpu or cuda
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
-    x = torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1) / factor
+    x = (
+        torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1, device=device)
+        / factor
+    )
     a = -0.5
     x = x.abs()
     w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
@@ -834,7 +848,7 @@ class DownsamplingMatlab(Downsampling):
 
     def __init__(
         self,
-        factor: Union[int, float] = 2,
+        factor: int | float = 2,
         kernel: str = "cubic",
         padding: str = "reflect",
         antialiasing: bool = True,
@@ -846,7 +860,7 @@ class DownsamplingMatlab(Downsampling):
         self.padding = padding
         self.antialiasing = antialiasing
 
-    def A(self, x, factor: Union[int, float] = None, **kwargs):
+    def A(self, x, factor: int | float = None, **kwargs):
         """Downsample forward operator
 
         :param torch.Tensor x: input image
@@ -862,7 +876,7 @@ class DownsamplingMatlab(Downsampling):
             padding_type=self.padding,
         )
 
-    def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
+    def A_adjoint(self, y, factor: int | float = None, **kwargs):
         """Downsample adjoint operator via autograd.
 
         :param torch.Tensor y: input measurement
