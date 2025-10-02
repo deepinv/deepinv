@@ -2,6 +2,7 @@ from functools import partial
 import math
 import torch
 import numpy as np
+from typing import Any
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
@@ -360,7 +361,7 @@ class PtychographyLinearOperator(LinearPhysics):
 
         if shifts is None:
             self.n_img = 25
-            shifts = torch.tensor(generate_shifts(img_size=img_size, n_img=self.n_img))
+            shifts = generate_shifts(img_size=img_size, n_img=self.n_img)
         else:
             self.n_img = len(shifts)
 
@@ -522,7 +523,9 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
     return probe
 
 
-def generate_shifts(img_size, n_img=25, fov=None):
+def generate_shifts(
+    img_size: Any, n_img: int = 25, fov: int | None = None
+) -> torch.Tensor:
     """
     Generates the array of probe shifts across the image.
     Based on probe radius and field of view.
@@ -530,7 +533,7 @@ def generate_shifts(img_size, n_img=25, fov=None):
     :param img_size: Size of the image.
     :param int n_img: Number of shifts (must be a perfect square).
     :param int fov: Field of view for shift computation.
-    :return np.ndarray: Array of (x, y) shifts.
+    :return: Array of (x, y) shifts.
     """
     if fov is None:
         fov = img_size[-1]
