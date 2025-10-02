@@ -335,7 +335,7 @@ class BaseOptim(Reconstructor):
                         [
                             (
                                 nn.Parameter(torch.tensor(el).float().to(device))
-                                if not isinstance(el, torch.tensor)
+                                if not isinstance(el, torch.Tensor)
                                 else nn.Parameter(el.float().to(device))
                             )
                             for el in param_value

@@ -339,7 +339,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         lambda_reg = 0.9
         max_iter = 1000
 
-        optimalgo = getattr(optim, name_algo)(
+        optimalgo = getattr(dinv.optim, name_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -458,7 +458,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-    pnp = getattr(optim, pnp_algo)(
+    pnp = getattr(dinv.optim, pnp_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -557,7 +557,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
         custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-        opt_algo = getattr(optim, pnp_algo)(
+        opt_algo = getattr(dinv.optim, pnp_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
