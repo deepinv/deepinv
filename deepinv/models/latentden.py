@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from transformers import CLIPTextModel, CLIPTokenizer
-from diffusers import AutoencoderKL, UNet2DConditionModel
 
 
 class LatentDiffusion(nn.Module):
@@ -43,6 +41,10 @@ class LatentDiffusion(nn.Module):
         self.device = torch.device(device) if isinstance(device, str) else device
         self.guidance_scale = float(guidance_scale)
         self.dtype = dtype
+
+        from transformers import CLIPTextModel, CLIPTokenizer
+        from diffusers import AutoencoderKL, UNet2DConditionModel
+
 
         # --- Load components directly from the SD-1.5 repo ---
         # UNet (noise predictor)
