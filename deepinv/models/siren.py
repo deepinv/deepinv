@@ -262,6 +262,7 @@ class SirenReconstructor(Reconstructor):
     .. warning::
 
         SIREN reconstruction is currently experimental and it is subject to breaking changes.
+        For the moment, only single channel images are supported by the method.
 
     :param torch.nn.Module siren_net: SIREN network.
     :param list, tuple img_size: Size `(C,H,W)` of the input grid of pixels :math:`z`.
@@ -282,6 +283,7 @@ class SirenReconstructor(Reconstructor):
         verbose=False,
         re_init=False,
         regul_param=None,
+        require_grid_grad=True,
     ):
         super().__init__()
         self.siren_net = siren_net
@@ -295,7 +297,7 @@ class SirenReconstructor(Reconstructor):
         self.prior = TVPrior()
         self.regul_param = regul_param
 
-    def forward(self, y, physics, z=None, shape=None, **kwargs):
+    def forward(self, y, physics, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -310,15 +312,16 @@ class SirenReconstructor(Reconstructor):
                 if hasattr(layer, "reset_parameters"):
                     layer.reset_parameters()
 
+        self.siren_net.train()
         self.siren_net.requires_grad_(True)
-        if z is None:
-            z = get_mgrid(self.img_size[1:]).to(y.device)
+
+        z = get_mgrid(self.img_size[1:]).to(y.device)
         z.requires_grad_(True)
+        physics.update_parameters(z=z)
+
         optimizer = torch.optim.Adam(self.siren_net.parameters(), lr=self.lr)
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            x = self.siren_net(z)
-            if shape is not None:
-                x = x.view(shape)
+            x = self.siren_net(z).view(self.img_size)
             error = self.loss(y=y, x_net=x, physics=physics)
             if self.regul_param is not None:
                 error += self.regul_param * self.prior(x, z)
@@ -326,7 +329,8 @@ class SirenReconstructor(Reconstructor):
             error.backward()
             optimizer.step()
 
-        out = self.siren_net(z)
-        if shape is not None:
-            return out.view(shape)
+        self.siren_net.eval()
+        z.requires_grad_(False)
+
+        out = self.siren_net(z).view(self.img_size)
         return out

@@ -106,26 +106,26 @@ siren_net = dinv.models.SIREN(
     omega0={"encoding": 30.0, "siren": 2.0},
     device=device,
 ).to(device)
-# Define the Implicit Neural Representation model with the SIREN network
+# Define the Siren Reconstructor with the SIREN network
 f = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    img_size=None,
+    img_size=x.shape[1:],
     regul_param=1e-4,
 ).to(device)
 
 # %%
-dip = f(y, physics, z=get_mgrid(x.shape[2:]), shape=x.shape)
+x_siren = f(y, physics)
 
 # %%
 # Compute PSNR
 print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
-print(f"SIREN PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
+print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
 
 # plot results
-plot([y, x, dip], titles=["measurements", "ground truth", "reconstruction"])
+plot([y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"])
 
 # %%
 # 1.2 Image inpainting
@@ -154,20 +154,20 @@ f = dinv.models.SirenReconstructor(
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    img_size=None,
+    img_size=x.shape[1:],
     regul_param=5e-4,
 ).to(device)
 
 # %%
-dip = f(y, physics, z=get_mgrid(x.shape[2:]), shape=x.shape)
+x_siren = f(y, physics)
 
 # %%
 # Compute PSNR
 print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
-print(f"SIREN PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
+print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
 
 # plot results
-plot([y, x, dip.clip(0, 1)], titles=["measurement", "ground truth", "reconstruction"])
+plot([y, x, x_siren.clip(0, 1)], titles=["measurement", "ground truth", "reconstruction"])
 
 # %%
 # 1.3 Super-resolution
@@ -204,7 +204,7 @@ f = dinv.models.SirenReconstructor(
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    img_size=None,
+    img_size=y.shape[1:], # We here fit the model on the low resolution image
     regul_param=1e-3,
 ).to(device)
 
@@ -212,19 +212,19 @@ f = dinv.models.SirenReconstructor(
 # %%
 # Define an identity physics with zero noise to perform the reconstruction at the low resolution
 physics_f = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=0.0))
-dip = f(y, physics_f, z=get_mgrid(y.shape[2:]), shape=y.shape)
+x_siren = f(y, physics_f)
 
 # %%
 # Super-resolution by evaluating the trained network at a finer grid
-dip_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape)  # compute PSNR
-print(f"DIP PSNR: {dinv.metric.PSNR()(y, dip).item():.2f} dB")
+x_siren_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:]) 
+print(f"SIREN PSNR: {dinv.metric.PSNR()(y, x_siren).item():.2f} dB")
 print(
-    f"super-resolved DIP PSNR: {dinv.metric.PSNR()(x, dip_super_resolved.clip(0,1)).item():.2f} dB"
+    f"super-resolved SIREN PSNR: {dinv.metric.PSNR()(x, x_siren_super_resolved.clip(0,1)).item():.2f} dB"
 )
 
 # plot results
 plot(
-    [y, x, dip, dip_super_resolved.clip(0, 1)],
+    [y, x, x_siren, x_siren_super_resolved.clip(0, 1)],
     titles=["measurement", "ground truth", "SIREN", "SIREN super-res"],
 )
 
@@ -247,10 +247,8 @@ plot(
 # using the ADAM optimizer to train :math:`\theta`. Finally, we evaluate :math:`f_\theta(z)` and compare it with the ground truth :math:`\Phi(z)`.
 
 # %%
-z = get_mgrid(x.shape[2:])
-z.requires_grad_(True)
-y = dinv.models.TVDenoiser.nabla(x).view(z.shape, 2)
 
+y = dinv.models.TVDenoiser.nabla(x).view(x.shape[2]*x.shape[3], 2)
 
 class Gradient(dinv.physics.Physics):
     r"""
@@ -259,9 +257,12 @@ class Gradient(dinv.physics.Physics):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.register_buffer("z", torch.zeros(1))
+        # NOTE: We here have defined an attribute to store the pixel grid.
+        # Its value will be automatically updated when calling the SirenReconstructor.
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        return dinv.models.siren.nabla(x, z)
+        return dinv.models.siren.nabla(x, self.z)
 
 
 physics_f = Gradient()
@@ -283,16 +284,16 @@ f = dinv.models.SirenReconstructor(
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    img_size=None,
+    img_size=x.shape[1:],
     regul_param=None,
 ).to(device)
 
 # %%
-dip = f(y, physics_f, z=z, shape=x.shape)
+x_siren = f(y, physics_f)
 
 # %%
 print(
-    f"DIP PSNR: {dinv.metric.PSNR()(x, (dip-dip.min()) / (dip.max()-dip.min())).item():.2f} dB"
+    f"SIREN PSNR: {dinv.metric.PSNR()(x, (x_siren-x_siren.min()) / (x_siren.max()-x_siren.min())).item():.2f} dB"
 )
 
 # plot results
@@ -300,7 +301,7 @@ plot(
     [
         y.view(*x.shape, 2)[..., 0] + y.view(*x.shape, 2)[..., 1],
         x,
-        (dip - dip.min()) / (dip.max() - dip.min()),
+        (x_siren - x_siren.min()) / (x_siren.max() - x_siren.min()),
     ],
     titles=["divergence", "ground truth", "reconstruction"],
 )
