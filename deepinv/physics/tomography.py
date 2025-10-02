@@ -96,9 +96,9 @@ class Tomography(LinearPhysics):
         >>> physics = Tomography(angles=angles, img_width=4, circle=True, normalize=True)
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0780, -0.0748],
-                [-0.2487, -0.1968, -0.2254],
-                [ 0.0148,  0.0631,  0.1016],
-                [ 0.0000, -0.0195, -0.0187]]]])
+                  [-0.2487, -0.1968, -0.2254],
+                  [ 0.0148,  0.0631,  0.1016],
+                  [ 0.0000, -0.0195, -0.0187]]]])
 
         Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:
 
@@ -108,9 +108,9 @@ class Tomography(LinearPhysics):
         >>> physics = Tomography(angles=3, img_width=4, circle=True, normalize=True)
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0788,  0.0218],
-                [-0.2492, -0.2651, -0.2973],
-                [ 0.0148,  0.1385,  0.0073],
-                [ 0.0000, -0.0197,  0.0432]]]])
+                  [-0.2492, -0.2651, -0.2973],
+                  [ 0.0148,  0.1385,  0.0073],
+                  [ 0.0000, -0.0197,  0.0432]]]])
 
 
     """
