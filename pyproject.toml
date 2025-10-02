@@ -33,6 +33,8 @@ dependencies = [
     "requests",
     "h5py",
     "natsort",
+    'transformers',
+    'diffusers',
 ]
 
 [tool.setuptools]
