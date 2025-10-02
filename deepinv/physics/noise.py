@@ -946,7 +946,9 @@ class RicianNoise(NoiseModel):
         sigma = sigma.to(device)
         self.register_buffer("sigma", sigma)
 
-    def forward(self, x : torch.Tensor, sigma : float | torch.Tensor = None, seed : int =None):
+    def forward(
+        self, x: torch.Tensor, sigma: float | torch.Tensor = None, seed: int = None
+    ):
         r"""
         Adds the noise to measurements x
 
