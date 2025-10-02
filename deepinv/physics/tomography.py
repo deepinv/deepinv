@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Iterable
 from types import MappingProxyType
 from warnings import warn
 import math
@@ -48,6 +48,10 @@ class Tomography(LinearPhysics):
 
         The adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
 
+    .. warning::
+
+        By default, ``normalize`` is set to ``True`` if not specified. Initializing the operator without specifying the normalization behavior will issue a warning. Note that normalizing the operator affects the reconstruction dynamics, which may not always be suitable for real-world applications.
+
     :param int, torch.Tensor angles: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
         If the type is :class:`torch.Tensor`, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
     :param int img_width: width/height of the square image input.
@@ -60,9 +64,9 @@ class Tomography(LinearPhysics):
     :param bool fbp_interpolate_boundary: the :func:`filtered back-projection <deepinv.physics.Tomography.A_dagger>` usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
-    :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``False``)
+    :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``True``)
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
-    :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
+    :param dict[str, int | float] fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
 
         - "pixel_spacing" defining the distance between two pixels in the image, default: 0.5 / (in_size)
 
@@ -113,22 +117,22 @@ class Tomography(LinearPhysics):
 
     def __init__(
         self,
-        angles,
-        img_width,
-        circle=False,
-        parallel_computation=True,
-        adjoint_via_backprop=False,
-        fbp_interpolate_boundary=False,
-        normalize=False,
-        fan_beam=False,
-        fan_parameters=None,
-        device=torch.device("cpu"),
-        dtype=torch.float,
+        angles: int | Iterable[float],
+        img_width: int,
+        circle: bool = False,
+        parallel_computation: bool = True,
+        adjoint_via_backprop: bool = False,
+        fbp_interpolate_boundary: bool = False,
+        normalize: bool | None = None,
+        fan_beam: bool = False,
+        fan_parameters: dict[str, int | float] = None,
+        device: torch.device | str = torch.device("cpu"),
+        dtype: torch.dtype = torch.float,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        if isinstance(angles, int) or isinstance(angles, float):
+        if isinstance(angles, int):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
                 device
             )
@@ -158,7 +162,6 @@ class Tomography(LinearPhysics):
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
-        self.normalize = False
         self.radon = Radon(
             img_width,
             theta,
@@ -181,6 +184,13 @@ class Tomography(LinearPhysics):
         else:
             self.filter = RampFilter(dtype=dtype, device=device)
 
+        if normalize is None:
+            warn(
+                "The default value of `normalize` is not specified and will be automatically set to `True`. Set `normalize` explicitly to `True` or `False` to avoid this warning.",
+            )
+            normalize = True
+
+        self.normalize = False
         if normalize:
             self.operator_norm = self.compute_norm(
                 torch.randn(
@@ -189,7 +199,7 @@ class Tomography(LinearPhysics):
                     device=self.device,
                 )[None, None]
             ).sqrt()
-            self.normalize = normalize
+            self.normalize = True
 
     def A(self, x, **kwargs) -> torch.Tensor:
         """Forward projection.
@@ -338,6 +348,10 @@ class TomographyWithAstra(LinearPhysics):
 
     .. warning::
 
+        By default, ``normalize`` is set to ``True`` if not specified. Initializing the operator without specifying the normalization behavior will issue a warning. Note that normalizing the operator affects the reconstruction dynamics, which may not always be suitable for real-world applications.
+
+    .. warning::
+
         Due to computational efficiency reasons, the projector and backprojector
         implemented in ``astra`` are not matched. The projector is typically ray-driven,
         while the backprojector is pixel-driven. The adjoint of the forward Ray Transform
@@ -356,7 +370,7 @@ class TomographyWithAstra(LinearPhysics):
     :param tuple[float, ...], None bounding_box: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
     :param torch.Tensor, None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D. (default: ``'parallel'``)
-    :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, float] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
         - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80.),
 
@@ -373,7 +387,7 @@ class TomographyWithAstra(LinearPhysics):
         - ``(vx, vy, vz)``: the vertical unit vector of the detector.
 
         When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``num_angles``/``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
-    :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``False``)
+    :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``True``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
 
     |sep|
@@ -472,14 +486,14 @@ class TomographyWithAstra(LinearPhysics):
         bounding_box: tuple[float, ...] | None = None,
         angles: torch.Tensor | None = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] = MappingProxyType(
+        geometry_parameters: dict[str, float] = MappingProxyType(
             {
                 "source_radius": 80.0,
                 "detector_radius": 20.0,
             }
         ),
         geometry_vectors: torch.Tensor | None = None,
-        normalize: bool = False,
+        normalize: bool | None = None,
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
@@ -507,7 +521,6 @@ class TomographyWithAstra(LinearPhysics):
             else num_detectors
         )
         self.geometry_type = geometry_type
-        self.normalize = False
         self.device = device
 
         if angles is None:
@@ -538,6 +551,13 @@ class TomographyWithAstra(LinearPhysics):
 
         self.filter = RampFilter(dtype=torch.float32, device=self.device)
 
+        if normalize is None:
+            warn(
+                "The default value of `normalize` is not specified and will be automatically set to `True`. Set `normalize` explicitly to `True` or `False` to avoid this warning.",
+            )
+            normalize = True
+
+        self.normalize = False
         if normalize:
             self.operator_norm = self.compute_norm(
                 torch.randn(
@@ -546,7 +566,7 @@ class TomographyWithAstra(LinearPhysics):
                     device=self.device,
                 )[None, None]
             ).sqrt()
-            self.normalize = normalize
+            self.normalize = True
 
     @property
     def measurement_shape(self) -> tuple[int, ...]:
