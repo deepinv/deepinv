@@ -1,4 +1,5 @@
 # tests/test_diffusion_discrete.py
+from __future__ import annotations
 import pytest
 import torch
 from torch import nn, Tensor
