@@ -1279,7 +1279,6 @@ def test_siren_reconstructor(imsize, device):
         iterations=500,
         learning_rate=1e-2,
         regul_param=1e-3,
-        verbose=True,
     )
     x = torch.ones(imsize[2:], device=device).unsqueeze(0)
     y = physics(x)

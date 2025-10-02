@@ -283,7 +283,6 @@ class SirenReconstructor(Reconstructor):
         verbose=False,
         re_init=False,
         regul_param=None,
-        require_grid_grad=True,
     ):
         super().__init__()
         self.siren_net = siren_net
