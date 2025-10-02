@@ -925,7 +925,9 @@ class FisherTippettNoise(NoiseModel):
 
 class RicianNoise(NoiseModel):
     r"""
-    RicianNoise: :math:`y = \sqrt{(x + \sigma \cdot  \mathcal{N}_1)^2 + \sigma \cdot \mathcal{N}_2^2}`
+    RicianNoise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
+    
+    where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`
 
     This noise model is often used in MRI imaging and has the property of keeping pixel intensities :math:`\geq 0`
 
