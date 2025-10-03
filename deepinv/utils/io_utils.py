@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +11,8 @@ import torch
 def load_np(
     fname: str | Path,
     as_memmap: bool = False,
-    start_coords: tuple | list = [],
-    patch_size: tuple | list = [],
+    start_coords: tuple | list = None,
+    patch_size: tuple | list = None,
 ) -> torch.Tensor:
     """Load numpy array from file as torch tensor.
 
@@ -20,7 +22,7 @@ def load_np(
     :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
     :return: :class:`torch.Tensor` containing loaded numpy array.
     """
-    if len(start_coords) != 0:
+    if start_coords is not None:
         arr = open_memmap(fname)
         assert len(start_coords) == len(
             arr.shape
@@ -42,8 +44,8 @@ def load_np(
 def load_nifti(
     fname: str | Path,
     as_memmap: bool = False,
-    start_coords: tuple | list = [],
-    patch_size: tuple | list = [],
+    start_coords: tuple | list = None,
+    patch_size: tuple | list = None,
     dtype: np.typing.DTypeLike = np.float32,
 ) -> torch.Tensor:
     """Load volume from nifti file as torch tensor.
@@ -61,7 +63,7 @@ def load_nifti(
             "load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`."
         )
 
-    if len(start_coords) != 0:
+    if start_coords is not None:
         arr = nib.load(fname).dataobj
         assert len(start_coords) == len(
             arr.shape
@@ -85,8 +87,8 @@ def load_nifti(
 def load_blosc2(
     fname: str | Path,
     as_memmap: bool = False,
-    start_coords: tuple | list = [],
-    patch_size: tuple | list = [],
+    start_coords: tuple | list = None,
+    patch_size: tuple | list = None,
     dtype: np.typing.DTypeLike = np.float32,
 ) -> torch.Tensor:
     """Load volume from blosc2 file as torch tensor.
@@ -104,7 +106,7 @@ def load_blosc2(
             "load_blosc2 requires blosc2, which is not installed. Please install it with `pip install blosc2`."
         )
     arr = blosc2.open(fname)
-    if len(start_coords) != 0:
+    if start_coords is not None:
         assert len(start_coords) == len(
             arr.shape
         )  # I am assuming here that the images have no channel on disk. To fix this start_coords can be different length for other cases
