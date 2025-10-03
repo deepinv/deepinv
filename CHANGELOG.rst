@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
