@@ -1,5 +1,5 @@
 r"""
-Poissong denoising using Poisson2Sparse
+Poisson denoising using Poisson2Sparse
 =======================================
 
 This code shows how to restore an image corrupted by Poisson noise using Poisson2Sparse
