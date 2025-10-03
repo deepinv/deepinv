@@ -1,0 +1,40 @@
+name: Test GPU
+
+on:
+  workflow_dispatch:        # manual trigger
+
+
+jobs:
+  test:
+    name: Test deep inverse GPU ${{ matrix.name }}
+    runs-on: self-hosted
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.version_python }}
+          cache: 'pip' # caching pip dependencies
+
+      - name: Install deepinv and its dependencies
+        run: |
+          pip install -e .[${{ matrix.extra }}]
+      - name: Install deepinv and its dependencies for Python 3.9
+        run: |
+          pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
+          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --ignore-requires-python -e .[${{ matrix.extra }}]
+      # For debugging purposes
+      - name: Check Python version
+        run: python3 --version
+
+      - name: Check installed packages
+        run: pip list
+
+      - name: Python 3.9 check import warning
+        run: |
+          python -c "import deepinv"
+      - name: Test with pytest and generate coverage report
+        run: |
+          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
