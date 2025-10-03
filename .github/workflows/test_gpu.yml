@@ -1,7 +1,7 @@
 name: Test GPU
 
 on:
-  push:     
+  push:
     branches:
       - "gpu-tests"
 
@@ -13,29 +13,53 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.10
-          cache: 'pip' # caching pip dependencies
+
+      - name: Create Python 3.11 venv
+        run: |
+          python3.11 -m venv venv
+          source venv/bin/activate
+          python --version
 
       - name: Install deepinv and its dependencies
         run: |
+          source venv/bin/activate
+          pip install --upgrade pip
           pip install -e .[dataset,denoisers,test,training]
-      - name: Install deepinv and its dependencies for Python 3.9
+
+      - name: Install additional dependencies
         run: |
+          source venv/bin/activate
           pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
           pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
           pip install --ignore-requires-python -e .[dataset,denoisers,test,training]
-      # For debugging purposes
+
       - name: Check Python version
-        run: python3 --version
+        run: |
+          source venv/bin/activate
+          python --version
 
       - name: Check installed packages
-        run: pip list
-
-      - name: Python 3.9 check import warning
         run: |
+          source venv/bin/activate
+          pip list
+
+      - name: Check import
+        run: |
+          source venv/bin/activate
           python -c "import deepinv"
+
       - name: Test with pytest and generate coverage report
         run: |
-          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          source venv/bin/activate
+          python -m pytest -n 2 --dist=loadgroup
+          
+      # ⚠️ Cleanup: remove the entire working directory except .git
+      - name: Cleanup workspace
+        if: always()
+        run: |
+          shopt -s dotglob
+          for item in *; do
+            if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
+              rm -rf "$item"
+            fi
+          done
