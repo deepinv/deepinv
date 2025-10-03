@@ -314,7 +314,7 @@ class WandbRunLogger(RunLogger):
         if os.path.isfile(checkpoint_file):
             checkpoint = torch.load(
                 checkpoint_file, map_location="cpu", weights_only=False
-            )
+            )  # this is a costly operation
             checkpoint["wandb_id"] = self.wandb_run.id
             torch.save(checkpoint, checkpoint_file)
         else:
