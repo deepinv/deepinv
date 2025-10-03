@@ -1,5 +1,5 @@
 from .datagenerator import generate_dataset, HDF5Dataset
-from .patch_dataset import PatchDataset
+from .patch_dataset import PatchDataset, PatchDataset3D
 from .div2k import DIV2K
 from .urban100 import Urban100HR
 from .set14 import Set14HR

@@ -79,6 +79,7 @@ Other Datasets
    :nosignatures:
 
     deepinv.datasets.PatchDataset
+    deepinv.datasets.PatchDataset3D
     deepinv.datasets.utils.PlaceholderDataset
 
 

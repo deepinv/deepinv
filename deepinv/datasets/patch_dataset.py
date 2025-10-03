@@ -117,7 +117,7 @@ class PatchDataset3D(ImageDataset):
         )
 
         self.shapes = [
-            self.load(os.path.join(y_dir, im), as_memmap=True).shape for im in self.imgs
+            self.load(os.path.join(y_dir if y_dir else x_dir, im), as_memmap=True).shape for im in self.imgs
         ]
 
     def __len__(self):
@@ -140,16 +140,16 @@ class PatchDataset3D(ImageDataset):
                 os.path.join(self.x_dir, fname),
                 start_coords=start_coords,
                 patch_size=self.patch_size,
-            )
+            ).unsqueeze(0)
             if self.x_dir
             else torch.nan
         )
-        if self.y_dir:
+        if self.y_dir is not None:
             y = self.load(
                 os.path.join(self.y_dir, fname),
                 start_coords=start_coords,
                 patch_size=self.patch_size,
-            )
+            ).unsqueeze(0)
             return (x, y)
         else:
             return x
