@@ -5,6 +5,7 @@ from deepinv.utils.io_utils import load_np
 import random
 import os
 
+
 class PatchDataset(ImageDataset):
     r"""
     Builds the dataset of all patches from a tensor of images.
@@ -47,13 +48,16 @@ class PatchDataset(ImageDataset):
 
         return patch.reshape(self.shape) if self.shape else patch
 
+
 class PatchDataset3D(ImageDataset):
     def __init__(self, im_dir, patch_size=64, stride=32):
         self.patch_size = patch_size
         self.stride = stride
         self.im_dir = im_dir
 
-        self.imgs = os.listdir(im_dir) # add a check here to ensure only nifti and/or npy files are included?
+        self.imgs = os.listdir(
+            im_dir
+        )  # add a check here to ensure only nifti and/or npy files are included?
         # self.shapes = [load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs]
         # to keep things as simple and close to the PatchDataset example, assume all files have same shape
         D, H, W = load_np(os.path.join(im_dir, self.imgs[0]), as_memmap=True).shape
@@ -78,21 +82,28 @@ class PatchDataset3D(ImageDataset):
 
         per_h_w = self.patches_per_image_h * self.patches_per_image_w
         id = idx_in_vol // per_h_w
-        rem = idx_in_vol %  per_h_w
-        ih  = rem // self.patches_per_image_w
-        iw  = rem %  self.patches_per_image_w
+        rem = idx_in_vol % per_h_w
+        ih = rem // self.patches_per_image_w
+        iw = rem % self.patches_per_image_w
 
-        return load_np(fpath, start_coords=[id * self.stride, ih * self.stride, iw * self.stride], patch_size=self.patch_size).unsqueeze(0)
-    
+        return load_np(
+            fpath,
+            start_coords=[id * self.stride, ih * self.stride, iw * self.stride],
+            patch_size=self.patch_size,
+        ).unsqueeze(0)
+
 
 class AlternativePatchDataset3D(ImageDataset):
     def __init__(self, im_dir, patch_size=64):
         self.patch_size = patch_size
         self.im_dir = im_dir
 
-        self.imgs = os.listdir(im_dir) # add a check here to ensure only nifti and/or npy files are included?
-        self.shapes = [load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs]
-
+        self.imgs = os.listdir(
+            im_dir
+        )  # add a check here to ensure only nifti and/or npy files are included?
+        self.shapes = [
+            load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs
+        ]
 
     def __len__(self):
         return len(self.imgs)
@@ -102,4 +113,12 @@ class AlternativePatchDataset3D(ImageDataset):
         shape = self.shapes[idx]
 
         # We use random here: need to make a fix for deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
-        return load_np(fpath, start_coords=[random.randint(self.patch_size, shape[0] - self.patch_size), random.randint(self.patch_size, shape[1] - self.patch_size), random.randint(self.patch_size, shape[2] - self.patch_size)], patch_size=self.patch_size).unsqueeze(0)
+        return load_np(
+            fpath,
+            start_coords=[
+                random.randint(self.patch_size, shape[0] - self.patch_size),
+                random.randint(self.patch_size, shape[1] - self.patch_size),
+                random.randint(self.patch_size, shape[2] - self.patch_size),
+            ],
+            patch_size=self.patch_size,
+        ).unsqueeze(0)
