@@ -609,6 +609,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         img_size: tuple[int],
         n_eigen_psf: int = 10,
         spacing: tuple[int] = None,
+        device: str | torch.device = "cpu",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -689,7 +690,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         w = w.reshape(w.size(0), channels, self.n_eigen_psf, *self.img_size)
 
         # Ending
-        params_blur = {"filters": eigen_psf, "multipliers": w, "padding": self.padding}
+        params_blur = {"filters": eigen_psf, "multipliers": w}
         return params_blur
 
 
