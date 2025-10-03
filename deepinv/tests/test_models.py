@@ -1267,7 +1267,7 @@ def test_siren_reconstructor(imsize, device):
         input_dim=2,
         encoding_dim=32,
         out_channels=1,
-        siren_dims=[32]*2,
+        siren_dims=[32] * 2,
         bias={"encoding": False, "siren": True},
         omega0={"encoding": 1.0, "siren": 1.0},
         device=device,

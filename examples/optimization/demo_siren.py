@@ -125,7 +125,9 @@ print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
 print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
 
 # plot results
-plot([y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"])
+plot(
+    [y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"]
+)
 
 # %%
 # 1.2 Image inpainting
@@ -204,7 +206,7 @@ f = dinv.models.SirenReconstructor(
     learning_rate=lr,
     iterations=iterations,
     verbose=True,
-    img_size=y.shape[1:], # We here fit the model on the low resolution image
+    img_size=y.shape[1:],  # We here fit the model on the low resolution image
     regul_param=1e-3,
 ).to(device)
 
@@ -248,7 +250,7 @@ plot(
 
 # %%
 
-y = dinv.models.TVDenoiser.nabla(x).view(x.shape[2]*x.shape[3], 2)
+y = dinv.models.TVDenoiser.nabla(x).view(x.shape[2] * x.shape[3], 2)
 
 class Gradient(dinv.physics.Physics):
     r"""

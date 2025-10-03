@@ -86,13 +86,14 @@ class FourierPE(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.linear = nn.Linear(self.input_dim, self.output_dim, bias)
+        self.activation = Sin(omega0=self.omega0)
 
         with torch.no_grad():
             self.linear.weight.uniform_(-1 / self.input_dim, 1 / self.input_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear(x)
-        return Sin(omega0=self.omega0)(x)
+        return self.activation(x)
 
 
 class Sin(nn.Module):
