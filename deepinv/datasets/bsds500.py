@@ -8,16 +8,7 @@ from natsort import natsorted
 
 
 class BSDS500(ImageDataset):
-    def __init__(
-        self,
-        root,
-        download=False,
-        train=True,
-        splits=None,
-        transform=None,
-        rotate=False,
-    ):
-        """Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
+    """Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
 
         BSDS500 dataset for image restoration benchmarks. BSDS stands for The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
         Originally, BSDS500 was used for image segmentation. However, this dataset only loads the ground truth images.
@@ -49,6 +40,16 @@ class BSDS500(ImageDataset):
         :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
             Default at False.
         """
+    
+    def __init__(
+        self,
+        root,
+        download=False,
+        train=True,
+        splits=None,
+        transform=None,
+        rotate=False,
+    ):
         checksum = "7bfe17302a219367694200a61ce8256c"
         if splits is None:
             if train:
