@@ -291,7 +291,14 @@ params_pc = pc_generator.step(batch_size)
 
 physics = SpaceVaryingBlur(**params_pc, device=device)
 
-dirac_comb = torch.zeros((1, 1,) + img_size, device=device)
+dirac_comb = torch.zeros(
+    (
+        1,
+        1,
+    )
+    + img_size,
+    device=device,
+)
 dirac_comb[0, 0, ::delta, ::delta] = 1
 psf_grid = physics(dirac_comb)
 plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip")
