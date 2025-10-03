@@ -50,8 +50,9 @@ from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
 from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
+import deepinv as dinv
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 dtype = torch.float32
 
 # %%
