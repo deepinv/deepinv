@@ -33,7 +33,7 @@ from deepinv.datasets import (
     TensorDataset,
     ImageFolder,
     SKMTEASliceDataset,
-    PatchDataset3D
+    PatchDataset3D,
 )
 from deepinv.datasets.utils import (
     download_archive,
@@ -1092,23 +1092,26 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
         == 1
     )
 
+
 @pytest.fixture
 def download_brainweb_dl():
     """Downloads dataset for tests and removes it after test executions. Only downloads subset to save time / disk space."""
     from brainweb_dl import get_mri
+
     tmp_data_dir = "brainweb"
     os.makedirs(tmp_data_dir, exist_ok=True)
     ids = [44, 5, 18, 53]
     for im_id in ids:
         vol_array = get_mri(sub_id=im_id, contrast="T1")
-        np.save(os.path.join(tmp_data_dir, str(im_id) + '.npy'), vol_array)
-    
+        np.save(os.path.join(tmp_data_dir, str(im_id) + ".npy"), vol_array)
+
     yield tmp_data_dir
 
     shutil.rmtree(tmp_data_dir)
 
+
 def test_PatchDataset3D(download_brainweb_dl):
-    patch_size = 32 # this patch size should always fit
+    patch_size = 32  # this patch size should always fit
     npy_dir = download_brainweb_dl
 
     dataset = PatchDataset3D(x_dir=npy_dir, patch_size=patch_size)

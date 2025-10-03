@@ -117,7 +117,8 @@ class PatchDataset3D(ImageDataset):
         )
 
         self.shapes = [
-            self.load(os.path.join(y_dir if y_dir else x_dir, im), as_memmap=True).shape for im in self.imgs
+            self.load(os.path.join(y_dir if y_dir else x_dir, im), as_memmap=True).shape
+            for im in self.imgs
         ]
 
     def __len__(self):
