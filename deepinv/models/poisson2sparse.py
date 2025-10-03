@@ -1,5 +1,6 @@
 # Adapted from https://github.com/tacalvin/Poisson2Sparse
 # and https://github.com/drorsimon/CSCNet
+from __future__ import annotations
 from .base import Denoiser
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ import torch.nn.functional as F
 from tqdm import trange
 from deepinv.loss import Neighbor2Neighbor as N2N
 from functools import wraps
-from typing import Callable, Union
+from typing import Callable
 from deepinv.utils.compat import zip_strict
 
 
@@ -213,14 +214,14 @@ class ConvLista(nn.Module):
 
         @staticmethod
         def _soft_threshold(
-            x: torch.Tensor, *, threshold: Union[float, torch.Tensor]
+            x: torch.Tensor, *, threshold: float | torch.Tensor
         ) -> torch.Tensor:
             """Soft-thresholding operation
 
             1. Beck, A., & Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences, 2(1), 183–202. https://doi.org/10.1137/080716542
 
             :param torch.Tensor x: Input tensor
-            :param Union[float, torch.Tensor] threshold: Threshold value (constant or per entry). If a tensor, it must be broadcastable to the shape of ``x``.
+            :param float | torch.Tensor threshold: Threshold value (constant or per entry). If a tensor, it must be broadcastable to the shape of ``x``.
             :return: (:class:`torch.Tensor`) Soft-thresholded tensor
             """
             return (x.abs() - threshold).clamp(min=0.0) * x.sign()
