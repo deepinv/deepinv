@@ -609,10 +609,10 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         img_size: tuple[int],
         n_eigen_psf: int = 10,
         spacing: tuple[int] = None,
-        device: str | torch.device = "cpu",
+        device: str = "cpu",
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         if isinstance(img_size, int):
             img_size = (img_size, img_size)
         if isinstance(spacing, int):
