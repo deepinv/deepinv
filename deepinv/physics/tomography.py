@@ -149,13 +149,13 @@ class Tomography(LinearPhysics):
         if fan_beam or adjoint_via_backprop:
             self._auto_grad_adjoint_fn = None
             self._auto_grad_adjoint_input_shape = (1, 1, img_width, img_width)
-        self.fbp_interpolate_boundary = fbp_interpolate_boundary
-        if circle:
+        if circle and fbp_interpolate_boundary:
             # interpolate boundary does not make sense if circle is True
             warn(
                 "The argument fbp_interpolate_boundary=True is not applicable if circle=True. The value fbp_interpolate_boundary will be changed to False..."
             )
-            self.fbp_interpolate_boundary = False
+            fbp_interpolate_boundary = False
+        self.fbp_interpolate_boundary = fbp_interpolate_boundary
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
