@@ -1,8 +1,9 @@
 name: Test GPU
 
 on:
-  workflow_dispatch:        # manual trigger
-
+  push:     
+    branches:
+      - "gpu-tests"
 
 jobs:
   test:
