@@ -30,6 +30,7 @@ For example, random transforms can be used as follows:
 
     >>> import torch
     >>> from deepinv.transform import Shift, Rotate
+    >>> from torchvision.transforms import InterpolationMode
     >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
     >>> transform = Shift() # Define random shift transform
     >>> transform(x).shape
@@ -39,13 +40,19 @@ For example, random transforms can be used as follows:
     tensor(True)
     >>> transform(torch.rand((1, 1, 3, 2, 2))).shape # Accepts video input of shape (B,C,T,H,W)
     torch.Size([1, 1, 3, 2, 2])
-    >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+    >>> transform = Rotate(
+    ...         interpolation_mode=InterpolationMode.BILINEAR
+    ... ) + Shift() # Stack rotate and shift transforms
     >>> transform(x).shape
     torch.Size([2, 1, 2, 2])
-    >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+    >>> rotoshift = Rotate(
+    ...         interpolation_mode=InterpolationMode.BILINEAR
+    ... ) * Shift() # Chain rotate and shift transforms
     >>> rotoshift(x).shape
     torch.Size([1, 1, 2, 2])
-    >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+    >>> transform = Rotate(
+    ...         interpolation_mode=InterpolationMode.BILINEAR
+    ... ) | Shift() # Randomly select rotate or shift transforms
     >>> transform(x).shape
     torch.Size([1, 1, 2, 2])
     >>> f = lambda x: x[..., [0]] * x # Function to be symmetrized
