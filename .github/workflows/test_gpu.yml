@@ -11,52 +11,57 @@ jobs:
     runs-on: self-hosted
     env:
       DEEPINV_MOCK_TESTS: "True"
+
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create Python 3.11 venv
+      # ✅ Create and activate Conda environment with Python 3.11
+      - name: Create Conda env (Python 3.11)
         run: |
-          python3.11 -m venv venv
-          source venv/bin/activate
+          conda create -y -n py311 python=3.11
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python --version
 
-      - name: Install deepinv and its dependencies
+      - name: Install deepinv
         run: |
-          source venv/bin/activate
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           pip install --upgrade pip
           pip install -e .[dataset,denoisers,test,training]
 
-      - name: Install additional dependencies
-        run: |
-          source venv/bin/activate
-          pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
-          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-          pip install --ignore-requires-python -e .[dataset,denoisers,test,training]
-
       - name: Check Python version
         run: |
-          source venv/bin/activate
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python --version
 
       - name: Check installed packages
         run: |
-          source venv/bin/activate
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           pip list
 
       - name: Check import
         run: |
-          source venv/bin/activate
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python -c "import deepinv"
 
-      - name: Test with pytest and generate coverage report
+      - name: Test with pytest
         run: |
-          source venv/bin/activate
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python -m pytest -n 2 --dist=loadgroup
-          
-      # ⚠️ Cleanup: remove the entire working directory except .git
-      - name: Cleanup workspace
+
+      # ✅ Cleanup: remove conda env & workspace (except .git/.github)
+      - name: Cleanup environment and workspace
         if: always()
         run: |
+          # Remove conda env
+          conda env remove -n py311 -y || true
+
+          # Clean working directory except .git and .github
           shopt -s dotglob
           for item in *; do
             if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
