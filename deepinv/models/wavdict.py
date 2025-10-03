@@ -374,7 +374,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor x: noisy image.
+        :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
             ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
@@ -464,7 +464,7 @@ class WaveletDictDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor y: noisy image.
+        :param torch.Tensor y: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: noise level.
         """
         z_p = y.repeat(len(self.list_prox), *([1] * (len(y.shape))))
