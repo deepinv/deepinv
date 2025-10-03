@@ -17,7 +17,7 @@ class BSDS500(ImageDataset):
         transform=None,
         rotate=False,
     ):
-        r"""Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
+        """Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
 
         BSDS500 dataset for image restoration benchmarks. BSDS stands for The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
         Originally, BSDS500 was used for image segmentation. However, this dataset only loads the ground truth images.
