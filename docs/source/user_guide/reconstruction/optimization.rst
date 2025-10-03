@@ -226,18 +226,18 @@ Predefined Algorithms
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all predefined optimization algorithms.
 
-The function :func:`deepinv.optim.optim_builder` returns an instance of :class:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
-or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
-at the beginning of this page, in one line of code:
+Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, for example:
+:class:`deepinv.optim.GradientDescent`, :class:`deepinv.optim.ProximalGradientDescent`, :class:`deepinv.optim.ADMM`, etc...
+For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
 
-    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
-    ...                             params_algo={"stepsize": stepsize, "lambda": lambd}, max_iter=max_iter)
-    >>> x_hat = model(y, physics)
+    >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
+    >>> x_hat = model(y, physics, init = init)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
+By default, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
+Custom initialization can be defined via the ``init`` argument in the ``forward`` method.
 
 Some predefined optimizers are provided:
 
@@ -246,69 +246,60 @@ Some predefined optimizers are provided:
 
    * - Algorithm
      - Iteration
-     - Parameters
 
-   * - :class:`Gradient Descent (GD) <deepinv.optim.optim_iterators.GDIteration>`
+   * - :class:`deepinv.optim.GradientDescent`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = x_k-\gamma v_{k}`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Proximal Gradient Descent (PGD) <deepinv.optim.optim_iterators.PGDIteration>`
+   * - :class:`deepinv.optim.ProximalGradientDescent`
      - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
-
-   * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.optim_iterators.FISTAIteration>`
+   * - :class:`deepinv.optim.FISTA`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
        | :math:`z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.optim_iterators.HQSIteration>`
+   * - :class:`deepinv.optim.HQS`
      - | :math:`u_{k} = \operatorname{prox}_{\gamma f}(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda \regname}(u_k)`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.optim_iterators.ADMMIteration>`
+   * - :class:`deepinv.optim.ADMM`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k)`
        | :math:`z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.optim_iterators.DRSIteration>`
+   * - :class:`deepinv.optim.DRS`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)`
        | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Chambolle-Pock (CP) <deepinv.optim.optim_iterators.CPIteration>`
+   * - :class:`deepinv.optim.PrimalDualCP`
      - | :math:`u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})`
        | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``, ``"stepsize_dual"``
 
-   * - :class:`Mirror Descent (MD) <deepinv.optim.optim_iterators.MDIteration>`
+   * - :class:`deepinv.optim.MirrorDescent`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, convex potential ``h``
 
-   * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
-     - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
-     - (phase-retrieval only)
-
+   * - :class:`deepinv.optim.ProximalMirrorDescent`
+     - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
+       | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
+       | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
 
 .. _optim-params:
 
-Parameters
-~~~~~~~~~~
+Optimization Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
-stepsize, regularization parameter, standard deviation of denoiser prior, etc.
-are stored in a dictionary ``"params_algo"``, whose typical entries are:
+stepsize, regularization parameter, standard deviation of denoiser prior can be passed as arguments to the constructor of the optimization algorithm.
+Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters. 
+
 
 .. list-table::
    :header-rows: 1
 
-   * - Key
+   * - Parameters name
      - Meaning
      - Recommended Values
    * - ``"stepsize"``
@@ -317,7 +308,7 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
        | should be smaller than :math:`1/(\|A\|_2^2)`.
-   * - ``"lambda"``
+   * - ``"lambda_reg"``
      - | Regularization parameter :math:`\lambda`
        | multiplying the regularization term.
      - Should be positive.

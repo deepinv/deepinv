@@ -32,7 +32,6 @@ class ADMMIteration(OptimIterator):
         super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
-        self.requires_prox_g = True
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -60,6 +59,9 @@ class ADMMIteration(OptimIterator):
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
+            and self.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}
