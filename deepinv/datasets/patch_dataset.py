@@ -1,9 +1,10 @@
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.decorators import _deprecated_alias
-from deepinv.utils.io_utils import load_np
 
 import random
 import os
+
+import torch
 
 
 class PatchDataset(ImageDataset):
@@ -49,76 +50,106 @@ class PatchDataset(ImageDataset):
         return patch.reshape(self.shape) if self.shape else patch
 
 
-class PatchDataset3D(ImageDataset):
-    def __init__(self, im_dir, patch_size=64, stride=32):
-        self.patch_size = patch_size
-        self.stride = stride
-        self.im_dir = im_dir
+def get_loader(format: str):
+    if format.endswith(".npy"):
+        from deepinv.utils.io_utils import load_np
 
-        self.imgs = os.listdir(
-            im_dir
-        )  # add a check here to ensure only nifti and/or npy files are included?
-        # self.shapes = [load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs]
-        # to keep things as simple and close to the PatchDataset example, assume all files have same shape
-        D, H, W = load_np(os.path.join(im_dir, self.imgs[0]), as_memmap=True).shape
+        return load_np
+    elif format.endswith(".nii") or format.endswith(".nii.gz"):
+        from deepinv.utils.io_utils import load_nifti
 
-        self.patches_per_image_d = (D - patch_size) // stride + 1
-        self.patches_per_image_h = (H - patch_size) // stride + 1
-        self.patches_per_image_w = (W - patch_size) // stride + 1
+        return load_nifti
+    elif format.endswith(".b2nd"):
+        from deepinv.utils.io_utils import load_blosc2
 
-        self.patches_per_image = (
-            self.patches_per_image_d
-            * self.patches_per_image_h
-            * self.patches_per_image_w
+        return load_blosc2
+    else:
+        raise NotImplementedError(
+            "No loader function for 3D volumes with extension {format}"
         )
 
-    def __len__(self):
-        return len(self.imgs) * self.patches_per_image
 
-    def __getitem__(self, idx):
-        vol_idx = idx // self.patches_per_image
-        idx_in_vol = idx % self.patches_per_image
-        fpath = os.path.join(self.im_dir, self.imgs[vol_idx])
+class PatchDataset3D(ImageDataset):
+    def __init__(
+        self,
+        x_dir: str = None,
+        y_dir: str = None,
+        patch_size: int = 64,
+        format: str = ".npy",
+    ):  # allow patch_size to be list/tuple, not just int
+        r"""
+        Builds a dataset from folders of 3D images. Each epoch, a single patch is randomly sampled from each volume.
 
-        per_h_w = self.patches_per_image_h * self.patches_per_image_w
-        id = idx_in_vol // per_h_w
-        rem = idx_in_vol % per_h_w
-        ih = rem // self.patches_per_image_w
-        iw = rem % self.patches_per_image_w
+        Each image can have a different shape, but all images must have shape H, W, D. Other axis are not allowed (or will be squeezed).
 
-        return load_np(
-            fpath,
-            start_coords=[id * self.stride, ih * self.stride, iw * self.stride],
-            patch_size=self.patch_size,
-        ).unsqueeze(0)
+        :param str x_dir: Path to folder of ground-truth images.
+        :param str y_dir: Path to folder of measurements. Measurements must be images of same shape as ground-truth.
+        :param int patch_size: Patch size to use, must be <= smallest shape in the dataset
+        :param str format: Format to use. Other files will be ignored. Supported: .npy, .nii(.gz), .b2nd (blosc2)
+        """
+        assert x_dir or y_dir, "Both x_dir and y_dir cannot be None."
 
+        self.x_dir, self.y_dir = x_dir, y_dir
 
-class AlternativePatchDataset3D(ImageDataset):
-    def __init__(self, im_dir, patch_size=64):
         self.patch_size = patch_size
-        self.im_dir = im_dir
+        self.load = get_loader(format)
 
-        self.imgs = os.listdir(
-            im_dir
-        )  # add a check here to ensure only nifti and/or npy files are included?
+        x_imgs, y_imgs = None, None
+
+        if x_dir is not None:
+            assert os.path.exists(x_dir), f"Measurement dir {x_dir} does not exist."
+            x_imgs = [f for f in os.listdir(x_dir) if f.endswith(format)]
+            assert (
+                len(x_imgs) != 0
+            ), f"Measurement dir is given but empty for file format {format}."
+
+        if y_dir is not None:
+            assert os.path.exists(y_dir), f"Ground-truth dir {y_dir} does not exist."
+            y_imgs = [f for f in os.listdir(y_dir) if f.endswith(format)]
+            assert (
+                len(y_imgs) != 0
+            ), f"Ground-truth dir is given but empty for file format {format}."
+
+        self.imgs = (
+            [f for f in x_imgs if f in y_imgs]
+            if (x_imgs and y_imgs)
+            else (x_imgs or y_imgs)
+        )
+
         self.shapes = [
-            load_np(os.path.join(im_dir, im), as_memmap=True).shape for im in self.imgs
+            self.load(os.path.join(y_dir, im), as_memmap=True).shape for im in self.imgs
         ]
 
     def __len__(self):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        fpath = os.path.join(self.im_dir, self.imgs[idx])
-        shape = self.shapes[idx]
 
-        # We use random here: need to make a fix for deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
-        return load_np(
-            fpath,
-            start_coords=[
-                random.randint(self.patch_size, shape[0] - self.patch_size),
-                random.randint(self.patch_size, shape[1] - self.patch_size),
-                random.randint(self.patch_size, shape[2] - self.patch_size),
-            ],
-            patch_size=self.patch_size,
-        ).unsqueeze(0)
+        shape = self.shapes[idx]
+        # We use random here: need to ensure deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
+        start_coords = [
+            random.randint(self.patch_size, shape[0] - self.patch_size),
+            random.randint(self.patch_size, shape[1] - self.patch_size),
+            random.randint(self.patch_size, shape[2] - self.patch_size),
+        ]
+
+        fname = self.imgs[idx]
+
+        x = (
+            self.load(
+                os.path.join(self.x_dir, fname),
+                start_coords=start_coords,
+                patch_size=self.patch_size,
+            )
+            if self.x_dir
+            else torch.nan
+        )
+        if self.y_dir:
+            y = self.load(
+                os.path.join(self.y_dir, fname),
+                start_coords=start_coords,
+                patch_size=self.patch_size,
+            )
+            return (x, y)
+        else:
+            return x
