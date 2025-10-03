@@ -1,4 +1,5 @@
-from typing import Any, Union, Optional
+from __future__ import annotations
+from typing import Any
 from types import MappingProxyType
 from warnings import warn
 import math
@@ -148,13 +149,13 @@ class Tomography(LinearPhysics):
         if fan_beam or adjoint_via_backprop:
             self._auto_grad_adjoint_fn = None
             self._auto_grad_adjoint_input_shape = (1, 1, img_width, img_width)
-        self.fbp_interpolate_boundary = fbp_interpolate_boundary
-        if circle:
+        if circle and fbp_interpolate_boundary:
             # interpolate boundary does not make sense if circle is True
             warn(
                 "The argument fbp_interpolate_boundary=True is not applicable if circle=True. The value fbp_interpolate_boundary will be changed to False..."
             )
-            self.fbp_interpolate_boundary = False
+            fbp_interpolate_boundary = False
+        self.fbp_interpolate_boundary = fbp_interpolate_boundary
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
@@ -441,12 +442,12 @@ class TomographyWithAstra(LinearPhysics):
         self,
         img_size: tuple[int, ...],
         num_angles: int = 180,
-        num_detectors: Optional[Union[int, tuple[int, ...]]] = None,
+        num_detectors: int | tuple[int, ...] | None = None,
         angular_range: tuple[float, float] = (0, torch.pi),
-        detector_spacing: Union[float, tuple[float, float]] = 1.0,
+        detector_spacing: float | tuple[float, float] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
-        bounding_box: Optional[tuple[float, ...]] = None,
-        angles: Optional[torch.Tensor] = None,
+        bounding_box: tuple[float, ...] | None = None,
+        angles: torch.Tensor | None = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, Any] = MappingProxyType(
             {
@@ -454,9 +455,9 @@ class TomographyWithAstra(LinearPhysics):
                 "detector_radius": 20.0,
             }
         ),
-        geometry_vectors: Optional[torch.Tensor] = None,
+        geometry_vectors: torch.Tensor | None = None,
         normalize: bool = False,
-        device: Union[torch.device, str] = torch.device("cuda"),
+        device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
         super().__init__(**kwargs)
