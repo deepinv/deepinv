@@ -72,7 +72,7 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 Contributing
 ------------
 
-DeepInverse is a community-driven project and we encourage contributions of all forms.
+DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 

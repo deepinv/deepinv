@@ -733,7 +733,11 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
+class ConstantLoss2(ConstantLoss):
+    pass
+
+
+def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
@@ -741,16 +745,24 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     losses = [
         ConstantLoss(1 / 2, device),
-        ConstantLoss(1 / 3, device),
+        ConstantLoss2(1 / 3, device),
+    ]
+
+    metrics = [
+        ConstantLoss(1 / 4, device),
+        ConstantLoss2(1 / 5, device),
     ]
 
     trainer = dinv.Trainer(
         model=dummy_model,
         losses=losses,
+        metrics=metrics,
         epochs=2,
         physics=physics,
+        device=device,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
+        compute_losses_eval=True,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
@@ -759,10 +771,111 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     trainer.train()
 
-    loss_history = trainer.loss_history
-    assert all(
-        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+    for k, (loss_name, loss_history) in enumerate(trainer.train_loss_history.items()):
+        l = losses[k]
+        assert loss_name == l.__class__.__name__
+        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+
+    for k, (metric_name, metrics_history) in enumerate(
+        trainer.eval_metrics_history.items()
+    ):
+        l = metrics[k]
+        assert metric_name == l.__class__.__name__
+        assert all([abs(value - l.value) < 1e-6 for value in metrics_history])
+
+    for k, (loss_name, loss_history) in enumerate(trainer.eval_loss_history.items()):
+        l = losses[k]
+        assert loss_name == l.__class__.__name__
+        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+
+
+class DummyModel(dinv.models.Reconstructor):
+    def __init__(self):
+        super().__init__()
+        self.eval_count = 0
+        self.train_count = 0
+        self.param = torch.nn.Parameter(torch.ones(1), requires_grad=True)
+
+    def forward(self, y, physics, **kwargs):
+        x = physics.A_adjoint(y)
+        if self.training:
+            self.train_count += 1
+        else:
+            self.eval_count += 1
+        return x * self.param
+
+
+@pytest.mark.parametrize("compute_losses_eval", [True, False])
+@pytest.mark.parametrize("disable_train_metrics", [True, False])
+@pytest.mark.parametrize("epochs", [4, 5])
+def test_model_forward_passes(
+    dummy_dataset,
+    imsize,
+    device,
+    tmpdir,
+    compute_losses_eval,
+    disable_train_metrics,
+    epochs,
+):
+    train_data = get_dummy_dataset(imsize=imsize, N=4, value=1.0)
+    eval_data = get_dummy_dataset(imsize=imsize, N=2, value=1.0)
+    dataloader = DataLoader(train_data, batch_size=2)
+    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
+
+    model = DummyModel().to(device)
+
+    eval_interval = 2
+    trainer = dinv.Trainer(
+        model=model,
+        device=device,
+        save_path=tmpdir,
+        verbose=False,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=epochs,
+        eval_interval=eval_interval,
+        losses=dinv.loss.SupLoss(),
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        eval_dataloader=eval_dataloader,
+        online_measurements=True,
+        compute_losses_eval=compute_losses_eval,
+        disable_train_metrics=disable_train_metrics,
     )
+
+    assert model.train_count == 0
+    assert model.eval_count == 0
+
+    trainer.train()
+
+    train_calls = len(dataloader) * epochs
+    eval_calls = len(eval_dataloader) * (epochs // eval_interval + 1)
+
+    # checking number of train calls
+    if compute_losses_eval:
+        assert model.train_count == train_calls + eval_calls
+    else:
+        assert model.train_count == train_calls
+
+    # checking number of eval calls
+    if not disable_train_metrics and compute_losses_eval:
+        assert model.eval_count == 0  # all metrics computed in train mode
+    else:
+        assert model.eval_count == eval_calls
+
+    model.train_count = 0
+    model.eval_count = 0
+
+    trainer.test(eval_dataloader)
+
+    test_calls = len(eval_dataloader)
+    assert model.eval_count == test_calls
+
+    if compute_losses_eval:
+        assert model.train_count == test_calls
+    else:
+        assert model.train_count == 0
 
 
 # We test that the gradient norm is correctly computed and printed to the
@@ -877,6 +990,72 @@ def test_out_dir_collision_detection(
                 )
 
                 trainer.train()
+
+
+def test_trainer_speed(device):  # pragma: no cover
+    if device == torch.device("cpu"):
+        pytest.skip("Skip speed test on CPU")
+    img_size = (3, 64, 64)
+    batch_size = 4
+    N = 1000
+    gradient_steps = 500
+    epochs = gradient_steps // (N // batch_size)
+    dataset = get_dummy_dataset(imsize=img_size, N=N, value=1.0)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+    physics = dinv.physics.Inpainting(img_size=img_size, device=device, mask=0.5)
+    model = dinv.models.ArtifactRemoval(
+        dinv.models.UNet(in_channels=3, out_channels=3, scales=3)
+    ).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    losses = dinv.loss.SupLoss()
+    trainer = dinv.Trainer(
+        model=model,
+        losses=losses,
+        metrics=dinv.metric.PSNR(),
+        eval_interval=epochs + 1,
+        epochs=epochs,
+        physics=physics,
+        train_dataloader=dataloader,
+        online_measurements=True,
+        optimizer=optimizer,
+        ckp_interval=epochs + 1,
+        show_progress_bar=True,
+        verbose_individual_losses=True,
+        disable_train_metrics=False,
+        verbose=True,
+        device=device,
+    )
+
+    def do_epoch():
+        for x in dataloader:
+            x = x.to(device)
+            y = physics(x)
+            x_hat = model(y, physics=physics)
+            loss = losses(x, x_hat)
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+    # warm up
+    do_epoch()
+
+    import time
+
+    start = time.time()
+    for _ in range(epochs):
+        do_epoch()
+    end = time.time()
+    time_naive = end - start
+
+    start = time.time()
+    trainer.train()
+    end = time.time()
+    time_trainer = end - start
+
+    # 30% overhead allowed
+    assert time_trainer / time_naive < 1.3
+
+    assert time_trainer / time_naive < 1.3
 
 
 @pytest.mark.parametrize("model_performance", [40.0])

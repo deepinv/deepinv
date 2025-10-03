@@ -104,7 +104,8 @@ class ReducedResolutionLoss(SupLoss):
             return self.metric(x_net, y)
         except BaseException as e:
             raise RuntimeError(
-                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. Full error:",
+                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. "
+                f"Full error:",
                 str(e),
             )
 
