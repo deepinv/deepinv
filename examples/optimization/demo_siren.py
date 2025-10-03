@@ -125,9 +125,7 @@ print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
 print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
 
 # plot results
-plot(
-    [y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"]
-)
+plot([y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"])
 
 # %%
 # 1.2 Image inpainting
@@ -169,7 +167,9 @@ print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
 print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
 
 # plot results
-plot([y, x, x_siren.clip(0, 1)], titles=["measurement", "ground truth", "reconstruction"])
+plot(
+    [y, x, x_siren.clip(0, 1)], titles=["measurement", "ground truth", "reconstruction"]
+)
 
 # %%
 # 1.3 Super-resolution
@@ -218,7 +218,7 @@ x_siren = f(y, physics_f)
 
 # %%
 # Super-resolution by evaluating the trained network at a finer grid
-x_siren_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:]) 
+x_siren_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:])
 print(f"SIREN PSNR: {dinv.metric.PSNR()(y, x_siren).item():.2f} dB")
 print(
     f"super-resolved SIREN PSNR: {dinv.metric.PSNR()(x, x_siren_super_resolved.clip(0,1)).item():.2f} dB"
@@ -251,6 +251,7 @@ plot(
 # %%
 
 y = dinv.models.TVDenoiser.nabla(x).view(x.shape[2] * x.shape[3], 2)
+
 
 class Gradient(dinv.physics.Physics):
     r"""

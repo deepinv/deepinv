@@ -1284,4 +1284,3 @@ def test_siren_reconstructor(imsize, device):
     y = physics(x)
     x_net = f(y, physics)
     return torch.allclose(x, x_net, atol=0.01)
-
