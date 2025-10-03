@@ -304,8 +304,6 @@ class SirenReconstructor(Reconstructor):
 
         :param torch.Tensor y: Measurement.
         :param torch.Tensor physics: Physics model.
-        :param torch.Tensor z: Input grid of pixels on which the SIREN network is trained.
-        :param tuple shape: If provided, the output is reshaped to this shape.
         """
         if self.re_init:
             for layer in self.siren_net.children():
