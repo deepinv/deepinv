@@ -27,3 +27,21 @@ def load_np(fname: str | Path, as_memmap=False, start_coords=[], patch_size=[]) 
         return open_memmap(fname)
     else:
         return torch.from_numpy(np.load(fname, allow_pickle=False))
+    
+def load_nifti(fname: str | Path, as_memmap: bool=False, start_coords: tuple | list = [], patch_size: tuple | list=[], dtype: np.typing.DTypeLike= np.float32) -> torch.Tensor:
+    """Load numpy array from file as torch tensor.
+
+    :param str, pathlib.Path fname: file to load.
+    :param bool, as_memmap: open this file as a memmap and return
+    :param tuple | list, start_coords: starting indices when patch is to be extracted
+    :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
+    :return: :class:`torch.Tensor` containing loaded numpy array.
+    """
+    try:
+        import nibabel as nib
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`."
+        )
+    
+    return torch.from_numpy(nib.load(fname).get_fdata(dtype=dtype)).float().unsqueeze(0)
