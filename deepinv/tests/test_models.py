@@ -1262,7 +1262,7 @@ def test_siren_net(device):
 
 def test_siren_reconstructor(imsize, device):
     torch.manual_seed(0)
-    imsize = (1,1,32,32)
+    imsize = (1, 1, 32, 32)
     siren_net = dinv.models.SIREN(
         input_dim=2,
         encoding_dim=32,
