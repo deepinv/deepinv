@@ -10,7 +10,6 @@ from deepinv.optim.distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-from deepinv.physics import Physics
 from deepinv.optim.potential import Potential
 import torch
 
@@ -28,7 +27,7 @@ class DataFidelity(Potential):
         super().__init__()
         self.d = Distance(d=d)
 
-    def fn(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
 
@@ -39,7 +38,7 @@ class DataFidelity(Potential):
         """
         return self.d(physics.A(x), y, *args, **kwargs)
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
@@ -129,7 +128,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         super(StackedPhysicsDataFidelity, self).__init__()
         self.data_fidelity_list = data_fidelity_list
 
-    def fn(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
 
@@ -143,7 +142,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
             out += data_fidelity.fn(x, y[i], physics[i], *args, **kwargs)
         return out
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
@@ -265,7 +264,7 @@ class L2(DataFidelity):
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        physics: Physics,
+        physics,
         *args,
         gamma: float = 1.0,
         **kwargs,
@@ -316,7 +315,7 @@ class IndicatorL2(DataFidelity):
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        physics: Physics,
+        physics,
         *args,
         radius: float = None,
         stepsize: float = None,
@@ -416,7 +415,7 @@ class L1(DataFidelity):
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        physics: Physics,
+        physics,
         *args,
         gamma: float = 1.0,
         stepsize: float = None,
@@ -512,13 +511,13 @@ class ZeroFidelity(DataFidelity):
         super().__init__()
         self.d = ZeroDistance()
 
-    def fn(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         """
         This function returns zero for all inputs.
         """
         return torch.zeros(x.size(0), device=x.device, dtype=x.dtype)
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, *args, **kwargs):
         """
         This function returns a zero image.
         """

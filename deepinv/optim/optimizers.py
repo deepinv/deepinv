@@ -7,7 +7,6 @@ from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.models import Reconstructor
-from deepinv.physics import Physics
 
 
 class BaseOptim(Reconstructor):
@@ -311,7 +310,7 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y: torch.Tensor, physics: Physics, F_fn=None):
+    def init_iterate_fn(self, y: torch.Tensor, physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:

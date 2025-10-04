@@ -6,7 +6,6 @@ from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
-from deepinv.physics import LinearPhysics
 
 
 class EPLL(nn.Module):
@@ -87,7 +86,7 @@ class EPLL(nn.Module):
     def forward(
         self,
         y: torch.Tensor,
-        physics: LinearPhysics,
+        physics,
         sigma: float | torch.Tensor = None,
         x_init: torch.Tensor = None,
         betas: list[float] = None,
