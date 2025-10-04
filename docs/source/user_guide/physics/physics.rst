@@ -115,6 +115,11 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
 
+   * - Radar
+     -
+       | :class:`deepinv.physics.NearFieldMIMO`
+
+
 .. _wrapper_list:
 
 Wrappers
