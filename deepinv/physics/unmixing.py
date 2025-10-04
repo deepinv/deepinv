@@ -1,3 +1,4 @@
+from __future__ import annotations
 from math import sqrt
 import torch
 from deepinv.physics.forward import LinearPhysics
@@ -52,7 +53,12 @@ class HyperSpectralUnmixing(LinearPhysics):
     """
 
     def __init__(
-        self, M: torch.Tensor = None, E: int = 15, C: int = 64, device="cpu", **kwargs
+        self,
+        M: torch.Tensor = None,
+        E: int = 15,
+        C: int = 64,
+        device: torch.device | str = "cpu",
+        **kwargs,
     ):
         super(HyperSpectralUnmixing, self).__init__()
 
@@ -67,7 +73,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         self.register_buffer("M_pinv", torch.linalg.pinv(self.M))
         self.to(device)
 
-    def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs) -> torch.Tensor:
         r"""
         Applies the endmembers matrix to the input abundances x.
 
@@ -81,7 +87,9 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         return torch.einsum("ec,behw->bchw", self.M, x)
 
-    def A_dagger(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A_dagger(
+        self, y: torch.Tensor, M: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         r"""
         Applies the pseudoinverse endmember matrix to the image y.
 
@@ -95,7 +103,9 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         return torch.einsum("ce,bchw->behw", self.M_pinv, y)
 
-    def A_adjoint(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A_adjoint(
+        self, y: torch.Tensor, M: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         r"""
         Applies the transpose endmember matrix to the image y.
 
