@@ -24,7 +24,7 @@ class DataFidelity(Potential):
     :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
     """
 
-    def __init__(self, d: Callable[torch.Tensor, torch.Tensor] = None):
+    def __init__(self, d: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = None):
         super().__init__()
         self.d = Distance(d=d)
 
