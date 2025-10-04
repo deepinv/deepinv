@@ -155,6 +155,7 @@ class SinMLP(nn.Module):
             nn.Linear(dims[i], dims[i + 1], bias=bias) for i in range(len(dims) - 1)
         )
         self.activation = Sin(omega0=omega0)
+        self.init_weights()
 
     def init_weights(self) -> None:
         with torch.no_grad():

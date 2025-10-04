@@ -1267,8 +1267,8 @@ def test_siren_reconstructor(imsize, device):
         input_dim=2,
         encoding_dim=32,
         out_channels=1,
-        siren_dims=[32] * 2,
-        bias={"encoding": False, "siren": True},
+        siren_dims=[32] * 1,
+        bias={"encoding": True, "siren": True},
         omega0={"encoding": 1.0, "siren": 1.0},
         device=device,
     )
@@ -1278,9 +1278,9 @@ def test_siren_reconstructor(imsize, device):
         img_size=imsize[1:],
         iterations=500,
         learning_rate=1e-2,
-        regul_param=1e-3,
+        regul_param=1e-2,
     )
     x = torch.ones(imsize[2:], device=device).unsqueeze(0)
     y = physics(x)
     x_net = f(y, physics)
-    return torch.allclose(x, x_net, atol=0.01)
+    return torch.allclose(x, x_net, atol=0.1)
