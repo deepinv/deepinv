@@ -31,7 +31,7 @@ def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
 
     Requires `nibabel` to be installed. Install it with `pip install nibabel`.
 
-    :param str, Path fname: path to NIFTI `.nii.gz` file.
+    :param str, pathlib.Path fname: path to NIFTI `.nii.gz` file.
     :return: torch float tensor of shape `(1, ...)` where `...` are the NIFTI image dimensions.
     """
     try:
