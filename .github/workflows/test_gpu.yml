@@ -1,0 +1,67 @@
+name: Test GPU
+
+on:
+  schedule:
+    - cron: "30 2 */1 * *"
+  push:
+    branches:
+      - ci_experiments
+
+jobs:
+  test:
+    name: Test and docs GPU
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # See https://docs.astral.sh/uv/guides/integration/github
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+          python-version: "3.11"
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Set up Python
+        run: |
+          uv python install
+          uv run python --version
+
+      - name: Install the project
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training
+
+      - name: Check installed packages
+        run: |
+          uv pip list
+
+      - name: Check import
+        run: |
+          uv run python -c "import deepinv"
+
+      - name: Test with pytest
+        run: |
+          uv run python -m pytest -n 2 --dist=loadgroup
+
+      - name: Sphinx build
+        run: |
+          uv run sphinx-build docs/source _build
+
+      - name: Run doctests
+        run: |
+          _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
+          uv run sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
+
+      - name: Cleanup environment and workspace
+        if: always()
+        run: |
+          shopt -s dotglob
+          for item in *; do
+            if [ "$item" != ".git" ] && [ "$item" != ".github" ] && [ "$item" != ".cache" ]; then
+              rm -rf "$item"
+            fi
+          done
