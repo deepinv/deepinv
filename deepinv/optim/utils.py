@@ -235,7 +235,7 @@ def dot(a, b, dim):
 def conjugate_gradient(
     A: Callable,
     b: torch.Tensor,
-    max_iter: float = 1e2,
+    max_iter: int = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
     parallel_dim=0,
@@ -304,7 +304,7 @@ def bicgstab(
     A,
     b: torch.Tensor,
     init=None,
-    max_iter: float = 1e2,
+    max_iter: int = 1e2,
     tol: float = 1e-5,
     parallel_dim=0,
     verbose: bool = False,
@@ -404,7 +404,7 @@ def bicgstab(
     return x
 
 
-def _sym_ortho(a, b):
+def _sym_ortho(a: torch.Tensor, b: torch.Tensor):
     """
     Stable implementation of Givens rotation.
 
@@ -437,14 +437,14 @@ def _sym_ortho(a, b):
 def lsqr(
     A,
     AT,
-    b,
-    eta=0.0,
+    b: torch.Tensor,
+    eta: float | torch.Tensor = 0.0,
     x0=None,
-    tol=1e-6,
-    conlim=1e8,
-    max_iter=100,
+    tol: float = 1e-6,
+    conlim: float = 1e8,
+    max_iter: int = 100,
     parallel_dim=0,
-    verbose=False,
+    verbose: bool = False,
     **kwargs,
 ):
     r"""
@@ -664,9 +664,9 @@ def lsqr(
 
 def minres(
     A,
-    b,
+    b: torch.Tensor,
     init=None,
-    max_iter=1e2,
+    max_iter: int = 1e2,
     tol=1e-5,
     eps=1e-6,
     parallel_dim=0,
