@@ -1,0 +1,90 @@
+name: Test GPU
+
+on:
+  schedule:
+    - cron: "30 2 */1 * *"
+  push:
+    branches:
+      - gpu-tests
+
+jobs:
+  test:
+    name: Test and docs GPU
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Test
+        run: |
+          type python
+          type conda
+      # ✅ Create and activate Conda environment with Python 3.11
+      # - name: Create Conda env (Python 3.11)
+      #   run: |
+      #     conda create -y -n py311 python=3.11
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     python --version
+
+      # # ✅ Install uv and project deps
+      # - name: Install dependencies with uv
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     pip install uv
+
+      #     # Fix corrupted sympy install (remove & reinstall)
+      #     pip uninstall -y sympy || true
+      #     uv pip install "sympy>=1.13.3"
+
+      #     uv pip install -e .[dataset,denoisers,test,training]
+
+      # - name: Check Python version
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     python --version
+
+      # - name: Check installed packages
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     uv pip list
+
+      # - name: Check import
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     python -c "import deepinv"
+
+      # - name: Test with pytest
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     python -m pytest -n 2 --dist=loadgroup
+
+      # - name: Sphinx build
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     sphinx-build docs/source _build
+
+      # - name: Run doctests
+      #   run: |
+      #     source "$(conda info --base)/etc/profile.d/conda.sh"
+      #     conda activate py311
+      #     _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
+      #     sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
+
+      # - name: Cleanup environment and workspace
+      #   if: always()
+      #   run: |
+      #     conda env remove -n py311 -y || true
+      #     shopt -s dotglob
+      #     for item in *; do
+      #       if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
+      #         rm -rf "$item"
+      #       fi
+      #     done
