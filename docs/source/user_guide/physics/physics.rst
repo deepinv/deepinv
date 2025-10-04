@@ -31,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
