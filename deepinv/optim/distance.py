@@ -17,7 +17,7 @@ class Distance(Potential):
     :param Callable d: distance function :math:`\distance{x}{y}`. Outputs a tensor of size `B`, the size of the batch. Default: None.
     """
 
-    def __init__(self, d: Callable[torch.Tensor, torch.Tensor] = None):
+    def __init__(self, d: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = None):
         super().__init__(fn=d)
 
     def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
