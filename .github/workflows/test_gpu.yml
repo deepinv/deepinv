@@ -29,7 +29,7 @@ jobs:
       - name: Set up Python
         run: |
           uv python install
-          python --version
+          uv python --version
 
       - name: Install the project
         run: uv sync --extra dataset --extra denoisers --extra test --extra training
