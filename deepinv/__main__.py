@@ -5,7 +5,6 @@ from __future__ import annotations
 import deepinv as dinv
 import torch
 import torch.utils.data
-import torchvision
 import torchvision.transforms as transforms
 
 import yaml
@@ -92,16 +91,16 @@ class CommandLineTrainer:
                     f"The 'dataset' entry contains unexpected keys: {list(dataset_config.keys())}."
                 )
 
-            dataset_transform = transforms.Compose([
-                transforms.Resize((256, 256)),
-                transforms.CenterCrop(256),
-                transforms.ToTensor()
-            ])
+            dataset_transform = transforms.Compose(
+                [
+                    transforms.Resize((256, 256)),
+                    transforms.CenterCrop(256),
+                    transforms.ToTensor(),
+                ]
+            )
 
             dataset = dataset_cls(
-                *dataset_args,
-                transform=dataset_transform,
-                **dataset_kwargs
+                *dataset_args, transform=dataset_transform, **dataset_kwargs
             )
 
             physics_config: dict = config.pop("physics")
@@ -126,7 +125,7 @@ class CommandLineTrainer:
             physics_kwargs: dict = physics_config.pop("kwargs", {})
             if not isinstance(physics_kwargs, dict):
                 raise ValueError(
-                        f"The 'physics.kwargs' entry must be a dictionary, got: {type(physics_kwargs)}."
+                    f"The 'physics.kwargs' entry must be a dictionary, got: {type(physics_kwargs)}."
                 )
 
             noise_model_config: dict | None = physics_config.pop("noise_model", None)
