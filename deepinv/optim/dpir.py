@@ -9,11 +9,12 @@ from deepinv.optim import BaseOptim
 import torch
 
 
-def get_DPIR_params(noise_level_img, device="cpu"):
+def get_DPIR_params(noise_level_img: float, device: str | torch.device = "cpu"):
     r"""
     Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
+    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
     :return: tuple(list with denoiser noise level per iteration, list with stepsize per iteration, iterations).
     """
     max_iter = 8
@@ -58,7 +59,7 @@ class DPIR(BaseOptim):
         self,
         sigma: float | Tensor = 0.1,
         denoiser: Denoiser = None,
-        device="cuda",
+        device: str | torch.device = "cuda",
     ):
         prior = PnP(
             denoiser=(
