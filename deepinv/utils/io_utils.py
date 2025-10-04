@@ -1,4 +1,5 @@
-from typing import Callable, Optional, Union, Iterator
+from __future__ import annotations
+from typing import Callable, Iterator
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
@@ -8,7 +9,7 @@ import torch
 from deepinv.utils.mixins import MRIMixin
 
 
-def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
+def load_dicom(fname: str | Path) -> torch.Tensor:
     """Load image from DICOM file.
 
     Requires `pydicom` to be installed. Install it with `pip install pydicom`.
@@ -26,7 +27,7 @@ def load_dicom(fname: Union[str, Path]) -> torch.Tensor:
     return torch.from_numpy(pydicom.dcmread(fname).pixel_array).float().unsqueeze(0)
 
 
-def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
+def load_nifti(fname: str | Path) -> torch.Tensor:
     """Load image from NIFTI `.nii.gz` file.
 
     Requires `nibabel` to be installed. Install it with `pip install nibabel`.
@@ -44,9 +45,9 @@ def load_nifti(fname: Union[str, Path]) -> torch.Tensor:
 
 
 def load_ismrmd(
-    fname: Union[str, Path],
+    fname: str | Path,
     data_name: str = "kspace",
-    data_slice: Optional[tuple] = None,
+    data_slice: tuple | None = None,
 ) -> torch.Tensor:
     """Load complex MRI data from ISMRMD format.
 
@@ -78,7 +79,7 @@ def load_ismrmd(
     return data
 
 
-def load_torch(fname: Union[str, Path], device=None) -> torch.Tensor:
+def load_torch(fname: str | Path, device=None) -> torch.Tensor:
     """Load torch tensor from file.
 
     :param str, pathlib.Path fname: file to load.
@@ -88,7 +89,7 @@ def load_torch(fname: Union[str, Path], device=None) -> torch.Tensor:
     return torch.load(fname, weights_only=True, map_location=device)
 
 
-def load_np(fname: Union[str, Path]) -> torch.Tensor:
+def load_np(fname: str | Path) -> torch.Tensor:
     """Load numpy array from file as torch tensor.
 
     :param str, pathlib.Path fname: file to load.
@@ -144,10 +145,10 @@ def load_mat(fname: str, mat73: bool = False) -> dict[str, np.ndarray]:
 
 def load_raster(
     fname: str,
-    patch: Union[bool, int, tuple[int, int]] = False,
-    patch_start: Optional[tuple[int, int]] = (0, 0),
-    transform: Optional[Callable] = None,
-) -> Union[torch.Tensor, Iterator[torch.Tensor]]:
+    patch: bool | int | tuple[int, int] = False,
+    patch_start: tuple[int, int] = (0, 0),
+    transform: Callable | None = None,
+) -> torch.Tensor | Iterator[torch.Tensor]:
     """
     Load a raster image and return patches as tensors using `rasterio`.
 
