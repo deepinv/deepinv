@@ -7,6 +7,7 @@ from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.models import Reconstructor
+from deepinv.physics import Physics
 
 
 class BaseOptim(Reconstructor):
@@ -146,27 +147,27 @@ class BaseOptim(Reconstructor):
 
     def __init__(
         self,
-        iterator,
+        iterator: OptimIterator,
         params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
         data_fidelity=None,
         prior=None,
-        max_iter=100,
-        crit_conv="residual",
+        max_iter: int = 100,
+        crit_conv: str = "residual",
         thres_conv=1e-5,
-        early_stop=False,
-        has_cost=False,
-        backtracking=False,
-        gamma_backtracking=0.1,
-        eta_backtracking=0.9,
+        early_stop: bool = False,
+        has_cost: bool = False,
+        backtracking: bool = False,
+        gamma_backtracking: float = 0.1,
+        eta_backtracking: float = 0.9,
         custom_metrics=None,
         custom_init=None,
         get_output=lambda X: X["est"][0],
-        anderson_acceleration=False,
-        history_size=5,
-        beta_anderson_acc=1.0,
-        eps_anderson_acc=1e-4,
-        verbose=False,
-        show_progress_bar=False,
+        anderson_acceleration: bool = False,
+        history_size: int = 5,
+        beta_anderson_acc: float = 1.0,
+        eps_anderson_acc: float = 1e-4,
+        verbose: bool = False,
+        show_progress_bar: bool = False,
     ):
         super(BaseOptim, self).__init__()
 
@@ -270,7 +271,7 @@ class BaseOptim(Reconstructor):
 
         self.psnr = PSNR()
 
-    def update_params_fn(self, it):
+    def update_params_fn(self, it: int):
         r"""
         For each parameter ``params_algo``, selects the parameter value for iteration ``it``
         (if this parameter depends on the iteration number).
@@ -284,7 +285,7 @@ class BaseOptim(Reconstructor):
         }
         return cur_params_dict
 
-    def update_prior_fn(self, it):
+    def update_prior_fn(self, it: int):
         r"""
         For each prior function in `prior`, selects the prior value for iteration ``it``
         (if this prior depends on the iteration number).
@@ -295,7 +296,7 @@ class BaseOptim(Reconstructor):
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior
 
-    def update_data_fidelity_fn(self, it):
+    def update_data_fidelity_fn(self, it: int):
         r"""
         For each data_fidelity function in `data_fidelity`, selects the data_fidelity value for iteration ``it``
         (if this data_fidelity depends on the iteration number).
@@ -310,7 +311,7 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y, physics, F_fn=None):
+    def init_iterate_fn(self, y: torch.Tensor, physics: Physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -451,7 +452,7 @@ class BaseOptim(Reconstructor):
         else:
             return True
 
-    def check_conv_fn(self, it, X_prev, X):
+    def check_conv_fn(self, it: int, X_prev, X):
         r"""
         Checks the convergence of the algorithm.
 
@@ -484,7 +485,14 @@ class BaseOptim(Reconstructor):
         else:
             return False
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
+    def forward(
+        self,
+        y: torch.Tensor,
+        physics,
+        x_gt: torch.Tensor = None,
+        compute_metrics: bool = False,
+        **kwargs,
+    ):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
