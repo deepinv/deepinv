@@ -1114,11 +1114,15 @@ def download_brainweb_dl():
         vol_array = get_mri(sub_id=im_id, contrast="T1")
         np.save(os.path.join(tmp_np_dir, str(im_id) + ".npy"), vol_array)
 
-        blosc2.asarray(np.ascontiguousarray(vol_array), urlpath=os.path.join(tmp_blosc2_dir, str(im_id) + '.b2nd'))
+        blosc2.asarray(
+            np.ascontiguousarray(vol_array),
+            urlpath=os.path.join(tmp_blosc2_dir, str(im_id) + ".b2nd"),
+        )
 
-        nib.save(nib.Nifti1Image(vol_array, np.eye(4)), os.path.join(tmp_nii_dir, str(im_id) + '.nii.gz'))
-
-
+        nib.save(
+            nib.Nifti1Image(vol_array, np.eye(4)),
+            os.path.join(tmp_nii_dir, str(im_id) + ".nii.gz"),
+        )  # the affine is simply world; shouldn't influence test behaviour
 
     yield (tmp_np_dir, tmp_blosc2_dir, tmp_nii_dir)
 
