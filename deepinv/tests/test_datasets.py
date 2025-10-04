@@ -1098,29 +1098,45 @@ def download_brainweb_dl():
     """Downloads dataset for tests and removes it after test executions. Only downloads subset to save time / disk space."""
     from brainweb_dl import get_mri
 
-    tmp_data_dir = "brainweb"
-    os.makedirs(tmp_data_dir, exist_ok=True)
+    import nibabel as nib
+    import blosc2
+
+    tmp_np_dir = "brainweb_np"
+    tmp_blosc2_dir = "brainweb_blosc"
+    tmp_nii_dir = "brainweb_nii"
+
+    os.makedirs(tmp_np_dir, exist_ok=True)
+    os.makedirs(tmp_blosc2_dir, exist_ok=True)
+    os.makedirs(tmp_nii_dir)
+
     ids = [44, 5, 18, 53]
     for im_id in ids:
         vol_array = get_mri(sub_id=im_id, contrast="T1")
-        np.save(os.path.join(tmp_data_dir, str(im_id) + ".npy"), vol_array)
+        np.save(os.path.join(tmp_np_dir, str(im_id) + ".npy"), vol_array)
 
-    yield tmp_data_dir
+        blosc2.asarray(np.ascontiguousarray(vol_array), urlpath=os.path.join(tmp_blosc2_dir, str(im_id) + '.b2nd'))
 
-    shutil.rmtree(tmp_data_dir)
+        nib.save(nib.Nifti1Image(vol_array, np.eye(4)), os.path.join(tmp_nii_dir, str(im_id) + '.nii.gz'))
+
+
+
+    yield (tmp_np_dir, tmp_blosc2_dir, tmp_nii_dir)
+
+    shutil.rmtree(tmp_np_dir), shutil.rmtree(tmp_blosc2_dir), shutil.rmtree(tmp_nii_dir)
 
 
 def test_PatchDataset3D(download_brainweb_dl):
     patch_size = 32  # this patch size should always fit
-    npy_dir = download_brainweb_dl
+    dirs = download_brainweb_dl
+    for d, f_format in zip(dirs, (".npy", ".b2nd", ".nii.gz")):
+        print(os.listdir(d))
+        dataset = PatchDataset3D(x_dir=d, patch_size=patch_size, format=f_format)
+        assert len(dataset)
+        x = next(iter(dataset))
+        assert x.shape == (1, 32, 32, 32)
 
-    dataset = PatchDataset3D(x_dir=npy_dir, patch_size=patch_size)
-    assert len(dataset)
-    x = next(iter(dataset))
-    assert x.shape == (1, 32, 32, 32)
-
-    dataset = PatchDataset3D(y_dir=npy_dir, patch_size=patch_size)
-    x, y = next(iter(dataset))
-    print(x)
-    assert y.shape == (1, 32, 32, 32)
-    assert math.isnan(x)
+        dataset = PatchDataset3D(y_dir=d, patch_size=patch_size, format=f_format)
+        x, y = next(iter(dataset))
+        print(x)
+        assert y.shape == (1, 32, 32, 32)
+        assert math.isnan(x)

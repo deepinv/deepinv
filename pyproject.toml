@@ -98,6 +98,9 @@ dataset = [
     "pydicom",
     "mat73",
     "scipy",
+    "nibabel",
+    "blosc2",
+    "brainweb-dl",
 ]
 
 # optional dependencies for training
