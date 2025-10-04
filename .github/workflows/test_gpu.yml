@@ -29,7 +29,6 @@ jobs:
 
       - name: Set up Python
         run: |
-          rm -r "/home/jtachell/.cache/uv"
           uv python install
           uv run python --version
 
