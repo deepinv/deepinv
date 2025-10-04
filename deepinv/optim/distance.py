@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Callable
 import torch
 from deepinv.optim.potential import Potential
 
@@ -15,10 +17,10 @@ class Distance(Potential):
     :param Callable d: distance function :math:`\distance{x}{y}`. Outputs a tensor of size `B`, the size of the batch. Default: None.
     """
 
-    def __init__(self, d=None):
+    def __init__(self, d: Callable[torch.Tensor, torch.Tensor] = None):
         super().__init__(fn=d)
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the distance :math:`\distance{x}{y}`.
 
@@ -28,7 +30,7 @@ class Distance(Potential):
         """
         return self._fn(x, y, *args, **kwargs)
 
-    def forward(self, x, y, *args, **kwargs):
+    def forward(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the value of the distance :math:`\distance{x}{y}`.
 
@@ -49,11 +51,11 @@ class L2Distance(Distance):
     :param float sigma: normalization parameter. Default: 1.
     """
 
-    def __init__(self, sigma=1.0):
+    def __init__(self, sigma: float = 1.0):
         super().__init__()
         self.norm = 1 / (sigma**2)
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the distance :math:`\distance{x}{y}` i.e.
 
@@ -70,7 +72,7 @@ class L2Distance(Distance):
         d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
         return d
 
-    def grad(self, x, y, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the gradient of :math:`\distancename`, that is  :math:`\nabla_{x}\distance{x}{y}`, i.e.
 
@@ -85,7 +87,9 @@ class L2Distance(Distance):
         """
         return (x - y) * self.norm
 
-    def prox(self, x, y, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ):
         r"""
         Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2 \sigma^2} \|x-y\|^2`.
 
@@ -124,11 +128,13 @@ class IndicatorL2Distance(Distance):
     :param float radius: radius of the ball. Default: None.
     """
 
-    def __init__(self, radius=None):
+    def __init__(self, radius: float = None):
         super().__init__()
         self.radius = radius
 
-    def fn(self, x, y, *args, radius=None, **kwargs):
+    def fn(
+        self, x: torch.Tensor, y: torch.Tensor, *args, radius: float = None, **kwargs
+    ):
         r"""
         Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(x)`.
 
@@ -143,7 +149,15 @@ class IndicatorL2Distance(Distance):
         loss = (dist > radius) * 1e16
         return loss
 
-    def prox(self, x, y, *args, radius=None, gamma=None, **kwargs):
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *args,
+        radius: float = None,
+        gamma: float = None,
+        **kwargs,
+    ):
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
@@ -189,13 +203,13 @@ class PoissonLikelihoodDistance(Distance):
         the Poisson distribution. Default: True.
     """
 
-    def __init__(self, gain=1.0, bkg=0, denormalize=False):
+    def __init__(self, gain: float = 1.0, bkg: float = 0, denormalize: bool = False):
         super().__init__()
         self.bkg = bkg
         self.gain = gain
         self.denormalize = denormalize
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the Kullback-Leibler divergence
 
@@ -208,7 +222,7 @@ class PoissonLikelihoodDistance(Distance):
             (x / self.gain) + self.bkg - y
         ).reshape(x.shape[0], -1).sum(dim=1)
 
-    def grad(self, x, y, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Gradient of the Kullback-Leibler divergence
 
@@ -219,7 +233,9 @@ class PoissonLikelihoodDistance(Distance):
             y = y / self.gain
         return self.gain * (torch.ones_like(x) - y / (x / self.gain + self.bkg))
 
-    def prox(self, x, y, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, x: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ):
         r"""
         Proximal operator of the Kullback-Leibler divergence
 
@@ -250,11 +266,11 @@ class L1Distance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         diff = x - y
         return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
 
-    def grad(self, x, y, *args, **kwargs):
+    def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Gradient of the gradient of the :math:`\ell_1` norm, i.e.
 
@@ -274,7 +290,9 @@ class L1Distance(Distance):
         """
         return torch.sign(x - y)
 
-    def prox(self, u, y, *args, gamma=1.0, **kwargs):
+    def prox(
+        self, u: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ):
         r"""
         Proximal operator of the :math:`\ell_1` norm, i.e.
 
@@ -312,7 +330,7 @@ class AmplitudeLossDistance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, u, y, *args, **kwargs):
+    def fn(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         r"""
         Computes the amplitude loss.
 
@@ -324,7 +342,9 @@ class AmplitudeLossDistance(Distance):
         d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
         return d
 
-    def grad(self, u, y, *args, epsilon=1e-12, **kwargs):
+    def grad(
+        self, u: torch.Tensor, y: torch.Tensor, *args, epsilon: float = 1e-12, **kwargs
+    ):
         r"""
         Computes the gradient of the amplitude loss :math:`\distance{u}{y}`, i.e.,
 
@@ -356,12 +376,12 @@ class LogPoissonLikelihoodDistance(Distance):
     :param float mu: normalization constant
     """
 
-    def __init__(self, N0=1024.0, mu=1 / 50.0):
+    def __init__(self, N0: float = 1024.0, mu: float = 1 / 50.0):
         super().__init__()
         self.mu = mu
         self.N0 = N0
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
         return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)
@@ -375,11 +395,13 @@ class ZeroDistance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x, y, *args, **kwargs):
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
         return 0.0
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs):
         return torch.zeros_like(x)
 
-    def prox(self, x, y, gamma=1.0, *args, **kwargs):
+    def prox(
+        self, x: torch.Tensor, y: torch.Tensor, gamma: float = 1.0, *args, **kwargs
+    ):
         return x
