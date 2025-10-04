@@ -13,6 +13,7 @@ jobs:
     runs-on: gpu
     env:
       DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache.uv"
 
     steps:
       - uses: actions/checkout@v5
