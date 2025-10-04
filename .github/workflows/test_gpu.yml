@@ -28,31 +28,45 @@ jobs:
 
       - name: Install deepinv
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
           pip install --upgrade pip
           pip install -e .[dataset,denoisers,test,training]
 
       - name: Check Python version
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python --version
 
       - name: Check installed packages
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           pip list
 
       - name: Check import
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python -c "import deepinv"
 
       - name: Test with pytest
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           python -m pytest -n 2 --dist=loadgroup
 
       - name: Sphinx build
         run: |
-          sphinx-build -W docs/source _build
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
+          sphinx-build docs/source _build
+          
       - name: Run doctests
         run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate py311
           # Get all the RST files, excluding multigpu.rst
           # and *datasets.rst files
           _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
