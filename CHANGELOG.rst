@@ -9,6 +9,11 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
+- Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
+- Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
+- Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
+- Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 
@@ -22,7 +27,15 @@ Changed
 
 Fixed
 ^^^^^
+- Use the learning-free model for learning-free metrics in Trainer (:gh:`788` by `Jérémy Scanvic`_)
+- Fix device dirac_like and bilinear, bicubic and gaussian filters (:gh:`785` by `Julian Tachella`_)
+- Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
+- Fix and test RAM scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Mathieu Terris`_)
+- Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
+- All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
+- Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
+- Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 
 
 v0.3.4
@@ -33,7 +46,10 @@ New Features
 - Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
 - Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 - Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
+- Reduced resolution self-supervised loss (:gh:`735` by `Andrew Wang`_)
 - Add dinv.utils.disable_tex to disable LaTeX (:gh:`726` by `Andrew Wang`_)
+- Add BSDS500 dataset (:gh:`749` by `Johannes Hertrich`_ and `Sebastian Neumayer`_)
+- O(1) memory backprop for linear solver and example (:gh:`739` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -48,7 +64,7 @@ Fixed
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 - Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 - Python 3.9 backward compatibility and zip_strict (:gh:`707` by `Andrew Wang`_)
-
+- Fix numerical instability of Bicgstab solver(:gh:`739` by `Minh Hai Nguyen`_)
 
 
 v0.3.3
@@ -453,3 +469,5 @@ Authors
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
+.. _Louise Friot Giroux: https://github.com/Louisefg
+.. _Vicky De Ridder: https://github.com/nucli-vicky

@@ -99,7 +99,7 @@ See the `Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/restru
 
 Please follow these guidelines:
 
-- Each parameter and return must be properly descreibed, along with a type annotations for each ``:param`` field, as shown below:
+- Each parameter and return must be properly described, along with a type annotations for each ``:param`` field, as shown below:
 
   .. code-block:: rest
 

@@ -176,10 +176,13 @@ def test_tensorlist_methods(tensorlist):
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
 @pytest.mark.parametrize("length", [1, 2, 3, 4, 5])
-def test_dirac_like(shape, length):
-    rng = torch.Generator().manual_seed(0)
-    x = [torch.randn(shape, generator=rng) for _ in range(length)]
+def test_dirac_like(shape, length, device):
+    rng = torch.Generator(device=device).manual_seed(0)
+    x = [torch.randn(shape, generator=rng, device=device) for _ in range(length)]
     h = deepinv.utils.dirac_like(x)
+
+    assert h.device == x[0].device
+
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
@@ -902,6 +905,34 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
         assert all(
             isinstance(title, str) for title in titles
         ), "All titles should be strings."
+        assert len(imgs) == len(
+            titles
+        ), "Number of images should match number of titles."
+        conditions = [
+            x is not None,
+            x_net is not None,
+            x_nl is not None,
+            y is not None and x is not None and y.shape == x.shape,
+        ]
+        assert len(imgs) == sum(
+            conditions
+        ), f"Expected {sum(conditions)} images but got {len(imgs)}"
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_prepare_images_shapes(seed):
+    rng = torch.Generator().manual_seed(seed)
+    x = torch.randn(32, 1, 10, 10, generator=rng)
+
+    imgs, titles, grid_image, caption = deepinv.utils.plotting.prepare_images(
+        x, y=x, x_net=x, x_nl=x, rescale_mode="min_max"
+    )
+
+    # Check that the grid image has the correct shape (4 below = number of non None inputs)
+    num_inputs = 4  # x, y, x_net, x_nl
+    assert grid_image.shape == torch.Size(
+        [3, num_inputs * (x.shape[-1] + 2) + 2, x.shape[0] * (x.shape[-2] + 2) + 2]
+    )
 
 
 # Module-level fixtures

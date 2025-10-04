@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 import hashlib
 import os
 import shutil
@@ -50,9 +50,7 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(
-    url: str, save_path: Union[str, Path], extract: bool = False
-) -> None:
+def download_archive(url: str, save_path: str | Path, extract: bool = False) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
     :param str url: URL of archive.
@@ -81,7 +79,7 @@ def download_archive(
             extract_tarball(save_path, Path(save_path).parent)
 
 
-def extract_zipfile(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
+def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
     """Extract a local zip file."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
@@ -92,7 +90,7 @@ def extract_zipfile(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
             zip_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
+def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
     """Extract a local tarball regardless of the compression algorithm used."""
     # Open the tar file
     with tarfile.open(file_path, "r:*") as tar_ref:
@@ -169,7 +167,7 @@ class Crop(Module):
         If tuple of length 4, pass as (top, left, height, width) to torchvision crop function.
     """
 
-    def __init__(self, size: Union[int, tuple]):
+    def __init__(self, size: int | tuple):
         super().__init__()
         if isinstance(size, int):
             self.size = (0, 0, size, size)

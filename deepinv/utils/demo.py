@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Union, Callable, TYPE_CHECKING
 from warnings import warn
+from typing import Callable, TYPE_CHECKING
 import os, shutil, zipfile, requests
 from io import BytesIO
 
@@ -71,9 +71,9 @@ def get_data_home() -> Path:
 
 
 def load_dataset(
-    dataset_name: Union[str, Path],
+    dataset_name: str | Path,
     transform: Callable,
-    data_dir: Union[str, Path] = None,
+    data_dir: str | Path = None,
     download: bool = True,
     url: str = None,
     file_type: str = "zip",
@@ -130,8 +130,8 @@ def load_dataset(
 
 
 def load_degradation(
-    name: Union[str, Path],
-    data_dir: Union[str, Path] = None,
+    name: str | Path,
+    data_dir: str | Path = None,
     index: int = 0,
     download: bool = True,
 ) -> torch.Tensor:
@@ -335,7 +335,7 @@ def load_example(
     )
 
 
-def download_example(name: str, save_dir: Union[str, Path]):
+def download_example(name: str, save_dir: str | Path):
     r"""
     Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
 

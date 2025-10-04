@@ -140,6 +140,7 @@ class BaseOptim(Reconstructor):
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
+    :param bool show_progress_bar: show progress bar during optimization.
     :return: a torch model that solves the optimization problem.
     """
 
@@ -165,12 +166,14 @@ class BaseOptim(Reconstructor):
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
         verbose=False,
+        show_progress_bar=False,
     ):
         super(BaseOptim, self).__init__()
 
         self.early_stop = early_stop
         self.crit_conv = crit_conv
         self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
         self.max_iter = max_iter
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
@@ -259,7 +262,8 @@ class BaseOptim(Reconstructor):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
-            verbose=verbose,
+            verbose=self.verbose,
+            show_progress_bar=self.show_progress_bar,
         )
 
         from deepinv.loss.metric.distortion import PSNR
