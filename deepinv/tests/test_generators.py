@@ -85,7 +85,7 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
             device=device,
             dtype=dtype,
         )
-        keys = ["filters", "multipliers", "padding"]
+        keys = ["filters", "multipliers"]
     elif name == "DownsamplingGenerator":
         g = dinv.physics.generator.DownsamplingGenerator(
             filters=["bilinear", "bicubic", "gaussian"], factors=[2, 4]
