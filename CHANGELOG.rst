@@ -13,6 +13,7 @@ New Features
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
+- Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
