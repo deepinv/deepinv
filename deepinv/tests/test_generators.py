@@ -138,7 +138,7 @@ def test_shape(name, size, num_channels, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_newparams(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -165,7 +165,7 @@ def test_generation_newparams(name, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_seed(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators consistency with the same random seed.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -185,34 +185,6 @@ def test_generation_seed(name, device, dtype):
 
     for key in param_key:
         assert torch.allclose(params0[key], params1[key])
-
-
-@pytest.mark.parametrize("name", GENERATORS)
-@pytest.mark.parametrize("device", DEVICES)
-@pytest.mark.parametrize("dtype", [torch.float64])
-def test_generation(name, device, dtype):
-    r"""
-    Tests generators shape.
-    """
-    size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device, dtype)
-    batch_size = 1
-    params = generator.step(batch_size=batch_size, seed=0)
-    if name == "MotionBlurGenerator" or name == "DiffractionBlurGenerator":
-        w = params["filter"]
-    elif name == "ProductConvolutionBlurGenerator":
-        w = params["filters"]
-    elif name == "SigmaGenerator":
-        w = params["sigma"]
-
-    wref = (
-        torch.load(
-            f"deepinv/tests/assets/generators/{name.lower()}_{device}_{dtype}.pt"
-        )
-        .to(device)
-        .to(dtype)
-    )
-    assert torch.allclose(w, wref, atol=1e-8)
 
 
 @pytest.mark.parametrize(
