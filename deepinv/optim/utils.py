@@ -239,8 +239,8 @@ def conjugate_gradient(
     tol: float = 1e-5,
     eps: float = 1e-8,
     parallel_dim=0,
-    init=None,
-    verbose=False,
+    init: torch.Tensor = None,
+    verbose: bool = False,
 ):
     """
     Standard conjugate gradient algorithm.
@@ -302,12 +302,12 @@ def conjugate_gradient(
 
 def bicgstab(
     A,
-    b,
+    b: torch.Tensor,
     init=None,
-    max_iter=1e2,
-    tol=1e-5,
+    max_iter: float = 1e2,
+    tol: float = 1e-5,
     parallel_dim=0,
-    verbose=False,
+    verbose: bool = False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
 ):
