@@ -3,7 +3,7 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
+|CPU Test Status| |GPU Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
 
 .. toctree::
    :maxdepth: 3
@@ -122,8 +122,10 @@ unfolded, deep equilibrium models
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
+.. |CPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
