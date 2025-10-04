@@ -15,70 +15,47 @@ jobs:
       DEEPINV_MOCK_TESTS: "True"
 
     steps:
-      - uses: actions/checkout@v3
-      # ✅ Create and activate Conda environment with Python 3.11
-      - name: Create Conda env (Python 3.11)
+      - uses: actions/checkout@v5
+
+      # See https://docs.astral.sh/uv/guides/integration/github
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+
+      - name: Set up Python
         run: |
-          pip install uv
-          conda create -y -n py311 python=3.11
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
+          uv python install
           python --version
 
-      # ✅ Install uv and project deps
-      - name: Install dependencies with uv
-        run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
-          pip install uv
-
-          # Fix corrupted sympy install (remove & reinstall)
-          pip uninstall -y sympy || true
-          uv pip install "sympy>=1.13.3"
-
-          uv pip install -e .[dataset,denoisers,test,training]
-
-      - name: Check Python version
-        run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
-          python --version
+      - name: Install the project
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training
 
       - name: Check installed packages
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
           uv pip list
 
       - name: Check import
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
-          python -c "import deepinv"
+          uv run python -c "import deepinv"
 
       - name: Test with pytest
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
-          python -m pytest -n 2 --dist=loadgroup
+          uv run python -m pytest -n 2 --dist=loadgroup
 
       - name: Sphinx build
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
-          sphinx-build docs/source _build
+          uv run sphinx-build docs/source _build
 
       - name: Run doctests
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate py311
           _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
-          sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
+          uv run sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
 
       - name: Cleanup environment and workspace
         if: always()
         run: |
-          conda env remove -n py311 -y || true
           shopt -s dotglob
           for item in *; do
             if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
