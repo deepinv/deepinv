@@ -31,6 +31,11 @@ jobs:
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
           pip install uv
+                
+          # Fix corrupted sympy install (remove & reinstall)
+          pip uninstall -y sympy || true
+          uv pip install "sympy>=1.13.3"
+
           uv pip install -e .[dataset,denoisers,test,training]
 
       - name: Check Python version
