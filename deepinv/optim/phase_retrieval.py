@@ -1,7 +1,7 @@
 import torch
 
 
-def default_preprocessing(y, physics):
+def default_preprocessing(y: torch.Tensor, physics):
     r"""
     Default preprocessing function for spectral methods.
 
@@ -102,10 +102,10 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
 def spectral_methods(
     y: torch.Tensor,
     physics,
-    x=None,
-    n_iter=50,
+    x: torch.Tensor = None,
+    n_iter: int = 50,
     preprocessing=default_preprocessing,
-    lamb=10.0,
+    lamb: float = 10.0,
     x_true=None,
     log: bool = False,
     log_metric=cosine_similarity,
@@ -192,7 +192,7 @@ def spectral_methods(
         return x
 
 
-def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
+def spectral_methods_wrapper(y: torch.Tensor, physics, n_iter: int = 5000, **kwargs):
     r"""
     Wrapper for spectral methods.
 
