@@ -1,0 +1,786 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Denoisers &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/reconstruction/denoisers';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/denoisers.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Deep Reconstruction Models" href="deep-reconstructors.html" />
+    <link rel="prev" title="Pretrained Models" href="pretrained-models.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Denoisers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="denoisers">
+<span id="id1"></span><h1>Denoisers<a class="headerlink" href="#denoisers" title="Link to this heading">#</a></h1>
+<p>The <a class="reference internal" href="../../api/stubs/deepinv.models.Denoiser.html#deepinv.models.Denoiser" title="deepinv.models.Denoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.Denoiser</span></code></a> base class describe
+denoisers that take a noisy image as input and return a denoised image.
+They can be used as a building block for plug-and-play restoration, for building unrolled architectures,
+for <a class="reference internal" href="deep-reconstructors.html#artifact"><span class="std std-ref">artifact removal networks</span></a>, or as standalone denoisers. All denoisers have a
+<a class="reference internal" href="../../api/stubs/deepinv.models.Denoiser.html#deepinv.models.Denoiser.forward" title="deepinv.models.Denoiser.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward</span></code></a> method that takes a
+noisy image and a noise level (which generally corresponds to the standard deviation of the noise)
+as input and returns a denoised image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DRUNet</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">noisy_image</span> <span class="o">=</span> <span class="n">image</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span> <span class="o">*</span> <span class="n">sigma</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">denoised_image</span> <span class="o">=</span> <span class="n">denoiser</span><span class="p">(</span><span class="n">noisy_image</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some denoisers (e.g., <a class="reference internal" href="../../api/stubs/deepinv.models.DnCNN.html#deepinv.models.DnCNN" title="deepinv.models.DnCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DnCNN</span></code></a>) do not use the information about the noise level.
+In this case, the noise level is ignored.</p>
+</div>
+<section id="deep-denoisers">
+<span id="id2"></span><h2>Deep denoisers<a class="headerlink" href="#deep-denoisers" title="Link to this heading">#</a></h2>
+<p>We provide the following list of deep denoising architectures,
+which are based on CNN, Transformer or hybrid CNN-Transformer modules.
+See <a class="reference internal" href="pretrained-models.html#pretrained-weights"><span class="std std-ref">Description of weights</span></a> for more information on pretrained denoisers.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id3">
+<caption><span class="caption-number">Table 8 </span><span class="caption-text">Deep denoisers</span><a class="headerlink" href="#id3" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 18.8%" />
+<col style="width: 31.2%" />
+<col style="width: 18.8%" />
+<col style="width: 18.8%" />
+<col style="width: 12.5%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Tensor Size (C, H, W)</p></th>
+<th class="head"><p>Pretrained Weights</p></th>
+<th class="head"><p>Noise level aware</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.AutoEncoder.html#deepinv.models.AutoEncoder" title="deepinv.models.AutoEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.AutoEncoder</span></code></a></p></td>
+<td><p>Fully connected</p></td>
+<td><p>Any</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.UNet.html#deepinv.models.UNet" title="deepinv.models.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.UNet</span></code></a></p></td>
+<td><p>CNN</p></td>
+<td><p>Any C; H,W&gt;8</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.DnCNN.html#deepinv.models.DnCNN" title="deepinv.models.DnCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DnCNN</span></code></a></p></td>
+<td><p>CNN</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB, grayscale</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DRUNet</span></code></a></p></td>
+<td><p>CNN-UNet</p></td>
+<td><p>Any C; H,W&gt;8</p></td>
+<td><p>RGB, grayscale</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.GSDRUNet.html#deepinv.models.GSDRUNet" title="deepinv.models.GSDRUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.GSDRUNet</span></code></a></p></td>
+<td><p>CNN-UNet</p></td>
+<td><p>Any C; H,W&gt;8</p></td>
+<td><p>RGB, grayscale</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.SCUNet.html#deepinv.models.SCUNet" title="deepinv.models.SCUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.SCUNet</span></code></a></p></td>
+<td><p>CNN-Transformer</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.SwinIR.html#deepinv.models.SwinIR" title="deepinv.models.SwinIR"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.SwinIR</span></code></a></p></td>
+<td><p>CNN-Transformer</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet" title="deepinv.models.DiffUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DiffUNet</span></code></a></p></td>
+<td><p>Transformer</p></td>
+<td><p>Any C; H,W = 64, 128, 256, …</p></td>
+<td><p>RGB</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer" title="deepinv.models.Restormer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.Restormer</span></code></a></p></td>
+<td><p>CNN-Transformer</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB, grayscale, deraining, deblurring</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.ICNN.html#deepinv.models.ICNN" title="deepinv.models.ICNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.ICNN</span></code></a></p></td>
+<td><p>CNN</p></td>
+<td><p>Any C; H, W = 128, 256,…</p></td>
+<td><p>No</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp" title="deepinv.models.NCSNpp"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.NCSNpp</span></code></a></p></td>
+<td><p>CNN-Transformer</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB, diffusion</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.ADMUNet.html#deepinv.models.ADMUNet" title="deepinv.models.ADMUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.ADMUNet</span></code></a></p></td>
+<td><p>CNN-Transformer</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB, diffusion</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.DScCP.html#deepinv.models.DScCP" title="deepinv.models.DScCP"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DScCP</span></code></a></p></td>
+<td><p>Unrolled</p></td>
+<td><p>Any C, H, W</p></td>
+<td><p>RGB</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.RAM.html#deepinv.models.RAM" title="deepinv.models.RAM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.RAM</span></code></a></p></td>
+<td><p>CNN-UNet</p></td>
+<td><p>C=1, 2, 3; H,W&gt;8</p></td>
+<td><p>C=1, 2, 3</p></td>
+<td><p>Yes</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classical-denoisers">
+<span id="non-learned-denoisers"></span><h2>Classical denoisers<a class="headerlink" href="#classical-denoisers" title="Link to this heading">#</a></h2>
+<p>All denoisers in this list are non-learned (except for EPLL)
+and rely on hand-crafted priors.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id4">
+<caption><span class="caption-number">Table 9 </span><span class="caption-text">Non-Learned Denoisers Overview</span><a class="headerlink" href="#id4" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 33.3%" />
+<col style="width: 33.3%" />
+<col style="width: 33.3%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Info</p></th>
+<th class="head"><p>Tensor Size (C, H, W)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.BM3D.html#deepinv.models.BM3D" title="deepinv.models.BM3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.BM3D</span></code></a></p></td>
+<td><p>Patch-based denoiser</p></td>
+<td><p>C=1 or C=3, any H, W.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.MedianFilter.html#deepinv.models.MedianFilter" title="deepinv.models.MedianFilter"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.MedianFilter</span></code></a></p></td>
+<td><p>Non-learned filter</p></td>
+<td><p>Any C, H, W</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser" title="deepinv.models.TVDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.TVDenoiser</span></code></a></p></td>
+<td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior" title="deepinv.optim.TVPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">Total</span> <span class="pre">variation</span> <span class="pre">prior</span></code></a></p></td>
+<td><p>Any C, H, W</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser" title="deepinv.models.TGVDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.TGVDenoiser</span></code></a></p></td>
+<td><p>Total generalized variation prior</p></td>
+<td><p>Any C, H, W</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser" title="deepinv.models.WaveletDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.WaveletDenoiser</span></code></a></p></td>
+<td><p><a class="reference internal" href="../../api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior" title="deepinv.optim.WaveletPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sparsity</span> <span class="pre">in</span> <span class="pre">orthogonal</span> <span class="pre">wavelet</span> <span class="pre">domain</span></code></a></p></td>
+<td><p>Any C, H, W</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.WaveletDictDenoiser.html#deepinv.models.WaveletDictDenoiser" title="deepinv.models.WaveletDictDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.WaveletDictDenoiser</span></code></a></p></td>
+<td><p>Sparsity in overcomplete wavelet domain</p></td>
+<td><p>Any C, H, W</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.EPLLDenoiser.html#deepinv.models.EPLLDenoiser" title="deepinv.models.EPLLDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.EPLLDenoiser</span></code></a></p></td>
+<td><p>Learned patch-prior</p></td>
+<td><p>C=1 or C=3, any H, W</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="model-utilities">
+<span id="model-utils"></span><h2>Model Utilities<a class="headerlink" href="#model-utilities" title="Link to this heading">#</a></h2>
+<section id="equivariant-denoisers">
+<h3>Equivariant denoisers<a class="headerlink" href="#equivariant-denoisers" title="Link to this heading">#</a></h3>
+<p>Denoisers can be turned into equivariant denoisers by wrapping them with the
+<a class="reference internal" href="../../api/stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser" title="deepinv.models.EquivariantDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.EquivariantDenoiser</span></code></a> class, which symmetrizes the denoiser
+with respect to a transform from our <a class="reference internal" href="../training/transforms.html#transform"><span class="std std-ref">available transforms</span></a> such as <a class="reference internal" href="../../api/stubs/deepinv.transform.Rotate.html#deepinv.transform.Rotate" title="deepinv.transform.Rotate"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.transform.Rotate</span></code></a>
+or <a class="reference internal" href="../../api/stubs/deepinv.transform.Reflect.html#deepinv.transform.Reflect" title="deepinv.transform.Reflect"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.transform.Reflect</span></code></a>. You retain full flexibility by passing in the transform of choice.
+The denoising can either be averaged over the entire group of transformation (making the denoiser equivariant) or
+performed on 1 or n transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo
+estimator of the exact equivariant denoiser.</p>
+</section>
+<section id="complex-denoisers">
+<h3>Complex denoisers<a class="headerlink" href="#complex-denoisers" title="Link to this heading">#</a></h3>
+<p>Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval,
+require processing complex-valued images. The function <a class="reference internal" href="../../api/stubs/deepinv.models.complex.to_complex_denoiser.html#deepinv.models.complex.to_complex_denoiser" title="deepinv.models.complex.to_complex_denoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.complex.to_complex_denoiser</span></code></a> can convert any real-valued denoiser into
+a complex-valued denoiser. It can be simply called by <code class="docutils literal notranslate"><span class="pre">complex_denoiser</span> <span class="pre">=</span> <span class="pre">to_complex_denoiser(denoiser)</span></code>.</p>
+</section>
+<section id="dynamic-networks">
+<h3>Dynamic networks<a class="headerlink" href="#dynamic-networks" title="Link to this heading">#</a></h3>
+<p>When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted
+using <a class="reference internal" href="../../api/stubs/deepinv.models.TimeAveragingNet.html#deepinv.models.TimeAveragingNet" title="deepinv.models.TimeAveragingNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.TimeAveragingNet</span></code></a>.</p>
+<p>To adapt any existing network to take dynamic data as independent time-slices, <a class="reference internal" href="../../api/stubs/deepinv.models.TimeAgnosticNet.html#deepinv.models.TimeAgnosticNet" title="deepinv.models.TimeAgnosticNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.TimeAgnosticNet</span></code></a>
+creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pretrained-models.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Pretrained Models</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="deep-reconstructors.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Deep Reconstruction Models</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deep-denoisers">Deep denoisers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classical-denoisers">Classical denoisers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-utilities">Model Utilities</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#equivariant-denoisers">Equivariant denoisers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#complex-denoisers">Complex denoisers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dynamic-networks">Dynamic networks</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/reconstruction/denoisers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

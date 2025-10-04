@@ -1,0 +1,1056 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.functional.astra &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/functional/astra';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/physics/functional/astra.html" />
+    <link rel="icon" href="../../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.functional.astra</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.functional.astra</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<div class="viewcode-block" id="XrayTransform">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">XrayTransform</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;X-ray Transform operator with ``astra-toolbox`` backend.</span>
+
+<span class="sd">    Uses the `astra-toolbox &lt;https://astra-toolbox.com/&gt;`_ to implement a ray-driven forward projector</span>
+<span class="sd">    and a pixel-driven backprojector (:attr:`XrayTransform.T`).</span>
+<span class="sd">    This class leverages the GPULink functionality of ``astra`` to share the underlying</span>
+<span class="sd">    CUDA memory between torch Tensors and CUDA-based arrays use in ``astra``. The</span>
+<span class="sd">    functionality is only implemented for 3D arrays, thus the underlying transforms</span>
+<span class="sd">    are all 3D operators. For 2D transforms, the object is set to a flat volume with only 1 voxel depth.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This transform does not handle batched and multi-channel inputs. It is</span>
+<span class="sd">        handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.</span>
+<span class="sd">        To handle standard PyTorch pipelines, :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator.</span>
+
+<span class="sd">    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.</span>
+<span class="sd">    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.</span>
+<span class="sd">    :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">projection_geometry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">object_geometry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">is_2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">projection_geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span> <span class="o">=</span> <span class="n">object_geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_2d</span> <span class="o">=</span> <span class="n">is_2d</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_astra_projector_id</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_projector</span><span class="p">(</span>
+            <span class="s2">&quot;cuda3d&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">domain_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The shape of the input volume.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">return</span> <span class="n">astra</span><span class="o">.</span><span class="n">geom_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">range_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The shape of the output projection.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">return</span> <span class="n">astra</span><span class="o">.</span><span class="n">geom_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">object_cell_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The volume in physical units of a voxel.&quot;&quot;&quot;</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">volume</span> <span class="o">*=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMaxX&quot;</span><span class="p">]</span>
+            <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMinX&quot;</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;GridColCount&quot;</span><span class="p">]</span>
+        <span class="n">volume</span> <span class="o">*=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMaxY&quot;</span><span class="p">]</span>
+            <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMinY&quot;</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;GridRowCount&quot;</span><span class="p">]</span>
+        <span class="n">volume</span> <span class="o">*=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMaxZ&quot;</span><span class="p">]</span>
+            <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;option&quot;</span><span class="p">][</span><span class="s2">&quot;WindowMinZ&quot;</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_geometry</span><span class="p">[</span><span class="s2">&quot;GridSliceCount&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">volume</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detector_cell_v_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The vertical length of a detector cell.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;vec&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;Vectors&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;DetectorSpacingY&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detector_cell_u_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The horizontal length of a detector cell.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;vec&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;Vectors&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;DetectorSpacingX&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detector_cell_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The surface in physical units of a detector pixel.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector_cell_v_length</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector_cell_u_length</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The distance between the source and the axis of rotation.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_source_radius&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;vec&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_source_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">astra</span><span class="o">.</span><span class="n">geom_2vec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">)[</span><span class="s2">&quot;Vectors&quot;</span><span class="p">][</span>
+                            <span class="p">:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+                        <span class="p">]</span>
+                        <span class="o">**</span> <span class="mi">2</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_source_radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;DistanceOriginSource&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_radius</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detector_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The distance between the center of the detector and the axis of rotation.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_detector_radius&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;vec&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_detector_radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">astra</span><span class="o">.</span><span class="n">geom_2vec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">)[</span><span class="s2">&quot;Vectors&quot;</span><span class="p">][</span>
+                            <span class="p">:,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+                        <span class="p">]</span>
+                        <span class="o">**</span> <span class="mi">2</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_detector_radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span>
+                    <span class="s2">&quot;DistanceOriginDetector&quot;</span>
+                <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detector_radius</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">magnitude</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The magnification factor induced by the fan/cone geometry.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;cone&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_geometry</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detector_radius</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_radius</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_radius</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Forward projection.</span>
+
+<span class="sd">        :param torch.Tensor x: Tensor of shape [1,H,W] in 2D, or [D,H,W] in 3D.</span>
+<span class="sd">        :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,A,N]</span>
+<span class="sd">        to store output results</span>
+<span class="sd">        :return: Sinogram of shape [1,A,N] in 2D or set of sinograms [V,A,N] in 3D.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Input shape </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_forward_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">T</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implements and returns the adjoint of the transform operator.&quot;&quot;&quot;</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">class</span><span class="w"> </span><span class="nc">_Adjoint</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_2d</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">is_2d</span>
+
+            <span class="nd">@property</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">domain_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;The shape of the input projection.&quot;&quot;&quot;</span>
+                <span class="k">return</span> <span class="n">parent</span><span class="o">.</span><span class="n">range_shape</span>
+
+            <span class="nd">@property</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">range_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;The shape of the output volume.&quot;&quot;&quot;</span>
+                <span class="k">return</span> <span class="n">parent</span><span class="o">.</span><span class="n">domain_shape</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">                </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Backprojection.</span>
+
+<span class="sd">                :param torch.Tensor x: Tensor of shape [1,A,N] in 2D, or [V,A,N] in 3D.</span>
+<span class="sd">                :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,H,W]</span>
+<span class="sd">                to store output results</span>
+<span class="sd">                :return: Image of shape [1,H,W] in 2D or volume [D,H,W] in 3D.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Input shape </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span>
+                    <span class="p">)</span>
+
+                <span class="n">parent</span><span class="o">.</span><span class="n">_backprojection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_2d</span><span class="p">:</span>
+                    <span class="c1"># necessary scaling in fanbeam to obtain decent approximated adjoint</span>
+                    <span class="n">out</span> <span class="o">/=</span> <span class="n">parent</span><span class="o">.</span><span class="n">magnitude</span>
+
+                <span class="k">return</span> <span class="n">out</span>
+
+            <span class="nd">@property</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">T</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">parent</span>
+
+        <span class="k">return</span> <span class="n">_Adjoint</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward_projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Input shape </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Output shape </span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">_astra_volume_link</span> <span class="o">=</span> <span class="n">_create_astra_link</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">_astra_projection_link</span> <span class="o">=</span> <span class="n">_create_astra_link</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">astra</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">direct_FPBP3D</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_astra_projector_id</span><span class="p">,</span>
+            <span class="n">_astra_volume_link</span><span class="p">,</span>
+            <span class="n">_astra_projection_link</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;FP&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_backprojection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Input shape </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">range_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Output shape </span><span class="si">{</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match expected shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">_astra_projection_link</span> <span class="o">=</span> <span class="n">_create_astra_link</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">_astra_volume_link</span> <span class="o">=</span> <span class="n">_create_astra_link</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">astra</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">direct_FPBP3D</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_astra_projector_id</span><span class="p">,</span>
+            <span class="n">_astra_volume_link</span><span class="p">,</span>
+            <span class="n">_astra_projection_link</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;BP&quot;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_astra_link</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return an `astra` GPULink.</span>
+
+<span class="sd">    :param torch.Tensor data: CUDA torch.Tensor</span>
+<span class="sd">    :return: GPULink, instance of a utility class which holds the pointer of the underlying CUDA array, its shape and the the stride of the data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+    <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">is_contiguous</span><span class="p">(),</span> <span class="s2">&quot;Data must be contiguous&quot;</span>
+    <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s2">&quot;Data must be of type float32&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Data must be 3D&quot;</span>
+
+    <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">astra_link</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">pythonutils</span><span class="o">.</span><span class="n">GPULink</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">data_ptr</span><span class="p">(),</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">,</span>
+        <span class="n">z</span><span class="p">,</span>
+        <span class="n">x</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># stride in bytes (float32 = 4 bytes)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">astra_link</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AutogradTransform</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Custom torch.autograd.Function for XrayTransform</span>
+
+<span class="sd">    See https://pytorch.org/docs/stable/notes/extending.html#extending-torch-autograd</span>
+<span class="sd">    for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="n">XrayTransform</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward autograd.</span>
+
+<span class="sd">        The ``astra-toolbox`` does not handle batched computation, the transform</span>
+<span class="sd">        is applied sequantially by iterating over the batch and channel dimension</span>
+<span class="sd">        (e.g. Learned Primal-Dual).</span>
+
+<span class="sd">        :param torch.Tensor input: Batched with channel input Tensor of shape [B,C,...].</span>
+<span class="sd">        :param XrayTransform op: XrayTransform operator which performs underlying computations.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">is_2d</span><span class="p">:</span>
+            <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span> <span class="o">==</span> <span class="n">op</span><span class="o">.</span><span class="n">domain_shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">H</span><span class="p">,</span><span class="n">W</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span> <span class="o">+</span> <span class="n">op</span><span class="o">.</span><span class="n">range_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
+                    <span class="n">op</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="p">:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="p">:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span> <span class="o">==</span> <span class="n">op</span><span class="o">.</span><span class="n">domain_shape</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="n">H</span><span class="p">,</span><span class="n">W</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">domain_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span> <span class="o">+</span> <span class="n">op</span><span class="o">.</span><span class="n">range_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
+                    <span class="n">op</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_context</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">input_tensor</span><span class="p">,</span> <span class="n">operator</span> <span class="o">=</span> <span class="n">inputs</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">operator</span> <span class="o">=</span> <span class="n">operator</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Backward autograd.</span>
+
+<span class="sd">        It is simply the forward autograd applied with the adjoint kernel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">operator</span>
+
+        <span class="k">return</span> <span class="n">AutogradTransform</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">grad_output</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_projection_geometry</span><span class="p">(</span>
+    <span class="n">geometry_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">detector_spacing</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">n_detector_pixels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">angles</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">is_2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">geometry_parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">geometry_vectors</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility function that produces a &quot;projection geometry&quot;, a dict of parameters</span>
+<span class="sd">    used by ``astra`` to parametrize the geometry of the detector and the x-ray source.</span>
+
+<span class="sd">    :param str geometry_type: The type of geometry among ``&#39;parallel&#39;``, ``&#39;fanbeam&#39;`` in 2D and ``&#39;parallel&#39;`` and ``&#39;conebeam&#39;`` in 3D.</span>
+<span class="sd">    :param int | tuple[int, int]: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)</span>
+<span class="sd">    :param torch.Tensor angles: Tensor containing angular positions in radii.</span>
+<span class="sd">    :param bool is_2d: Boolean specifying if the parameters define a 2D slice or a 3D volume.</span>
+<span class="sd">    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type=&#39;fanbeam&#39;`` or  ``&#39;conebeam&#39;``, the dictionnary should contains the keys</span>
+
+<span class="sd">        - &quot;source_radius&quot; distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)</span>
+
+<span class="sd">        - &quot;detector_radius&quot; distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 20.)</span>
+<span class="sd">    :param torch.Tensor, None geometry_vectors: Alternative way to describe a 3D geometry. It is a torch.Tensor of shape [num_angles, 12], where for each angular position of index ``i`` the row consists of a vector of size (12,) with</span>
+
+<span class="sd">        - ``(sx, sy, sz)``: the position of the source,</span>
+
+<span class="sd">        - ``(dx, dy, dz)``: the center of the detector,</span>
+
+<span class="sd">        - ``(ux, uy, uz)``: the horizontal unit vector of the detector,</span>
+
+<span class="sd">        - ``(vx, vy, vz)``: the vertical unit vector of the detector.</span>
+
+<span class="sd">        When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset &lt;https://zenodo.org/records/2686726&gt;`_, where the acquisition parameters are provided via such vectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+    <span class="k">if</span> <span class="n">is_2d</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geometry_vectors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">detector_spacing</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 2d geometry, argument `detector_spacing` should be a float specifying the width of a detector cell, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">detector_spacing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">n_detector_pixels</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;For 2d geometry, argument `n_detector_pixels` should be a int specifying the number of a cells in the detector line, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">n_detector_pixels</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geometry_vectors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detector_spacing</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 3D geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">detector_spacing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_detector_pixels</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;For 3D geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">n_detector_pixels</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">geometry_parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">source_radius</span> <span class="o">=</span> <span class="n">geometry_parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_radius&quot;</span><span class="p">,</span> <span class="mf">80.0</span><span class="p">)</span>
+        <span class="n">detector_radius</span> <span class="o">=</span> <span class="n">geometry_parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;detector_radius&quot;</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">angles</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="c1"># The astra-toolbox does not support GPU linking for 2D data. Thus, when creating a projection geometry in 2D, we actually create a flat 3D geometry, i.e. a 2D detector with only one row of cells.</span>
+    <span class="c1"># GPULink python API for 2D data:  https://github.com/astra-toolbox/astra-toolbox/discussions/391</span>
+    <span class="k">if</span> <span class="n">is_2d</span><span class="p">:</span>
+        <span class="n">detector_row_count</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">detector_col_count</span> <span class="o">=</span> <span class="n">n_detector_pixels</span>
+
+        <span class="k">if</span> <span class="n">geometry_type</span> <span class="o">==</span> <span class="s2">&quot;parallel&quot;</span><span class="p">:</span>
+            <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                <span class="s2">&quot;parallel3d&quot;</span><span class="p">,</span>
+                <span class="n">detector_spacing</span><span class="p">,</span>  <span class="c1"># horizontal spacing</span>
+                <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># vertical spacing is unit length</span>
+                <span class="n">detector_row_count</span><span class="p">,</span>
+                <span class="n">detector_col_count</span><span class="p">,</span>
+                <span class="n">angles</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">geometry_type</span> <span class="o">==</span> <span class="s2">&quot;fanbeam&quot;</span><span class="p">:</span>
+            <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                <span class="s2">&quot;cone&quot;</span><span class="p">,</span>
+                <span class="n">detector_spacing</span><span class="p">,</span>  <span class="c1"># horizontal spacing</span>
+                <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># vertical spacing is unit length</span>
+                <span class="n">detector_row_count</span><span class="p">,</span>
+                <span class="n">detector_col_count</span><span class="p">,</span>
+                <span class="n">angles</span><span class="p">,</span>
+                <span class="n">source_radius</span><span class="p">,</span>
+                <span class="n">detector_radius</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;got geometry_type=&quot;</span><span class="si">{</span><span class="n">geometry_type</span><span class="si">}</span><span class="s1">&quot;, in 2D should be one of [&quot;parallel&quot;,&quot;fanbeam&quot;]&#39;</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">detector_row_count</span><span class="p">,</span> <span class="n">detector_col_count</span> <span class="o">=</span> <span class="n">n_detector_pixels</span>
+
+        <span class="k">if</span> <span class="n">geometry_type</span> <span class="o">==</span> <span class="s2">&quot;parallel&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">geometry_vectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                    <span class="s2">&quot;parallel3d_vec&quot;</span><span class="p">,</span>
+                    <span class="n">detector_row_count</span><span class="p">,</span>
+                    <span class="n">detector_col_count</span><span class="p">,</span>
+                    <span class="n">geometry_vectors</span><span class="o">.</span><span class="n">numpy</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                    <span class="s2">&quot;parallel3d&quot;</span><span class="p">,</span>
+                    <span class="n">detector_spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># horizontal spacing</span>
+                    <span class="n">detector_spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># vertical spacing</span>
+                    <span class="n">detector_row_count</span><span class="p">,</span>
+                    <span class="n">detector_col_count</span><span class="p">,</span>
+                    <span class="n">angles</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">geometry_type</span> <span class="o">==</span> <span class="s2">&quot;fanbeam&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;fanbeam geometry is not implemented in 3D&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">geometry_type</span> <span class="o">==</span> <span class="s2">&quot;conebeam&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">geometry_vectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                    <span class="s2">&quot;cone_vec&quot;</span><span class="p">,</span>
+                    <span class="n">detector_row_count</span><span class="p">,</span>
+                    <span class="n">detector_col_count</span><span class="p">,</span>
+                    <span class="n">geometry_vectors</span><span class="o">.</span><span class="n">numpy</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">projection_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_proj_geom</span><span class="p">(</span>
+                    <span class="s2">&quot;cone&quot;</span><span class="p">,</span>
+                    <span class="n">detector_spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># horizontal spacing</span>
+                    <span class="n">detector_spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># vertical spacing</span>
+                    <span class="n">detector_row_count</span><span class="p">,</span>
+                    <span class="n">detector_col_count</span><span class="p">,</span>
+                    <span class="n">angles</span><span class="p">,</span>
+                    <span class="n">source_radius</span><span class="p">,</span>
+                    <span class="n">detector_radius</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;got geometry_type=&quot;</span><span class="si">{</span><span class="n">geometry_type</span><span class="si">}</span><span class="s1">&quot;, in 3D should be one of [&quot;parallel&quot;,&quot;conebeam&quot;]&#39;</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">projection_geometry</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_object_geometry</span><span class="p">(</span>
+    <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_slices</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">is_2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="n">bounding_box</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility function that produces a &quot;volume geometry&quot;, a dict of parameters</span>
+<span class="sd">    used by ``astra`` to parametrize the reconstruction grid.</span>
+
+<span class="sd">    :param int n_rows: Number of rows.</span>
+<span class="sd">    :param int n_cols: Number of columns.</span>
+<span class="sd">    :param int n_slices: Number of slices. It is automatically set to 1 when ``is_2d=True``.</span>
+<span class="sd">    :param bool is_2D: Boolean specifying if the parameters define a 2D slice or a 3D volume.</span>
+<span class="sd">    :param tuple[float, ...] spacing: Dimensions of reconstruction cell along the axis [x,y,...].</span>
+<span class="sd">    :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">astra</span>
+
+    <span class="k">if</span> <span class="n">is_2d</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">bounding_box</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 2D geometry, argument `bounding_box` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(bounding_box)=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 2D geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">bounding_box</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 3D geometry, argument `bounding_box` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(bounding_box)=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;For 23 geometry, `spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(spacing)=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_2d</span><span class="p">:</span>
+        <span class="n">n_slices</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">bounding_box</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="n">bounding_box</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_cols</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_cols</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># assume the slice dimension is unit length to avoid scaling issues with ASTRA</span>
+        <span class="n">min_z</span><span class="p">,</span> <span class="n">max_z</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">bounding_box</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">,</span> <span class="n">min_z</span><span class="p">,</span> <span class="n">max_z</span> <span class="o">=</span> <span class="n">bounding_box</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_cols</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_cols</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_rows</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">min_z</span><span class="p">,</span> <span class="n">max_z</span> <span class="o">=</span> <span class="o">-</span><span class="n">n_slices</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">n_slices</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">spacing</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">max_x</span> <span class="o">-</span> <span class="n">min_x</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_cols</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">max_y</span> <span class="o">-</span> <span class="n">min_y</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_rows</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">max_z</span> <span class="o">-</span> <span class="n">min_z</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_slices</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="n">object_geometry</span> <span class="o">=</span> <span class="n">astra</span><span class="o">.</span><span class="n">create_vol_geom</span><span class="p">(</span>
+        <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">,</span> <span class="n">n_slices</span><span class="p">,</span> <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">,</span> <span class="n">min_z</span><span class="p">,</span> <span class="n">max_z</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">object_geometry</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

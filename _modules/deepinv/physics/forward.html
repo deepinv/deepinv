@@ -1,0 +1,1999 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.forward &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/forward';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/physics/forward.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.forward</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.forward</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">collections.abc</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">GaussianNoise</span><span class="p">,</span> <span class="n">ZeroNoise</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">randn_like</span><span class="p">,</span> <span class="n">TensorList</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">least_squares</span><span class="p">,</span> <span class="n">lsqr</span><span class="p">,</span> <span class="n">least_squares_implicit_backward</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+
+<div class="viewcode-block" id="Physics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Physics</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>  <span class="c1"># parent class for forward models</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class for forward operators</span>
+
+<span class="sd">    It describes the general forward measurement process</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y = \noise{\forw{x}}</span>
+
+<span class="sd">    where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,</span>
+<span class="sd">    :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition</span>
+<span class="sd">    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting</span>
+<span class="sd">    the measurements.</span>
+
+<span class="sd">    :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.</span>
+<span class="sd">    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`\noise{z}`.</span>
+<span class="sd">        See the noise module for some predefined functions.</span>
+<span class="sd">    :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,</span>
+<span class="sd">        such as quantization or saturation, defined as a function :math:`\sensor{z}`, such that</span>
+<span class="sd">        :math:`y=\sensor{\noise{\forw{x}}}`. By default, the `sensor_model` is set to the identity :math:`\sensor{z}=z`.</span>
+<span class="sd">    :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm</span>
+<span class="sd">        is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.</span>
+<span class="sd">    :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm</span>
+<span class="sd">        is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.</span>
+<span class="sd">    :param str solver: least squares solver to use. Only gradient descent is available for non-linear operators.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">A</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">noise_model</span><span class="p">:</span> <span class="n">NoiseModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sensor_model</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gradient_descent&quot;</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">noise_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">noise_model</span> <span class="o">=</span> <span class="n">ZeroNoise</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_model</span> <span class="o">=</span> <span class="n">sensor_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forw</span> <span class="o">=</span> <span class="n">A</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SVD</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># flag indicating SVD available</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2"> are passed to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> but are ignored.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Physics.__mul__">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation</span>
+
+<span class="sd">        The resulting operator keeps the noise and sensor models of :math:`A_1`.</span>
+
+<span class="sd">        :param deepinv.physics.Physics other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.Physics`) concatenated operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;You are composing two physics objects. The resulting physics will not retain the original attributes. &quot;</span>
+            <span class="s2">&quot;You may instead retrieve attributes of the original physics by indexing the resulting physics.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">compose</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.stack">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.stack">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stacks two forward operators :math:`A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}`</span>
+
+<span class="sd">        The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">        each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">        Returns a :class:`deepinv.physics.StackedPhysics` object.</span>
+
+<span class="sd">        See :ref:`physics_combining` for more information.</span>
+
+<span class="sd">        :param deepinv.physics.Physics other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.StackedPhysics`) stacked operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes forward operator</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">                y = N(A(x), \sigma)</span>
+
+
+<span class="sd">        :param torch.Tensor, list[torch.Tensor] x: signal/image</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) noisy measurements</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Physics.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes forward operator :math:`y = A(x)` (without noise and/or sensor non-linearities)</span>
+
+<span class="sd">        :param torch.Tensor,list[torch.Tensor] x: signal/image</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) clean measurements</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forw</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.sensor">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.sensor">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes sensor non-linearities :math:`y = \eta(y)`</span>
+
+<span class="sd">        :param torch.Tensor,list[torch.Tensor] x: signal/image</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) clean measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.set_noise_model">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.set_noise_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_noise_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the noise model</span>
+
+<span class="sd">        :param Callable noise_model: noise model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span></div>
+
+
+<div class="viewcode-block" id="Physics.noise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.noise">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`</span>
+
+<span class="sd">        :param torch.Tensor x:  clean measurements</span>
+<span class="sd">        :param None, float noise_level: optional noise level parameter</span>
+<span class="sd">        :return: noisy measurements</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes an inverse as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.</span>
+
+<span class="sd">        This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.</span>
+
+<span class="sd">        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.</span>
+<span class="sd">        :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">==</span> <span class="s2">&quot;gradient_descent&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;A_adjoint&quot;</span><span class="p">):</span>
+                    <span class="n">x_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;x_init must be provided for gradient descent solver if the physics does not have&quot;</span>
+                        <span class="s2">&quot; A_adjoint defined.&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_init</span>
+
+            <span class="n">lr</span> <span class="o">=</span> <span class="mf">1e-1</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">lr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_vjp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Solver </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="si">}</span><span class="s2"> not implemented for A_dagger&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Physics.set_ls_solver">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.set_ls_solver">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ls_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change default solver for computing the least squares solution:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.</span>
+
+<span class="sd">        :param str solver: solver to use. If the physics are non-linear, the only available solver is `&#39;gradient_descent&#39;`.</span>
+<span class="sd">            For linear operators, the options are `&#39;CG&#39;`, `&#39;lsqr&#39;`, `&#39;BiCGStab&#39;` and `&#39;minres&#39;` (see :func:`deepinv.optim.utils.least_squares` for more details).</span>
+<span class="sd">        :param int max_iter: maximum number of iterations for the solver.</span>
+<span class="sd">        :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| &lt; \text{tol} \|y\|`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver</span></div>
+
+
+<div class="viewcode-block" id="Physics.A_vjp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v.</span>
+
+<span class="sd">        By default, the Jacobian is computed using automatic differentiation.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        :param torch.Tensor v: vector.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">vjpfunc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">vjp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">vjpfunc</span><span class="p">(</span><span class="n">v</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Physics.update">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the parameters of the physics: forward operator and noise model.</span>
+
+<span class="sd">        :param dict kwargs: dictionary of parameters to update.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="s2">&quot;update_parameters&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Physics.update_parameters">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Update the parameters of the forward operator.</span>
+
+<span class="sd">        :param dict kwargs: dictionary of parameters to update.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+    <span class="c1"># NOTE: Physics instances can hold instances of torch.Generator as</span>
+    <span class="c1"># (possibly nested) attributes and they cannot be copied using deepcopy</span>
+    <span class="c1"># natively. For this reason, we manually copy them beforehand and populate</span>
+    <span class="c1"># the copies using the memo parameter of deepcopy. For more details, see:</span>
+    <span class="c1"># https://github.com/pytorch/pytorch/issues/43672</span>
+    <span class="c1"># https://github.com/pytorch/pytorch/pull/49840</span>
+    <span class="c1"># https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464</span>
+<div class="viewcode-block" id="Physics.clone">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.clone">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clone the forward operator by performing deepcopy to copy all attributes to new memory.</span>
+
+<span class="sd">        This method should be favored to `copy.deepcopy` as it works even in</span>
+<span class="sd">        the presence of `torch.Generator` objects. See `this issue</span>
+<span class="sd">        &lt;https://github.com/pytorch/pytorch/issues/43672&gt;` for more details.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">memo</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Traverse the object hierarchy graph of the forward operator</span>
+        <span class="n">traversal_queue</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">traversal_queue</span><span class="p">:</span>
+            <span class="c1"># 1. Get the next node to process</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">traversal_queue</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+            <span class="c1"># 2. Process the node</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">):</span>
+                <span class="n">generator_device</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">device</span>
+                <span class="n">obj_clone</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">(</span><span class="n">generator_device</span><span class="p">)</span>
+                <span class="n">obj_clone</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+                <span class="n">node_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+                <span class="n">memo</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj_clone</span>
+
+            <span class="c1"># 3. Compute its neighbors (attributes and values for mapping objects)</span>
+            <span class="n">neighbors</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># NOTE: Attribute resolution can be dynamic and return new objects,</span>
+            <span class="c1"># preventing the algorithm from terminating. To avoid that, we use</span>
+            <span class="c1"># insepct.getattr_static. We don&#39;t use inspect.getmembers_static</span>
+            <span class="c1"># because it was only introduced in Python 3.11 and we currently</span>
+            <span class="c1"># support Python 3.9 onwards.</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getattr_static</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">neighbors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+            <span class="c1"># NOTE: It is necessary to include values for mapping objects for</span>
+            <span class="c1"># the case of submodules which are stored as entries in a</span>
+            <span class="c1"># dictionary instead of directly as attributes.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+                <span class="n">neighbors</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+            <span class="c1"># 4. Queue the unseen neighbors</span>
+            <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+                <span class="n">child_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">child_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">child_id</span><span class="p">)</span>
+                    <span class="n">traversal_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="n">memo</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LinearPhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LinearPhysics</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class for linear operators.</span>
+
+<span class="sd">    It describes the linear forward measurement process of the form</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y = N(A(x))</span>
+
+<span class="sd">    where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,</span>
+<span class="sd">    :math:`A:\xset\mapsto \yset` is a deterministic linear mapping capturing the physics of the acquisition</span>
+<span class="sd">    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting</span>
+<span class="sd">    the measurements.</span>
+
+<span class="sd">    :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.</span>
+<span class="sd">        It is recommended to normalize it to have unit norm.</span>
+<span class="sd">    :param None | Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.</span>
+<span class="sd">        By default, it is set to `None`, which means that the adjoint is computed automatically using :func:`deepinv.physics.adjoint_function`.</span>
+<span class="sd">        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can</span>
+<span class="sd">        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter</span>
+<span class="sd">        If you have a closed form for the adjoint, you can pass it as a callable function or rewrite the class method.</span>
+<span class="sd">    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,</span>
+<span class="sd">        used for the automatic adjoint computation.</span>
+<span class="sd">    :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.</span>
+<span class="sd">        See the noise module for some predefined functions.</span>
+<span class="sd">    :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,</span>
+<span class="sd">        such as quantization or saturation, defined as a function :math:`\eta(z)`, such that</span>
+<span class="sd">        :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.</span>
+<span class="sd">    :param int max_iter: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm</span>
+<span class="sd">        is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.</span>
+<span class="sd">    :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm</span>
+<span class="sd">        is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.</span>
+<span class="sd">    :param str solver: least squares solver to use. Choose between `&#39;CG&#39;`, `&#39;lsqr&#39;`, `&#39;BiCGStab&#39;` and `&#39;minres&#39;`. See :func:`deepinv.optim.utils.least_squares` for more details.</span>
+<span class="sd">    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Blur operator with a basic averaging filter applied to a 32x32 black image with</span>
+<span class="sd">        a single white pixel in the center:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.blur import Blur, Downsampling</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32</span>
+<span class="sd">        &gt;&gt;&gt; x[:, :, 16, 16] = 1 # Define one white pixel in the middle</span>
+<span class="sd">        &gt;&gt;&gt; w = torch.ones((1, 1, 3, 3)) / 9 # Basic 3x3 averaging filter</span>
+<span class="sd">        &gt;&gt;&gt; physics = Blur(filter=w)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">        Linear operators can also be stacked. The measurements produced by the resulting</span>
+<span class="sd">        model are :class:`deepinv.utils.TensorList` objects, where each entry corresponds to the</span>
+<span class="sd">        measurements of the corresponding operator (see :ref:`physics_combining` for more information):</span>
+
+<span class="sd">        &gt;&gt;&gt; physics1 = Blur(filter=w)</span>
+<span class="sd">        &gt;&gt;&gt; physics2 = Downsampling(img_size=((1, 32, 32)), filter=&quot;gaussian&quot;, factor=4)</span>
+<span class="sd">        &gt;&gt;&gt; physics = physics1.stack(physics2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">        Linear operators can also be composed by multiplying them:</span>
+
+<span class="sd">        &gt;&gt;&gt; physics = physics1 * physics2</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">        Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.loss.metric import PSNR</span>
+<span class="sd">        &gt;&gt;&gt; physics = Blur(filter=w, padding=&#39;circular&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x) # Compute measurements</span>
+<span class="sd">        &gt;&gt;&gt; x_dagger = physics.A_dagger(y) # Compute linear pseudoinverse</span>
+<span class="sd">        &gt;&gt;&gt; x_prox = physics.prox_l2(torch.zeros_like(x), y, 1.) # Compute prox at x=0</span>
+<span class="sd">        &gt;&gt;&gt; PSNR()(x, x_prox) &gt; PSNR()(x, y) # Should be closer to the original</span>
+<span class="sd">        tensor([True])</span>
+
+<span class="sd">        The adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function` method</span>
+<span class="sd">        which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import LinearPhysics, adjoint_function</span>
+<span class="sd">        &gt;&gt;&gt; A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel</span>
+<span class="sd">        &gt;&gt;&gt; physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn((4, 1, 5, 5))</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; torch.allclose(physics.A_adjoint(y), x) # We have A^T(A(x)) = x</span>
+<span class="sd">        True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">A</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">A_adjoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">noise_model</span><span class="o">=</span><span class="n">ZeroNoise</span><span class="p">(),</span>
+        <span class="n">sensor_model</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;lsqr&quot;</span><span class="p">,</span>
+        <span class="n">implicit_backward_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">,</span>
+            <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+            <span class="n">sensor_model</span><span class="o">=</span><span class="n">sensor_model</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">A_adj</span> <span class="o">=</span> <span class="n">A_adjoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">implicit_backward_solver</span> <span class="o">=</span> <span class="n">implicit_backward_solver</span>
+
+        <span class="n">_lstsq_conv_iter</span> <span class="o">=</span> <span class="mi">20</span>  <span class="c1"># heuristic number of iterations for convergence</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">implicit_backward_solver</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">&lt;</span> <span class="n">_lstsq_conv_iter</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="LinearPhysics.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.</span>
+<span class="sd">        If :math:`A` is linear, it should be the exact transpose of the forward matrix.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            If the problem is non-linear, there is not a well-defined transpose operation,</span>
+<span class="sd">            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.</span>
+
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :param None, torch.Tensor params: optional additional parameters for the adjoint operator.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;img_size must be set for using the automatic A_adjoint implementation.&quot;</span>
+                    <span class="s2">&quot;Set img_size in the constructor of the LinearPhyics class or pass it as a keyword argument.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tensor_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="k">return</span> <span class="n">adjoint_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">)(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adj</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.A_vjp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` evaluated at :math:`x`, defined as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            A_{vjp}(x, v) = \left. \frac{\partial A}{\partial x}  \right|_x^\top  v = \conj{A} v.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        :param torch.Tensor v: vector.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.A_A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper function that computes :math:`A A^{\top}y`.</span>
+
+<span class="sd">        This function can speed up computation when :math:`A A^{\top}` is available in closed form.</span>
+<span class="sd">        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.</span>
+
+<span class="sd">        :param torch.Tensor y: measurement.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the product :math:`AA^{\top}y`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.A_adjoint_A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint_A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint_A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper function that computes :math:`A^{\top}Ax`.</span>
+
+<span class="sd">        This function can speed up computation when :math:`A^{\top}A` is available in closed form.</span>
+<span class="sd">        Otherwise it just cals :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.__mul__">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation</span>
+
+<span class="sd">        The resulting linear operator keeps the noise and sensor models of :math:`A_1`.</span>
+
+<span class="sd">        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">compose</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.stack">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.stack">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stacks forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.</span>
+
+<span class="sd">        The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">        each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            When using the ``stack`` operator between two noise objects, the operation will retain only the second</span>
+<span class="sd">            noise.</span>
+
+<span class="sd">        See :ref:`physics_combining` for more information.</span>
+
+<span class="sd">        :param deepinv.physics.Physics other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.StackedPhysics`) stacked operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.compute_norm">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_norm">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator</span>
+
+<span class="sd">        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,</span>
+
+<span class="sd">        using the `power method &lt;https://en.wikipedia.org/wiki/Power_iteration&gt;`_.</span>
+
+<span class="sd">        :param torch.Tensor x0: initialisation point of the algorithm</span>
+<span class="sd">        :param int max_iter: maximum number of iterations</span>
+<span class="sd">        :param float tol: relative variation criterion for convergence</span>
+<span class="sd">        :param bool verbose: print information</span>
+
+<span class="sd">        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">/=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">zold</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+            <span class="n">rel_var</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">zold</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rel_var</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Power iteration converged at iteration </span><span class="si">{</span><span class="n">it</span><span class="si">}</span><span class="s2">, value=</span><span class="si">{</span><span class="n">z</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">zold</span> <span class="o">=</span> <span class="n">z</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Power iteration: convergence not reached&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">z</span><span class="o">.</span><span class="n">real</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.adjointness_test">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adjointness_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.</span>
+
+<span class="sd">        :param torch.Tensor u: initialisation point of the adjointness test method</span>
+
+<span class="sd">        :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">u_in</span> <span class="o">=</span> <span class="n">u</span>  <span class="c1"># .type(self.dtype)</span>
+        <span class="n">Au</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">u_in</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Au</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Au</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">V</span> <span class="o">=</span> <span class="p">[</span><span class="n">randn_like</span><span class="p">(</span><span class="n">au</span><span class="p">)</span> <span class="k">for</span> <span class="n">au</span> <span class="ow">in</span> <span class="n">Au</span><span class="p">]</span>
+            <span class="n">Atv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">s1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">au</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">zip_strict</span><span class="p">(</span><span class="n">Au</span><span class="p">,</span> <span class="n">V</span><span class="p">):</span>
+                <span class="n">s1</span> <span class="o">+=</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">au</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">randn_like</span><span class="p">(</span><span class="n">Au</span><span class="p">)</span>
+            <span class="n">Atv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="n">s1</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">Au</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="n">s2</span> <span class="o">=</span> <span class="p">(</span><span class="n">Atv</span> <span class="o">*</span> <span class="n">u_in</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">s1</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">-</span> <span class="n">s2</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.condition_number">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.condition_number">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">condition_number</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes an approximation of the condition number of the linear operator :math:`A`.</span>
+
+<span class="sd">        Uses the LSQR algorithm, see :func:`deepinv.optim.utils.lsqr` for more details.</span>
+
+<span class="sd">        :param torch.Tensor x: Any input tensor (e.g. random)</span>
+<span class="sd">        :param int max_iter: maximum number of iterations</span>
+<span class="sd">        :param float tol: relative variation criterion for convergence</span>
+<span class="sd">        :param bool verbose: print information</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) condition number of the operator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">cond</span> <span class="o">=</span> <span class="n">lsqr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+            <span class="n">parallel_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cond</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.prox_l2">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.prox_l2">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox_l2</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2</span>
+
+<span class="sd">        :param torch.Tensor y: measurements tensor</span>
+<span class="sd">        :param torch.Tensor z: signal tensor</span>
+<span class="sd">        :param float gamma: hyperparameter of the proximal operator</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) estimated signal tensor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="k">if</span> <span class="n">solver</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">implicit_backward_solver</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">least_squares</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+                <span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+                <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+                <span class="n">parallel_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">ATA</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint_A</span><span class="p">,</span>
+                <span class="n">AAT</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A_A_adjoint</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">least_squares_implicit_backward</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+                <span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
+                <span class="n">parallel_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearPhysics.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver.</span>
+
+<span class="sd">        This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.</span>
+
+<span class="sd">        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.</span>
+<span class="sd">        :param str solver: least squares solver to use. Choose between &#39;CG&#39;, &#39;lsqr&#39; and &#39;BiCGStab&#39;. See :func:`deepinv.optim.utils.least_squares` for more details.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="k">if</span> <span class="n">tol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+        <span class="k">if</span> <span class="n">solver</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">implicit_backward_solver</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">least_squares</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">parallel_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">AAT</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A_A_adjoint</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">ATA</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint_A</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">least_squares_implicit_backward</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">parallel_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">gamma</span><span class="o">=</span><span class="mf">1e8</span><span class="p">,</span>  <span class="c1"># Large gamma to approximate A_dagger</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ComposedPhysics</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Composes multiple physics operators into a single operator.</span>
+
+<span class="sd">    The measurements produced by the resulting model are defined as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \noise{\forw{x}} = N_k(A_k(\dots A_2(A_1(x))))</span>
+
+<span class="sd">    where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.</span>
+
+<span class="sd">    :param list[deepinv.physics.Physics] *physics: list of physics to compose.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="k">for</span> <span class="n">physics_item</span> <span class="ow">in</span> <span class="n">physics</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">physics_item</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics_item</span><span class="p">,</span> <span class="n">ComposedPhysics</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">physics_item</span><span class="o">.</span><span class="n">physics_list</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">physics</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">noise_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_model</span> <span class="o">=</span> <span class="n">physics</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sensor_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes forward of composed operator</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            y = A_k(\dots(A_1(x)))</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image</span>
+<span class="sd">        :return: measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the parameters of each operator in the composed operator.</span>
+
+<span class="sd">        :param dict kwargs: dictionary of parameters to update.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">:</span>
+            <span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;ComposedPhysics(&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">)])</span>
+            <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the physics operator at index `item`.</span>
+
+<span class="sd">        :param int item: index of the physics operator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ComposedLinearPhysics</span><span class="p">(</span><span class="n">ComposedPhysics</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Composes multiple linear physics operators into a single operator.</span>
+
+<span class="sd">    The measurements produced by the resulting model are defined as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \noise{\forw{x}} = N_k(A_k \dots A_2(A_1(x)))</span>
+
+<span class="sd">    where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.</span>
+
+<span class="sd">    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes adjoint of composed operator</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y</span>
+
+<span class="sd">        :param torch.Tensor y: measurements</span>
+<span class="sd">        :return: signal/image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compose</span><span class="p">(</span><span class="o">*</span><span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span> <span class="o">|</span> <span class="n">LinearPhysics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.</span>
+
+<span class="sd">    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">    each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">phys</span><span class="p">,</span> <span class="n">DecomposablePhysics</span><span class="p">)</span> <span class="k">for</span> <span class="n">phys</span> <span class="ow">in</span> <span class="n">physics</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;At least one input physics is a DecomposablePhysics, but resulting physics will not be decomposable. `A_dagger` and `prox_l2` will fall back to approximate methods, which may impact performance.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">phys</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">)</span> <span class="k">for</span> <span class="n">phys</span> <span class="ow">in</span> <span class="n">physics</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ComposedLinearPhysics</span><span class="p">(</span><span class="o">*</span><span class="n">physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ComposedPhysics</span><span class="p">(</span><span class="o">*</span><span class="n">physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DecomposablePhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DecomposablePhysics</span><span class="p">(</span><span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent class for linear operators with SVD decomposition.</span>
+
+<span class="sd">    The singular value decomposition is expressed as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        A = U\text{diag}(s)V^{\top} \in \mathbb{R}^{m\times n}</span>
+
+<span class="sd">    where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`</span>
+<span class="sd">    are orthonormal linear transformations and :math:`s\in\mathbb{R}_{+}^{n}` are the singular values.</span>
+
+<span class="sd">    :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.</span>
+<span class="sd">    :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.</span>
+<span class="sd">    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,</span>
+<span class="sd">        used for the automatic adjoint computation.</span>
+<span class="sd">    :param None | Callable U_adjoint: transpose of U. If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`</span>
+<span class="sd">        from the `U` function and the `img_size` parameter.</span>
+<span class="sd">        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can</span>
+<span class="sd">        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.</span>
+<span class="sd">    :param None | Callable V: If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`</span>
+<span class="sd">        from the `V_adjoint` function and the `img_size` parameter.</span>
+<span class="sd">        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can</span>
+<span class="sd">        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.</span>
+<span class="sd">    :param torch.nn.parameter.Parameter, float params: Singular values of the transform</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Recreation of the Inpainting operator using the DecomposablePhysics class:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import DecomposablePhysics</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0)  # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; img_size = (1, 1, 3, 3)  # Input size</span>
+<span class="sd">        &gt;&gt;&gt; mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask</span>
+<span class="sd">        &gt;&gt;&gt; U = lambda x: x  # U is the identity operation</span>
+<span class="sd">        &gt;&gt;&gt; U_adjoint = lambda x: x  # U_adjoint is the identity operation</span>
+<span class="sd">        &gt;&gt;&gt; V = lambda x: x  # V is the identity operation</span>
+<span class="sd">        &gt;&gt;&gt; V_adjoint = lambda x: x  # V_adjoint is the identity operation</span>
+<span class="sd">        &gt;&gt;&gt; mask_svd = mask.float().unsqueeze(0).unsqueeze(0)  # Convert the mask to torch.Tensor and adjust its dimensions</span>
+<span class="sd">        &gt;&gt;&gt; physics = DecomposablePhysics(U=U, U_adjoint=U_adjoint, V=V, V_adjoint=V_adjoint, mask=mask_svd)</span>
+
+<span class="sd">        Apply the operator to a random tensor:</span>
+
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(img_size)</span>
+<span class="sd">        &gt;&gt;&gt; with torch.no_grad():</span>
+<span class="sd">        ...     physics.A(x)  # Apply the masking</span>
+<span class="sd">        tensor([[[[ 1.5410, -0.0000, -2.1788],</span>
+<span class="sd">                  [ 0.5684, -0.0000, -1.3986],</span>
+<span class="sd">                  [ 0.4033,  0.0000, -0.7193]]]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">U</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">V_adjoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">U_adjoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">V</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="n">U</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">U_adjoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">),</span> <span class="s2">&quot;U must be provided if U_adjoint is provided.&quot;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="n">V_adjoint</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">),</span> <span class="s2">&quot;V_adjoint must be provided if V is provided.&quot;</span>
+
+        <span class="c1"># set to identity if not provided</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_V_adjoint</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">V_adjoint</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">V_adjoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">U</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">U</span>
+
+        <span class="c1"># if U is the identity, we set U_adjoint as the identity as well</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U_adjoint</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">U</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">U_adjoint</span>
+
+        <span class="c1"># if V_adjoint is the identity, we set V as the identity as well</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_V</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">V_adjoint</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">V</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DecomposablePhysics.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the forward operator :math:`y = A(x)`.</span>
+
+<span class="sd">        If a mask/singular values is provided, it is used to apply the forward operator,</span>
+<span class="sd">        and also stored as the current mask/singular values.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor</span>
+<span class="sd">        :param torch.nn.parameter.Parameter, float mask: singular values.</span>
+<span class="sd">        :return: output tensor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the adjoint of the forward operator :math:`\tilde{x} = A^{\top}y`.</span>
+
+<span class="sd">        If a mask/singular values is provided, it is used to apply the adjoint operator,</span>
+<span class="sd">        and also stored as the current mask/singular values.</span>
+
+<span class="sd">        :param torch.Tensor y: input tensor</span>
+<span class="sd">        :param torch.nn.parameter.Parameter, float mask: singular values.</span>
+<span class="sd">        :return: output tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.A_A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper function that computes :math:`A A^{\top}y`.</span>
+
+<span class="sd">        Using the SVD decomposition, we have :math:`A A^{\top} = U\text{diag}(s^2)U^{\top}`.</span>
+
+<span class="sd">        :param torch.Tensor y: measurement.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the product :math:`AA^{\top}y`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.A_adjoint_A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_adjoint_A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint_A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper function that computes :math:`A^{\top} A x`.</span>
+
+<span class="sd">        Using the SVD decomposition, we have :math:`A^{\top}A = V\text{diag}(s^2)V^{\top}`.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.U">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.U">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">U</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the :math:`U` operator of the SVD decomposition.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This method should be overwritten by the user to define its custom `DecomposablePhysics` operator.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.V">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.V">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">V</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the :math:`V` operator of the SVD decomposition.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This method should be overwritten by the user to define its custom `DecomposablePhysics` operator.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;img_size must be set for using the automatic V implementation. &quot;</span>
+                    <span class="s2">&quot;Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tensor_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="k">return</span> <span class="n">adjoint_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">,</span> <span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.U_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.U_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">U_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the :math:`U^{\top}` operator of the SVD decomposition.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This method should be overwritten by the user to define its custom `DecomposablePhysics` operator.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_adjoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;img_size must be set for using the automatic U_adjoint implementation. &quot;</span>
+                    <span class="s2">&quot;Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tensor_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="k">return</span> <span class="n">adjoint_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">,</span> <span class="n">tensor_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.V_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.V_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">V_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the :math:`V^{\top}` operator of the SVD decomposition.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This method should be overwritten by the user to define its custom `DecomposablePhysics` operator.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.prox_l2">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.prox_l2">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prox_l2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`</span>
+<span class="sd">        in an efficient manner leveraging the singular vector decomposition.</span>
+
+<span class="sd">        :param torch.Tensor, float z: signal tensor</span>
+<span class="sd">        :param torch.Tensor y: measurements tensor</span>
+<span class="sd">        :param float gamma: hyperparameter :math:`\gamma` of the proximal operator</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) estimated signal tensor</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">z</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">scaling</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">gamma</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">gamma</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">gamma</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+            <span class="p">):</span>  <span class="c1"># may be the case when mask is fft related</span>
+                <span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="n">gamma</span><span class="o">.</span><span class="n">dim</span><span class="p">())]</span>
+            <span class="n">scaling</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">gamma</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">/</span> <span class="n">scaling</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="DecomposablePhysics.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes :math:`A^{\dagger}y = x` in an efficient manner leveraging the singular vector decomposition.</span>
+
+<span class="sd">        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># avoid division by singular value = 0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">mask</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mf">1e-5</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mf">1e-5</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Denoising">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Denoising.html#deepinv.physics.Denoising">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Denoising</span><span class="p">(</span><span class="n">DecomposablePhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Forward operator for denoising problems.</span>
+
+<span class="sd">    The linear operator is just the identity mapping :math:`A(x)=x`</span>
+
+<span class="sd">    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module. By default, it is set to Gaussian noise with a standard deviation of 0.1.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Denoising operator with Gaussian noise with standard deviation 0.1:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, GaussianNoise</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = 0.5*torch.randn(1, 1, 3, 3) # Define random 3x3 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising(GaussianNoise(sigma=0.1))</span>
+<span class="sd">        &gt;&gt;&gt; with torch.no_grad():</span>
+<span class="sd">        ...     physics(x)</span>
+<span class="sd">        tensor([[[[ 0.7302, -0.2064, -1.0712],</span>
+<span class="sd">                  [ 0.1985, -0.4322, -0.8064],</span>
+<span class="sd">                  [ 0.2139,  0.3624, -0.3223]]]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">NoiseModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">noise_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">noise_model</span> <span class="o">=</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="adjoint_function">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">adjoint_function</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Provides the adjoint function of a linear operator :math:`A`, i.e., :math:`A^{\top}`.</span>
+
+
+<span class="sd">    The generated function can be simply called as ``A_adjoint(y)``, for example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.physics.forward import adjoint_function</span>
+<span class="sd">    &gt;&gt;&gt; A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # shift image by one pixel</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.randn((4, 1, 5, 5))</span>
+<span class="sd">    &gt;&gt;&gt; y = A(x)</span>
+<span class="sd">    &gt;&gt;&gt; A_adjoint = adjoint_function(A, (4, 1, 5, 5))</span>
+<span class="sd">    &gt;&gt;&gt; torch.allclose(A_adjoint(y), x) # we have A^T(A(x)) = x</span>
+<span class="sd">    True</span>
+
+
+<span class="sd">    :param Callable A: linear operator :math:`A`.</span>
+<span class="sd">    :param tuple input_size: size of the input tensor e.g. (B, C, H, W).</span>
+<span class="sd">        The first dimension, i.e. batch size, should be equal or lower than the batch size B</span>
+<span class="sd">        of the input tensor to the adjoint operator.</span>
+<span class="sd">    :param str device: device where the adjoint operator is computed.</span>
+<span class="sd">    :return: (Callable) function that computes the adjoint of :math:`A`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">vjpfunc</span><span class="p">)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">vjp</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">batches</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># NOTE: In certain cases A(x) can&#39;t be automatically differentiated</span>
+    <span class="c1"># infinitely many times wrt x. In that case, the adjoint of A computed</span>
+    <span class="c1"># using automatic differentiation might not be automatically differentiable</span>
+    <span class="c1"># either. We avoid this problem by using the involutive property of the</span>
+    <span class="c1"># adjoint operator, i.e.,  (A^\top)^\top = A, and we specifically define</span>
+    <span class="c1"># the adjoint of the adjoint as the original linear operator A. For more</span>
+    <span class="c1"># details, see https://github.com/deepinv/deepinv/issues/511</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Adjoint</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">batches</span><span class="p">:</span>
+                <span class="n">y2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">batches</span><span class="p">,)</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span>
+                <span class="p">)</span>
+                <span class="n">y2</span><span class="p">[:</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+                <span class="k">return</span> <span class="n">vjpfunc</span><span class="p">(</span><span class="n">y2</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">batches</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Batch size of A_adjoint input is larger than expected&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">vjpfunc</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">setup_context</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">A</span><span class="p">(</span><span class="n">grad_output</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Adjoint</span><span class="o">.</span><span class="n">apply</span></div>
+
+
+
+<div class="viewcode-block" id="stack">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.stack.html#deepinv.physics.stack">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stack</span><span class="p">(</span><span class="o">*</span><span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span> <span class="o">|</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.</span>
+
+<span class="sd">    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">    each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be stacked.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">phys</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">)</span> <span class="k">for</span> <span class="n">phys</span> <span class="ow">in</span> <span class="n">physics</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">StackedLinearPhysics</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">StackedPhysics</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StackedPhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StackedPhysics</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stacks multiple physics operators into a single operator.</span>
+
+<span class="sd">    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">    each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">    See :ref:`physics_combining` for more information.</span>
+
+<span class="sd">    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StackedPhysics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="n">physics_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">physics</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">StackedPhysics</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">physics</span><span class="o">.</span><span class="n">physics_list</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="StackedPhysics.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes forward of stacked operator</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            y = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image</span>
+<span class="sd">        :return: measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TensorList</span><span class="p">([</span><span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">])</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;StackedPhysics(&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the physics operator at index `item`.</span>
+
+<span class="sd">        :param int item: index of the physics operator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+
+<div class="viewcode-block" id="StackedPhysics.sensor">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.sensor">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies sensor non-linearities to the measurements per physics operator</span>
+<span class="sd">        in the stacked operator.</span>
+
+<span class="sd">        :param deepinv.utils.TensorList y: measurements</span>
+<span class="sd">        :return: measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">physics</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">):</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">sensor</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the number of physics operators in the stacked operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StackedPhysics.noise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.noise">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies noise to the measurements per physics operator in the stacked operator.</span>
+
+<span class="sd">        :param deepinv.utils.TensorList y: measurements</span>
+<span class="sd">        :return: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">physics</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">):</span>
+            <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="StackedPhysics.set_noise_model">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.set_noise_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_noise_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">item</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the noise model for the physics operator at index `item`.</span>
+
+<span class="sd">        :param Callable, deepinv.physics.NoiseModel noise_model: noise model for the physics operator.</span>
+<span class="sd">        :param int item: index of the physics operator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">set_noise_model</span><span class="p">(</span><span class="n">noise_model</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StackedPhysics.update_parameters">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.update_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the parameters of the stacked operator.</span>
+
+<span class="sd">        :param dict kwargs: dictionary of parameters to update.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">physics</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">:</span>
+            <span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="StackedLinearPhysics">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedLinearPhysics.html#deepinv.physics.StackedLinearPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StackedLinearPhysics</span><span class="p">(</span><span class="n">StackedPhysics</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stacks multiple linear physics operators into a single operator.</span>
+
+<span class="sd">    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where</span>
+<span class="sd">    each entry corresponds to the measurements of the corresponding operator.</span>
+
+<span class="sd">    See :ref:`physics_combining` for more information.</span>
+
+<span class="sd">    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.</span>
+<span class="sd">    :param str reduction: how to combine tensorlist outputs of adjoint operators into single</span>
+<span class="sd">        adjoint output. Choose between ``sum``, ``mean`` or ``None``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics_list</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StackedLinearPhysics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">physics_list</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="nb">sum</span>
+        <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">reduction</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reduction must be either sum, mean or none.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StackedLinearPhysics.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StackedLinearPhysics.html#deepinv.physics.StackedLinearPhysics.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the adjoint of the stacked operator, defined as</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            A^{\top}y = \sum_{i=1}^{n} A_i^{\top}y_i.</span>
+
+<span class="sd">        :param deepinv.utils.TensorList y: measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">physics</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_list</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

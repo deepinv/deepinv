@@ -1,0 +1,906 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.sampling.sampling &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/sampling/sampling';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/sampling/sampling.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.sampling.sampling</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.sampling.sampling</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.prior</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prior</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_conv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.sampling_iterators</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Welford</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+
+
+<div class="viewcode-block" id="BaseSampling">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseSampling</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for Monte Carlo sampling.</span>
+
+<span class="sd">    This class aims to sample from the posterior distribution :math:`p(x|y)`, where :math:`y` represents the observed</span>
+<span class="sd">    measurements and :math:`x` is the (unknown) image to be reconstructed. The sampling process generates a</span>
+<span class="sd">    sequence of states (samples) :math:`X_0, X_1, \ldots, X_N` from a Markov chain. Each state :math:`X_k` contains the</span>
+<span class="sd">    current estimate of the unknown image, denoted :math:`x_k`, and may include other latent variables.</span>
+<span class="sd">    The class then computes statistics (e.g., image posterior mean, image posterior variance) from the samples :math:`X_k`.</span>
+
+<span class="sd">    This class can be used to create new Monte Carlo samplers by implementing the sampling kernel through :class:`deepinv.sampling.SamplingIterator`:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        # define your sampler (possibly a Markov kernel which depends on the previous sample)</span>
+<span class="sd">        class MyIterator(SamplingIterator):</span>
+<span class="sd">            def __init__(self):</span>
+<span class="sd">                super().__init__()</span>
+
+<span class="sd">            def initialize_latent_variables(x, y, physics, data_fidelity, prior):</span>
+<span class="sd">                # initialize a latent variable</span>
+<span class="sd">                latent_z = g(x, y, physics, data_fidelity, prior)</span>
+<span class="sd">                return {&quot;x&quot;: x, &quot;z&quot;: latent_z}</span>
+
+<span class="sd">            def forward(self, X, y, physics, data_fidelity, prior, params_algo):</span>
+<span class="sd">                # run one sampling kernel iteration</span>
+<span class="sd">                new_X = f(X, y, physics, data_fidelity, prior, params_algo)</span>
+<span class="sd">                return new_X</span>
+
+<span class="sd">        # create the sampler</span>
+<span class="sd">        sampler = BaseSampling(MyIterator(), prior, data_fidelity, iterator_params)</span>
+
+<span class="sd">        # compute posterior mean and variance of reconstruction of x</span>
+<span class="sd">        mean, var = sampler.sample(y, physics)</span>
+
+<span class="sd">    This class computes the mean and variance of the chain using Welford&#39;s algorithm, which avoids storing the whole</span>
+<span class="sd">    Monte Carlo samples. It can also maintain a history of the `history_size` most recent samples.</span>
+
+<span class="sd">    Note on retained sample calculation:</span>
+<span class="sd">        With the default parameters (max_iter=100, burnin_ratio=0.2, thinning=10), the number</span>
+<span class="sd">        of samples actually used for statistics is calculated as follows:</span>
+
+<span class="sd">        - Total iterations: 100</span>
+<span class="sd">        - Burn-in period: 100 * 0.2 = 20 iterations (discarded)</span>
+<span class="sd">        - Remaining iterations: 80</span>
+<span class="sd">        - With thinning of 10, we keep iterations 20, 30, 40, 50, 60, 70, 80, 90</span>
+<span class="sd">        - This results in 8 retained samples used for computing the posterior statistics</span>
+
+<span class="sd">    :param deepinv.sampling.SamplingIterator iterator: The sampling iterator that defines the MCMC kernel</span>
+<span class="sd">    :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics</span>
+<span class="sd">    :param deepinv.optim.Prior prior: Negative log-prior</span>
+<span class="sd">    :param int max_iter: The number of Monte Carlo iterations to perform. Default: 100</span>
+<span class="sd">    :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2</span>
+<span class="sd">    :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10</span>
+<span class="sd">    :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``</span>
+<span class="sd">    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics. It is called with the current sample `X`, the current `statistics` (a list of Welford objects), and the current iteration number `iter` as keyword arguments.</span>
+<span class="sd">    :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5</span>
+<span class="sd">    :param bool verbose: Whether to print progress of the algorithm. Default: ``False``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">SamplingIterator</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">:</span> <span class="n">DataFidelity</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">X</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">burnin_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">thresh_conv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">crit_conv</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;residual&quot;</span><span class="p">,</span>
+        <span class="n">thinning</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">history_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseSampling</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">iterator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">prior</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">burnin_ratio</span> <span class="o">=</span> <span class="n">burnin_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span> <span class="o">=</span> <span class="n">thresh_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span> <span class="o">=</span> <span class="n">crit_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span> <span class="o">=</span> <span class="n">thinning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span> <span class="o">=</span> <span class="n">history_size</span>
+
+        <span class="c1"># Initialize history to zero</span>
+        <span class="k">if</span> <span class="n">history_size</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="n">history_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">history_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="BaseSampling.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">x_init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the MCMC sampling chain and return the posterior sample mean.</span>
+
+<span class="sd">        :param torch.Tensor y: The observed measurements</span>
+<span class="sd">        :param Physics physics: Forward operator of your inverse problem</span>
+<span class="sd">        :param Union[torch.Tensor, dict, None] x_init: Optional initial state of the Markov chain. This can be a ``torch.Tensor`` to initialize the image ``X[&quot;x&quot;]``, or a ``dict`` to initialize the entire state ``X`` including any latent variables. In most cases, providing a tensor to initialize ``X[&quot;x&quot;]`` will be sufficient.</span>
+<span class="sd">            Default: ``None``</span>
+<span class="sd">        :param int seed: Optional random seed for reproducible sampling.</span>
+<span class="sd">            Default: ``None``</span>
+<span class="sd">        :return: Posterior sample mean</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># pass back out sample mean</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_init</span><span class="o">=</span><span class="n">x_init</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="BaseSampling.sample">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.sample">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">x_init</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">g_statistics</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute the MCMC sampling chain and compute posterior statistics.</span>
+
+<span class="sd">        This method runs the main MCMC sampling loop to generate samples from the posterior</span>
+<span class="sd">        distribution and compute their statistics using Welford&#39;s online algorithm.</span>
+
+<span class="sd">        :param torch.Tensor y: The observed measurements/data tensor</span>
+<span class="sd">        :param Physics physics: Forward operator of your inverse problem.</span>
+<span class="sd">        :param Union[torch.Tensor, dict, None] x_init: Optional initial state of the Markov chain. This can be a ``torch.Tensor`` to initialize the image ``X[&quot;x&quot;]``, or a ``dict`` to initialize the entire state ``X`` including any latent variables. In most cases, providing a tensor to initialize ``X[&quot;x&quot;]`` will be sufficient.</span>
+<span class="sd">            Default: ``None``</span>
+<span class="sd">        :param int seed: Optional random seed for reproducible sampling.</span>
+<span class="sd">            Default: ``None``</span>
+<span class="sd">        :param list g_statistics: List of functions for which to compute posterior statistics.</span>
+<span class="sd">            The sampler will compute the posterior mean and variance of each function in the list.</span>
+<span class="sd">            The input to these functions is a dictionary `d` which contains the current state of the sampler alongside any latent variables. `d[&quot;x&quot;]` will always be the current image. See specific iterators for details on what (if any) latent variables they provide.</span>
+<span class="sd">            Default: ``lambda d: d[&quot;x&quot;]`` (identity function on the image).</span>
+<span class="sd">        :param Union[List[Callable], Callable] g_statistics: List of functions for which to compute posterior statistics, or a single function.</span>
+<span class="sd">        :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)</span>
+<span class="sd">        :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors</span>
+<span class="sd">            | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            from deepinv.sampling import BaseSampling, ULAIterator</span>
+
+<span class="sd">            iterator = ULAIterator(...) # define iterator</span>
+
+<span class="sd">            # Basic usage with default settings</span>
+<span class="sd">            sampler = BaseSampling(iterator, data_fidelity, prior)</span>
+<span class="sd">            mean, var = sampler.sample(measurements, forward_operator)</span>
+
+<span class="sd">            # Using multiple statistics</span>
+<span class="sd">            sampler = BaseSampling(</span>
+<span class="sd">                iterator, data_fidelity, prior,</span>
+<span class="sd">                g_statistics=[lambda X: X[&quot;x&quot;], lambda X: X[&quot;x&quot;]**2]</span>
+<span class="sd">            )</span>
+<span class="sd">            means, vars = sampler.sample(measurements, forward_operator)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Don&#39;t store computational graphs</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="c1"># Set random seed if provided</span>
+            <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+            <span class="c1"># Initialization of both our image chain and any latent variables</span>
+            <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># if linear take adjoint (pseudo-inverse can be a bit unstable) else fall back to pseudoinverse</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+                    <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initialize_latent_variables</span><span class="p">(</span>
+                        <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initialize_latent_variables</span><span class="p">(</span>
+                        <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_init</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">X</span> <span class="o">=</span> <span class="n">x_init</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initialize_latent_variables</span><span class="p">(</span>
+                        <span class="n">x_init</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span>
+                    <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">,</span> <span class="n">deque</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">([</span><span class="n">X</span><span class="p">],</span> <span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g_statistics</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">g_statistics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">g_statistics</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g_statistics</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">g_statistics</span> <span class="o">=</span> <span class="p">[</span><span class="n">g_statistics</span><span class="p">]</span>
+
+            <span class="c1"># Initialize Welford trackers for each g_statistic</span>
+            <span class="n">statistics</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">g_statistics</span><span class="p">:</span>
+                <span class="n">statistics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Welford</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">X</span><span class="p">)))</span>
+
+            <span class="c1"># Initialize for convergence checking</span>
+            <span class="n">mean_prevs</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+            <span class="n">var_prevs</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+
+            <span class="c1"># Run the chain</span>
+            <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)):</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span>
+                    <span class="n">X</span><span class="p">,</span>
+                    <span class="n">y</span><span class="p">,</span>
+                    <span class="n">physics</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">,</span>
+                    <span class="n">it</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">it</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">burnin_ratio</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">it</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">statistics</span><span class="o">=</span><span class="n">statistics</span><span class="p">,</span> <span class="nb">iter</span><span class="o">=</span><span class="n">it</span><span class="p">)</span>
+                    <span class="c1"># Store previous means and variances for convergence check</span>
+                    <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">thinning</span><span class="p">):</span>
+                        <span class="n">mean_prevs</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+                        <span class="n">var_prevs</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">stat</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">zip_strict</span><span class="p">(</span><span class="n">g_statistics</span><span class="p">,</span> <span class="n">statistics</span><span class="p">)):</span>
+                        <span class="n">stat</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+
+            <span class="c1"># Check convergence for all statistics</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Check convergence for each statistic</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">stat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">statistics</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_conv</span><span class="p">(</span>
+                        <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_prevs</span><span class="p">[</span><span class="n">j</span><span class="p">],)},</span>
+                        <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">mean</span><span class="p">(),)},</span>
+                        <span class="n">it</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                    <span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_conv</span><span class="p">(</span>
+                        <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">var_prevs</span><span class="p">[</span><span class="n">j</span><span class="p">],)},</span>
+                        <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">var</span><span class="p">(),)},</span>
+                        <span class="n">it</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">crit_conv</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">thresh_conv</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                    <span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Return means and variances for all g_statistics</span>
+            <span class="n">means</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+            <span class="nb">vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">stat</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="k">for</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">statistics</span><span class="p">]</span>
+
+            <span class="c1"># Unwrap single statistics</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">g_statistics</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">means</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">means</span><span class="p">,</span> <span class="nb">vars</span></div>
+
+
+<div class="viewcode-block" id="BaseSampling.get_chain">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.get_chain">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the stored history of samples.</span>
+
+<span class="sd">        Returns a list of dictionaries, where each dictionary contains the state of the sampler.</span>
+
+<span class="sd">        Only includes samples after the burn-in period and thinning.</span>
+
+<span class="sd">        :return: List of stored sample states (dictionaries) from oldest to newest. Each dictionary contains the sample `&quot;x&quot;: x` along with any latent variables.</span>
+<span class="sd">        :rtype: list[dict]</span>
+<span class="sd">        :raises RuntimeError: If history storage was disabled (history_size=False)</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            from deepinv.sampling import BaseSampling, SamplingIterator</span>
+
+<span class="sd">            sampler = BaseSampling(SamplingIterator(...), data_fidelity, prior, history_size=5)</span>
+<span class="sd">            _ = sampler(measurements, forward_operator)</span>
+<span class="sd">            history = sampler.get_chain()</span>
+<span class="sd">            latest_state = history[-1]  # Get most recent state dictionary</span>
+<span class="sd">            latest_sample = latest_state[&quot;x&quot;] # Get sample from state</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot get chain: history storage is disabled (history_size=False)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mean_has_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean indicating if the posterior mean verifies the convergence criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_convergence</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">var_has_converged</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean indicating if the posterior variance verifies the convergence criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_convergence</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_iterator</span><span class="p">(</span>
+    <span class="n">iterator</span><span class="p">:</span> <span class="n">SamplingIterator</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SamplingIterator</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.</span>
+
+<span class="sd">    :param iterator: Either a SamplingIterator instance or a string naming the iterator class</span>
+<span class="sd">    :return: SamplingIterator instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># If a string is provided, create an instance of the named class</span>
+        <span class="n">iterator_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">],</span> <span class="n">iterator</span> <span class="o">+</span> <span class="s2">&quot;Iterator&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">iterator_fn</span><span class="p">(</span><span class="n">cur_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If already a SamplingIterator instance, return as is</span>
+        <span class="k">return</span> <span class="n">iterator</span>
+
+
+<div class="viewcode-block" id="sampling_builder">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.sampling_builder.html#deepinv.sampling.sampling_builder">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sampling_builder</span><span class="p">(</span>
+    <span class="n">iterator</span><span class="p">:</span> <span class="n">SamplingIterator</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">data_fidelity</span><span class="p">:</span> <span class="n">DataFidelity</span><span class="p">,</span>
+    <span class="n">prior</span><span class="p">:</span> <span class="n">Prior</span><span class="p">,</span>
+    <span class="n">params_algo</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">({}),</span>
+    <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">thresh_conv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+    <span class="n">burnin_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">thinning</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">history_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">X</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseSampling</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function for building an instance of the :class:`deepinv.sampling.BaseSampling` class.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` and :ref:`mcmc` for example usage.</span>
+
+<span class="sd">    See the docs for :class:`deepinv.sampling.BaseSampling` for further examples and information.</span>
+
+<span class="sd">    :param iterator: Either a SamplingIterator instance or a string naming the iterator class</span>
+<span class="sd">    :param data_fidelity: Negative log-likelihood function</span>
+<span class="sd">    :param prior: Negative log-prior</span>
+<span class="sd">    :param params_algo: Dictionary containing the parameters for the algorithm</span>
+<span class="sd">    :param max_iter: Number of Monte Carlo iterations</span>
+<span class="sd">    :param burnin_ratio: Percentage of iterations for burn-in</span>
+<span class="sd">    :param thinning: Integer to thin the Monte Carlo samples</span>
+<span class="sd">    :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5</span>
+<span class="sd">    :param verbose: Whether to print progress</span>
+<span class="sd">    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics. It is called with the current sample `X`, the current `statistics` (a list of Welford objects), and the current iteration number `iter` as keyword arguments.</span>
+<span class="sd">    :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter</span>
+<span class="sd">    :return: Configured BaseSampling instance in eval mode</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">create_iterator</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">params_algo</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)</span>
+    <span class="k">return</span> <span class="n">BaseSampling</span><span class="p">(</span>
+        <span class="n">iterator</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+        <span class="n">thresh_conv</span><span class="o">=</span><span class="n">thresh_conv</span><span class="p">,</span>
+        <span class="n">burnin_ratio</span><span class="o">=</span><span class="n">burnin_ratio</span><span class="p">,</span>
+        <span class="n">thinning</span><span class="o">=</span><span class="n">thinning</span><span class="p">,</span>
+        <span class="n">history_size</span><span class="o">=</span><span class="n">history_size</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

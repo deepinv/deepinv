@@ -1,0 +1,731 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.datasets.fmd &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/datasets/fmd';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/datasets/fmd.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.datasets.fmd</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.datasets.fmd</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">download_archive</span><span class="p">,</span>
+    <span class="n">extract_tarball</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageDataset</span>
+
+
+<div class="viewcode-block" id="FMD">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FMD</span><span class="p">(</span><span class="n">ImageDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset for `Fluorescence Microscopy Denoising &lt;https://github.com/yinhaoz/denoising-fluorescence&gt;`_.</span>
+
+<span class="sd">    Introduced by :footcite:t:`zhang2018poisson`.</span>
+
+<span class="sd">    | 1) The Fluorescence Microscopy Denoising (FMD) dataset is dedicated to</span>
+<span class="sd">    | Poisson-Gaussian denoising.</span>
+<span class="sd">    | 2) The dataset consists of 12,000 real fluorescence microscopy images</span>
+<span class="sd">    | obtained with commercial confocal, two-photon, and wide-field microscopes</span>
+<span class="sd">    | and representative biological samples such as cells, zebrafish,</span>
+<span class="sd">    | and mouse brain tissues.</span>
+<span class="sd">    | 3) Image averaging is used to effectively obtain ground truth images</span>
+<span class="sd">    | and 60,000 noisy images with different noise levels.</span>
+
+
+<span class="sd">    **Raw data file structure:** ::</span>
+
+<span class="sd">        self.root --- Confocal_BPAE_B  --- avg16 --- 1  --- HV110_P0500510000.png</span>
+<span class="sd">                   |                    |         |      |</span>
+<span class="sd">                   |                    |         |      -- HV110_P0500510049.png</span>
+<span class="sd">                   |                    |         -- 20</span>
+<span class="sd">                   |                    -- avg2</span>
+<span class="sd">                   |                    -- avg4</span>
+<span class="sd">                   |                    -- avg8</span>
+<span class="sd">                   |                    -- gt</span>
+<span class="sd">                   |                    -- raw</span>
+<span class="sd">                   -- ...</span>
+<span class="sd">                   -- WideField_BPAE_R --- ...</span>
+<span class="sd">                   -- Confocal_BPAE_G.tar</span>
+<span class="sd">                   |</span>
+<span class="sd">                   -- WideField_BPAE_R.tar</span>
+
+<span class="sd">    | 1) There are 12 image types :</span>
+<span class="sd">    | Confocal_BPAE_B, Confocal_BPAE_G, Confocal_BPAE_R, Confocal_FISH, Confocal_MICE</span>
+<span class="sd">    | TwoPhoton_BPAE_B, TwoPhoton_BPAE_G, TwoPhoton_BPAE_R, TwoPhoton_MICE</span>
+<span class="sd">    | WideField_BPAE_B, WideField_BPAE_G, WideField_BPAE_R</span>
+<span class="sd">    | 2) Each image type has its own folder.</span>
+<span class="sd">    | 3) Each folder contains 6 subfolders- : gt, raw, avg2, avg4, avg8 and avg16.</span>
+<span class="sd">    | 4) gt contains clean images, the others have different noise levels applied to images.</span>
+<span class="sd">    | 5) Each subfolder has 20 subsubfolders, corresponding to the &quot;field of view&quot;.</span>
+<span class="sd">    | 6) Each subsubfolder has the same 50 png file names of size (512, 512).</span>
+<span class="sd">    | 7) 12 type of img x 5 levels of noise x 20 &quot;fov&quot; x 50 img = 60 000 noisy img</span>
+
+<span class="sd">    :param str root: Root directory of dataset. Directory path from where we load and save the dataset.</span>
+<span class="sd">    :param list[str] img_types: Types of microscopy image among 12.</span>
+<span class="sd">    :param Sequence[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].</span>
+<span class="sd">    :param Sequence[int] fovs: &quot;Field of view&quot;, value between 1 and 20.</span>
+<span class="sd">    :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.</span>
+<span class="sd">        If dataset is already downloaded, it is not downloaded again. Default at False.</span>
+<span class="sd">    :param Callable transform:: (optional) A function/transform that takes in a noisy PIL image</span>
+<span class="sd">        and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``</span>
+<span class="sd">    :param Callable target_transform: (optional) A function/transform that takes in a clean PIL image</span>
+<span class="sd">        and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Instantiate dataset and download raw data from the Internet ::</span>
+
+<span class="sd">            import shutil</span>
+<span class="sd">            from deepinv.datasets import FMD</span>
+<span class="sd">            img_types = [&quot;TwoPhoton_BPAE_R&quot;]</span>
+<span class="sd">            dataset = FMD(root=&quot;fmd&quot;, img_types=img_types, download=True)  # download raw data at root and load dataset</span>
+<span class="sd">            print(len(dataset))                                            # check that we have 5000 images</span>
+<span class="sd">            shutil.rmtree(&quot;fmd&quot;)                                           # remove raw data from disk</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_gdrive_ids</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;Confocal_BPAE_B.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1juaumcGn5QlFRXRQyrqfbZBhF7oX__iW&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_BPAE_G.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1Zofz11VmI1JfRIMF7rq40RVjpzM6A9vg&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_BPAE_R.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1QoD_vMvFdFg7yREfen3t-SGLFcnLg9YQ&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_FISH.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1SxmsythWfxnfKJfGWpT_7Adebi8jUK98&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_MICE.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;11aflcrcatFRkv7EabjWjdlpT0DYRbUDZ&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_B.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1yVD_H_ZfNNSma5vtHZM_DTnSv1Bo1tfk&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_G.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;125nqTfQQG1-YVUs256b2vTwt4aUNCgBt&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_R.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1rwxG6LYcKeiBKNT3Oq9lvwKu8mV3rz9P&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_MICE.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1lhsFAlXsXk26yqHzT0_-3R8MUb7G0NVa&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_B.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;19rl8zFzfXIZ2drgodCGutLPLzL4kJq6d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_G.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;1H67O6GqIkIlQSX-n0vfMWGPwmd4zOHQr&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_R.tar&quot;</span><span class="p">:</span> <span class="s2">&quot;19HXb2Ftrb-M7Lr9ZlHWMcnNT0Sbu85YL&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="FMD.NoisySampleIdentifier">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">NoisySampleIdentifier</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data structure for identifying noisy data sample files.</span>
+
+<span class="sd">        :param str img_type: Foldername corresponding to one type of image among 12.</span>
+<span class="sd">        :param str noise_dirname: Foldername corresponding to one level of noise,</span>
+<span class="sd">            &#39;raw&#39; - level 1, &#39;avg2&#39; - 2, &#39;avg4&#39; - 4, &#39;avg8&#39; - 8, &#39;avg16&#39; - 16</span>
+<span class="sd">        :param int fov: Field of view, value between 1 and 20.</span>
+<span class="sd">        :param str fname: Filename of a png file containing 1 noisy image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">img_type</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="n">noise_dirname</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="n">fov</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">img_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">noise_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+        <span class="n">fovs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="n">download</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_types</span> <span class="o">=</span> <span class="n">img_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_levels</span> <span class="o">=</span> <span class="n">noise_levels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fovs</span> <span class="o">=</span> <span class="n">fovs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span> <span class="o">=</span> <span class="n">target_transform</span>
+
+        <span class="n">all_types</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_R&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_G&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_BPAE_B&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TwoPhoton_MICE&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_MICE&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_BPAE_R&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_BPAE_G&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_BPAE_B&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Confocal_FISH&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_R&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_G&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;WideField_BPAE_B&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">img_types</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">img_type</span> <span class="ow">in</span> <span class="n">all_types</span> <span class="k">for</span> <span class="n">img_type</span> <span class="ow">in</span> <span class="n">img_types</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Wrong image type. Set `img_types` argument with these values: </span><span class="si">{</span><span class="n">all_types</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">all_noise_levels</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">level</span> <span class="ow">in</span> <span class="n">all_noise_levels</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">noise_levels</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrong noise level. Available levels: </span><span class="si">{</span><span class="n">all_noise_levels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1">### DOWNLOAD -------------------------------------------------------------------</span>
+
+        <span class="k">if</span> <span class="n">download</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">img_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_types</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">img_type</span> <span class="o">+</span> <span class="s2">&quot;.tar&quot;</span>
+                <span class="n">gdrive_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gdrive_ids</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span>
+
+                <span class="c1">## We need to access the content of a html file to retrieve information</span>
+                <span class="c1">## Which will be needed to download the archive ------------------------</span>
+
+                <span class="c1"># URL to fetch the initial HTML content</span>
+                <span class="n">url_initial</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;https://docs.google.com/uc?export=download&amp;id=</span><span class="si">{</span><span class="n">gdrive_id</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">response_initial</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url_initial</span><span class="p">)</span>
+                <span class="n">html_content</span> <span class="o">=</span> <span class="n">response_initial</span><span class="o">.</span><span class="n">text</span>
+
+                <span class="c1"># Extract UUID using regular expression</span>
+                <span class="n">uuid_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;name=&quot;uuid&quot; value=&quot;([^&quot;]+)&quot;&#39;</span><span class="p">,</span> <span class="n">html_content</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">uuid_match</span><span class="p">:</span>
+                    <span class="n">uuid</span> <span class="o">=</span> <span class="n">uuid_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;UUID not found in the HTML content, can&#39;t download dataset&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># URL to download the file</span>
+                <span class="n">url_download</span> <span class="o">=</span> <span class="s2">&quot;https://drive.usercontent.google.com/&quot;</span>
+                <span class="n">url_download</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;download?id=</span><span class="si">{</span><span class="n">gdrive_id</span><span class="si">}</span><span class="s2">&amp;export=download&amp;authuser=0&amp;confirm=t&amp;uuid=</span><span class="si">{</span><span class="n">uuid</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="c1"># download tar file from the Internet and save it locally</span>
+                <span class="n">download_archive</span><span class="p">(</span>
+                    <span class="n">url</span><span class="o">=</span><span class="n">url_download</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="c1"># extract local tar file</span>
+                <span class="n">extract_tarball</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">filename</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+
+        <span class="c1">### GET DATA SAMPLE IDENTIFIERS -----------------------------------------------</span>
+
+        <span class="c1"># should contain all the information to load a data sample from the storage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noisy_sample_identifiers</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">img_type</span> <span class="ow">in</span> <span class="n">img_types</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">noise_level</span> <span class="ow">in</span> <span class="n">noise_levels</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">noise_level</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">noise_dirname</span> <span class="o">=</span> <span class="s2">&quot;raw&quot;</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># noise_level is in [2, 4, 8, 16]</span>
+                    <span class="n">noise_dirname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;avg</span><span class="si">{</span><span class="n">noise_level</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">for</span> <span class="n">fov</span> <span class="ow">in</span> <span class="n">fovs</span><span class="p">:</span>
+                    <span class="n">folder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">img_type</span><span class="p">,</span> <span class="n">noise_dirname</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">fov</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">noisy_img_list</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">folder_path</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Data folder </span><span class="si">{</span><span class="n">folder_path</span><span class="si">}</span><span class="s2"> doesn&#39;t exist, please set `download=True`&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">noisy_img_list</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.png&quot;</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">noisy_sample_identifiers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">NoisySampleIdentifier</span><span class="p">(</span>
+                                    <span class="n">img_type</span><span class="p">,</span> <span class="n">noise_dirname</span><span class="p">,</span> <span class="n">fov</span><span class="p">,</span> <span class="n">fname</span>
+                                <span class="p">)</span>
+                            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noisy_sample_identifiers</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">img_type</span><span class="p">,</span> <span class="n">noise_dirname</span><span class="p">,</span> <span class="n">fov</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisy_sample_identifiers</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">noisy_img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">img_type</span><span class="p">,</span> <span class="n">noise_dirname</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">fov</span><span class="p">),</span> <span class="n">fname</span>
+        <span class="p">)</span>
+        <span class="n">clean_img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">img_type</span><span class="p">,</span> <span class="s2">&quot;gt&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">fov</span><span class="p">),</span> <span class="s2">&quot;avg50.png&quot;</span><span class="p">)</span>
+        <span class="c1"># PIL Image</span>
+        <span class="n">noisy_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">noisy_img_path</span><span class="p">)</span>
+        <span class="n">clean_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">clean_img_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">noisy_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">clean_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">(</span><span class="n">clean_img</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clean_img</span><span class="p">,</span> <span class="n">noisy_img</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

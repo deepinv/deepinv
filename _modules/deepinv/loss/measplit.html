@@ -1,0 +1,989 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.loss.measplit &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/loss/measplit';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/loss/measplit.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.loss.measplit</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.loss.measplit</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Inpainting</span><span class="p">,</span> <span class="n">Physics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss.metric.metric</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">BernoulliSplittingMaskGenerator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+
+
+<div class="viewcode-block" id="SplittingLoss">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SplittingLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Measurement splitting loss.</span>
+
+<span class="sd">    Implements measurement splitting loss. Splits the measurement and forward operator :math:`A` (of size :math:`m`)</span>
+<span class="sd">    into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,</span>
+<span class="sd">    to compute the self-supervised loss:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2</span>
+
+<span class="sd">    where :math:`R` is the trainable network, :math:`A_1 = M_1 A, A_2 = M_2 A`, and :math:`M_i` are randomly</span>
+<span class="sd">    generated masks (i.e. diagonal matrices) such that :math:`M_1+M_2=\mathbb{I}_m`.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` for usage example.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If the forward operator has its own subsampling mask :math:`M_{A}`, e.g. :class:`deepinv.physics.Inpainting`</span>
+<span class="sd">        or :class:`deepinv.physics.MRI`,</span>
+<span class="sd">        the splitting masks will be subsets of the physics&#39; mask such that :math:`M_1+M_2=M_{A}`</span>
+
+<span class="sd">    This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.</span>
+<span class="sd">    Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.</span>
+
+<span class="sd">    By default, the error is computed using the MSE metric, however any appropriate metric can be used.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The model should be adapted before training using the method :func:`adapt_model &lt;deepinv.loss.SplittingLoss.adapt_model&gt;`</span>
+<span class="sd">        to include the splitting mechanism at the input.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        To obtain the best test performance, the trained model should be averaged at test time</span>
+<span class="sd">        over multiple realizations of the splitting, i.e.</span>
+<span class="sd">        :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}`. To disable this, set ``eval_n_samples=1``.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This loss allows training over images of varying shapes.</span>
+
+<span class="sd">    .. seealso::</span>
+
+<span class="sd">        :class:`deepinv.loss.mri.Artifact2ArtifactLoss`, :class:`deepinv.loss.mri.Phase2PhaseLoss`, :class:`deepinv.loss.mri.WeightedSplittingLoss`, :class:`deepinv.loss.mri.RobustSplittingLoss`</span>
+<span class="sd">            Specialized splitting losses and their extensions for MRI applications.</span>
+
+<span class="sd">    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.</span>
+<span class="sd">    :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases</span>
+<span class="sd">        with the splitting ratio. Ignored if ``mask_generator`` passed.</span>
+<span class="sd">    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator, None mask_generator: function to generate the mask. If</span>
+<span class="sd">        None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used, with the parameters ``split_ratio`` and ``pixelwise``.</span>
+<span class="sd">    :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.</span>
+<span class="sd">    :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)</span>
+<span class="sd">    :param bool eval_split_output: at evaluation time, pass the output through the output mask too.</span>
+<span class="sd">        i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.</span>
+<span class="sd">        Only valid when :math:`y` is same domain (and dimension) as :math:`x`. Although better results may be observed on small datasets, more samples must be used for bigger images. Defaults to ``False``.</span>
+<span class="sd">    :param bool pixelwise: if ``True``, create pixelwise splitting masks i.e. zero all channels simultaneously. Ignored if ``mask_generator`` passed.</span>
+<span class="sd">    :param bool normalize_loss: whether to normalize loss by the target size</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">    &gt;&gt;&gt; physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5)</span>
+<span class="sd">    &gt;&gt;&gt; model = dinv.models.MedianFilter()</span>
+<span class="sd">    &gt;&gt;&gt; loss = dinv.loss.SplittingLoss(split_ratio=0.9, eval_n_samples=2)</span>
+<span class="sd">    &gt;&gt;&gt; model = loss.adapt_model(model) # important step!</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.ones((1, 1, 8, 8))</span>
+<span class="sd">    &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">    &gt;&gt;&gt; x_net = model(y, physics, update_parameters=True) # save random mask in forward pass</span>
+<span class="sd">    &gt;&gt;&gt; l = loss(x_net, y, physics, model)</span>
+<span class="sd">    &gt;&gt;&gt; print(l.item() &gt; 0)</span>
+<span class="sd">    True</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">Metric</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">mask_generator</span><span class="p">:</span> <span class="n">BernoulliSplittingMaskGenerator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">eval_n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">eval_split_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">eval_split_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">pixelwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">normalize_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ms&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="o">=</span> <span class="n">mask_generator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span> <span class="o">=</span> <span class="n">split_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_input</span> <span class="o">=</span> <span class="n">eval_split_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_output</span> <span class="o">=</span> <span class="n">eval_split_output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span> <span class="o">=</span> <span class="n">pixelwise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_loss</span> <span class="o">=</span> <span class="n">normalize_loss</span>
+
+<div class="viewcode-block" id="SplittingLoss.split">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.split">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Perform splitting given mask</span>
+
+<span class="sd">        :param torch.Tensor mask: splitting mask of shape (B,C,H,W)</span>
+<span class="sd">        :param torch.Tensor y: input data of shape (B,C,...,H,W)</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;y and mask must have same shape in last 2 dimensions, but y has </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> and mask has </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">inp</span> <span class="o">=</span> <span class="n">Inpainting</span><span class="p">(</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">1</span><span class="p">:],</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="o">*</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span><span class="p">)),</span> <span class="o">*</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="p">),</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># divide measurements y_i = M_i * y</span>
+        <span class="n">y_split</span> <span class="o">=</span> <span class="n">inp</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># concatenate operators A_i = M_i * A</span>
+        <span class="k">if</span> <span class="n">physics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y_split</span>
+
+        <span class="n">physics_split</span> <span class="o">=</span> <span class="n">inp</span> <span class="o">*</span> <span class="n">physics</span>
+        <span class="n">physics_split</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span>
+
+        <span class="k">return</span> <span class="n">y_split</span><span class="p">,</span> <span class="n">physics_split</span></div>
+
+
+<div class="viewcode-block" id="SplittingLoss.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the measurement splitting loss</span>
+
+<span class="sd">        :param torch.Tensor x_net: reconstructions.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction function.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get splitting mask and make sure it is subsampled from physics mask, if it exists</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()</span> <span class="o">*</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="c1"># Create output mask M_2 = I - M_1</span>
+        <span class="n">mask2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mask</span>
+        <span class="n">y2</span><span class="p">,</span> <span class="n">physics2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">mask2</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">physics2</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">),</span> <span class="n">y2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">l</span> <span class="o">/</span> <span class="n">mask2</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_loss</span> <span class="k">else</span> <span class="n">l</span></div>
+
+
+<div class="viewcode-block" id="SplittingLoss.adapt_model">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.adapt_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adapt_model</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">eval_n_samples</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SplittingModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply random splitting to input.</span>
+
+<span class="sd">        This method modifies a reconstruction</span>
+<span class="sd">        model :math:`R` to include the splitting mechanism at the input:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \hat{R}(y, A) = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}</span>
+
+<span class="sd">        where :math:`N\geq 1` is the number of Monte Carlo samples,</span>
+<span class="sd">        and :math:`y_1^{(i)}` and :math:`A_1^{(i)}` are obtained by</span>
+<span class="sd">        randomly splitting the measurements :math:`y` and operator :math:`A`.</span>
+<span class="sd">        During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`</span>
+<span class="sd">        for computational efficiency, whereas at test time, we use multiple samples for better performance.</span>
+<span class="sd">        For other parameters that control how splitting is applied, see the class parameters.</span>
+
+<span class="sd">        :param torch.nn.Module model: Reconstruction model.</span>
+<span class="sd">        :param int eval_n_samples: deprecated. Pass ``eval_n_samples`` at class initialisation instead.</span>
+<span class="sd">        :return: (:class:`torch.nn.Module`) Model modified for evaluation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">eval_n_samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;eval_n_samples parameter is deprecated. Pass eval_n_samples at init: SplittingLoss(eval_n_samples=...)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">SplittingModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">model</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">SplittingModel</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="n">split_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span><span class="p">,</span>
+                <span class="n">mask_generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span><span class="p">,</span>
+                <span class="n">eval_n_samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span><span class="p">,</span>
+                <span class="n">eval_split_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_split_input</span><span class="p">,</span>
+                <span class="n">eval_split_output</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_split_output</span><span class="p">,</span>
+                <span class="n">pixelwise</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SplittingLoss.SplittingModel">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">SplittingModel</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Model wrapper when using SplittingLoss.</span>
+
+<span class="sd">        Performs input splitting during forward pass. At evaluation,</span>
+<span class="sd">        perform forward passes for multiple realisations of splitting mask and average.</span>
+
+<span class="sd">        :param deepinv.models.Reconstructor model: base model</span>
+<span class="sd">        :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases</span>
+<span class="sd">            with the splitting ratio. Ignored if ``mask_generator`` passed.</span>
+<span class="sd">        :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If</span>
+<span class="sd">            None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used, with the parameters ``split_ratio`` and ``pixelwise``.</span>
+<span class="sd">        :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.</span>
+<span class="sd">        :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)</span>
+<span class="sd">        :param bool eval_split_output: at evaluation time, pass the output through the output mask too.</span>
+<span class="sd">            i.e. :math:`(\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}`.</span>
+<span class="sd">            Only valid when :math:`y` is same domain (and dimension) as :math:`x`. Although better results may be observed on small datasets, more samples must be used for bigger images. Defaults to ``False``.</span>
+<span class="sd">        :param bool pixelwise: if ``True``, create pixelwise splitting masks i.e. zero all channels simultaneously. Ignored if ``mask_generator`` passed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">split_ratio</span><span class="p">,</span>
+            <span class="n">mask_generator</span><span class="p">,</span>
+            <span class="n">eval_n_samples</span><span class="p">,</span>
+            <span class="n">eval_split_input</span><span class="p">,</span>
+            <span class="n">eval_split_output</span><span class="p">,</span>
+            <span class="n">pixelwise</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span> <span class="o">=</span> <span class="n">split_ratio</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="o">=</span> <span class="n">mask_generator</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_input</span> <span class="o">=</span> <span class="n">eval_split_input</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_output</span> <span class="o">=</span> <span class="n">eval_split_output</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span> <span class="o">=</span> <span class="n">pixelwise</span>
+
+<div class="viewcode-block" id="SplittingLoss.SplittingModel.split">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel.split">[docs]</a>
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">            </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Perform splitting given mask</span>
+
+<span class="sd">            :param torch.Tensor mask: splitting mask</span>
+<span class="sd">            :param torch.Tensor y: input data</span>
+<span class="sd">            :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">SplittingLoss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SplittingLoss.SplittingModel.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel.forward">[docs]</a>
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Mask generator not defined. Using new Bernoulli mask generator with shape </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="o">=</span> <span class="n">BernoulliSplittingMaskGenerator</span><span class="p">(</span>
+                    <span class="n">img_size</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="o">*</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span>
+                    <span class="p">),</span>  <span class="c1"># (C, H, W) with no intermediate dims</span>
+                    <span class="n">split_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">split_ratio</span><span class="p">,</span>
+                    <span class="n">pixelwise</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pixelwise</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                    <span class="c1"># No splitting</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_output</span>
+                    <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_split_input</span>
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+                <span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_split_input_output</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_split_input</span><span class="p">(</span>
+                        <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="o">=</span><span class="n">update_parameters</span>
+                    <span class="p">)</span></div>
+
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_forward_split_input</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">):</span>
+            <span class="n">eval_n_samples</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">eval_n_samples</span><span class="p">):</span>
+                <span class="c1"># Perform input masking</span>
+
+                <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                    <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">input_mask</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="p">)[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+
+                <span class="n">y1</span><span class="p">,</span> <span class="n">physics1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+                <span class="c1"># Forward pass</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">physics1</span><span class="p">)</span> <span class="o">/</span> <span class="n">eval_n_samples</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="n">update_parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">out</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_forward_split_input_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Perform splitting at model output too, only at eval time</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">normalizer</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span><span class="p">):</span>
+                <span class="c1"># Perform input masking</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">input_mask</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="p">)[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Generated mask should be same shape as y in last 2 dims, but mask has </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2"> and y has </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">y1</span><span class="p">,</span> <span class="n">physics1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+                <span class="c1"># Forward pass</span>
+                <span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">physics1</span><span class="p">)</span>
+
+                <span class="c1"># Output masking</span>
+                <span class="n">mask2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mask</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">mask2</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">)</span>
+                <span class="n">normalizer</span> <span class="o">+=</span> <span class="n">mask2</span>
+
+            <span class="n">out</span><span class="p">[</span><span class="n">normalizer</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/=</span> <span class="n">normalizer</span><span class="p">[</span><span class="n">normalizer</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">out</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Mask not generated during forward pass - use model(y, physics, update_parameters=True)&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Neighbor2Neighbor">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.Neighbor2Neighbor.html#deepinv.loss.Neighbor2Neighbor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Neighbor2Neighbor</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Neighbor2Neighbor loss.</span>
+
+<span class="sd">    Implements the self-supervised Neighbor2Neighbor loss :footcite:t:`huang2021neighbor2neighbor`.</span>
+
+<span class="sd">    Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring</span>
+<span class="sd">    map (see details in :footcite:t:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \| A_2 y - R(A_1 y)\|^2 + \gamma \| A_2 y - R(A_1 y) - (A_2 R(y) - A_1 R(y))\|^2</span>
+
+<span class="sd">    where :math:`R` is the trainable denoiser network, :math:`\gamma&gt;0` is a regularization parameter</span>
+<span class="sd">    and no gradient is propagated when computing :math:`R(y)`.</span>
+
+<span class="sd">    By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)</span>
+<span class="sd">    can be used as well.</span>
+
+<span class="sd">    The code has been adapted from the repository https://github.com/TaoHuang2018/Neighbor2Neighbor.</span>
+
+<span class="sd">    :param Metric, torch.nn.Module metric: metric used for computing data consistency,</span>
+<span class="sd">        which is set as the mean squared error by default.</span>
+<span class="sd">    :param float gamma: regularization parameter :math:`\gamma`.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span> <span class="n">Metric</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;neigh2neigh&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">space_to_depth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">block_size</span><span class="p">):</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">unfolded_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">block_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unfolded_x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">c</span> <span class="o">*</span> <span class="n">block_size</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="n">block_size</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_mask_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="c1"># prepare masks (N x C x H/2 x W/2)</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">mask1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">mask2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="c1"># prepare random mask pairs</span>
+        <span class="n">idx_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">rd_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,),</span> <span class="n">out</span><span class="o">=</span><span class="n">rd_idx</span><span class="p">)</span>
+        <span class="n">rd_pair_idx</span> <span class="o">=</span> <span class="n">idx_pair</span><span class="p">[</span><span class="n">rd_idx</span><span class="p">]</span>
+        <span class="n">rd_pair_idx</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="n">n</span> <span class="o">*</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="n">step</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># get masks</span>
+        <span class="n">mask1</span><span class="p">[</span><span class="n">rd_pair_idx</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">mask2</span><span class="p">[</span><span class="n">rd_pair_idx</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">mask1</span><span class="p">,</span> <span class="n">mask2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_subimages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">subimage</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">n</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="c1"># per channel</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+            <span class="n">img_per_channel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_to_depth</span><span class="p">(</span><span class="n">img</span><span class="p">[:,</span> <span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">block_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">img_per_channel</span> <span class="o">=</span> <span class="n">img_per_channel</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">subimage</span><span class="p">[:,</span> <span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">img_per_channel</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">subimage</span>
+
+<div class="viewcode-block" id="Neighbor2Neighbor.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.Neighbor2Neighbor.html#deepinv.loss.Neighbor2Neighbor.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the neighbor2neighbor loss.</span>
+
+
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction function.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;Input measurements should be images&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;Image dimensions should be even&quot;</span>
+
+        <span class="n">mask1</span><span class="p">,</span> <span class="n">mask2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_mask_pair</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mask1</span><span class="p">)</span>
+        <span class="n">xhat1</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mask2</span><span class="p">)</span>
+
+        <span class="n">xhat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="n">y1_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">xhat</span><span class="p">,</span> <span class="n">mask1</span><span class="p">)</span>
+        <span class="n">y2_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">xhat</span><span class="p">,</span> <span class="n">mask2</span><span class="p">)</span>
+
+        <span class="n">loss_n2n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">xhat1</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span>
+            <span class="n">xhat1</span> <span class="o">-</span> <span class="n">y1_hat</span><span class="p">,</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">y2_hat</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_n2n</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

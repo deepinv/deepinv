@@ -1,0 +1,689 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.unfolded.deep_equilibrium &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/unfolded/deep_equilibrium';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/unfolded/deep_equilibrium.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.unfolded.deep_equilibrium</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.unfolded.deep_equilibrium</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.fixed_point</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedPoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.optim_iterators</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.unfolded.unfolded</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseUnfold</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.optimizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_iterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span><span class="p">,</span> <span class="n">L2</span>
+
+
+<div class="viewcode-block" id="BaseDEQ">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.unfolded.BaseDEQ.html#deepinv.unfolded.BaseDEQ">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseDEQ</span><span class="p">(</span><span class="n">BaseUnfold</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.</span>
+
+<span class="sd">    Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm</span>
+<span class="sd">    that can be virtually unrolled infinitely leveraging the implicit function theorem.</span>
+<span class="sd">    The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \begin{equation}</span>
+<span class="sd">        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^{\top} v + u.</span>
+<span class="sd">        \end{equation}</span>
+
+<span class="sd">    where :math:`u` is the incoming gradient from the backward pass,</span>
+<span class="sd">    and :math:`x^\star` is the equilibrium point of the forward pass.</span>
+
+<span class="sd">    See `this tutorial &lt;http://implicit-layers-tutorial.org/deep_equilibrium_models/&gt;`_ for more details.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.</span>
+
+<span class="sd">    :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.</span>
+<span class="sd">    :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.</span>
+<span class="sd">    :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.</span>
+<span class="sd">    :param float beta_anderson_acc_backward: momentum of the Anderson acceleration step for the backward pass. Default: ``1.0``.</span>
+<span class="sd">    :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.</span>
+<span class="sd">    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">max_iter_backward</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">anderson_acceleration_backward</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">history_size_backward</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">beta_anderson_acc_backward</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">eps_anderson_acc_backward</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">jacobian_free</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter_backward</span> <span class="o">=</span> <span class="n">max_iter_backward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anderson_acceleration</span> <span class="o">=</span> <span class="n">anderson_acceleration_backward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span> <span class="o">=</span> <span class="n">history_size_backward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta_anderson_acc</span> <span class="o">=</span> <span class="n">beta_anderson_acc_backward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps_anderson_acc</span> <span class="o">=</span> <span class="n">eps_anderson_acc_backward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jacobian_free</span> <span class="o">=</span> <span class="n">jacobian_free</span>
+
+<div class="viewcode-block" id="BaseDEQ.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.unfolded.BaseDEQ.html#deepinv.unfolded.BaseDEQ.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The forward pass of the DEQ algorithm. Compared to :class:`deepinv.unfolded.BaseUnfold`, the backward algorithm is performed using fixed point iterations.</span>
+
+<span class="sd">        :param torch.Tensor y: Input tensor.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Physics object.</span>
+<span class="sd">        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.</span>
+<span class="sd">        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.</span>
+<span class="sd">        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.</span>
+<span class="sd">                Else, returns (:class:`torch.Tensor`, dict) the output of the algorithm and the metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>  <span class="c1"># Perform the forward pass without gradient tracking</span>
+            <span class="n">X</span><span class="p">,</span> <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_point</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="n">x_gt</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="n">compute_metrics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="c1"># Once, at the equilibrium point, performs one additional iteration with gradient tracking.</span>
+        <span class="n">cur_data_fidelity</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_data_fidelity_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_data_fidelity_fn</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">cur_prior</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_prior_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_prior_fn</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">cur_params</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_params_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_params_fn</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_point</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span>
+            <span class="n">X</span><span class="p">,</span> <span class="n">cur_data_fidelity</span><span class="p">,</span> <span class="n">cur_prior</span><span class="p">,</span> <span class="n">cur_params</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobian_free</span><span class="p">:</span>
+            <span class="c1"># Another iteration for jacobian computation via automatic differentiation.</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+            <span class="n">f0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_point</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">x0</span><span class="p">,)},</span>
+                <span class="n">cur_data_fidelity</span><span class="p">,</span>
+                <span class="n">cur_prior</span><span class="p">,</span>
+                <span class="n">cur_params</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">physics</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># Add a backwards hook that takes the incoming backward gradient `X[&quot;est&quot;][0]` and solves the fixed point equation</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">backward_hook</span><span class="p">(</span><span class="n">grad</span><span class="p">):</span>
+                <span class="k">class</span><span class="w"> </span><span class="nc">backward_iterator</span><span class="p">(</span><span class="n">OptimIterator</span><span class="p">):</span>
+                    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+                    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="p">{</span>
+                            <span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span>
+                                <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+                                    <span class="n">f0</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">X</span><span class="p">[</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span>
+                                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                                <span class="o">+</span> <span class="n">grad</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">}</span>
+
+                <span class="c1"># Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">init_iterate_fn</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">grad</span><span class="p">,)}</span>  <span class="c1"># initialize the fixed point algorithm.</span>
+
+                <span class="n">backward_FP</span> <span class="o">=</span> <span class="n">FixedPoint</span><span class="p">(</span>
+                    <span class="n">backward_iterator</span><span class="p">(),</span>
+                    <span class="n">init_iterate_fn</span><span class="o">=</span><span class="n">init_iterate_fn</span><span class="p">,</span>
+                    <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter_backward</span><span class="p">,</span>
+                    <span class="n">check_conv_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">check_conv_fn</span><span class="p">,</span>
+                    <span class="n">anderson_acceleration</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">anderson_acceleration</span><span class="p">,</span>
+                    <span class="n">history_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">,</span>
+                    <span class="n">beta_anderson_acc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">beta_anderson_acc</span><span class="p">,</span>
+                    <span class="n">eps_anderson_acc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps_anderson_acc</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">backward_FP</span><span class="p">({</span><span class="s2">&quot;est&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">grad</span><span class="p">,)},</span> <span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;est&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">g</span>
+
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">register_hook</span><span class="p">(</span><span class="n">backward_hook</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">compute_metrics</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">metrics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DEQ_builder">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.unfolded.DEQ_builder.html#deepinv.unfolded.DEQ_builder">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">DEQ_builder</span><span class="p">(</span>
+    <span class="n">iteration</span><span class="p">,</span>
+    <span class="n">params_algo</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">data_fidelity</span><span class="p">:</span> <span class="n">DataFidelity</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">F_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">g_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">bregman_potential</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function for building an instance of the :class:`deepinv.unfolded.BaseDEQ` class.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.</span>
+
+<span class="sd">    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,</span>
+<span class="sd">        or directly an optim iterator.</span>
+<span class="sd">        If an algorithm name (string), should be either ``&quot;PGD&quot;`` (proximal gradient descent), ``&quot;ADMM&quot;`` (ADMM),</span>
+<span class="sd">        ``&quot;HQS&quot;`` (half-quadratic splitting), ``&quot;CP&quot;`` (Chambolle-Pock) or ``&quot;DRS&quot;`` (Douglas Rachford).</span>
+<span class="sd">    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,</span>
+<span class="sd">                            e.g. the stepsize, regularisation parameter, denoising standard deviation.</span>
+<span class="sd">                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or</span>
+<span class="sd">                            a single float (same value for each iteration).</span>
+<span class="sd">                            Default: ``{&quot;stepsize&quot;: 1.0, &quot;lambda&quot;: 1.0}``. See :any:`optim-params` for more details.</span>
+<span class="sd">    :param list, deepinv.optim.DataFidelity: data-fidelity term.</span>
+<span class="sd">                            Either a single instance (same data-fidelity for each iteration) or a list of instances of</span>
+<span class="sd">                            :class:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.</span>
+<span class="sd">    :param list, deepinv.optim.Prior prior: regularization prior.</span>
+<span class="sd">                            Either a single instance (same prior for each iteration) or a list of instances of</span>
+<span class="sd">                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.</span>
+<span class="sd">    :param Callable F_fn: Custom user input cost function. default: None.</span>
+<span class="sd">    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False</span>
+<span class="sd">    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standard Euclidean optimization.</span>
+<span class="sd">    :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">params_algo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">params_algo</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;stepsize&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;g_param&quot;</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">data_fidelity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">L2</span><span class="p">()</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">create_iterator</span><span class="p">(</span>
+        <span class="n">iteration</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+        <span class="n">F_fn</span><span class="o">=</span><span class="n">F_fn</span><span class="p">,</span>
+        <span class="n">g_first</span><span class="o">=</span><span class="n">g_first</span><span class="p">,</span>
+        <span class="n">bregman_potential</span><span class="o">=</span><span class="n">bregman_potential</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">BaseDEQ</span><span class="p">(</span>
+        <span class="n">iterator</span><span class="p">,</span>
+        <span class="n">has_cost</span><span class="o">=</span><span class="n">iterator</span><span class="o">.</span><span class="n">has_cost</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">prior</span><span class="p">,</span>
+        <span class="n">params_algo</span><span class="o">=</span><span class="n">params_algo</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

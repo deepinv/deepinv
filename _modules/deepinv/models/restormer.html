@@ -1,0 +1,1225 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.restormer &#8212; deepinv 0.3.4 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=1e28cc32"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/restormer';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/models/restormer.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.4 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.4 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.restormer</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.restormer</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_weights_url</span><span class="p">,</span> <span class="n">test_pad</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+
+
+<div class="viewcode-block" id="Restormer">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Restormer</span><span class="p">(</span><span class="n">Denoiser</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Restormer denoiser network.</span>
+
+<span class="sd">    Model introduced by :footcite:t:`zamir2022restormer`, specialized in restoration tasks including deraining, single-image motion deblurring,</span>
+<span class="sd">    defocus deblurring and image denoising for high-resolution images.</span>
+
+<span class="sd">    Code adapted from https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.</span>
+
+<span class="sd">    By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.</span>
+
+<span class="sd">    :param int in_channels: number of channels of the input.</span>
+<span class="sd">    :param int out_channels: number of channels of the output.</span>
+<span class="sd">    :param int dim: number of channels after the first conv operation (``in_channel``, H, W) -&gt; (``dim``, H, W).</span>
+<span class="sd">        ``dim`` corresponds to ``C`` in the figure.</span>
+<span class="sd">    :param Sequence num_blocks: number of ``TransformerBlock`` for each level of scale in the encoder-decoder stage with a total of 4-level of scales.</span>
+<span class="sd">        ``num_blocks = [L1, L2, L3, L4]`` with L1 ≤ L2 ≤ L3 ≤ L4.</span>
+<span class="sd">    :param int num_refinement_blocks: number of ``TransformerBlock`` in the refinement stage after the decoder stage.</span>
+<span class="sd">        Corresponds to ``Lr`` in the figure.</span>
+<span class="sd">    :param Sequence heads: number of heads in ``TransformerBlock`` for each level of scale in the encoder-decoder stage and in the refinement stage.</span>
+<span class="sd">        At same scale, all `TransformerBlock` have the same number of heads. The number of heads for the refinement block is ``heads[0]``.</span>
+<span class="sd">    :param float ffn_expansion_factor: corresponds to :math:`\eta` in GDFN.</span>
+<span class="sd">    :param bool bias: Add bias or not in each of the Attention and Feedforward layers inside of the ``TransformerBlock``.</span>
+<span class="sd">    :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the ``TransformerBlock``.</span>
+<span class="sd">        ``LayerNorm_type = &#39;BiasFree&#39; / &#39;WithBias&#39;``.</span>
+<span class="sd">    :param bool dual_pixel_task: Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.</span>
+<span class="sd">    :param None, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.</span>
+<span class="sd">    :param None, str pretrained: Default to ``&#39;denoising&#39;``.</span>
+<span class="sd">        If ``pretrained = &#39;denoising&#39; / &#39;denoising_gray&#39; / &#39;denoising_color&#39; / &#39;denoising_real&#39; / &#39;deraining&#39; / &#39;defocus_deblurring&#39;``,</span>
+<span class="sd">        will download weights from the HuggingFace Hub.</span>
+<span class="sd">        If ``pretrained = &#39;\*.pth&#39;``, will load weights from a local pth file.</span>
+<span class="sd">    :param bool train: training or testing mode.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :</span>
+<span class="sd">        ``LayerNorm_type=&#39;BiasFree&#39;`` and ``bias=False``, as proposed by :footcite:t:`mohan2020robust`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">48</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+        <span class="n">num_refinement_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">heads</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+        <span class="n">ffn_expansion_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.66</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">LayerNorm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BiasFree&quot;</span><span class="p">,</span>
+        <span class="n">dual_pixel_task</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">pretrained</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">&quot;denoising&quot;</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Restormer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub</span>
+        <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># When loading pretrained weights from HuggingFace Hub, we check if our model is compatible with the weights.</span>
+        <span class="k">if</span> <span class="n">pretrained</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;denoising&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_denoising_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;gaussian_gray_denoising_blind.pth&quot;</span>
+                <span class="k">elif</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;gaussian_color_denoising_blind.pth&quot;</span>
+            <span class="k">elif</span> <span class="s2">&quot;denoising_real&quot;</span> <span class="ow">in</span> <span class="n">pretrained</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_denoising_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Real denoising / EXPECTED in_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;real_denoising.pth&quot;</span>
+            <span class="k">elif</span> <span class="s2">&quot;denoising_gray&quot;</span> <span class="ow">in</span> <span class="n">pretrained</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_denoising_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">1</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Real denoising / EXPECTED in_channels == 1, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;gaussian_gray_denoising_blind.pth&quot;</span>
+            <span class="k">elif</span> <span class="s2">&quot;denoising_color&quot;</span> <span class="ow">in</span> <span class="n">pretrained</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_denoising_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="p">(</span>
+                    <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span>
+                <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Color denoising / EXPECTED in_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;gaussian_color_denoising_blind.pth&quot;</span>
+            <span class="k">elif</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;deraining&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_deraining_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;deraining.pth&quot;</span>
+            <span class="k">elif</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;defocus_deblurring&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_standard_deblurring_network</span><span class="p">(</span>
+                    <span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="p">,</span>
+                    <span class="n">num_refinement_blocks</span><span class="p">,</span>
+                    <span class="n">heads</span><span class="p">,</span>
+                    <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="p">,</span>
+                    <span class="n">dual_pixel_task</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">dual_pixel_task</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="p">(</span>
+                        <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">6</span>
+                    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Dual defocus deblurring / EXPECTED in_channels == 6, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;dual_pixel_defocus_deblurring.pth&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="p">(</span>
+                        <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span>
+                    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Single defocus deblurring / EXPECTED in_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">weights_pth_filename</span> <span class="o">=</span> <span class="s2">&quot;single_image_defocus_deblurring.pth&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span> <span class="o">=</span> <span class="n">OverlapPatchEmbed</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">down1_2</span> <span class="o">=</span> <span class="n">Downsample</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>  <span class="c1">## From Level 1 to Level 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">down2_3</span> <span class="o">=</span> <span class="n">Downsample</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">))</span>  <span class="c1">## From Level 2 to Level 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">down3_4</span> <span class="o">=</span> <span class="n">Downsample</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>  <span class="c1">## From Level 3 to Level 4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up4_3</span> <span class="o">=</span> <span class="n">Upsample</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>  <span class="c1">## From Level 4 to Level 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduce_chan_level3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">3</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up3_2</span> <span class="o">=</span> <span class="n">Upsample</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>  <span class="c1">## From Level 3 to Level 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduce_chan_level2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up2_1</span> <span class="o">=</span> <span class="n">Upsample</span><span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1">## From Level 2 to Level 1  (NO 1x1 conv to reduce channels)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refinement</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">TransformerBlock</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">ffn_expansion_factor</span><span class="o">=</span><span class="n">ffn_expansion_factor</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+                    <span class="n">LayerNorm_type</span><span class="o">=</span><span class="n">LayerNorm_type</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_refinement_blocks</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1">#### For Dual-Pixel Defocus Deblurring Task ####</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dual_pixel_task</span> <span class="o">=</span> <span class="n">dual_pixel_task</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dual_pixel_task</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+        <span class="c1">###########################</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># we don&#39;t check if our model is a good fit for the weights from the .pth file</span>
+        <span class="k">if</span> <span class="n">pretrained</span> <span class="ow">and</span> <span class="n">pretrained</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pth&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pretrained</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading from local file </span><span class="si">{</span><span class="n">pretrained</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">ckpt_restormer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">pretrained</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">ckpt_restormer</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">weights_pth_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading from </span><span class="si">{</span><span class="n">weights_pth_filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">get_weights_url</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;restormer&quot;</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">weights_pth_filename</span>
+            <span class="p">)</span>
+            <span class="n">ckpt_restormer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span>
+                <span class="n">url</span><span class="p">,</span>
+                <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">,</span>
+                <span class="n">file_name</span><span class="o">=</span><span class="n">weights_pth_filename</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">ckpt_restormer</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">pretrained</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pretrained value error, </span><span class="si">{</span><span class="n">pretrained</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Restormer.forward_restormer">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.forward_restormer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward_restormer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the Restormer network on the input image.</span>
+
+<span class="sd">        The input shape is expected to be divisible by 8.</span>
+
+<span class="sd">        :param torch.Tensor x: input image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># expected : x.shape = (B, C, H, W)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">%</span> <span class="mi">8</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">8</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Image spatial dim is not divisible by 8. Spatial dim : (</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+        <span class="n">inp_enc_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out_enc_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level1</span><span class="p">(</span><span class="n">inp_enc_level1</span><span class="p">)</span>
+
+        <span class="n">inp_enc_level2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down1_2</span><span class="p">(</span><span class="n">out_enc_level1</span><span class="p">)</span>
+        <span class="n">out_enc_level2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level2</span><span class="p">(</span><span class="n">inp_enc_level2</span><span class="p">)</span>
+
+        <span class="n">inp_enc_level3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down2_3</span><span class="p">(</span><span class="n">out_enc_level2</span><span class="p">)</span>
+        <span class="n">out_enc_level3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_level3</span><span class="p">(</span><span class="n">inp_enc_level3</span><span class="p">)</span>
+
+        <span class="n">inp_enc_level4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down3_4</span><span class="p">(</span><span class="n">out_enc_level3</span><span class="p">)</span>
+        <span class="n">latent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent</span><span class="p">(</span><span class="n">inp_enc_level4</span><span class="p">)</span>
+
+        <span class="n">inp_dec_level3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up4_3</span><span class="p">(</span><span class="n">latent</span><span class="p">)</span>
+        <span class="n">inp_dec_level3</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">inp_dec_level3</span><span class="p">,</span> <span class="n">out_enc_level3</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">inp_dec_level3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce_chan_level3</span><span class="p">(</span><span class="n">inp_dec_level3</span><span class="p">)</span>
+        <span class="n">out_dec_level3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level3</span><span class="p">(</span><span class="n">inp_dec_level3</span><span class="p">)</span>
+
+        <span class="n">inp_dec_level2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up3_2</span><span class="p">(</span><span class="n">out_dec_level3</span><span class="p">)</span>
+        <span class="n">inp_dec_level2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">inp_dec_level2</span><span class="p">,</span> <span class="n">out_enc_level2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">inp_dec_level2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce_chan_level2</span><span class="p">(</span><span class="n">inp_dec_level2</span><span class="p">)</span>
+        <span class="n">out_dec_level2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level2</span><span class="p">(</span><span class="n">inp_dec_level2</span><span class="p">)</span>
+
+        <span class="n">inp_dec_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up2_1</span><span class="p">(</span><span class="n">out_dec_level2</span><span class="p">)</span>
+        <span class="n">inp_dec_level1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">inp_dec_level1</span><span class="p">,</span> <span class="n">out_enc_level1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">out_dec_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_level1</span><span class="p">(</span><span class="n">inp_dec_level1</span><span class="p">)</span>
+
+        <span class="n">out_dec_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">refinement</span><span class="p">(</span><span class="n">out_dec_level1</span><span class="p">)</span>
+
+        <span class="c1">#### For Dual-Pixel Defocus Deblurring Task ####</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dual_pixel_task</span><span class="p">:</span>
+            <span class="n">out_dec_level1</span> <span class="o">=</span> <span class="n">out_dec_level1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span><span class="p">(</span><span class="n">inp_enc_level1</span><span class="p">)</span>
+            <span class="n">out_dec_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">out_dec_level1</span><span class="p">)</span>
+        <span class="c1">###########################</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out_dec_level1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">out_dec_level1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
+
+        <span class="k">return</span> <span class="n">out_dec_level1</span></div>
+
+
+<div class="viewcode-block" id="Restormer.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the denoiser on noisy image. The noise level is not used in this denoiser.</span>
+
+<span class="sd">        :param torch.Tensor x: noisy image</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_restormer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">test_pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forward_restormer</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">modulo</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="Restormer.is_standard_denoising_network">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_denoising_network">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_standard_denoising_network</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">,</span>
+        <span class="n">num_refinement_blocks</span><span class="p">,</span>
+        <span class="n">heads</span><span class="p">,</span>
+        <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">,</span>
+        <span class="n">LayerNorm_type</span><span class="p">,</span>
+        <span class="n">dual_pixel_task</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if model params are the params used to pre-trained the standard network for denoising.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard denoising / EXPECTED in_channels == 1 or 3, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">out_channels</span> <span class="o">==</span> <span class="n">in_channels</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard denoising / EXPECTED out_channels == in_channels, INSTEAD of </span><span class="si">{</span><span class="n">out_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_standard_network</span><span class="p">(</span>
+            <span class="n">dim</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_refinement_blocks</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">LayerNorm_type</span> <span class="o">==</span> <span class="s2">&quot;BiasFree&quot;</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard denoising / EXPECTED LayerNorm_type == &#39;BiasFree&#39;, INSTEAD of </span><span class="si">{</span><span class="n">LayerNorm_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">dual_pixel_task</span> <span class="o">==</span> <span class="kc">False</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard denoising / EXPECTED dual_pixel_task == False, INSTEAD of </span><span class="si">{</span><span class="n">dual_pixel_task</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="Restormer.is_standard_deraining_network">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_deraining_network">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_standard_deraining_network</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">,</span>
+        <span class="n">num_refinement_blocks</span><span class="p">,</span>
+        <span class="n">heads</span><span class="p">,</span>
+        <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">,</span>
+        <span class="n">LayerNorm_type</span><span class="p">,</span>
+        <span class="n">dual_pixel_task</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if model params are the params used to pre-trained the standard network for deraining.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deraining / EXPECTED in_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">out_channels</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deraining / EXPECTED out_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">out_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_standard_network</span><span class="p">(</span>
+            <span class="n">dim</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_refinement_blocks</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">LayerNorm_type</span> <span class="o">==</span> <span class="s2">&quot;WithBias&quot;</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deraining / EXPECTED LayerNorm_type == &#39;WithBias&#39;, INSTEAD of </span><span class="si">{</span><span class="n">LayerNorm_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">dual_pixel_task</span> <span class="o">==</span> <span class="kc">False</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deraining / EXPECTED dual_pixel_task == False, INSTEAD of </span><span class="si">{</span><span class="n">dual_pixel_task</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="Restormer.is_standard_deblurring_network">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_deblurring_network">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_standard_deblurring_network</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">,</span>
+        <span class="n">num_refinement_blocks</span><span class="p">,</span>
+        <span class="n">heads</span><span class="p">,</span>
+        <span class="n">ffn_expansion_factor</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">,</span>
+        <span class="n">LayerNorm_type</span><span class="p">,</span>
+        <span class="n">dual_pixel_task</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if model params are the params used to pre-trained the standard network for deblurring.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">6</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deblurring / EXPECTED in_channels == 3 or 6, INSTEAD of </span><span class="si">{</span><span class="n">in_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">out_channels</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deblurring / EXPECTED out_channels == 3, INSTEAD of </span><span class="si">{</span><span class="n">out_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_standard_network</span><span class="p">(</span>
+            <span class="n">dim</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_refinement_blocks</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">LayerNorm_type</span> <span class="o">==</span> <span class="s2">&quot;WithBias&quot;</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard deblurring / EXPECTED LayerNorm_type == &#39;WithBias&#39;, INSTEAD of </span><span class="si">{</span><span class="n">LayerNorm_type</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_standard_network</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_refinement_blocks</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The pre-trained networks for denoising, for deraining, and for deblurring have some params with same values,</span>
+<span class="sd">        so when trying to load the pre-trained weights from one of these networks, we check first that our model params</span>
+<span class="sd">        have these values to avoid mismatch between our model and the weights.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">dim</span> <span class="o">==</span> <span class="mi">48</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED dim == 48, INSTEAD of </span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span>
+            <span class="mi">4</span><span class="p">,</span>
+            <span class="mi">6</span><span class="p">,</span>
+            <span class="mi">6</span><span class="p">,</span>
+            <span class="mi">8</span><span class="p">,</span>
+        <span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED num_blocks == [4,6,6,8], INSTEAD of </span><span class="si">{</span><span class="n">num_blocks</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">num_refinement_blocks</span> <span class="o">==</span> <span class="mi">4</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of </span><span class="si">{</span><span class="n">num_refinement_blocks</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">heads</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">,</span>
+            <span class="mi">4</span><span class="p">,</span>
+            <span class="mi">8</span><span class="p">,</span>
+        <span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED heads == [1,2,4,8], INSTEAD of </span><span class="si">{</span><span class="n">heads</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">ffn_expansion_factor</span> <span class="o">==</span> <span class="mf">2.66</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED ffn_expansion_factor == 2.66, INSTEAD of </span><span class="si">{</span><span class="n">ffn_expansion_factor</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">bias</span> <span class="o">==</span> <span class="kc">False</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Standard restormer architecture / EXPECTED bias == False, INSTEAD of </span><span class="si">{</span><span class="n">bias</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<span class="c1">##########################################################################</span>
+<span class="c1">## Layer Norm</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_3d</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">einops</span><span class="w"> </span><span class="kn">import</span> <span class="n">rearrange</span>
+
+    <span class="k">return</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;b c h w -&gt; b (h w) c&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">to_4d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">einops</span><span class="w"> </span><span class="kn">import</span> <span class="n">rearrange</span>
+
+    <span class="k">return</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;b (h w) c -&gt; b c h w&quot;</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BiasFree_LayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalized_shape</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BiasFree_LayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+            <span class="n">normalized_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">normalized_shape</span><span class="p">,)</span>
+        <span class="n">normalized_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized_shape</span> <span class="o">=</span> <span class="n">normalized_shape</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma</span> <span class="o">+</span> <span class="mf">1e-5</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">WithBias_LayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalized_shape</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">WithBias_LayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+            <span class="n">normalized_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">normalized_shape</span><span class="p">,)</span>
+        <span class="n">normalized_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized_shape</span> <span class="o">=</span> <span class="n">normalized_shape</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma</span> <span class="o">+</span> <span class="mf">1e-5</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">LayerNorm_type</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">LayerNorm_type</span> <span class="o">==</span> <span class="s2">&quot;BiasFree&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">BiasFree_LayerNorm</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">WithBias_LayerNorm</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">to_4d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">to_3d</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+
+<span class="c1">##########################################################################</span>
+<span class="c1">## Gated-Dconv Feed-Forward Network (GDFN)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FeedForward</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FeedForward</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">hidden_features</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dim</span> <span class="o">*</span> <span class="n">ffn_expansion_factor</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_in</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_features</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dwconv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">hidden_features</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">hidden_features</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">hidden_features</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_out</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">hidden_features</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_in</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dwconv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span> <span class="o">*</span> <span class="n">x2</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_out</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="c1">##########################################################################</span>
+<span class="c1">## Multi-DConv Head Transposed Self-Attention (MDTA)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Attention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Attention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qkv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qkv_dwconv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="n">dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_out</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">einops</span><span class="w"> </span><span class="kn">import</span> <span class="n">rearrange</span>
+
+        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">qkv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qkv_dwconv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qkv</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">qkv</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="s2">&quot;b (head c) h w -&gt; b head c (h w)&quot;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;b (head c) h w -&gt; b head c (h w)&quot;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;b (head c) h w -&gt; b head c (h w)&quot;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">attn</span> <span class="o">=</span> <span class="p">(</span><span class="n">q</span> <span class="o">@</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span>
+        <span class="n">attn</span> <span class="o">=</span> <span class="n">attn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">attn</span> <span class="o">@</span> <span class="n">v</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span>
+            <span class="n">out</span><span class="p">,</span> <span class="s2">&quot;b head c (h w) -&gt; b (head c) h w&quot;</span><span class="p">,</span> <span class="n">head</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span>
+        <span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_out</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c1">##########################################################################</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TransformerBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">LayerNorm_type</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TransformerBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">LayerNorm_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">Attention</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">LayerNorm_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span> <span class="o">=</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">ffn_expansion_factor</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="c1">##########################################################################</span>
+<span class="c1">## Overlapped image patch embedding with 3x3 Conv</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OverlapPatchEmbed</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_c</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OverlapPatchEmbed</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">in_c</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="c1">##########################################################################</span>
+<span class="c1">## Resizing modules</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Downsample</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Downsample</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+                <span class="n">n_feat</span><span class="p">,</span> <span class="n">n_feat</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">PixelUnshuffle</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Upsample</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Upsample</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+                <span class="n">n_feat</span><span class="p">,</span> <span class="n">n_feat</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">PixelShuffle</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
