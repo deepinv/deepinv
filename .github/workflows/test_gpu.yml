@@ -2,11 +2,10 @@ name: Test GPU
 
 on:
   schedule:
-    # run test every day at 2:30 AM UTC
     - cron: "30 2 */1 * *"
   push:
     branches:
-    - gpu-tests
+      - gpu-tests
 
 jobs:
   test:
@@ -26,12 +25,13 @@ jobs:
           conda activate py311
           python --version
 
-      - name: Install deepinv
+      # ✅ Install uv and project deps
+      - name: Install dependencies with uv
         run: |
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
-          pip install --upgrade pip
-          pip install -e .[dataset,denoisers,test,training]
+          pip install uv
+          uv pip install -e .[dataset,denoisers,test,training]
 
       - name: Check Python version
         run: |
@@ -43,7 +43,7 @@ jobs:
         run: |
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
-          pip list
+          uv pip list
 
       - name: Check import
         run: |
@@ -62,26 +62,18 @@ jobs:
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
           sphinx-build docs/source _build
-          
+
       - name: Run doctests
         run: |
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate py311
-          # Get all the RST files, excluding multigpu.rst
-          # and *datasets.rst files
           _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
-          # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
-          # using plot_gallery=0 to avoid building examples
           sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
 
-      # ✅ Cleanup: remove conda env & workspace (except .git/.github)
       - name: Cleanup environment and workspace
         if: always()
         run: |
-          # Remove conda env
           conda env remove -n py311 -y || true
-
-          # Clean working directory except .git and .github
           shopt -s dotglob
           for item in *; do
             if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
