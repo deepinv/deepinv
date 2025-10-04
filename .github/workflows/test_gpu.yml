@@ -25,11 +25,12 @@ jobs:
           enable-cache: true
           version: "0.8.22"
           python-version: "3.11"
+          cache-local-path: "/local/jtachell/.cache/uv"
 
       - name: Set up Python
         run: |
           uv python install
-          uv python --version
+          uv run python --version
 
       - name: Install the project
         run: uv sync --extra dataset --extra denoisers --extra test --extra training
