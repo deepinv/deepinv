@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
