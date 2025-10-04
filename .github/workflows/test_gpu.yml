@@ -60,7 +60,7 @@ jobs:
         run: |
           shopt -s dotglob
           for item in *; do
-            if [ "$item" != ".git" ] && [ "$item" != ".github" ]; then
+            if [ "$item" != ".git" ] && [ "$item" != ".github" ] && [ "$item" != ".cache" ]; then
               rm -rf "$item"
             fi
           done
