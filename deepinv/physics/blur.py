@@ -520,10 +520,9 @@ class BlurFFT(DecomposablePhysics):
 
 class SpaceVaryingBlur(LinearPhysics):
     r"""
+    Space varying blur via product-convolution.
 
-    Implements a space varying blur via product-convolution.
-
-    This operator performs
+    This linear operator performs
 
     .. math::
 
@@ -531,12 +530,15 @@ class SpaceVaryingBlur(LinearPhysics):
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
 
-    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-    :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
-    :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which
+        should be smaller or equal than the image :math:`x` height and width respectively.
+    :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size `(B, C, K, H, W)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of multipliers, `H` and `W` the image :math:`x` height and width.
+    :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
-    :param str device: cpu or cuda
+    :param str, torch.device device: cpu or cuda
 
     |sep|
 
@@ -565,7 +567,7 @@ class SpaceVaryingBlur(LinearPhysics):
         self,
         filters: Tensor = None,
         multipliers: Tensor = None,
-        padding: str = None,
+        padding: str = "valid",
         device="cpu",
         **kwargs,
     ):
