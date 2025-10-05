@@ -465,6 +465,82 @@ class SongDiffusionSDE(EDMDiffusionSDE):
         )
 
 
+class FlowMatching(EDMDiffusionSDE):
+    r"""
+    Generative Flow Matching Stochastic Differential Equation.
+
+    It corresponds to the reverse-time SDE of the following forward-time noising process, which corresponds to a linear interpolation between data and Gaussian noise:
+
+    .. math::
+        x_t = a_t x_0 + b_t z \quad \mbox{ where } z \sim \mathcal{N}(0, I)
+
+    Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`a(t)` and :math:`b(t)` as follows:
+
+    .. math::
+        s(t) = a(t), \quad \sigma(t) = \frac{b(t)}{a(t)} .
+
+    :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
+    :param Callable a_prime_t: time derivatime :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
+    :param Callable b_t: time-dependent parameter :math:`b(t)` of flow-matching.Default to `lambda t: t`.
+    :param Callable b_prime_t: time derivative :math:`b'(t)` of :math:`b(t)`. Default to `lambda t: 1`.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
+    :param float alpha: the weighting factor of the diffusion term.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: device on which the computation is performed.
+    :param \*args: additional arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    """
+    def __init__(
+        self,
+        a_t: Callable = lambda t: 1 - t,
+        a_prime_t : Callable = lambda t: -1,
+        b_t: Callable = lambda t: t,
+        b_prime_t: Callable = lambda t: 1,
+        alpha: float = 1.0,
+        denoiser: nn.Module = None,
+        solver: BaseSDESolver = None,
+        dtype=torch.float64,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):  
+
+        def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+            self.handle_time_step(t)
+            return a_t(t)
+
+        def scale_prime_t(self, t: Union[Tensor, float]) -> Tensor:
+            self.handle_time_step(t)
+            return a_prime_t(t)
+
+        def sigma_t(self, t: Tensor | float) -> Tensor:
+            self.handle_time_step(t)
+            return b_t(t) / a_t(t)
+
+        def sigma_prime_t(self, t: Union[Tensor, float]) -> Tensor:
+            self.handle_time_step(t)
+            return (b_prime_t(t) * a_t(t) - b_t(t) * a_prime_t(t)) / (a_t(t) ** 2)
+
+        super().__init__(
+            scale_t=scale_t,
+            scale_prime_t=scale_prime_t,
+            sigma_t=sigma_t,
+            sigma_prime_t=sigma_prime_t,
+            forward_diffusion=forward_diffusion,
+            alpha=alpha,
+            T=1,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
+        )
+
+
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
 
     def __init__(
