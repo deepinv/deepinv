@@ -783,10 +783,11 @@ class WCRR(Prior):
         )
         self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
 
-        self.input_scaling = nn.Parameter(
+        self.scaling = nn.Parameter(
             torch.log(torch.tensor(20.0, device=device))
             * torch.ones((1, self.nb_filters, 1, 1), device=device)
         )
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
         self.beta = nn.Parameter(torch.tensor(4.0, device=device))
         # output scaling is not trainable for weak_convexity > 0 (to preserve the weak convexity)
         self.output_scaling = nn.Parameter(
@@ -821,19 +822,21 @@ class WCRR(Prior):
 
     def grad(self, x, *args, get_energy=False, **kwargs):
         grad = self.conv(x)
-        grad = grad * torch.exp(self.input_scaling)
+        grad = grad * torch.exp(self.scaling + self.input_scaling)
         if get_energy:
             reg = (
                 self.smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
                 - self.smooth_l1(grad) * self.weak_cvx
             )
-            reg = reg * torch.exp(self.output_scaling - 2 * self.input_scaling)
+            reg = reg * torch.exp(
+                self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
+            )
             reg = reg.sum(dim=(1, 2, 3))
         grad = (
             self.grad_smooth_l1(torch.exp(self.beta) * grad)
             - self.grad_smooth_l1(grad) * self.weak_cvx
         )
-        grad = grad * torch.exp(self.output_scaling - self.input_scaling)
+        grad = grad * torch.exp(self.output_scaling - self.scaling - self.input_scaling)
         grad = self.conv_transpose(grad)
         if get_energy:
             return reg, grad
@@ -852,12 +855,14 @@ class WCRR(Prior):
                 + "change WCRR.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the WCRR to False."
             )
         reg = self.conv(x)
-        reg = reg * torch.exp(self.input_scaling)
+        reg = reg * torch.exp(self.scaling + self.input_scaling)
         reg = (
             self.smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
             - self.smooth_l1(reg) * self.weak_cvx
         )
-        reg = reg * torch.exp(self.output_scaling - 2 * self.input_scaling)
+        reg = reg * torch.exp(
+            self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
+        )
         reg = reg.sum(dim=(1, 2, 3))
         return reg
 
