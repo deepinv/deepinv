@@ -143,10 +143,18 @@ class RandomPatchSampler(ImageDataset):
         self.shapes = []
         n_ch = None
         for im in self.imgs:
-            shape = self._load(
-                os.path.join(self.y_dir if self.y_dir else self.x_dir, im),
-                as_memmap=True,
-            ).shape
+            if self.y_dir and self.x_dir:
+                s_x = self._load(os.path.join(self.x_dir, im), as_memmap=True).shape
+                s_y = self._load(os.path.join(self.y_dir, im), as_memmap=True).shape
+                assert (
+                    s_x == s_y
+                ), f"Measurement and ground-truth image shapes must match, but mismatch for {im}"
+                shape = s_x
+            else:
+                shape = self._load(
+                    os.path.join(self.y_dir if self.y_dir else self.x_dir, im),
+                    as_memmap=True,
+                ).shape
             if not ndim:
                 ndim = len(shape)
                 n_ch = None if self.ch_ax is None else shape[self.ch_ax]
