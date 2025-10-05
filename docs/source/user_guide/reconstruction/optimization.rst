@@ -216,6 +216,12 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.L12Prior`
      - :math:`\reg{x} = \sum_i\| x_i \|_2`
      - Yes
+   * - :class:`deepinv.optim.WCRR`
+     - :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+     - Yes
+   * - :class:`deepinv.optim.LSR`
+     - :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`
+     - Yes
 
 
 .. _optim_iterators:

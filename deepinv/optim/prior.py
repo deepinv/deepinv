@@ -711,37 +711,33 @@ class L12Prior(Prior):
 
 
 class WCRR(Prior):
+    r"""
+    (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a  concatination multiple convolution
+    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values, see :footcite:t:`hertrich2025learning` for a precise description.
+
+    The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
+    The specific implementation is taken from :footcite:t:`hertrich2025learning`.
+
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `1`
+    :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
+        Default: `0.0`
+    :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
+    :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
+    :param str device: Device for the weights. Default: `"cuda" if torch.cuda.is_available() else "cpu"`
+    :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+    """
+
     def __init__(
         self,
-        in_channels=1,
+        in_channels=3,
         weak_convexity=0.0,
         nb_channels=[4, 8, 64],
         filter_sizes=[5, 5, 5],
-        device="cuda" if torch.cuda.is_available() else "cpu",
+        device="cpu",
         pretrained=None,
     ):
-        r"""
-        (Weakly) Convex Ridge Regularizer
-
-        Has the form
-
-        .. math::
-            \reg{x}=\sum_{c} \psi_c(W_c x)
-
-        for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a  concatination multiple convolution
-        layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values, see [3] for a precise description.
-
-        The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
-        The specific implementation is taken from :footcite:t:`hertrich2025learning`.
-
-        :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `1`
-        :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
-            Default: `0.0`
-        :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
-        :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
-        :param str device: Device for the weights. Default: `"cuda" if torch.cuda.is_available() else "cpu"`
-        :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
-        """
         super(WCRR, self).__init__()
         nb_channels = [in_channels] + nb_channels
         self.nb_filters = nb_channels[-1]
@@ -775,7 +771,7 @@ class WCRR(Prior):
         self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
 
         self.scaling = nn.Parameter(
-            torch.log(torch.tensor(2.0) / sigma) * torch.ones(1, self.nb_filters, 1, 1)
+            torch.log(torch.tensor(20.0)) * torch.ones(1, self.nb_filters, 1, 1)
         )
         self.beta = nn.Parameter(torch.tensor(4.0))
         self.weak_cvx = weak_convexity
@@ -839,3 +835,62 @@ class WCRR(Prior):
     def _apply(self, fn):
         self.dirac = fn(self.dirac)
         return super()._apply(fn)
+
+
+class LSR(Prior):
+    r"""
+    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`.
+
+    This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
+    The specific implementation wraps the GSDRUNet.
+    """
+
+    def __init__(
+        self,
+        in_channels=3,
+        device="cpu",
+        pretrained=None,
+        nc=[
+            32,
+            64,
+            128,
+            256,
+        ],
+        nb=2,
+        pretrained_GSDRUNet=None,
+        alpha=1.0,
+        sigma=0.03,
+    ):
+        super(LSR, self).__init__()
+
+        if pretrained_GSDRUNet is None:
+            self.model = GSDRUNet(
+                alpha=alpha,
+                in_channels=in_channels,
+                out_channels=in_channels,
+                nb=nb,
+                nc=nc,
+                act_mode="s",
+                pretrained=None,
+                device=device,
+            )
+        elif isinstance(pretrained_GSDRUNet, GSDRUNet):
+            self.model = pretrained_GSDRUNet.to(device)
+            # TODO add module otherwise the parameters are not detected...
+        else:
+            raise ValueError(
+                "The parameter pretrained_GSDRUNet must either be None or an instance of GSDRUNet!"
+            )
+
+        self.model.detach = False
+
+        self.sigma = sigma
+
+        if pretrained is not None:
+            self.load_state_dict(torch.load(pretrained, map_location=device))
+
+    def grad(self, x):
+        return self.model.potential_grad(x, self.sigma)
+
+    def g(self, x):
+        return self.model.potential(x, self.sigma)

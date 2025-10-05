@@ -24,6 +24,8 @@ from .prior import (
     PatchNR,
     Zero,
     L12Prior,
+    WCRR,
+    LSR,
 )
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL

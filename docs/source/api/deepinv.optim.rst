@@ -75,6 +75,8 @@ Priors
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+   deepinv.optim.WCRR
+   deepinv.optim.LSR
 
 Predefined models
 -----------------
