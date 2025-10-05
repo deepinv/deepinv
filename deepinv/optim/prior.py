@@ -752,6 +752,7 @@ class WCRR(Prior):
                     filter_sizes[i],
                     padding=filter_sizes[i] // 2,
                     bias=False,
+                    device=device,
                 )
                 for i in range(len(filter_sizes))
             ]
@@ -772,10 +773,15 @@ class WCRR(Prior):
         )
         self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
 
-        self.scaling = nn.Parameter(
-            torch.log(torch.tensor(20.0)) * torch.ones(1, self.nb_filters, 1, 1)
+        self.input_scaling = nn.Parameter(
+            torch.log(torch.tensor(20.0, device=device))
+            * torch.ones((1, self.nb_filters, 1, 1), device=device)
         )
-        self.beta = nn.Parameter(torch.tensor(4.0))
+        self.beta = nn.Parameter(torch.tensor(4.0, device=device))
+        # output scaling is not trainable for weak_convexity > 0 (to preserve the weak convexity)
+        self.output_scaling = nn.Parameter(
+            torch.tensor(0.0, device=device)
+        ).requires_grad_(weak_convexity == 0.0)
         self.weak_cvx = weak_convexity
 
         if pretrained is not None:
@@ -805,19 +811,19 @@ class WCRR(Prior):
 
     def grad(self, x, *args, get_energy=False, **kwargs):
         grad = self.conv(x)
-        grad = grad * torch.exp(self.scaling)
+        grad = grad * torch.exp(self.input_scaling)
         if get_energy:
             reg = (
                 self.smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
                 - self.smooth_l1(grad) * self.weak_cvx
             )
-            reg = reg * torch.exp(-2 * self.scaling)
+            reg = reg * torch.exp(self.output_scaling - 2 * self.input_scaling)
             reg = reg.sum(dim=(1, 2, 3))
         grad = (
             self.grad_smooth_l1(torch.exp(self.beta) * grad)
             - self.grad_smooth_l1(grad) * self.weak_cvx
         )
-        grad = grad * torch.exp(-self.scaling)
+        grad = grad * torch.exp(self.output_scaling - self.input_scaling)
         grad = self.conv_transpose(grad)
         if get_energy:
             return reg, grad
@@ -825,12 +831,12 @@ class WCRR(Prior):
 
     def fn(self, x, *args, **kwargs):
         reg = self.conv(x)
-        reg = reg * torch.exp(self.scaling)
+        reg = reg * torch.exp(self.input_scaling)
         reg = (
             self.smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
             - self.smooth_l1(reg) * self.weak_cvx
         )
-        reg = reg * torch.exp(-2 * self.scaling)
+        reg = reg * torch.exp(self.output_scaling - 2 * self.input_scaling)
         reg = reg.sum(dim=(1, 2, 3))
         return reg
 
@@ -912,16 +918,23 @@ class LSR(Prior):
 
         self.model.detach = False
 
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+
         self.sigma = sigma
 
         if pretrained is not None:
             self.load_state_dict(torch.load(pretrained, map_location=device))
 
     def grad(self, x, *args, **kwargs):
-        return self.model.potential_grad(x, self.sigma)
+        return torch.exp(self.output_scaling) * self.model.potential_grad(
+            torch.exp(self.input_scaling) * x, self.sigma
+        )
 
     def fn(self, x, *args, **kwargs):
-        return self.model.potential(x, self.sigma)
+        return torch.exp(
+            self.output_scaling + self.input_scaling
+        ) * self.model.potential(torch.exp(self.input_scaling) * x, self.sigma)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
