@@ -731,15 +731,8 @@ class WCRR(Prior):
         for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a  concatination multiple convolution
         layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values, see [3] for a precise description.
 
-        References:
-
-        [1] Goujon et al., "A Neural-Network-Based Convex Regularizer for Inverse Problems", IEEE Transactions on Computational Imaging 9, 781-795, 2023.
-
-        [2] Goujon et al., "Learning weakly convex regularizers for convergent image-reconstruction algorithms", SIAM Journal on Imaging Sciences 17 (1), 91-115, 2024.
-
-        The specific implementation was taken from:
-
-        [3]
+        The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
+        The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
         :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `1`
         :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
