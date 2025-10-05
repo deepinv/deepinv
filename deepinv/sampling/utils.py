@@ -39,10 +39,9 @@ def projbox(x, lower: Tensor, upper: Tensor) -> Tensor:
     return torch.clamp(x, min=lower, max=upper)
 
 
-def trapz_torch(func: Callable[[Tensor], Tensor], 
-                a: Tensor, 
-                b: Tensor, 
-                n_steps: int = 1000) -> Tensor:
+def trapz_torch(
+    func: Callable[[Tensor], Tensor], a: Tensor, b: Tensor, n_steps: int = 1000
+) -> Tensor:
     """
     Differentiable trapezoidal integration of func(x) between a and b along the last dimension.
 
@@ -62,6 +61,6 @@ def trapz_torch(func: Callable[[Tensor], Tensor],
     y = func(x)
 
     # Trapezoidal integration along the last dimension
-    dx = x[..., 1:] - x[..., :-1]       # (..., N-1)
+    dx = x[..., 1:] - x[..., :-1]  # (..., N-1)
     area = 0.5 * (y[..., 1:] + y[..., :-1]) * dx
     return area.sum(dim=-1)

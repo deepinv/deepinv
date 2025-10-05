@@ -5,6 +5,7 @@ from deepinv.physics import Physics
 from deepinv.models import Denoiser
 from typing import Union
 
+
 class NoisyDataFidelity(Potential):
     r"""
     Base class for implementing the noisy data fidelity term :math:`- \log p(y|x_\sigma = x + \sigma \omega)` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
@@ -29,8 +30,8 @@ class NoisyDataFidelity(Potential):
     By default, the distance function :math:`d` is the L2 distance.
     """
 
-    def __init__(self, fn = None, *args, **kwargs):
-        super().__init__(fn = fn)
+    def __init__(self, fn=None, *args, **kwargs):
+        super().__init__(fn=fn)
 
     def fn(self, x, y, physics, sigma=None, *args, **kwargs):
         r"""
@@ -58,12 +59,12 @@ class NoisyDataFidelity(Potential):
 
 
 class DataFidelity(NoisyDataFidelity):
-    
+
     def __init__(self, d=None):
         super().__init__()
         if not isinstance(d, Distance):
             self.d = Distance(d=d)
-    
+
     def fn(self, x, y, physics, *args, **kwargs):
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
@@ -93,6 +94,7 @@ class DataFidelity(NoisyDataFidelity):
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
+
 
 class L2(DataFidelity):
     """
@@ -145,7 +147,7 @@ class ILVR(NoisyDataFidelity):
 class DPSDataFidelity_my(NoisyDataFidelity):
 
     def __init__(
-        self, weight=1.0, denoiser=lambda x,sigma: x, sigma_y=1.0, *args, **kwargs
+        self, weight=1.0, denoiser=lambda x, sigma: x, sigma_y=1.0, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.weight = weight

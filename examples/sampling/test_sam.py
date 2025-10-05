@@ -1,4 +1,3 @@
-
 import torch
 import deepinv as dinv
 from deepinv.models import NCSNpp
@@ -84,4 +83,3 @@ dinv.utils.save_videos(
     save_fn="posterior_trajectory.gif",
     figsize=(figsize, figsize),
 )
-

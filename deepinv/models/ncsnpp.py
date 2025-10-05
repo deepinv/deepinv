@@ -25,6 +25,7 @@ class NCSNpp(Denoiser):
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
+    :param str model_name: Model name, 'ncsn' or 'ddpm'.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
@@ -57,6 +58,7 @@ class NCSNpp(Denoiser):
 
     def __init__(
         self,
+        model_name: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
         img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
@@ -88,10 +90,23 @@ class NCSNpp(Denoiser):
         pixel_std: float = 0.75,
         device=None,
     ):
+        assert model_name in ["ncsn", "ddpm"]
+        if model_name == "ncsn":
+            embedding_type = "fourier"
+            channel_mult_noise = 2
+            encoder_type = "residual"
+            decoder_type = "standard"
+            resample_filter = [1, 3, 3, 1]
+        elif model_name == "ddpm":
+            embedding_type = "positional"
+            channel_mult_noise = 1
+            encoder_type = "standard"
+            decoder_type = "standard"
+            resample_filter = [1, 1]
+        
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
-
         super().__init__()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
@@ -224,9 +239,20 @@ class NCSNpp(Denoiser):
         if pretrained is not None:
             if (
                 pretrained.lower() == "edm-ffhq64-uncond-ve"
-                or pretrained.lower() == "download"
+                or (pretrained.lower() == "download" and model_name == "ncsn")
             ):
                 name = "ncsnpp-ffhq64-uncond-ve.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self.pixel_std = 0.5
+            elif (
+                pretrained.lower() == "edm-ffhq64-uncond-vp"
+                or (pretrained.lower() == "download" and model_name == "ddpm")
+            ):
+                name = "ncsnpp-ffhq64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
