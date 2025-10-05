@@ -722,12 +722,12 @@ class WCRR(Prior):
     The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
     The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
-    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `1`
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
     :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
         Default: `0.0`
     :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
     :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
-    :param str device: Device for the weights. Default: `"cuda" if torch.cuda.is_available() else "cpu"`
+    :param str device: Device for the weights. Default: `"cpu"`
     :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
     """
 
@@ -851,7 +851,7 @@ class WCRR(Prior):
             )
 
         return nonmonotone_accelerated_proximal_gradient(
-            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla
+            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
         )[0]
 
 
@@ -861,6 +861,16 @@ class LSR(Prior):
 
     This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
     The specific implementation wraps the :class:`GSDRUNet<deepinv.models.GSPnP.GSDRUNet>`.
+
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
+    :param str device: Device for the weights. Default: `"cpu"`
+    :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+    :param list of int nc: number of channels of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `[32, 64, 128, 256]`
+    :param int nb: number of residual blocks of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `2`.
+    :param deepinv.models.GSPnP.GSDRUNet pretrained_GSDRUNet: If already a GSDRUNet object exists, a LSR with this GSDRUNet can be created
+        by passing it through this argument. `None` for initializing a new GSDRUNet. Default: `None`
+    :param float alpha: scaling factor in the GSDRUNet. Default: `1.0`
+    :param float sigma: Noise level applied in the DRUNet. Default: `0.03`
     """
 
     def __init__(
@@ -926,5 +936,5 @@ class LSR(Prior):
             )
 
         return nonmonotone_accelerated_proximal_gradient(
-            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla
+            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
         )[0]
