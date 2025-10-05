@@ -1,162 +1,100 @@
 import torch
-from deepinv.optim import Distance, Potential
+from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
 from deepinv.physics import Physics
 from deepinv.models import Denoiser
-from typing import Union
 
 
-class NoisyDataFidelity(Potential):
+class NoisyDataFidelity(DataFidelity):
     r"""
-    Base class for implementing the noisy data fidelity term :math:`- \log p(y|x_\sigma = x + \sigma \omega)` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
+    Preconditioned data fidelity term for noisy data :math:`- \log p(y|x + \sigma(t) \omega)`
+    with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
 
-    This class is used to approximate the untractable likelihood term :math:`\log p_t(y|x_t)` in diffusion-based
-    algorithms for inverse problems, as defined in :class:`deepinv.sampling.PosteriorDiffusion`.
+    This is a base class for the conditional classes for approximating :math:`\log p_t(y|x_t)` used in diffusion
+    algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.
 
-    It comes with a `.grad` method for computing an approximation of the score :math:`\nabla_{x_\sigma} \log p_t(y|x_\sigma)`.
+    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`.
 
-    You can either define the gradient :math:`\nabla_{x_\sigma} \log p_t(y|x_\sigma)` by overwriting the :meth:`grad` method,
-    or you can define the noisy data fidelity function :math:`- \log p(y|x_\sigma)` by overwriting the :meth:`fn` method.
-    In this case, the gradient will be computed automatically using automatic differentiation.
-
-    By default the class matches the :class:`deepinv.optim.DataFidelity` class, i.e. we make the approximation
+    By default we have
 
     .. math::
 
         \begin{equation*}
-            -\log p(y| x_\sigma) \approx d(A x, y)
+            \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
         \end{equation*}
 
-    By default, the distance function :math:`d` is the L2 distance.
+
+    where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
+    By default, :math:`P` is defined as :math:`A^\top`, :math:`x_t' = x_t` and this class matches the
+    :class:`deepinv.optim.DataFidelity` class.
+
+    :param deepinv.optim.Distance d: Distance metric to use for the data fidelity term. Default to :class:`deepinv.optim.L2Distance`.
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.
     """
 
-    def __init__(self, fn=None, *args, **kwargs):
-        super().__init__(fn=fn)
-
-    def fn(self, x, y, physics, sigma=None, *args, **kwargs):
-        r"""
-        Calculates the noisy data fidelity term approximating :math:`- \log p(y|x_\sigma)`
-
-        :param torch.Tensor x: Variable :math:`x_\sigma` at which the data fidelity term is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :param deepinv.physics.Physics physics: physics model.
-        :param Union[torch.Tensor, float] sigma: Standard deviation :math:`\sigma` of the noise in :math:`x_\sigma`.
-        :return: (:class:`torch.Tensor`) data fidelity term.
-        """
-        return super().fn(x, y, physics, sigma, *args, **kwargs)
-
-    def grad(self, x, y, physics, sigma=None, *args, **kwargs):
-        r"""
-        Calculates the gradient of the noisy data fidelity term, approximating :math:`\nabla_{x_\sigma} \log p_t(y|x_\sigma)`.
-
-        :param torch.Tensor x: Variable :math:`x_\sigma` at which the gradient is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :param deepinv.physics.Physics physics: physics model.
-        :param Union[torch.Tensor, float] sigma: Standard deviation :math:`\sigma` of the noise in :math:`x_\sigma`.
-        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
-        """
-        return super().grad(x, y, physics, sigma, *args, **kwargs)
-
-
-class DataFidelity(NoisyDataFidelity):
-
-    def __init__(self, d=None):
+    def __init__(self, d: Distance = None, weight=1.0, *args, **kwargs):
         super().__init__()
-        if not isinstance(d, Distance):
-            self.d = Distance(d=d)
-
-    def fn(self, x, y, physics, *args, **kwargs):
-        r"""
-        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
-
-        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :param deepinv.physics.Physics physics: physics model.
-        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
-        """
-        return self.d(physics.A(x), y, *args, **kwargs)
-
-    def grad(self, x, y, physics, *args, **kwargs):
-        r"""
-        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
-
-        The gradient is computed using the chain rule:
-
-        .. math::
-
-            \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
-
-        where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
-
-        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :param torch.Tensor y: Data :math:`y`.
-        :param deepinv.physics.Physics physics: physics model.
-        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
-        """
-        return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
-
-
-class L2(DataFidelity):
-    """
-    Noisy data fidelity term using the L2 distance:
-
-     .. math::
-
-        \begin{equation*}
-            -\log p(y| x_\sigma) \approx \frac{1}{2\sigma_y^2}\|\forw{x_\sigma}-y\|^2
-        \end{equation*}
-
-    It corresponds to the approximation proposed by the Score ALD method (`Robust compressed sensing mri with deep generative priors <https://proceedings.neurips.cc/paper_files/paper/2021/hash/7d6044e95a16761171b130dcb476a43e-Abstract.html>`_).
-
-    where :math:`\sigma_y` is the standard deviation of the noise in :math:`y`.
-    """
-
-    def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
-        self.d = dinv.optim.L2Distance(sigma=sigma_y)
-        super().__init__(d=self.d, *args, **kwargs)
-
-
-class ScoreSDE(NoisyDataFidelity):
-
-    def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
-        super().__init__(weight=weight, *args, **kwargs)
+        if d is not None:
+            self.d = Distance(d)
+        else:
+            self.d = dinv.optim.L2Distance()
         self.weight = weight
-        self.d = dinv.optim.L2Distance(sigma=sigma_y)
 
-    def grad(self, x, y, physics, sigma=None, *args, **kwargs):
-        y_noisy = y + sigma * torch.randn_like(x)
-        return self.weight * physics.A_vjp(
-            x, self.d.grad(physics.A(x), y_noisy, *args, **kwargs)
+    def precond(
+        self, u: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        The preconditioner :math:`P` for the data fidelity term. Default to :math:`A^{\top}`.
+
+        :param torch.Tensor u: input tensor.
+        :param deepinv.physics.Physics physics: physics model.
+
+        :return: (torch.Tensor) preconditionned tensor :math:`P(u)`.
+        """
+        return (
+            physics.A_adjoint(u)
+            if isinstance(physics, dinv.physics.LinearPhysics)
+            else physics.A_dagger(u)
         )
 
-
-class ILVR(NoisyDataFidelity):
-
-    def __init__(self, weight=1.0, sigma_y=1.0, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.weight = weight
-        self.d = dinv.optim.L2Distance(sigma=sigma_y)
-
-    def grad(self, x, y, physics, sigma=None, *args, **kwargs):
-        y_noisy = y + sigma * torch.randn_like(x)
-        return self.weight * physics.A_dagger(
-            x, self.d.grad(physics.A(x), y_noisy, *args, **kwargs)
-        )
+    def diff(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        Computes the difference :math:`A(x) - y` between the forward operator applied to the current iterate and the input data.
 
 
-class DPSDataFidelity_my(NoisyDataFidelity):
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
+        """
+        return physics.A(x) - y
 
-    def __init__(
-        self, weight=1.0, denoiser=lambda x, sigma: x, sigma_y=1.0, *args, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.weight = weight
-        self.denoiser = denoiser
-        self.d = dinv.optim.L2Distance(sigma=sigma_y)
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        Computes the gradient of the data-fidelity term.
 
-    def fn(self, x, y, physics, sigma=None, *args, **kwargs):
-        x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
-        return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+        :param deepinv.physics.Physics physics: physics model
+        :return: (torch.Tensor) data-fidelity term.
+        """
+        return self.precond(self.diff(x, y, physics), physics=physics)
+
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        Computes the data-fidelity term.
+
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :return: (torch.Tensor) loss term.
+        """
+        return self.d(physics.A(x), y) * self.weight
 
 
 class DPSDataFidelity(NoisyDataFidelity):
