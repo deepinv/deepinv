@@ -314,10 +314,20 @@ class EDMDiffusionSDE(DiffusionSDE):
                 def scale_t(t):
                     t = self._handle_time_step(t)
                     return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+                def scale_prime_t(t):
+                    self._handle_time_step(t)
+                    return (
+                        -0.5
+                        * self.sigma_t(t) * self.sigma_prime_t(t)
+                        * (1 / (1 + self.sigma_t(t) ** 2)) ** 1.5
+                    )
             elif variance_exploding:
                 def scale_t(t):
                     t = self._handle_time_step(t)
                     return torch.ones_like(t)
+                def scale_prime_t(t):
+                    t = self._handle_time_step(t)
+                    return torch.zeros_like(t)
             else:
                 raise ValueError(
                     "scale_t must be provided if variance_preserving or variance_exploding is False"
