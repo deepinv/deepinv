@@ -33,7 +33,7 @@ from deepinv.datasets import (
     TensorDataset,
     ImageFolder,
     SKMTEASliceDataset,
-    PatchDataset3D,
+    RandomPatchSampler,
 )
 from deepinv.datasets.utils import (
     download_archive,
@@ -1129,18 +1129,16 @@ def download_brainweb_dl():
     shutil.rmtree(tmp_np_dir), shutil.rmtree(tmp_blosc2_dir), shutil.rmtree(tmp_nii_dir)
 
 
-def test_PatchDataset3D(download_brainweb_dl):
+def test_RandomPatchSampler(download_brainweb_dl):
     patch_size = 32  # this patch size should always fit
     dirs = download_brainweb_dl
     for d, f_format in zip(dirs, (".npy", ".b2nd", ".nii.gz")):
-        print(os.listdir(d))
-        dataset = PatchDataset3D(x_dir=d, patch_size=patch_size, format=f_format)
+        dataset = RandomPatchSampler(x_dir=d, patch_size=patch_size, format=f_format)
         assert len(dataset)
         x = next(iter(dataset))
         assert x.shape == (1, 32, 32, 32)
 
-        dataset = PatchDataset3D(y_dir=d, patch_size=patch_size, format=f_format)
+        dataset = RandomPatchSampler(y_dir=d, patch_size=patch_size, format=f_format)
         x, y = next(iter(dataset))
-        print(x)
         assert y.shape == (1, 32, 32, 32)
         assert math.isnan(x)
