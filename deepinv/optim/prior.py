@@ -7,6 +7,8 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
+from deepinv.models.GSPnP import GSDRUNet
+from .nmapg import nonmonotone_accelerated_proximal_gradient
 
 
 class Prior(Potential):
@@ -801,7 +803,7 @@ class WCRR(Prior):
             x = F.conv_transpose2d(x, filt.weight, padding=filt.padding)
         return x
 
-    def grad(self, x, get_energy=False):
+    def grad(self, x, *args, get_energy=False, **kwargs):
         grad = self.conv(x)
         grad = grad * torch.exp(self.scaling)
         if get_energy:
@@ -821,7 +823,7 @@ class WCRR(Prior):
             return reg, grad
         return grad
 
-    def fn(self, x):
+    def fn(self, x, *args, **kwargs):
         reg = self.conv(x)
         reg = reg * torch.exp(self.scaling)
         reg = (
@@ -836,13 +838,29 @@ class WCRR(Prior):
         self.dirac = fn(self.dirac)
         return super()._apply(fn)
 
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+
+        def f_and_nabla(z, y):
+            with torch.no_grad():
+                out_f, out_grad = self.grad(z, get_energy=True)
+            return (
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f.detach(),
+                z - y + out_grad.detach(),
+            )
+
+        return nonmonotone_accelerated_proximal_gradient(
+            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla
+        )[0]
+
 
 class LSR(Prior):
     r"""
     Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`.
 
     This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
-    The specific implementation wraps the GSDRUNet.
+    The specific implementation wraps the :class:`GSDRUNet<deepinv.models.GSPnP.GSDRUNet>`.
     """
 
     def __init__(
@@ -889,8 +907,24 @@ class LSR(Prior):
         if pretrained is not None:
             self.load_state_dict(torch.load(pretrained, map_location=device))
 
-    def grad(self, x):
+    def grad(self, x, *args, **kwargs):
         return self.model.potential_grad(x, self.sigma)
 
-    def g(self, x):
+    def fn(self, x, *args, **kwargs):
         return self.model.potential(x, self.sigma)
+
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+
+        def f_and_nabla(z, y):
+            with torch.no_grad():
+                out_f, out_grad = self.grad(z, get_energy=True)
+            return (
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f.detach(),
+                z - y + out_grad.detach(),
+            )
+
+        return nonmonotone_accelerated_proximal_gradient(
+            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla
+        )[0]
