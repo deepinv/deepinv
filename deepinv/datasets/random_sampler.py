@@ -1,12 +1,43 @@
 from __future__ import annotations
 import os
 import random
-import numpy as np
 import torch
 from deepinv.datasets.base import ImageDataset
 
 
 class RandomPatchSampler(ImageDataset):
+    r"""
+    Dataset for nD images that samples one random patch per image.
+
+    This dataset builds from one or two directories of nD images (`.npy`, `.nii(.gz)`, or `.b2nd`).
+    On each epoch, it returns a randomly sampled patch of fixed size from each volume.
+
+    **Supported use cases:**
+    - Single-directory: provide only the ground-truth folder ``x_dir`` or measurement folder ``y_dir`` (returns patches from that directory).
+    - Paired-directory: provide both ``x_dir`` and ``y_dir`` (returns matched patches from both).
+
+    **Channel handling:**
+    - If ``ch_axis=None``: a singleton channel dimension is added at axis 0.
+    - If ``ch_axis=0``: images are assumed channel-first.
+    - If ``ch_axis=-1``: images are assumed channel-last and transposed to channel-first.
+    - Patches are never extracted along the channel axis (patch size for that axis is ignored).
+
+    **Patch size handling:**
+    - Accepts either an integer (applied to all spatial dims) or a tuple.
+    - If ``patch_size`` is tuple, and ``patch_size[i] == 1``, this is equivalent to slicing across axis i (singleton at axis i will be squeezed). This can be used to e.g. extract 2D slices from a 3D volume
+    - If tuple length is one less than the image ndim, the channel axis is auto-filled with ``None``.
+
+    **Randomness & reproducibility:**
+    - Patch coordinates are drawn with Python’s ``random`` module.
+    - To ensure deterministic behavior across workers, set the DataLoader's
+      ``worker_init_fn`` or ``generator`` according to the PyTorch reproducibility guidelines.
+
+    **Notes**
+    - All images must have the same dimensionality.
+    - When both directories are provided, only files present in both are used.
+    - Shapes of each file are checked for consistency (spatial not smaller than ``patch_size`` + channels remain consistent across files)."
+    """
+
     def __init__(
         self,
         x_dir: str = None,
@@ -16,15 +47,11 @@ class RandomPatchSampler(ImageDataset):
         ch_axis: int = None,
     ):
         r"""
-        Builds a dataset from folders of 3D images. Each epoch, a single patch is randomly sampled from each volume.
-
-        Each image can have a different shape, but all images must have shape H, W, D. Other axis are not allowed (or will be squeezed).
-
-        :param str x_dir: Path to folder of ground-truth images.
-        :param str y_dir: Path to folder of measurements. Measurements must be images of same shape as ground-truth.
-        :param int, tuple[int] patch_size: Patch size to use,
-        :param str format: Format to use. Other files will be ignored. Supported: .npy, .nii(.gz), .b2nd (blosc2)
-        :param int ch_axis: Specifies which axis contains channels in the files. Currently, only 0 or -1 are supported. If None, will perform unsqueeze(0) to create singleton channel.
+        :param str, optional x_dir: Path to folder of ground-truth images. Required if ``y_dir`` is not given.
+        :param str, optional y_dir: Path to folder of measurement images. Required if ``x_dir`` is not given.
+        :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions.
+        :param str format : File format to load. Other files are ignored.
+        :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
         """
         assert x_dir or y_dir, "Provide at least one of x_dir or y_dir."
         if ch_axis is not None:
