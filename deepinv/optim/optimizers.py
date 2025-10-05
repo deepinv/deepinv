@@ -634,7 +634,9 @@ def str_to_class(classname):
 
 class NMAPG(Reconstructor):
     r"""
-    Nonmonotonic accelerated Proximal Gradient Descent (nmAPG) for minimizing
+    Nonmonotonic accelerated Proximal Gradient Descent (nmAPG)
+
+    It is used for minimizing functions of the form
 
     .. math::
         \begin{equation}

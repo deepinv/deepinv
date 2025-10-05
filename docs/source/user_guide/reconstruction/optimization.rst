@@ -305,6 +305,16 @@ Some predefined optimizers are provided:
 
 .. _optim-params:
 
+Nonconvex Optimization
+~~~~~~~~~~~~~~~~~~~~~~
+
+For some inverse problems, an optimization algorithm for nonconvex objective functions is required.
+To this end, the nonmonotonic accelerated proximal gradient descent algorithm (nmAPG)
+implmented in :class:`deepinv.optim.NMAPG` can be used. It basically combines a proximal gradient descent
+algorithm with momentum and line search methods. In contrast to the methods implemented via an iterator it
+admits convergence guarantees to a stationary point even in the nonconvex case.
+A functional interface is implemented at :class:`deepinv.optim.utils.nonmonotone_accelerated_proximal_gradient`.
+
 Parameters
 ~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
