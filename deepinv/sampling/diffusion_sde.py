@@ -565,6 +565,43 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
             *kwargs,
         )
 
+
+class FlowMatching(EDMDiffusionSDE):
+
+    def __init__(
+        self,
+        denoiser: nn.Module = None,
+        sigma_min: float = 0.02,
+        sigma_max: float = 100,
+        alpha: float = 1.0,
+        solver: BaseSDESolver = None,
+        dtype=torch.float64,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
+        
+        def sigma_t(self, t: Tensor | float) -> Tensor:
+            t = self._handle_time_step(t)
+            return sigma_min * (sigma_max / sigma_min) ** t
+
+        def sigma_prime_t(self, t: Union[Tensor, float]) -> Tensor:
+            t = self._handle_time_step(t)
+            return self.sigma_t(t) * np.log(sigma_max / sigma_min)
+        
+        super().__init__(
+            sigma_t=sigma_t,
+            sigma_prime_t=sigma_prime_t,
+            variance_explocing=True,
+            alpha=alpha,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
+        )
+
       
 
 class PosteriorDiffusion(Reconstructor):
@@ -663,6 +700,7 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+
 
     def forward(
         self,
