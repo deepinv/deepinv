@@ -67,30 +67,37 @@ class RandomPatchSampler(ImageDataset):
 
         shape = self.shapes[idx]
         # We use random here: need to ensure deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
-        start_coords = [random.randint(p, s - p) if p is not None else p for p, s in zip(self.patch_size, shape)]
+        start_coords = [
+            random.randint(p, s - p) if p is not None else p
+            for p, s in zip(self.patch_size, shape)
+        ]
 
         fname = self.imgs[idx]
 
         x = (
-            self._fix_ch(self._load(
-                os.path.join(self.x_dir, fname),
-                start_coords=start_coords,
-                patch_size=self.patch_size,
-            ))
+            self._fix_ch(
+                self._load(
+                    os.path.join(self.x_dir, fname),
+                    start_coords=start_coords,
+                    patch_size=self.patch_size,
+                )
+            )
             if self.x_dir
             else torch.nan
         )
         if self.y_dir is not None:
-            y = self._fix_ch(self._load(
-                os.path.join(self.y_dir, fname),
-                start_coords=start_coords,
-                patch_size=self.patch_size,
-            ))
+            y = self._fix_ch(
+                self._load(
+                    os.path.join(self.y_dir, fname),
+                    start_coords=start_coords,
+                    patch_size=self.patch_size,
+                )
+            )
             return (x, y)
         else:
             return x
-        
-    def _fix_ch(self, v : np.ndarray):
+
+    def _fix_ch(self, v: np.ndarray):
         if self.ch_ax is None:
             return v.unsqueeze(0)
         elif self.ch_ax == -1:
@@ -98,7 +105,6 @@ class RandomPatchSampler(ImageDataset):
             return np.transpose(v, (nd - 1,) + tuple(range(nd - 1)))
         else:
             return v
-
 
     def _set_shapes(self):
         ndim = None
@@ -116,19 +122,28 @@ class RandomPatchSampler(ImageDataset):
                     self.patch_size = [self.patch_size for i in range(ndim)]
                 if len(self.patch_size) == ndim:
                     if self.ch_ax is not None:
-                        self.patch_size[self.ch_ax] = None # this is silent right now, but patching along ch makes no sense?
+                        self.patch_size[self.ch_ax] = (
+                            None  # this is silent right now, but patching along ch makes no sense?
+                        )
                 elif len(self.patch_size) == ndim - 1:
                     self.patch_size.insert(self.ch_ax, None)
-                self.patch_size = tuple(self.patch_size) # self.patch_size should not change from now.
+                self.patch_size = tuple(
+                    self.patch_size
+                )  # self.patch_size should not change from now.
 
             assert (
                 len(shape) == ndim
             ), f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
-            assert all(s>=p if p is not None else True for s, p in zip(shape, self.patch_size))
+            assert all(
+                s >= p if p is not None else True
+                for s, p in zip(shape, self.patch_size)
+            )
             if n_ch:
-                assert shape[self.ch_ax] == n_ch, f"Not all images have the same ch shape. Current shape: {shape}. Please check your data shapes + Dataset args."
+                assert (
+                    shape[self.ch_ax] == n_ch
+                ), f"Not all images have the same ch shape. Current shape: {shape}. Please check your data shapes + Dataset args."
             self.shapes.append(shape)
-        self.shapes = tuple(self.shapes) # avoid mutable members
+        self.shapes = tuple(self.shapes)  # avoid mutable members
 
     def _set_load(self, format: str):
         if format.endswith(".npy"):
