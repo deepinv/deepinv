@@ -659,7 +659,7 @@ class BaseOptim(Reconstructor):
                         }
 
                 # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, F_fn=None):
+                def init_iterate_fn(y, physics, init=None, F_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
                 backward_FP = FixedPoint(

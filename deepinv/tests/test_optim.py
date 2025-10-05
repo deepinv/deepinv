@@ -13,12 +13,6 @@ from functools import partial
 import copy
 
 
-def custom_init_CP(y, physics):
-    x_init = physics.A_adjoint(y)
-    u_init = y
-    return {"est": (x_init, x_init, u_init)}
-
-
 def test_data_fidelity_l2(device):
     data_fidelity = L2()
 
@@ -456,7 +450,12 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
 
-    custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
+    if pnp_algo == "PrimalDualCP":
+        x_init = physics.A_adjoint(y)
+        u_init = y
+        init = (x_init, x_init, u_init)
+    else:
+        init = None
 
     pnp = getattr(dinv.optim, pnp_algo)(
         prior=prior,
@@ -469,10 +468,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         g_param=sigma_denoiser,
         lambda_reg=lambda_reg,
         early_stop=True,
-        custom_init=custom_init,
     )
 
-    x = pnp(y, physics)
+    x = pnp(y, physics, init=init)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
     # plot = True
@@ -555,7 +553,13 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         prior = get_prior(prior_name, device=device)
 
         stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
-        custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
+
+        if pnp_algo == "PrimalDualCP":
+            x_init = physics.A_adjoint(y)
+            u_init = y
+            init = (x_init, x_init, u_init)
+        else:
+            init = None
 
         opt_algo = getattr(dinv.optim, pnp_algo)(
             prior=prior,
@@ -568,10 +572,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             lambda_reg=lambda_reg,
             stepsize_dual=stepsize_dual,
             early_stop=True,
-            custom_init=custom_init,
         )
 
-        x = opt_algo(y, physics)
+        x = opt_algo(y, physics, init=init)
 
         # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
         # plot = True
@@ -717,11 +720,14 @@ def test_CP_K(imsize, dummy_dataset, device):
             K_adjoint=K_adjoint,
             early_stop=True,
             g_first=g_first,
-            custom_init=custom_init_CP,
         )
 
+        x_init = physics.A_adjoint(y)
+        u_init = y
+        init = (x_init, x_init, u_init)
+
         # Run the optimization algorithm
-        x = optimalgo(y, physics)
+        x = optimalgo(y, physics, init=init)
 
         print("g_first: ", g_first)
         assert optimalgo.has_converged
@@ -800,11 +806,14 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         K_adjoint=A_adjoint,
         early_stop=True,
         g_first=g_first,
-        custom_init=custom_init_CP,
     )
 
+    x_init = physics.A_adjoint(y)
+    u_init = y
+    init = (x_init, x_init, u_init)
+
     # Run the optimization algorithm
-    x = optimalgo(y, physics)
+    x = optimalgo(y, physics, init=init)
 
     assert optimalgo.has_converged
 
