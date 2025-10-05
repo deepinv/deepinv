@@ -39,6 +39,8 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler
+        for discriminator. If optimizer not passed, then this is ignored.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
         If `None`, uses same physics every forward pass.
 
@@ -92,6 +94,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: torch.optim.Optimizer = None,
+        scheduler_D: torch.optim.lr_scheduler.LRScheduler = None,
         physics_generator: PhysicsGenerator = None,
         device="cpu",
         **kwargs,
@@ -101,6 +104,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
             device=device,
             metric_gan=metric_gan,
             optimizer_D=optimizer_D,
+            scheduler_D=scheduler_D,
             **kwargs,
         )
 

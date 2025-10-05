@@ -34,6 +34,8 @@ class SupAdversarialLoss(AdversarialLoss):
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler
+        for discriminator. If optimizer not passed, then this is ignored.
     :param str device: torch device, defaults to "cpu"
 
     |sep|
@@ -92,6 +94,8 @@ class UnsupAdversarialLoss(AdversarialLoss):
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler
+        for discriminator. If optimizer not passed, then this is ignored.
 
     |sep|
 
@@ -120,6 +124,7 @@ class UnsupAdversarialLoss(AdversarialLoss):
         domain: str = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: torch.optim.Optimizer = None,
+        scheduler_D: torch.optim.lr_scheduler.LRScheduler = None,
         device="cpu",
         **kwargs,
     ):
@@ -129,6 +134,7 @@ class UnsupAdversarialLoss(AdversarialLoss):
             metric_gan=metric_gan,
             device=device,
             optimizer_D=optimizer_D,
+            scheduler_D=scheduler_D,
         )
         self.domain = domain
         if domain is not None and domain not in ("A_adjoint", "A_dagger"):
@@ -194,6 +200,8 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
         :class:`deepinv.loss.adversarial.DiscriminatorMetric` which implements least squared metric as in LSGAN.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler
+        for discriminator. If optimizer not passed, then this is ignored.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
     :param torch.utils.data.DataLoader dataloader: dataloader that returns new samples
 
@@ -245,6 +253,7 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
         domain: str = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: torch.optim.Optimizer = None,
+        scheduler_D: torch.optim.lr_scheduler.LRScheduler = None,
         physics_generator: PhysicsGenerator = None,
         dataloader: DataLoader = None,
         device="cpu",
@@ -256,6 +265,7 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
             domain=domain,
             metric_gan=metric_gan,
             optimizer_D=optimizer_D,
+            scheduler_D=scheduler_D,
             device=device,
         )
         self.physics_generator = physics_generator

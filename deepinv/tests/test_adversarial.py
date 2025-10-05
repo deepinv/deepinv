@@ -75,21 +75,23 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
     model = dinv.models.MedianFilter()
     optimizer = torch.optim.SGD([torch.tensor(0.0, requires_grad=False)])
     optimizer_D = torch.optim.Adam(D.parameters(), lr=1e-3)
+    scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=5, gamma=0.5)
 
     if loss_name == "Sup":
         loss = adversarial.SupAdversarialLoss(
-            D=D, optimizer_D=optimizer_D, device=device
+            D=D, optimizer_D=optimizer_D, scheduler_D=scheduler_D, device=device
         )
         loss.save_model(tmp_path / "discrim.tmp")
 
     elif loss_name == "Unsup":
         loss = adversarial.UnsupAdversarialLoss(
-            D=D, optimizer_D=optimizer_D, device=device
+            D=D, optimizer_D=optimizer_D, scheduler_D=scheduler_D, device=device
         )
     elif loss_name == "MultiOperatorUnsup":
         loss = adversarial.MultiOperatorUnsupAdversarialLoss(
             D=D,
             optimizer_D=optimizer_D,
+            scheduler_D=scheduler_D,
             dataloader=DataLoader(dataset),
             physics_generator=physics_generator,
             device=device,
@@ -98,6 +100,7 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
         loss = adversarial.UAIRLoss(
             D=D,
             optimizer_D=optimizer_D,
+            scheduler_D=scheduler_D,
             device=device,
             physics_generator=physics_generator,
         )

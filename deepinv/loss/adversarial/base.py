@@ -77,6 +77,8 @@ class AdversarialLoss(Loss):
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
+    :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler
+        for discriminator. If optimizer not passed, then this is ignored.
     :param str device: torch device, defaults to `"cpu"`
     """
 
@@ -86,6 +88,7 @@ class AdversarialLoss(Loss):
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: torch.optim.Optimizer = None,
+        scheduler_D: torch.optim.lr_scheduler.LRScheduler = None,
         device="cpu",
         **kwargs,
     ):
@@ -96,6 +99,11 @@ class AdversarialLoss(Loss):
         self.weight_adv = weight_adv
         self.D = D
         self.optimizer_D = optimizer_D
+        self.scheduler_D = scheduler_D
+        if optimizer_D is None and scheduler_D is not None:
+            raise ValueError(
+                "Discriminator scheduler requires discriminator optimizer to be passed."
+            )
 
         self.log_loss_D_train = AverageMeter("Training discrim loss", ":.2e")
         self.log_loss_D_eval = AverageMeter("Validation discrim loss", ":.2e")
@@ -156,6 +164,8 @@ class AdversarialLoss(Loss):
         finally:
             if model.training:
                 self.optimizer_D.step()
+                if self.scheduler_D is not None:
+                    self.scheduler_D.step()
 
     def forward(
         self,
