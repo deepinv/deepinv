@@ -11,7 +11,7 @@ class RandomPatchSampler(ImageDataset):
         self,
         x_dir: str = None,
         y_dir: str = None,
-        patch_size: int | tuple[int] = 32,
+        patch_size: int | tuple[int, ...] = 32,
         format: str = ".npy",
         ch_axis: int = None,
     ):
@@ -22,15 +22,15 @@ class RandomPatchSampler(ImageDataset):
 
         :param str x_dir: Path to folder of ground-truth images.
         :param str y_dir: Path to folder of measurements. Measurements must be images of same shape as ground-truth.
-        :param int patch_size: Patch size to use, must be <= smallest shape in the dataset
+        :param int, tuple[int] patch_size: Patch size to use,
         :param str format: Format to use. Other files will be ignored. Supported: .npy, .nii(.gz), .b2nd (blosc2)
         :param int ch_axis: Specifies which axis contains channels in the files. Currently, only 0 or -1 are supported. If None, will perform unsqueeze(0) to create singleton channel.
         """
-        assert x_dir or y_dir, "Both x_dir and y_dir cannot be None."
-        if ch_axis:
+        assert x_dir or y_dir, "Provide at least one of x_dir or y_dir."
+        if ch_axis is not None:
             assert (
                 ch_axis == 0 or ch_axis == -1
-            ), f"Only None, 0, or 1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
+            ), f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
 
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
@@ -39,24 +39,26 @@ class RandomPatchSampler(ImageDataset):
         x_imgs, y_imgs = None, None
 
         if x_dir is not None:
-            assert os.path.exists(x_dir), f"Measurement dir {x_dir} does not exist."
+            assert os.path.exists(x_dir), f"Ground-truth dir {x_dir} does not exist."
             x_imgs = [f for f in os.listdir(x_dir) if f.endswith(format)]
             assert (
                 len(x_imgs) != 0
-            ), f"Measurement dir is given but empty for file format {format}."
+            ), f"Ground-truth dir is given but empty for file format {format}."
 
         if y_dir is not None:
-            assert os.path.exists(y_dir), f"Ground-truth dir {y_dir} does not exist."
+            assert os.path.exists(y_dir), f"Measurement dir {y_dir} does not exist."
             y_imgs = [f for f in os.listdir(y_dir) if f.endswith(format)]
             assert (
                 len(y_imgs) != 0
-            ), f"Ground-truth dir is given but empty for file format {format}."
+            ), f"Measurement dir is given but empty for file format {format}."
 
         self.imgs = (
-            [f for f in x_imgs if f in y_imgs]
+            sorted(set(x_imgs) & set(y_imgs))
             if (x_imgs and y_imgs)
             else (x_imgs or y_imgs)
         )
+
+        assert len(self.imgs) > 0, "No (shared) images available."
 
         self._set_shapes()
 
@@ -97,13 +99,13 @@ class RandomPatchSampler(ImageDataset):
         else:
             return x
 
-    def _fix_ch(self, v: np.ndarray):
+    def _fix_ch(self, v: torch.Tensor):
         if self.ch_ax is None:
             v = v.unsqueeze(0)
         elif self.ch_ax == -1:
             nd = len(v.shape)
-            v = np.transpose(v, (nd - 1,) + tuple(range(nd - 1)))
-        return v.squeeze(axis=tuple(i for i, v in enumerate(self.patch_size) if v == 1))
+            v = v.permute(nd - 1, *range(nd - 1)).contiguous()
+        return v.squeeze(dim=tuple(i for i, p in enumerate(self.patch_size) if p == 1))
 
     def _set_shapes(self):
         ndim = None
@@ -126,9 +128,9 @@ class RandomPatchSampler(ImageDataset):
                             None  # this is silent right now, but patching along ch makes no sense?
                         )
                 elif len(self.patch_size) == ndim - 1:
-                    if self.ch_ax is 0:
+                    if self.ch_ax == 0:
                         self.patch_size.insert(self.ch_ax, None)
-                    elif self.ch_ax is -1:
+                    elif self.ch_ax == -1:
                         self.patch_size.append(None)
                 self.patch_size = tuple(
                     self.patch_size
@@ -137,8 +139,6 @@ class RandomPatchSampler(ImageDataset):
             assert (
                 len(shape) == ndim
             ), f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
-            print(f"shape: {shape}")
-            print(f"patch size: {self.patch_size}")
             assert all(
                 s >= p if p is not None else True
                 for s, p in zip(shape, self.patch_size)
@@ -165,5 +165,5 @@ class RandomPatchSampler(ImageDataset):
             self._load = load_blosc2
         else:
             raise NotImplementedError(
-                "No loader function for 3D volumes with extension {format}"
+                f"No loader function for 3D volumes with extension {format}"
             )

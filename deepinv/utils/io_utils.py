@@ -80,7 +80,10 @@ def load_nifti(
 
         return torch.from_numpy(
             arr[
-                tuple(slice(s, s + p) for s, p in zip(start_coords, patch_size))
+                tuple(
+                    slice(s, s + p if s is not None else None)
+                    for s, p in zip(start_coords, patch_size)
+                )
             ].astype(dtype)
         )
     elif as_memmap:
@@ -120,7 +123,12 @@ def load_blosc2(
         assert len(start_coords) == len(patch_size)
 
         return torch.from_numpy(
-            arr[tuple(slice(s, s + p) for s, p in zip(start_coords, patch_size))]
+            arr[
+                tuple(
+                    slice(s, s + p if s is not None else None)
+                    for s, p in zip(start_coords, patch_size)
+                )
+            ]
         )
     elif as_memmap:
         return arr
