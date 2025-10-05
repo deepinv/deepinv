@@ -68,7 +68,7 @@ class RandomPatchSampler(ImageDataset):
         shape = self.shapes[idx]
         # We use random here: need to ensure deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
         start_coords = [
-            random.randint(p, s - p) if p is not None else p
+            random.randint(0, s - p) if p is not None else p
             for p, s in zip(self.patch_size, shape)
         ]
 
@@ -99,12 +99,11 @@ class RandomPatchSampler(ImageDataset):
 
     def _fix_ch(self, v: np.ndarray):
         if self.ch_ax is None:
-            return v.unsqueeze(0)
+            v = v.unsqueeze(0)
         elif self.ch_ax == -1:
             nd = len(v.shape)
-            return np.transpose(v, (nd - 1,) + tuple(range(nd - 1)))
-        else:
-            return v
+            v = np.transpose(v, (nd - 1,) + tuple(range(nd - 1)))
+        return v.squeeze(axis=tuple(i for i, v in enumerate(self.patch_size) if v == 1))
 
     def _set_shapes(self):
         ndim = None
@@ -120,13 +119,17 @@ class RandomPatchSampler(ImageDataset):
                 n_ch = None if self.ch_ax is None else shape[self.ch_ax]
                 if isinstance(self.patch_size, int):
                     self.patch_size = [self.patch_size for i in range(ndim)]
+                self.patch_size = list(self.patch_size)  # ensure mutable
                 if len(self.patch_size) == ndim:
                     if self.ch_ax is not None:
                         self.patch_size[self.ch_ax] = (
                             None  # this is silent right now, but patching along ch makes no sense?
                         )
                 elif len(self.patch_size) == ndim - 1:
-                    self.patch_size.insert(self.ch_ax, None)
+                    if self.ch_ax is 0:
+                        self.patch_size.insert(self.ch_ax, None)
+                    elif self.ch_ax is -1:
+                        self.patch_size.append(None)
                 self.patch_size = tuple(
                     self.patch_size
                 )  # self.patch_size should not change from now.
@@ -134,6 +137,8 @@ class RandomPatchSampler(ImageDataset):
             assert (
                 len(shape) == ndim
             ), f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
+            print(f"shape: {shape}")
+            print(f"patch size: {self.patch_size}")
             assert all(
                 s >= p if p is not None else True
                 for s, p in zip(shape, self.patch_size)

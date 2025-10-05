@@ -33,7 +33,12 @@ def load_np(
 
         # We should check that we're not out of bound here?
         return torch.from_numpy(
-            arr[tuple(slice(s, s + p) for s, p in zip(start_coords, patch_size))]
+            arr[
+                tuple(
+                    slice(s, s + p if s is not None else None)
+                    for s, p in zip(start_coords, patch_size)
+                )
+            ]
         )
     elif as_memmap:
         return open_memmap(fname)

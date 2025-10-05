@@ -1094,51 +1094,138 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
 
 
 @pytest.fixture
-def download_brainweb_dl():
-    """Downloads dataset for tests and removes it after test executions. Only downloads subset to save time / disk space."""
-    from brainweb_dl import get_mri
-
+def make_data(tmp_path):
+    """Minimal synthetic datasets for 3D (.npy/.b2nd/.nii.gz), 2D+channels (C,H,W & H,W,C), and >3D no-channels (H,W,D,T)."""
     import nibabel as nib
     import blosc2
 
-    tmp_np_dir = "brainweb_np"
-    tmp_blosc2_dir = "brainweb_blosc"
-    tmp_nii_dir = "brainweb_nii"
+    root = tmp_path
 
-    os.makedirs(tmp_np_dir, exist_ok=True)
-    os.makedirs(tmp_blosc2_dir, exist_ok=True)
-    os.makedirs(tmp_nii_dir)
+    cases = []
 
-    ids = [44, 5, 18, 53]
-    for im_id in ids:
-        vol_array = get_mri(sub_id=im_id, contrast="T1")
-        np.save(os.path.join(tmp_np_dir, str(im_id) + ".npy"), vol_array)
+    # 3D volumes all formats
+    shape3d = (40, 40, 40)
+    for fmt in (".npy", ".b2nd", ".nii.gz"):
+        dx = root / f"{fmt.strip('.').replace('.','_')}_x"
+        dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+        dx.mkdir()
+        dy.mkdir()
+        for i in range(2):
+            vol = np.random.normal(size=shape3d)
+            if fmt == ".npy":
+                np.save(dx / f"{i}.npy", vol)
+                np.save(dy / f"{i}.npy", vol)
+            elif fmt == ".b2nd":
+                blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dx / f"{i}.b2nd"))
+                blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dy / f"{i}.b2nd"))
+            else:
+                nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dx / f"{i}.nii.gz"))
+                nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dy / f"{i}.nii.gz"))
 
-        blosc2.asarray(
-            np.ascontiguousarray(vol_array),
-            urlpath=os.path.join(tmp_blosc2_dir, str(im_id) + ".b2nd"),
+        cases.append(
+            dict(
+                name=f"3d-{fmt}",
+                x=str(dx),
+                y=str(dy),
+                fmt=fmt,
+                ch_axis=None,
+                patch=(32, 32, 32),
+                expected=(1, 32, 32, 32),
+            )
         )
 
-        nib.save(
-            nib.Nifti1Image(vol_array, np.eye(4)),
-            os.path.join(tmp_nii_dir, str(im_id) + ".nii.gz"),
-        )  # the affine is simply world; shouldn't influence test behaviour
+    # 2D with channels
+    C = 3
+    # (C,H,W)
+    d0x = root / "npy_2d_ch0_x"
+    d0y = root / "npy_2d_ch0_y"
+    d0x.mkdir()
+    d0y.mkdir()
+    # (H,W,C)
+    dmx = root / "npy_2d_chm1_x"
+    dmy = root / "npy_2d_chm1_y"
+    dmx.mkdir()
+    dmy.mkdir()
+    for i in range(2):
+        np.save(d0x / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+        np.save(d0y / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+        np.save(dmx / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+        np.save(dmy / f"{i}.npy", np.random.normal(size=(48, 48, C)))
 
-    yield (tmp_np_dir, tmp_blosc2_dir, tmp_nii_dir)
+    cases += [
+        dict(
+            name="2d-ch0",
+            x=str(d0x),
+            y=str(d0y),
+            fmt=".npy",
+            ch_axis=0,
+            patch=(16, 16),
+            expected=(3, 16, 16),
+        ),
+        dict(
+            name="2d-chm1",
+            x=str(dmx),
+            y=str(dmy),
+            fmt=".npy",
+            ch_axis=-1,
+            patch=(16, 16),
+            expected=(3, 16, 16),
+        ),
+    ]
 
-    shutil.rmtree(tmp_np_dir), shutil.rmtree(tmp_blosc2_dir), shutil.rmtree(tmp_nii_dir)
+    # (H,W,D,T)
+    d4x = root / "npy_4d_noch_x"
+    d4y = root / "npy_4d_noch_y"
+    d4x.mkdir()
+    d4y.mkdir()
+    for i in range(2):
+        np.save(d4x / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+        np.save(d4y / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+    cases.append(
+        dict(
+            name="4d-noch",
+            x=str(d4x),
+            y=str(d4y),
+            fmt=".npy",
+            ch_axis=None,
+            patch=(12, 12, 10, 2),
+            expected=(1, 12, 12, 10, 2),
+        )
+    )
+
+    return cases
 
 
-def test_RandomPatchSampler(download_brainweb_dl):
-    patch_size = 32  # this patch size should always fit
-    dirs = download_brainweb_dl
-    for d, f_format in zip(dirs, (".npy", ".b2nd", ".nii.gz")):
-        dataset = RandomPatchSampler(x_dir=d, patch_size=patch_size, format=f_format)
-        assert len(dataset)
-        x = next(iter(dataset))
-        assert x.shape == (1, 32, 32, 32)
+def test_RandomPatchSampler(make_data):
+    # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
+    for c in make_data:
+        # x-only
+        ds = RandomPatchSampler(
+            x_dir=c["x"], patch_size=c["patch"], format=c["fmt"], ch_axis=c["ch_axis"]
+        )
+        assert len(ds) == 2
+        x = next(iter(ds))
+        assert (
+            x.shape == (1,) + tuple(c["patch"])
+            if c["ch_axis"] is None and len(c["patch"]) == 3
+            else (c["expected"] if len(c["patch"]) != 3 else c["expected"])
+        )  # keep logic flat
+        ds = RandomPatchSampler(
+            x_dir=c["x"],
+            y_dir=c["y"],
+            patch_size=c["patch"],
+            format=c["fmt"],
+            ch_axis=c["ch_axis"],
+        )
+        x, y = next(iter(ds))
+        assert x.shape == c["expected"]
+        assert y.shape == c["expected"]
 
-        dataset = RandomPatchSampler(y_dir=d, patch_size=patch_size, format=f_format)
-        x, y = next(iter(dataset))
-        assert y.shape == (1, 32, 32, 32)
-        assert math.isnan(x)
+    # check if x is nan behaviour happens
+    c0 = make_data[0]
+    ds = RandomPatchSampler(
+        y_dir=c0["y"], patch_size=c0["patch"], format=c0["fmt"], ch_axis=c0["ch_axis"]
+    )
+    assert len(ds) == 2
+    x, y = next(iter(ds))
+    assert math.isnan(x)
