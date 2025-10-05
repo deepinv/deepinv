@@ -747,7 +747,7 @@ class WCRR(Prior):
         filter_sizes=[5, 5, 5],
         device="cpu",
         pretrained=None,
-        warn_output_scaling=False,
+        warn_output_scaling=True,
     ):
         super(WCRR, self).__init__()
         nb_channels = [in_channels] + nb_channels
