@@ -647,14 +647,9 @@ class NMAPG(Reconstructor):
     The nmAPG combines a proximal gradient descent with momentum and a backtracking/line search mechanism with Barzilai-Borwein step sizes.
     The algorithm supports batching wrt. :math:`y` and applies the stopping criterion per element in the batch.
 
-    Reference:
-
-    Huan Li, Zhouchen Lin
-    Accelerated Proximal Gradient Methods for Nonconvex Programming
-    NeurIPS 2015
-
+    The algorithm was proposed in :footcite:t:`li2015accelerated`.
     We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
-    supplementary material of the paper.
+    supplementary material of the paper. The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
     :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}` as an instance of
         :class:`deepinv.optim.DataFidelity`. Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.

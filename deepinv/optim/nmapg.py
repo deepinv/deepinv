@@ -46,16 +46,9 @@ def nonmonotone_accelerated_proximal_gradient(
     To this end, the function takes a tensor `y` containing the paramters, where the first dimension is the batch dimension
     and an initialization tensor `x0` with the same first dimension as batch dimension.
 
-
-
-    Reference:
-
-    Huan Li, Zhouchen Lin
-    Accelerated Proximal Gradient Methods for Nonconvex Programming
-    NeurIPS 2015
-
+    The algorithm was proposed in :footcite:t:`li2015accelerated`.
     We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
-    supplementary material of the paper.
+    supplementary material of the paper. The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
     :param torch.Tensor x0: Initialization :math:`x_0` of the algorithm. The first dimension is a batch dimension (with `y.shape[0]==x0.shape[0]` if `y is not None`).
     :param Callable f: Differentiable part :math:`f(x,y)` of the objective function. It takes two inputs: the argument `x` (we are minimizing over `x`)
