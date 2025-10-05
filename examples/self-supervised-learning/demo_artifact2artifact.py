@@ -227,7 +227,6 @@ trainer = dinv.Trainer(
     device=device,
     save_path=None,
     verbose=True,
-    wandb_vis=False,
     show_progress_bar=False,
 )
 

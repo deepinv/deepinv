@@ -1,8 +1,8 @@
+from __future__ import annotations
 from typing import (
     Any,
     Callable,
     NamedTuple,
-    Optional,
 )
 import os
 
@@ -91,7 +91,7 @@ class LidcIdriSliceDataset(ImageDataset):
     def __init__(
         self,
         root: str,
-        transform: Optional[Callable] = None,
+        transform: Callable | None = None,
         hounsfield_units: bool = False,
     ) -> None:
         import pandas as pd

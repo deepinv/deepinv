@@ -40,3 +40,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
+
+from . import utils
