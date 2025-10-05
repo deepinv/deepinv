@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import warnings
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
@@ -716,8 +717,13 @@ class WCRR(Prior):
     r"""
     (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
 
-    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a  concatination multiple convolution
-    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values, see :footcite:t:`hertrich2025learning` for a precise description.
+    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatination multiple convolution
+    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
+    see :footcite:t:`hertrich2025learning` for a precise description.
+
+    To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
+    we implement :math:`\frac{\alpha}{\sigma^2}\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
+    If the weak CRR is used, :math:`\alpha` is fixed per default, since it changes the weak convexity constant.
 
     The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
     The specific implementation is taken from :footcite:t:`hertrich2025learning`.
@@ -729,6 +735,8 @@ class WCRR(Prior):
     :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
     :param str device: Device for the weights. Default: `"cpu"`
     :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+    :param bool warn_output_scaling: warn if `weak_convexity>0` and the output scaling (:math:`\log(\alpha)` in the above description) is not zero. This case
+        destroys the weak convexity constant defined by teh `weak_convexity` argument. Default: `True`
     """
 
     def __init__(
@@ -739,9 +747,11 @@ class WCRR(Prior):
         filter_sizes=[5, 5, 5],
         device="cpu",
         pretrained=None,
+        warn_output_scaling=False,
     ):
         super(WCRR, self).__init__()
         nb_channels = [in_channels] + nb_channels
+        self.warn_output_scaling = warn_output_scaling
         self.nb_filters = nb_channels[-1]
         self.filter_size = sum(filter_sizes) - len(filter_sizes) + 1
         self.filters = nn.Sequential(
@@ -830,6 +840,17 @@ class WCRR(Prior):
         return grad
 
     def fn(self, x, *args, **kwargs):
+        if (
+            not self.output_scaling == 0.0
+            and not self.weak_cvx == 0
+            and self.warn_output_scaling
+        ):
+            warnings.warn(
+                "The parameter WCRR.output_scaling is not zero even though WCRR.weak_convexity is not zero! "
+                + "This means that the weak convexity parameter of the WCRR is not WCRR.weak_convexity but exp(output_scaling)*WCRR.weak_convexity. "
+                + "If you require the WCRR to keep the weak convexity, set WCRR.output_scaling.requires_grad_(False) for all training methods and do not "
+                + "change WCRR.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the WCRR to False."
+            )
         reg = self.conv(x)
         reg = reg * torch.exp(self.input_scaling)
         reg = (
