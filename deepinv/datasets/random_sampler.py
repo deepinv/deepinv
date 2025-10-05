@@ -58,7 +58,11 @@ class RandomPatchSampler(ImageDataset):
             assert (
                 ch_axis == 0 or ch_axis == -1
             ), f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
-
+        if isinstance(patch_size, tuple) or isinstance(patch_size, list):
+            for i, p in patch_size:
+                assert isinstance(
+                    p, int
+                ), f"patch_size arguments must be integers, got type {type(p)} at index {i}"
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
         self._set_load(format)
