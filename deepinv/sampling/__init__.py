@@ -13,6 +13,9 @@ from .noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity, ILVR
 from .diffusion_sde import (
     BaseSDE,
     DiffusionSDE,
+    EDMDiffusionSDE,
+    SongDiffusionSDE,
+    FlowMatching,
     VarianceExplodingDiffusion,
     VariancePreservingDiffusion,
     PosteriorDiffusion,

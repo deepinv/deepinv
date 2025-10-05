@@ -241,7 +241,7 @@ class NCSNpp(Denoiser):
                 pretrained.lower() == "edm-ffhq64-uncond-ve"
                 or (pretrained.lower() == "download" and model_name == "ncsn")
             ):
-                name = "ncsnpp-ffhq64-uncond-ve.pt"
+                name = "edm-ffhq-64x64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -252,7 +252,7 @@ class NCSNpp(Denoiser):
                 pretrained.lower() == "edm-ffhq64-uncond-vp"
                 or (pretrained.lower() == "download" and model_name == "ddpm")
             ):
-                name = "ncsnpp-ffhq64-uncond-vp.pt"
+                name = "edm-ffhq-64x64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name

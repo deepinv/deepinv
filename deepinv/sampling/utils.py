@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-
+from typing import Callable
 
 class Welford:
     r"""
