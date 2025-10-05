@@ -8,7 +8,7 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.models import Reconstructor
-from .nmapg import nonmonotone_accelerated_proximal_gradient
+from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
 class BaseOptim(Reconstructor):

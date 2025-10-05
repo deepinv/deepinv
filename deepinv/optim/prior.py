@@ -9,7 +9,7 @@ from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.models.GSPnP import GSDRUNet
-from .nmapg import nonmonotone_accelerated_proximal_gradient
+from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
 class Prior(Potential):
@@ -886,6 +886,10 @@ class LSR(Prior):
     r"""
     Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`.
 
+    To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
+    we implement :math:`\alpha\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
+    These parameters are learned in the log scale to enforce positivity.
+
     This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
     The specific implementation wraps the :class:`GSDRUNet<deepinv.models.GSPnP.GSDRUNet>`.
 
@@ -931,7 +935,7 @@ class LSR(Prior):
             )
         elif isinstance(pretrained_GSDRUNet, GSDRUNet):
             self.model = pretrained_GSDRUNet.to(device)
-            # TODO add module otherwise the parameters are not detected...
+            self.add_module("model", self.model)
         else:
             raise ValueError(
                 "The parameter pretrained_GSDRUNet must either be None or an instance of GSDRUNet!"
