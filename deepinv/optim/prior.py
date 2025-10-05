@@ -779,7 +779,7 @@ class WCRR(Prior):
         )
 
         self.dirac = torch.zeros(
-            1, 1, 2 * self.filter_size - 1, 2 * self.filter_size - 1
+            1, in_channels, 2 * self.filter_size - 1, 2 * self.filter_size - 1
         )
         self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
 
