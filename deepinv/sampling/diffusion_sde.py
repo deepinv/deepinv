@@ -177,7 +177,9 @@ class DiffusionSDE(BaseSDE):
         **kwargs,
     ):
         def backward_drift(x, t, *args, **kwargs):
-            return -forward_drift(x, t) + ((1 + alpha) / 2) * forward_diffusion(t)**2 * self.score(x, t, *args, **kwargs)
+            return -forward_drift(x, t) + ((1 + alpha) / 2) * forward_diffusion(
+                t
+            ) ** 2 * self.score(x, t, *args, **kwargs)
 
         def backward_diffusion(t):
             return (alpha**0.5) * forward_diffusion(t)
@@ -304,28 +306,35 @@ class EDMDiffusionSDE(DiffusionSDE):
         device=torch.device("cpu"),
         *args,
         **kwargs,
-    ):  
+    ):
         self.T = T
         self.sigma_t = sigma_t
         self.variance_preserving = variance_preserving
         if scale_t is None:
             if variance_preserving:
+
                 def scale_t(t):
                     t = self._handle_time_step(t)
                     return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+
                 def scale_prime_t(t):
                     self._handle_time_step(t)
                     return (
-                        - self.sigma_t(t) * self.sigma_prime_t(t)
+                        -self.sigma_t(t)
+                        * self.sigma_prime_t(t)
                         * (1 / (1 + self.sigma_t(t) ** 2)) ** 1.5
                     )
+
             elif variance_exploding:
+
                 def scale_t(t):
                     t = self._handle_time_step(t)
                     return torch.ones_like(t)
+
                 def scale_prime_t(t):
                     t = self._handle_time_step(t)
                     return torch.zeros_like(t)
+
             else:
                 raise ValueError(
                     "scale_t must be provided if variance_preserving or variance_exploding is False"
@@ -333,19 +342,23 @@ class EDMDiffusionSDE(DiffusionSDE):
         self.scale_t = scale_t
 
         if sigma_prime_t is None:
+
             def sigma_prime_t(t):
                 t = torch.tensor(self._handle_time_step(t), requires_grad=True)
                 s = self.sigma_t(t)
                 s.backward()
                 return t.grad.item()
+
         self.sigma_prime_t = sigma_prime_t
 
         if scale_prime_t is None:
+
             def scale_prime_t(t):
                 t = torch.tensor(self._handle_time_step(t), requires_grad=True)
                 s = self.scale_t(t)
                 s.backward()
                 return t.grad.item()
+
         self.scale_prime_t = scale_prime_t
 
         def forward_drift(x, t, *args, **kwargs):
@@ -369,7 +382,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
-        x_in = (x / scale)
+        x_in = x / scale
         denoised = self.denoiser(
             x_in.to(torch.float32),
             sigma.to(torch.float32),
@@ -423,7 +436,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
 
     :param Callable beta_t: a time-dependent linear drift of the forward-time SDE.
-    :param Callable B_t: time integral of beta_t between 0 and t. If None, it is calculated by numerical integration. 
+    :param Callable B_t: time integral of beta_t between 0 and t. If None, it is calculated by numerical integration.
     :param Callable xi_t: a time-dependent linear diffusion of the forward-time SDE.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
     :param float alpha: the weighting factor of the diffusion term.
@@ -466,6 +479,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
             beta_t = lambda t: 0 * t
 
         if B_t is None:
+
             def B_t(t: Union[Tensor, float], n_steps: int = 1000) -> Tensor:
                 t = self._handle_time_step(t)
                 return trapz_torch(
@@ -615,7 +629,7 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
 
         def sigma_prime_t(t: Union[Tensor, float]) -> Tensor:
             t = self._handle_time_step(t)
-            return self.sigma_t(t) * (np.log(sigma_max) -  np.log(sigma_min))
+            return self.sigma_t(t) * (np.log(sigma_max) - np.log(sigma_min))
 
         super().__init__(
             sigma_t=sigma_t,

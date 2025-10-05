@@ -103,7 +103,7 @@ class NCSNpp(Denoiser):
             encoder_type = "standard"
             decoder_type = "standard"
             resample_filter = [1, 1]
-        
+
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
@@ -237,9 +237,8 @@ class NCSNpp(Denoiser):
                 )
 
         if pretrained is not None:
-            if (
-                pretrained.lower() == "edm-ffhq64-uncond-ve"
-                or (pretrained.lower() == "download" and model_name == "ncsn")
+            if pretrained.lower() == "edm-ffhq64-uncond-ve" or (
+                pretrained.lower() == "download" and model_name == "ncsn"
             ):
                 name = "edm-ffhq-64x64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
@@ -248,9 +247,8 @@ class NCSNpp(Denoiser):
                 )
                 self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
                 self.pixel_std = 0.5
-            elif (
-                pretrained.lower() == "edm-ffhq64-uncond-vp"
-                or (pretrained.lower() == "download" and model_name == "ddpm")
+            elif pretrained.lower() == "edm-ffhq64-uncond-vp" or (
+                pretrained.lower() == "download" and model_name == "ddpm"
             ):
                 name = "edm-ffhq-64x64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)

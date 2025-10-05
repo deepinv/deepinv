@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 from typing import Callable
 
+
 class Welford:
     r"""
     Welford's algorithm :footcite:t:`welford1962note`for calculating mean and variance.
