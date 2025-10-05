@@ -759,6 +759,6 @@ class NMAPG(Reconstructor):
             )
 
         stats = dict(L=L, steps=steps, line_searches=line_searches, converged=converged)
-        if return_stats:
+        if compute_stats:
             return rec, stats
         return rec
