@@ -273,11 +273,13 @@ except FileNotFoundError:
 from deepinv.sampling import VariancePreservingDiffusion
 
 del trajectory
+#denoiser = NCSNpp(pretrained="download", model_name='ddpm').to(device)
 sde = VariancePreservingDiffusion(device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
     sde=sde,
+    alpha=0.,
     solver=solver,
     device=device,
     dtype=dtype,
@@ -403,7 +405,7 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y=y,
     physics=physics,
-    seed=12,
+    seed=1,
     get_trajectory=True,
 )
 
