@@ -21,7 +21,7 @@ The PnP-ULA method is described in the paper :footcite:t:`laumont2022bayesian`.
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet

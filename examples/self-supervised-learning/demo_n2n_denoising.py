@@ -24,7 +24,7 @@ from torchvision import transforms, datasets
 
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
 # %%
 # Setup paths for data loading and results.

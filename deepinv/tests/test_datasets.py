@@ -36,11 +36,11 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.utils import (
     download_archive,
-    loadmat,
     Crop,
     Rescale,
     ToComplex,
 )
+from deepinv.utils.io_utils import load_mat
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
@@ -734,7 +734,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         x_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
 
@@ -742,7 +742,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         y_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=tuple, allow_non_tensor=True)
     x, y = dataset[0]

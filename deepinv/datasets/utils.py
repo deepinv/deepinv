@@ -9,8 +9,6 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from numpy import ndarray
-
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
@@ -101,32 +99,6 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
-
-
-def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
-    """Load MATLAB array from file.
-
-    .. note::
-
-        This function depends on the ``scipy`` package. You can install it with ``pip install scipy``.
-
-    :param str fname: filename to load
-    :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires
-        ``mat73``, install with ``pip install mat73``.
-    :return: dict with str keys and array values.
-    """
-    from scipy.io import loadmat as scipy_loadmat
-
-    if mat73:
-        try:
-            from mat73 import loadmat as loadmat73
-
-            return loadmat73(fname)
-        except ImportError:
-            raise ImportError("mat73 is required, install with 'pip install mat73'.")
-        except TypeError:
-            pass
-    return scipy_loadmat(fname)
 
 
 class PlaceholderDataset(ImageDataset):

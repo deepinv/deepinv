@@ -13,7 +13,7 @@ from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
