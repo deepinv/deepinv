@@ -178,7 +178,7 @@ print(
 
 plot(
     [test_img, y, recon_crr, recon_wcrr, recon_lsr],
-    ["ground truth", "noisy", "CRR", "WCRR", "LSR"],
+    ["ground truth", "masked", "CRR", "WCRR", "LSR"],
 )
 
 # %%
