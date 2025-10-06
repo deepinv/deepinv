@@ -978,10 +978,14 @@ class LSR(Prior):
         if pretrained is not None:
             self.load_state_dict(torch.load(pretrained, map_location=device))
 
-    def grad(self, x, *args, **kwargs):
-        return torch.exp(self.output_scaling) * self.model.potential_grad(
+    def grad(self, x, *args, get_energy=False, **kwargs):
+        grad = torch.exp(self.output_scaling) * self.model.potential_grad(
             torch.exp(self.input_scaling) * x, self.sigma
         )
+        if get_energy:
+            reg = self(x)
+            return reg, grad
+        return grad
 
     def fn(self, x, *args, **kwargs):
         return torch.exp(

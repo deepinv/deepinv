@@ -726,8 +726,10 @@ class NMAPG(Reconstructor):
             f = lambda x, y: self.lambda_reg * self.prior(x)
             nabla_f = lambda x, y: self.lambda_reg * self.prior.grad(x)
             f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
-            g = self.data_fidelity(x, y, physics)
-            prox_g = self.data_fidelity.prox(x, y, physics)
+            g = lambda x, y: self.data_fidelity(x, y, physics)
+            prox_g = lambda x, y, gamma: self.data_fidelity.prox(
+                x, y, physics, gamma=gamma
+            )
         if self.custom_init is None:
             x0 = physics.A_dagger(y)
         else:
