@@ -428,8 +428,8 @@ class BaseOptim(Reconstructor):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
         :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
-        Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
-        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+            Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
+            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
@@ -689,14 +689,13 @@ class BaseOptim(Reconstructor):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
         :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
-        if ``None`` (and the class ``custom_init``argument is ``None``), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
-        Either a Callable function of the form ``init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+            if ``None`` (and the class ``custom_init``argument is ``None``), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
+            Either a Callable function of the form ``init(y, physics)`` or a fixed initialization.
+            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
         :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)
-        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
-                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm. Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         train_context = (
             torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
