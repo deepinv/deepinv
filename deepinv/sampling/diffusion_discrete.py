@@ -380,7 +380,7 @@ class PSLDDiffusionPosterior(nn.Module):
         self,
         sample: Tensor,
         y: Tensor,
-        forward_model: Physics,
+        physics: Physics,
         dps_eta: float = 1.0,
         gamma: float = 1e-1,
         omega: float = 1.0,
