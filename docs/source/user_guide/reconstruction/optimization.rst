@@ -233,7 +233,7 @@ For example, we can create the same proximal gradient algorithm as the one at th
 .. doctest::
 
     >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
-    >>> x_hat = model(y, physics, init = init)
+    >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 By default, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
