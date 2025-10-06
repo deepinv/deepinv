@@ -10,7 +10,6 @@ from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 from copy import deepcopy
-import scipy as sp
 from deepinv.sampling.utils import trapz_torch
 
 
