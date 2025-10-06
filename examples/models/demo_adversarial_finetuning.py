@@ -57,11 +57,15 @@ loss = [
 # discriminator feature maps showing how "real" the discriminator predicts
 # the image as. Note that the reconstruction is classified as "more fake"
 # than the ground truth, for now!
+#
+# We also calculate the distortion PSNR and the perceptual NIQE metrics
+# for the images.
 
 with torch.no_grad():
     x_net = model(y, physics)
 
-metric = dinv.metric.PSNR()
+psnr = dinv.metric.PSNR()
+niqe = dinv.metric.NIQE(device=device)
 
 dinv.utils.plot(
     {
@@ -73,12 +77,12 @@ dinv.utils.plot(
     },
     subtitles=[
         "",
-        f"PSNR {metric(physics.A_adjoint(y), x).item():.2f}",
-        f"PSNR {metric(x_net, x).item():.2f}",
+        f"PSNR {psnr(physics.A_adjoint(y), x).item():.2f}",
+        f"PSNR {psnr(x_net, x).item():.2f} NIQE {niqe(x_net, x).item():.2f}",
         f"D realness {D(x).mean().item():.1f}",
         f"D realness {D(x_net).mean().item():.1f}",
     ],
-    fontsize=9,
+    fontsize=7,
 )
 
 # %%
@@ -104,7 +108,7 @@ model = trainer.train()
 
 # %%
 # Evaluate the fine-tuned model. Note how the "realness" of the reconstruction
-# has increased!
+# has increased, and both the distortion and perceptual metrics improve.
 
 with torch.no_grad():
     x_net = model(y, physics)
@@ -119,10 +123,10 @@ dinv.utils.plot(
     },
     subtitles=[
         "",
-        f"PSNR {metric(physics.A_adjoint(y), x).item():.2f}",
-        f"PSNR {metric(x_net, x).item():.2f}",
+        f"PSNR {psnr(physics.A_adjoint(y), x).item():.2f}",
+        f"PSNR {psnr(x_net, x).item():.2f} NIQE {niqe(x_net, x).item():.2f}",
         f"D realness {D(x).mean().item():.1f}",
         f"D realness {D(x_net).mean().item():.1f}",
     ],
-    fontsize=9,
+    fontsize=7,
 )

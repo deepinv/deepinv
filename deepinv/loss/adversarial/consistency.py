@@ -64,7 +64,8 @@ class SupAdversarialLoss(AdversarialLoss):
         :param torch.nn.Module model: reconstruction network
         """
         with self.step_discrim(model) as step:
-            step(self.adversarial_discrim(x, x_net) * 0.5)
+            for _ in range(self.num_D_steps):
+                step(self.adversarial_discrim(x, x_net))
 
         return self.adversarial_gen(x, x_net)
 

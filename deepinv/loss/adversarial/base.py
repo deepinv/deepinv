@@ -19,9 +19,9 @@ class DiscriminatorMetric:
 
     Compares discriminator output with labels depending on if the image should be real or not.
 
-    The loss function is composed following LSGAN from :footcite:t:`mao2017least`.
+    By default, the `metric` used is the MSE which gives the LSGAN from :footcite:t:`mao2017least`.
 
-    This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
+    Pass in a different `metric` or override `DiscriminatorMetric` to create any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
     See :footcite:t:`lucic2018gans` for a comparison.
 
@@ -73,7 +73,7 @@ class AdversarialLoss(Loss):
 
     See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for formulae.
 
-    :param float weight_adv: weight for adversarial loss, defaults to 1.
+    :param float weight_adv: weight for adversarial loss, defaults to 0.5.
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
@@ -84,11 +84,12 @@ class AdversarialLoss(Loss):
 
     def __init__(
         self,
-        weight_adv: float = 1.0,
+        weight_adv: float = 0.5,
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,
         optimizer_D: torch.optim.Optimizer = None,
         scheduler_D: torch.optim.lr_scheduler.LRScheduler = None,
+        num_D_steps: int = 1,
         device="cpu",
         **kwargs,
     ):
@@ -100,6 +101,7 @@ class AdversarialLoss(Loss):
         self.D = D
         self.optimizer_D = optimizer_D
         self.scheduler_D = scheduler_D
+        self.num_D_steps = num_D_steps
         if optimizer_D is None and scheduler_D is not None:
             raise ValueError(
                 "Discriminator scheduler requires discriminator optimizer to be passed."
@@ -107,6 +109,7 @@ class AdversarialLoss(Loss):
 
         self.log_loss_D_train = AverageMeter("Training discrim loss", ":.2e")
         self.log_loss_D_eval = AverageMeter("Validation discrim loss", ":.2e")
+        self.device = device
 
     def adversarial_gen(self, real: Tensor, fake: Tensor) -> torch.Tensor:
         r"""Adversarial penalty mechanism in GAN generators.
