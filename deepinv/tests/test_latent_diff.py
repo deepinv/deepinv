@@ -145,7 +145,7 @@ def test_psld_reduces_data_residual(device, imshape):
     z0 = psld.forward(
         sample=zT.clone(),
         y=y,
-        forward_model=physics,
+        physics=physics,
         dps_eta=0.1,  # small step
         gamma=0.5,
         omega=1.0,

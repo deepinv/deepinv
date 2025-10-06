@@ -216,12 +216,12 @@ latents = torch.randn(
     dtype=torch.float16,
 )
 
-# PSLD run.  forward_model=physics enforces data-consistency; gamma tunes strength.
+# PSLD run.  physics=physics enforces data-consistency; gamma tunes strength.
 # `DDIM_eta` controls the DDIM stochasticity inside PSLD; `dps_eta` the PSLD gradient step.
 z = sampler.forward(
     latents,
     y=2 * y - 1,
-    forward_model=physics,
+    physics=physics,
     gamma=0.1,
     dps_eta=1.0,
     DDIM_eta=0.0,  # DDIM noise inside PSLD; set 0.0 for deterministic proposal
