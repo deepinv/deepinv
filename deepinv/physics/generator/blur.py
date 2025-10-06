@@ -5,6 +5,8 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd, conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 
+from deepinv.utils.decorators import _deprecated_alias
+
 
 class PSFGenerator(PhysicsGenerator):
     r"""
@@ -184,21 +186,44 @@ class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D diffraction kernels in optics using Zernike decomposition of the phase mask
+    Generates 2D diffraction PSFs in optics using Zernike decomposition of the phase mask
     (Fresnel/Fraunhoffer diffraction theory).
 
-    Zernike polynomials are ordered following the
-    Noll's sequential indices convention (https://en.wikipedia.org/wiki/Zernike_polynomials for more details).
+    Zernike polynomials are a sequence of orthogonal polynomials defined on the unit disk.
+    They are commonly used in optical systems to describe wavefront aberrations.
+
+    The PSF :math:`h(\theta)` is defined as the squared magnitude of the Fourier transform of the pupil function :math:`\phi_{\theta}` as:
+
+    .. math::
+
+        h(\theta) = \| \mathcal{F} \left( \exp \left( - i 2 \pi \phi_\theta \right) \right) \|^2,
+
+    where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}` is defined as:
+
+    .. math::
+        \phi_\theta(x, y) = \sum_{k} \theta_k z_k
+
+    is the phase aberration expressed in the Zernike basis.
+    The Zernike polynomials :math:`z_k` are indexed using the `noll` or `ansi` convention (defined by `index_convention` parameter).
 
     :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
-    :param list[str] list_param: list of activated Zernike coefficients in Noll's convention,
-        defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``.
+    :param tuple[int] zernike_index: tuple of activated Zernike coefficients in the following `index_convention` convention.
+        defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``, correspond to radial order `n` from 2 to 3 (included) and the spherical aberration.
+        These correspond to the following aberrations: defocus, astigmatism, coma, trefoil and spherical aberration.
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
         to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
+    :param float max_zernike_amplitude: maximum amplitude of the Zernike coefficients, defaults to ``0.15``.
+        The amplitude of each Zernike coefficient is sampled uniformly in ``[-max_zernike_amplitude/2, max_zernike_amplitude/2]``.
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil.
         The higher the more precise, defaults to ``(256, 256)``.
         If a single ``int`` is given, a square pupil is considered.
+    :param bool apodize: whether to apodize the PSF to reduce ringing artifacts, defaults to ``False``.
+    :param bool random_rotate: whether to randomly rotate the PSF, defaults to ``False``.
+    :param str index_convention: the convention for the Zernike polynomials indexing. Can be either ``noll`` (default) or ``ansi``.
+    :param str, torch.device device: device where the tensors are allocated and processed, defaults to ``cpu``.
+    :param torch.dtype dtype: data type of the tensors, defaults to ``torch.float32``.
+    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``.
 
     |sep|
 
@@ -213,43 +238,59 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     """
 
+    @_deprecated_alias(list_param="zernike_index")
     def __init__(
         self,
         psf_size: tuple,
         num_channels: int = 1,
-        device: str = "cpu",
-        dtype: type = torch.float32,
-        rng: torch.Generator = None,
-        list_param: list[str] = (
-            "Z4",
-            "Z5",
-            "Z6",
-            "Z7",
-            "Z8",
-            "Z9",
-            "Z10",
-            "Z11",
-        ),
+        zernike_index: tuple[int | str, ...] = tuple(range(4, 12)),
         fc: float = 0.2,
         max_zernike_amplitude: float = 0.15,
-        pupil_size: tuple[int] = (256, 256),
+        pupil_size: tuple[int, ...] = (256, 256),
+        apodize: bool = False,
+        random_rotate: bool = False,
+        index_convention: str = "noll",
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float32,
+        rng: torch.Generator = None,
     ):
-        kwargs = {
-            "list_param": list_param,
-            "fc": fc,
-            "pupil_size": pupil_size,
-            "max_zernike_amplitude": max_zernike_amplitude,
-        }
         super().__init__(
             psf_size=psf_size,
             num_channels=num_channels,
             device=device,
             dtype=dtype,
             rng=rng,
-            **kwargs,
         )
+        # For backward compatibility if a list / tuple of a string is given
+        zernike_index = list(zernike_index)
+        for i, index in enumerate(zernike_index):
+            if isinstance(index, str):
+                index = int(index[1:])  # Convert "Z4" to 4
+            zernike_index[i] = index
 
-        self.list_param = list_param  # list of parameters to provide
+        self.zernike_index = sorted(zernike_index)  # list of parameters to provide
+        self.fc = fc
+        self.max_zernike_amplitude = max_zernike_amplitude
+        self.apodize = apodize
+        self.random_rotate = random_rotate
+        self.index_convention = index_convention
+
+        if self.apodize:
+            lin_0 = torch.linspace(
+                -psf_size[0] // 2, psf_size[0] // 2, psf_size[0], **self.factory_kwargs
+            )
+            lin_1 = torch.linspace(
+                -psf_size[1] // 2, psf_size[1] // 2, psf_size[1], **self.factory_kwargs
+            )
+            XX0, XX1 = torch.meshgrid(lin_0, lin_1, indexing="ij")
+            dist = (XX0**2 + XX1**2) ** 0.5
+            radius = min(psf_size) / 2
+            apodize_length = 10
+            self.apodize_mask = bump_function(
+                dist, a=radius - apodize_length, b=apodize_length
+            )
+        else:
+            self.apodize_mask = None
 
         pupil_size = (
             max(self.pupil_size[0], self.psf_size[0]),
@@ -263,14 +304,14 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
         XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
-        self.rho = cart2pol(XX, YY)  # Cartesian coordinates
-
-        # The list of Zernike polynomial functions
-        list_zernike_polynomial = define_zernike()
+        self.register_buffer("rho", cart2pol(XX, YY))  # Cartesian coordinates
+        self.register_buffer(
+            "indicator_circ",
+            bump_function(self.rho, 1 - self.step_rho / 2, b=self.step_rho / 2),
+        )
 
         # In order to avoid layover in Fourier convolution we need to zero pad and then extract a part of image
         # computed from pupil_size and psf_size
-
         self.pad_pre = (
             ceil((self.pupil_size[0] - self.psf_size[0]) / 2),
             ceil((self.pupil_size[1] - self.psf_size[1]) / 2),
@@ -280,36 +321,30 @@ class DiffractionBlurGenerator(PSFGenerator):
             floor((self.pupil_size[1] - self.psf_size[1]) / 2),
         )
 
-        # a list of indices of the parameters
-        self.index_params = np.sort([int(param[1:]) for param in list_param])
-        assert (
-            np.max(self.index_params) <= 38
-        ), "The Zernike polynomial index can not be exceed 38"
-
         # the number of Zernike coefficients
-        self.n_zernike = len(self.index_params)
+        self.n_zernike = len(self.zernike_index)
 
         # the tensor of Zernike polynomials in the pupil plane
-        self.Z = torch.zeros(
-            (self.pupil_size[0], self.pupil_size[1], self.n_zernike),
-            **self.factory_kwargs,
+        self.register_buffer(
+            "Z",
+            torch.zeros(
+                (self.pupil_size[0], self.pupil_size[1], self.n_zernike),
+                **self.factory_kwargs,
+            ),
         )
-        for k in range(len(self.index_params)):
-            self.Z[:, :, k] = list_zernike_polynomial[self.index_params[k]](
-                XX, YY
+        for k, index in enumerate(self.zernike_index):
+            n, m = zernike_index_conversion(index, convention=index_convention)
+            self.Z[:, :, k] = get_zernike_polynomial(
+                n, m, XX, YY
             )  # defining the k-th Zernike polynomial
 
-    def __update__(self):
-        r"""
-        Update the device and dtype of Zernike polynomials and the coordinates
-        """
-        self.rho = self.rho.to(**self.factory_kwargs)
-        self.Z = self.Z.to(**self.factory_kwargs)
+        self.to(device=device, dtype=dtype)
 
     def step(
         self,
         batch_size: int = 1,
         coeff: torch.Tensor = None,
+        angle: torch.Tensor = None,
         seed: int = None,
         **kwargs,
     ):
@@ -317,38 +352,45 @@ class DiffractionBlurGenerator(PSFGenerator):
         Generate a batch of PFS with a batch of Zernike coefficients
 
         :param int batch_size: batch_size.
-        :param torch.Tensor coeff: batch_size x len(list_param) coefficients of the Zernike decomposition (defaults is None)
+        :param torch.Tensor coeff: batch_size x len(zernike_index) coefficients of the Zernike decomposition (defaults is `None`)
+        :param torch.Tensor angle: batch_size angles in degree to rotate the PSF (defaults is `None`)
         :param int seed: the seed for the random number generator.
 
-        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
-            **'coeff'**: list of sampled Zernike coefficients in this realization, **'pupil'**: the pupil function
+        :return: dictionary with keys **'filter'**: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of psfs,
+            **'coeff'**: list of sampled Zernike coefficients in this realization, **'pupil'**: the pupil function.
         :rtype: dict
         """
-        self.__update__()
+
         self.rng_manual_seed(seed)
         if coeff is None:
             coeff = self.generate_coeff(batch_size)
 
-        pupil1 = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
-        pupil2 = torch.exp(-2.0j * torch.pi * pupil1)
-        indicator_circ = bump_function(
-            self.rho, 1 - self.step_rho / 2, b=self.step_rho / 2
-        )
-        pupil3 = pupil2 * indicator_circ
-        psf1 = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil3)))
-        psf2 = torch.real(psf1 * torch.conj(psf1))
-
-        psf3 = psf2[
+        pupil = (self.Z @ coeff[:, : self.n_zernike].T).transpose(2, 0)
+        pupil = torch.exp(-2.0j * torch.pi * pupil)
+        pupil = pupil * self.indicator_circ
+        psf = torch.fft.ifftshift(torch.fft.fft2(torch.fft.fftshift(pupil)))
+        psf = torch.real(psf * torch.conj(psf))
+        psf = psf[
             :,
             self.pad_pre[0] : self.pupil_size[0] - self.pad_post[0],
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
 
-        psf = psf3 / torch.sum(psf3, dim=(-1, -2), keepdim=True)
+        if self.apodize:
+            psf = self.apodize_mask * psf
+
+        # random rotate the PSF if angle is given
+        if self.random_rotate:
+            if angle is None:
+                angle = self.generate_angles(batch_size)
+            psf = rotate_image_via_shear(psf, angle)
+
+        psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
         return {
             "filter": psf.expand(-1, self.shape[0], -1, -1),
             "coeff": coeff,
-            "pupil": pupil3,
+            "pupil": pupil,
+            "angle": angle if self.random_rotate else None,
         }
 
     def generate_coeff(self, batch_size):
@@ -356,170 +398,366 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         :param int batch_size: batch_size.
 
-        :return: a tensor of shape `(batch_size, len(list_param))` coefficients in the Zernike decomposition.
+        :return: a tensor of shape `(batch_size, len(zernike_index))` coefficients in the Zernike decomposition.
 
         """
         coeff = torch.rand(
-            (batch_size, len(self.list_param)),
+            (batch_size, len(self.zernike_index)),
             generator=self.rng,
             **self.factory_kwargs,
         )
         coeff = (coeff - 0.5) * self.max_zernike_amplitude
         return coeff
 
+    def generate_angles(self, batch_size):
+        r"""
+        Generates random angles for the rotation of the PSF.
 
-def define_zernike():
+        :param int batch_size: batch_size.
+
+        :return: a tensor of shape `(batch_size,)` angles in degrees.
+        """
+        return torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * 360
+
+
+def get_zernike_polynomial(
+    n: int, m: int, x: torch.Tensor, y: torch.Tensor
+) -> torch.Tensor:
     r"""
-    Returns a list of Zernike polynomials lambda functions in Cartesian coordinates.
+    Define the Zernike polynomial of radial order :math:`n` and angular (or azimuthal) frequency :math:`m`.
 
-    :param list[func]: list of 37 lambda functions with the Zernike Polynomials. They are ordered as follows:
+    The Zernike polynomials are a sequence of orthogonal polynomials defined on the unit disk.
+    They are commonly used in optical systems to describe wavefront aberrations.
 
-        Z1: Z0,0 Piston or Bias
-        Z2: Z1,1 x Tilt
-        Z3: Z1,-1 y Tilt
-        Z4: Z2,0 Defocus
-        Z5: Z2,-2 Primary Astigmatism at 45
-        Z6: Z2,2 Primary Astigmatism at 0
-        Z7: Z3,-1 Primary y Coma
-        Z8: Z3,1 Primary x Coma
-        Z9: Z3,-3 y Trefoil
-        Z10: Z3,3 x Trefoil
-        Z11: Z4,0 Primary Spherical
-        Z12: Z4,2 Secondary Astigmatism at 0
-        Z13: Z4,-2 Secondary Astigmatism at 45
-        Z14: Z4,4 x Tetrafoil
-        Z15: Z4,-4 y Tetrafoil
-        Z16: Z5,1 Secondary x Coma
-        Z17: Z5,-1 Secondary y Coma
-        Z18: Z5,3 Secondary x Trefoil
-        Z19: Z5,-3 Secondary y Trefoil
-        Z20: Z5,5 x Pentafoil
-        Z21: Z5,-5 y Pentafoil
-        Z22: Z6,0 Secondary Spherical
-        Z23: Z6,-2 Tertiary Astigmatism at 45
-        Z24: Z6,2 Tertiary Astigmatism at 0
-        Z25: Z6,-4 Secondary x Trefoil
-        Z26: Z6,4 Secondary y Trefoil
-        Z27: Z6-,6 Hexafoil Y
-        Z28: Z6,6 Hexafoil X
-        Z29: Z7,-1 Tertiary y Coma
-        Z30: Z7,1 Tertiary x Coma
-        Z31: Z7,-3 Tertiary y Trefoil
-        Z32: Z7,3 Tertiary x Trefoil
-        Z33: Z7,-5 Secondary Pentafoil Y
-        Z34: Z7,5 Secondary Pentafoil X
-        Z35: Z7,-7 Heptafoil Y
-        Z36: Z7,7 Heptafoil X
-        Z37: Z8,0 Tertiary Spherical
+    This function implements the Zernike polynomials up to order 7 using explicit formulas from :footcite:t:`lakshminarayanan2011zernike`
+    (see `this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
+
+    :param int n: the radial order of the Zernike polynomial (`n >= 0`)
+    :param int m: the angular frequency of the Zernike polynomial (`-n <= m <= n` and `n - m` is even)
+    :param torch.Tensor x: x coordinates in the polar plane of any shape.
+    :param torch.Tensor y: y coordinates in the polar plane of any shape.
+
+    :return: the Zernike polynomial evaluated at `(x, y)` of the same shape as `x` and `y`.
     """
-    Z = [None for k in range(38)]
+    out_of_range_error_message = f"The value of m={m} is not valid for n={n}. It should be in the range -n <= m <= n and n - m should be even."
+    if n == 0:
+        if m == 0:
+            return torch.ones_like(x) * (2**0.5)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 1:
+        if m == -1:
+            return 2 * x
+        elif m == 1:
+            return 2 * y
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 2:
+        if m == -2:
+            return 6**0.5 * 2 * x * y
+        elif m == 0:
+            return 3**0.5 * (-1 + 2 * x**2 + 2 * y**2)
+        elif m == 2:
+            return 6**0.5 * (-(x**2) + y**2)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 3:
+        rms = 2 * 2**0.5
+        if m == -3:
+            return rms * (-(x**3) + 3 * x * y**2)
+        elif m == -1:
+            return rms * (-2 * x + 3 * x**3 + 3 * x * y**2)
+        elif m == 1:
+            return rms * (-2 * y + 3 * y**3 + 3 * x**2 * y)
+        elif m == 3:
+            return rms * (y**3 - 3 * x**2 * y)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 4:
+        sq10 = 10**0.5
+        sq5 = 5**0.5
+        if m == -4:
+            return sq10 * (-4 * x**3 * y + 4 * x * y**3)
+        elif m == -2:
+            return sq10 * (-6 * x * y + 8 * x**3 * y + 8 * x * y**3)
+        elif m == 0:
+            return sq5 * (
+                1 - 6 * x**2 - 6 * y**2 + 6 * x**4 + 12 * x**2 * y**2 + 6 * y**4
+            )
+        elif m == 2:
+            return sq10 * (3 * x**2 - 3 * y**2 - 4 * x**4 + 4 * y**4)
+        elif m == 4:
+            return sq10 * (x**4 - 6 * x**2 * y**2 + y**4)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 5:
+        rms = 2 * 3**0.5
+        if m == -5:
+            return rms * (x**5 - 10 * x**3 * y**2 + 5 * x * y**4)
+        elif m == -3:
+            return rms * (
+                4 * x**3 - 12 * x * y**2 - 5 * x**5 + 10 * x**3 * y**2 + 15 * x * y**4
+            )
+        elif m == -1:
+            return rms * (
+                3 * x
+                - 12 * x**3
+                - 12 * x * y**2
+                + 10 * x**5
+                + 20 * x**3 * y**2
+                + 10 * x * y**4
+            )
+        elif m == 1:
+            return rms * (
+                3 * y
+                - 12 * y**3
+                - 12 * x**2 * y
+                + 10 * y**5
+                + 20 * x**2 * y**3
+                + 10 * x**4 * y
+            )
+        elif m == 3:
+            return rms * (
+                -4 * y**3 + 12 * x**2 * y + 5 * y**5 - 10 * x**2 * y**3 - 15 * x**4 * y
+            )
+        elif m == 5:
+            return rms * (y**5 - 10 * x**2 * y**3 + 5 * x**4 * y)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 6:
+        sq14 = 14**0.5
+        sq7 = 7**0.5
+        if m == -6:
+            return sq14 * (6 * x**5 * y - 20 * x**3 * y**3 + 6 * x * y**5)
+        elif m == -4:
+            return sq14 * (
+                20 * x**3 * y - 20 * x * y**3 - 24 * x**5 * y + 24 * x * y**5
+            )
+        elif m == -2:
+            return sq14 * (
+                12 * x * y
+                - 40 * x**3 * y
+                - 40 * x * y**3
+                + 30 * x**5 * y
+                + 60 * x**3 * y**3
+                + 30 * x * y**5
+            )  # There is a sign error in the last term of the paper (TAB 1)
+        elif m == 0:
+            return sq7 * (
+                -1
+                + 12 * x**2
+                + 12 * y**2
+                - 30 * x**4
+                - 60 * x**2 * y**2
+                - 30 * y**4
+                + 20 * x**6
+                + 60 * x**4 * y**2
+                + 60 * x**2 * y**4
+                + 20 * y**6
+            )
+        elif m == 2:
+            return sq14 * (
+                -6 * x**2
+                + 6 * y**2
+                + 20 * x**4
+                - 20 * y**4
+                - 15 * x**6
+                - 15 * x**4 * y**2
+                + 15 * x**2 * y**4
+                + 15 * y**6
+            )
+        elif m == 4:
+            return sq14 * (
+                -5 * x**4
+                + 30 * x**2 * y**2
+                - 5 * y**4
+                + 6 * x**6
+                - 30 * x**4 * y**2
+                - 30 * x**2 * y**4
+                + 6 * y**6
+            )
+        elif m == 6:
+            return sq14 * (-(x**6) + 15 * x**4 * y**2 - 15 * x**2 * y**4 + y**6)
+        else:
+            raise ValueError(out_of_range_error_message)
+    elif n == 7:
+        rms = 4
+        if m == -7:
+            return rms * (-(x**7) + 21 * x**5 * y**2 - 35 * x**3 * y**4 + 7 * x * y**6)
+        elif m == -5:
+            return rms * (
+                -6 * x**5
+                + 60 * x**3 * y**2
+                - 30 * x * y**4
+                + 7 * x**7
+                - 63 * x**5 * y**2
+                - 35 * x**3 * y**4
+                + 35 * x * y**6
+            )
+        elif m == -3:
+            return rms * (
+                -10 * x**3
+                + 30 * x * y**2
+                + 30 * x**5
+                - 60 * x**3 * y**2
+                - 90 * x * y**4
+                - 21 * x**7
+                + 21 * x**5 * y**2
+                + 105 * x**3 * y**4
+                + 63 * x * y**6
+            )
+        elif m == -1:
+            return rms * (
+                -4 * x
+                + 30 * x**3
+                + 30 * x * y**2
+                - 60 * x**5
+                - 120 * x**3 * y**2
+                - 60 * x * y**4
+                + 35 * x**7
+                + 105 * x**5 * y**2
+                + 105 * x**3 * y**4
+                + 35 * x * y**6
+            )
+        elif m == 1:
+            return rms * (
+                -4 * y
+                + 30 * y**3
+                + 30 * x**2 * y
+                - 60 * y**5
+                - 120 * x**2 * y**3
+                - 60 * x**4 * y
+                + 35 * y**7
+                + 105 * x**2 * y**5
+                + 105 * x**4 * y**3
+                + 35 * x**6 * y
+            )
+        elif m == 3:
+            return rms * (
+                10 * y**3
+                - 30 * x**2 * y
+                - 30 * y**5
+                + 60 * x**2 * y**3
+                + 90 * x**4 * y
+                + 21 * y**7
+                - 21 * x**2 * y**5
+                - 105 * x**4 * y**3
+                - 63 * x**6 * y
+            )  # There is a sign error in the last term of the paper (TAB 1)
+        elif m == 5:
+            return rms * (
+                -6 * y**5
+                + 60 * x**2 * y**3
+                - 30 * x**4 * y
+                + 7 * y**7
+                - 63 * x**2 * y**5
+                - 35 * x**4 * y**3
+                + 35 * x**6 * y
+            )
+        elif m == 7:
+            return rms * (y**7 - 21 * x**2 * y**5 + 35 * x**4 * y**3 - 7 * x**6 * y)
+        else:
+            raise ValueError(out_of_range_error_message)
 
-    def r2(x, y):
-        return x**2 + y**2
+    else:
+        # For higher order polynomials, explicit formulas are not implemented here.
+        # We fall back to the general definition using recursion.
+        # TODO
+        pass
 
-    sq3 = 3**0.5
-    sq5 = 5**0.5
-    sq6 = 6**0.5
-    sq7 = 7**0.5
-    sq8 = 8**0.5
-    sq10 = 10**0.5
-    sq12 = 12**0.5
-    sq14 = 14**0.5
 
-    Z[0] = lambda x, y: torch.ones_like(x)  # piston
-    Z[1] = lambda x, y: torch.ones_like(x)  # piston
-    Z[2] = lambda x, y: 2 * x  # tilt x
-    Z[3] = lambda x, y: 2 * y  # tilt y
-    Z[4] = lambda x, y: sq3 * (2 * r2(x, y) - 1)  # defocus
-    Z[5] = lambda x, y: 2 * sq6 * x * y
-    Z[6] = lambda x, y: sq6 * (x**2 - y**2)
-    Z[7] = lambda x, y: sq8 * y * (3 * r2(x, y) - 2)
-    Z[8] = lambda x, y: sq8 * x * (3 * r2(x, y) - 2)
-    Z[9] = lambda x, y: sq8 * y * (3 * x**2 - y**2)
-    Z[10] = lambda x, y: sq8 * x * (x**2 - 3 * y**2)
-    Z[11] = lambda x, y: sq5 * (6 * r2(x, y) ** 2 - 6 * r2(x, y) + 1)
-    Z[12] = lambda x, y: sq10 * (x**2 - y**2) * (4 * r2(x, y) - 3)
-    Z[13] = lambda x, y: 2 * sq10 * x * y * (4 * r2(x, y) - 3)
-    Z[14] = lambda x, y: sq10 * (r2(x, y) ** 2 - 8 * x**2 * y**2)
-    Z[15] = lambda x, y: 4 * sq10 * x * y * (x**2 - y**2)
-    Z[16] = lambda x, y: sq12 * x * (10 * r2(x, y) ** 2 - 12 * r2(x, y) + 3)
-    Z[17] = lambda x, y: sq12 * y * (10 * r2(x, y) ** 2 - 12 * r2(x, y) + 3)
-    Z[18] = lambda x, y: sq12 * x * (x**2 - 3 * y**2) * (5 * r2(x, y) - 4)
-    Z[19] = lambda x, y: sq12 * y * (3 * x**2 - y**2) * (5 * r2(x, y) - 4)
-    Z[20] = (
-        lambda x, y: sq12 * x * (16 * x**4 - 20 * x**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+def zernike_index_conversion(index, convention="ansi"):
+    r"""
+    Converts a single index for Zernike polynomials between different conventions.
+    For more details on the conventions, see `wikipedia <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`_.
+
+    :param int index: the single index of the Zernike polynomial.
+    :param str convention: the convention to convert to. Currently only 'ansi' (for OSA/ANSI standard indices) and 'noll' (for Noll's sequential indices) are implemented.
+
+    Single index for Zernike polynomials:
+    """
+    # For ansi, we implement the following conversion:
+    # https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
+    if convention.lower() == "ansi":
+        n = floor((2 * index + 0.25) ** 0.5 - 0.5)
+        m = 2 * index - n * (n + 2)
+        return n, m
+
+    # For Noll's sequential indices, we refer to the following link:
+    # https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices
+    # The formula is taken from: https://oeis.org/A375779/a375779.pdf
+    elif convention.lower() == "noll":
+        if index < 1:
+            raise ValueError("Noll index must be >= 1")
+
+        n = floor((2 * (index - 1) + 0.25) ** 0.5 - 0.5)
+        m = n % 2 + 2 * floor((index - n * (n + 1) / 2 - 1 + (n + 1) % 2) / 2)
+        # Correct sign of m
+        m = m * (-1) ** index
+
+        return n, m
+    else:
+        raise NotImplementedError("Only 'ansi' and 'noll' conventions are implemented.")
+
+
+def rotate_image_via_shear(image: torch.Tensor, angle_deg: torch.Tensor, center=None):
+    r"""
+    2D rotation of image by angle via shear composition through FFT.
+
+    :param torch.Tensor image: input image of shape (B,C,H,W)
+    :param torch.Tensor angle_deg: input rotation angles in degrees of shape (B,)
+    :return: torch.Tensor containing the rotated images of shape (B, C, H, W )
+    """
+    # Convert angle to radians
+    angle = torch.deg2rad(angle_deg)
+    N0, N1 = image.shape[-2:]
+    if center is None:
+        center = (N0 // 2, N1 // 2)
+
+    mask_angles = (angle > torch.pi / 2.0) & (angle <= 3 * torch.pi / 2)
+
+    angle[angle > 3 * torch.pi / 2] -= 2 * torch.pi
+
+    transformed_image = (
+        torch.zeros_like(image).expand(mask_angles.shape[0], -1, -1, -1).clone()
     )
-    Z[21] = (
-        lambda x, y: sq12 * y * (16 * y**4 - 20 * y**2 * r2(x, y) + 5 * r2(x, y) ** 2)
+    expanded_image = image.clone().expand(mask_angles.shape[0], -1, -1, -1).clone()
+    transformed_image[~mask_angles] = expanded_image[~mask_angles]
+    transformed_image[mask_angles] = torch.rot90(
+        expanded_image[mask_angles], k=-2, dims=(-2, -1)
     )
-    Z[22] = lambda x, y: sq7 * (
-        20 * r2(x, y) ** 3 - 30 * r2(x, y) ** 2 + 12 * r2(x, y) - 1
-    )
-    Z[23] = lambda x, y: 2 * sq14 * x * y * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[24] = lambda x, y: sq14 * (x**2 - y**2) * (15 * r2(x, y) ** 2 - 20 * r2(x, y) + 6)
-    Z[25] = lambda x, y: 4 * sq14 * x * y * (x**2 - y**2) * (6 * r2(x, y) - 5)
-    Z[26] = (
-        lambda x, y: sq14
-        * (8 * x**4 - 8 * x**2 * r2(x, y) + r2(x, y) ** 2)
-        * (6 * r2(x, y) - 5)
-    )
-    Z[27] = (
-        lambda x, y: sq14
-        * x
-        * y
-        * (32 * x**4 - 32 * x**2 * r2(x, y) + 6 * r2(x, y) ** 2)
-    )
-    Z[28] = lambda x, y: sq14 * (
-        32 * x**6 - 48 * x**4 * r2(x, y) + 18 * x**2 * r2(x, y) ** 2 - r2(x, y) ** 3
-    )
-    Z[29] = (
-        lambda x, y: 4
-        * y
-        * (35 * r2(x, y) ** 3 - 60 * r2(x, y) ** 2 + 30 * r2(x, y) + 10)
-    )
-    Z[30] = (
-        lambda x, y: 4
-        * x
-        * (35 * r2(x, y) ** 3 - 60 * r2(x, y) ** 2 + 30 * r2(x, y) + 10)
-    )
-    Z[31] = (
-        lambda x, y: 4
-        * y
-        * (3 * x**2 - y**2)
-        * (21 * r2(x, y) ** 2 - 30 * r2(x, y) + 10)
-    )
-    Z[32] = (
-        lambda x, y: 4
-        * x
-        * (x**2 - 3 * y**2)
-        * (21 * r2(x, y) ** 2 - 30 * r2(x, y) + 10)
-    )
-    Z[33] = (
-        lambda x, y: 4
-        * (7 * r2(x, y) - 6)
-        * (4 * x**2 * y * (x**2 - y**2) + y * (r2(x, y) ** 2 - 8 * x**2 * y**2))
-    )
-    Z[34] = lambda x, y: (
-        4
-        * (7 * r2(x, y) - 6)
-        * (x * (r2(x, y) ** 2 - 8 * x**2 * y**2) - 4 * x * y**2 * (x**2 - y**2))
-    )
-    Z[35] = lambda x, y: (
-        8 * x**2 * y * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
-        + 4 * y * (x**2 - y**2) * (r2(x, y) ** 2 - 16 * x**2 * y**2)
-    )
-    Z[36] = lambda x, y: (
-        4 * x * (x**2 - y**2) * (r2(x, y) ** 2 - 16 * x**2 * y**2)
-        - 8 * x * y**2 * (3 * r2(x, y) ** 2 - 16 * x**2 * y**2)
-    )
-    Z[37] = lambda x, y: 3 * (
-        70 * r2(x, y) ** 4
-        - 140 * r2(x, y) ** 3
-        + 90 * r2(x, y) ** 2
-        - 20 * r2(x, y)
-        + 1
-    )
-    return Z
+
+    angle[mask_angles] -= torch.pi
+
+    tant2 = -torch.tan(-angle / 2)
+    st = torch.sin(-angle)
+
+    def shearx(image, shear):
+        fft1 = torch.fft.fft2(image, dim=(-1))
+        freq_1 = torch.fft.fftfreq(N1, d=1.0, device=image.device)
+        freq_0 = (
+            shear[:, None] * (torch.arange(N0, device=image.device) - center[0])[None]
+        )
+        phase_shift = torch.exp(
+            -2j * torch.pi * freq_0[..., None] * freq_1[None, None, :]
+        )
+        image_shear = fft1 * phase_shift[:, None]
+        return torch.abs(torch.fft.ifft2(image_shear, dim=(-1)))
+
+    def sheary(image, shear):
+        fft0 = torch.fft.fft2(image, dim=(-2))
+        freq_0 = torch.fft.fftfreq(N0, d=1.0, device=image.device)
+        freq_1 = (
+            shear[:, None] * (torch.arange(N1, device=image.device) - center[1])[None]
+        )
+        phase_shift = torch.exp(
+            -2j * torch.pi * freq_0[None, :, None] * freq_1[:, None, :]
+        )
+        image_shear = fft0 * phase_shift[:, None]
+        return torch.abs(torch.fft.ifft2(image_shear, dim=(-2)))
+
+    rot = shearx(sheary(shearx(transformed_image, tant2), st), tant2)
+    return rot
 
 
 def cart2pol(x, y):
@@ -687,17 +925,22 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     r"""
     3D diffraction limited kernels using Zernike decomposition of the phase mask.
 
-    Fresnel/Fraunhoffer diffraction theory, see :class:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
+    Fresnel/Fraunhoffer diffraction theory, this class uses :class:`deepinv.physics.generator.DiffractionBlurGenerator` under the hood to generate the pupil function. Refer to its documentation for more details.
 
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
-    :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+    :param tuple[int] zernike_index: list of activated Zernike coefficients.
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
     :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. `Must be greater than fc`. Defaults to `0.3`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
         If an int is given, a square pupil is considered.
     :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
+        Defaults to 1.0.
+    :param str index_convention: convention for the Zernike indices, either 'noll' (default) or 'ansi'.
+    :param torch.Generator rng: random number generator (default to `None`).
+    :param str device: device (default to 'cpu').
+    :param type dtype: data type (default to torch.float32).
 
     :return: a DiffractionBlurGenerator object
 
@@ -708,19 +951,23 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         pixel_size: physical size of the pixels in the xy plane
         in the same unit as emission_wavelength
 
+    .. note::
+
+        The parameters ``apodize`` and ``random_rotate`` from :class:`deepinv.physics.generator.DiffractionBlurGenerator` are not yet supported in 3D.
+
     |sep|
 
     :Examples:
 
     >>> import torch
     >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
-    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, list_param=['Z0'])
+    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, zernike_index=(0,))
     >>> dict = generator.step()
     >>> filter = dict['filter']
     >>> print(filter.shape)
     torch.Size([1, 1, 21, 51, 51])
     >>> batch_size = 2
-    >>> n_zernike = len(generator.generator2d.list_param)
+    >>> n_zernike = len(generator.generator2d.zernike_index)
     >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
     >>> dict.keys()
     dict_keys(['filter', 'pupil', 'coeff'])
@@ -728,85 +975,92 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
     """
 
+    @_deprecated_alias(list_param="zernike_index")
     def __init__(
         self,
         psf_size: tuple,
         num_channels: int = 1,
-        device: str = "cpu",
-        dtype: type = torch.float32,
-        list_param: list[str] = ("Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"),
+        zernike_index: tuple[int | str, ...] = tuple(range(4, 12)),
         fc: float = 0.2,
         kb: float = 0.25,
         max_zernike_amplitude: float = 0.15,
         pupil_size: tuple[int] = (512, 512),
         stepz_pixel: float = 1.0,
+        index_convention: str = "noll",
+        rng: torch.Generator = None,
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        **kwargs,
     ):
         if len(psf_size) != 3:
             raise ValueError(
                 "You should provide a tuple of len == 3 to generate 3D PSFs."
             )
 
-        kwargs = {
-            "list_param": list_param,
-            "fc": fc,
-            "pupil_size": pupil_size,
-            "max_zernike_amplitude": max_zernike_amplitude,
-        }
-        super().__init__(
-            psf_size=psf_size,
-            num_channels=num_channels,
-            device=device,
-            dtype=dtype,
-            **kwargs,
-        )
+        super().__init__(device=device, dtype=dtype, rng=rng)
 
         self.generator2d = DiffractionBlurGenerator(
             psf_size=psf_size[1:],
             num_channels=num_channels,
+            zernike_index=zernike_index,
+            fc=fc,
+            max_zernike_amplitude=max_zernike_amplitude,
+            pupil_size=pupil_size,
             device=device,
             dtype=dtype,
+            rng=rng,
+            index_convention=index_convention,
             **kwargs,
         )
 
         self.stepz_pixel = stepz_pixel
         self.kb = kb
         self.nzs = self.psf_size[0]
+        self.defocus = (
+            torch.linspace(
+                -self.nzs / 2, self.nzs / 2, self.nzs, device=device, dtype=dtype
+            )[:, None, None]
+            * self.stepz_pixel
+        )
+        self.to(device=device, dtype=dtype)
 
-    def __update__(self):
-        # self.factory_kwargs = {"device": self.params.device, "dtype": self.params.dtype}
-        self.generator2d.rho = self.generator2d.rho.to(**self.factory_kwargs)
-        self.generator2d.Z = self.generator2d.Z.to(**self.factory_kwargs)
-
-    def step(self, batch_size: int = 1, coeff: torch.Tensor = None, **kwargs):
+    def step(
+        self,
+        batch_size: int = 1,
+        coeff: torch.Tensor = None,
+        seed: int = None,
+        **kwargs,
+    ):
         r"""
         Generate a batch of PSF with a batch of Zernike coefficients
 
-        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
-             **'pupil'**: the pupil function, **'coeff'**: list of sampled Zernike coefficients in this realization,
+        :param int batch_size: number of PSFs to generate.
+        :param torch.Tensor coeff: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients.
+            If `None`, random coefficients are generated.
+        :param int seed: the seed for the random number generator.
+
+        :return: dictionary with keys
+            **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+            **'pupil'**: the pupil function,
+            **'coeff'**: list of sampled Zernike coefficients in this realization,
         :rtype: dict
         """
-        self.__update__()
-
-        gen_dict = self.generator2d.step(batch_size=batch_size, coeff=coeff)
-
-        pupil3 = gen_dict["pupil"]
-
-        defocus = (
-            torch.linspace(-self.nzs / 2, self.nzs / 2, self.nzs, **self.factory_kwargs)
-            * self.stepz_pixel
+        gen_dict = self.generator2d.step(
+            batch_size=batch_size, coeff=coeff, seed=seed, **kwargs
         )
 
+        pupil = gen_dict["pupil"]
         d = ((self.kb) ** 2 - (self.generator2d.rho * self.fc) ** 2 + 0j) ** 0.5
 
-        propKer = torch.exp(-1j * 2 * torch.pi * d * defocus[:, None, None]) + 0j
-        p = pupil3[:, None, ...] * propKer[None, ...]
+        propKer = torch.exp(-1j * 2 * torch.pi * d * self.defocus) + 0j
+        p = pupil[:, None, ...] * propKer[None, ...]
         p[torch.isnan(p)] = 0
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
         pfft = torch.fft.fft2(pshift, dim=(-2, -1))
-        psf1 = torch.fft.ifftshift(pfft, dim=(-2, -1))
-        psf2 = torch.real(psf1 * torch.conj(psf1))
+        psf = torch.fft.ifftshift(pfft, dim=(-2, -1))
+        psf = torch.real(psf * torch.conj(psf))
 
-        psf3 = psf2[
+        psf = psf[
             :,
             :,
             self.generator2d.pad_pre[0] : self.generator2d.pupil_size[0]
@@ -815,11 +1069,11 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             - self.generator2d.pad_post[1],
         ].unsqueeze(1)
 
-        psf = psf3 / torch.sum(psf3, dim=(-3, -2, -1), keepdim=True)
+        psf = psf / torch.sum(psf, dim=(-3, -2, -1), keepdim=True)
 
         return {
             "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
-            "pupil": pupil3,
+            "pupil": pupil,
             "coeff": gen_dict["coeff"],
         }
 
@@ -830,7 +1084,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
-    :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+    :param tuple[int] zernike_index: tuple of activated Zernike index, defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``.
     :param float NI: Refractive index of  the immersion medium. Defaults to 1.51 (oil),
     :param float NA: Numerical aperture. Should be less than NI. Defaults to 1.37.
     :param float lambda_ill: Wavelength of the illumination light (fluorescence excitation). Defaults to 489e-9.
@@ -841,7 +1095,9 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.1.
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
             If an int is given, a square pupil is considered.
-    :return: a DiffractionBlurGenerator object
+    :param torch.Generator rng: random number generator (default to `None`).
+    :param str device: device (default to `cpu`).
+    :param type dtype: data type (default to `torch.float32`).
 
     |sep|
 
@@ -849,13 +1105,13 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
     >>> import torch
     >>> from deepinv.physics.generator import ConfocalBlurGenerator3D
-    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), list_param=['Z0'])
+    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), zernike_index=['Z0'])
     >>> dict = generator.step()
     >>> filter = dict['filter']
     >>> print(filter.shape)
     torch.Size([1, 1, 21, 51, 51])
     >>> batch_size = 2
-    >>> n_zernike = len(generator.generator_ill.generator2d.list_param)
+    >>> n_zernike = len(generator.generator_ill.generator2d.zernike_index)
     >>> dict = generator.step(batch_size=batch_size,
     ...                       coeff_ill = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs),
     ...                       coeff_coll = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
@@ -864,13 +1120,12 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
     """
 
+    @_deprecated_alias(list_param="zernike_index")
     def __init__(
         self,
         psf_size: tuple,
         num_channels: int = 1,
-        device: str = "cpu",
-        dtype: type = torch.float32,
-        list_param: list[str] = ("Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"),
+        zernike_index: tuple[int | str, ...] = tuple(range(4, 12)),
         NI: float = 1.51,
         NA: float = 1.37,
         lambda_ill: float = 489e-9,
@@ -880,24 +1135,17 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         pinhole_radius: float = 1,
         max_zernike_amplitude: float = 0.1,
         pupil_size: tuple[int] = (512, 512),
+        device: str = "cpu",
+        dtype: type = torch.float32,
+        rng: torch.Generator = None,
+        **kwargs,
     ):
         if len(psf_size) != 3:
             raise ValueError(
                 "You should provide a tuple of len == 3 to generate 3D PSFs."
             )
 
-        kwargs = {
-            "list_param": list_param,
-            "pupil_size": pupil_size,
-            "max_zernike_amplitude": max_zernike_amplitude,
-        }
-        super().__init__(
-            psf_size=psf_size,
-            num_channels=num_channels,
-            device=device,
-            dtype=dtype,
-            **kwargs,
-        )
+        super().__init__()
 
         self.fc_ill = (
             NA / lambda_ill
@@ -921,35 +1169,33 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         # Initialize generator for the Illumniation PSF
         self.generator_ill = DiffractionBlurGenerator3D(
             psf_size=psf_size,
+            num_channels=num_channels,
             fc=self.fc_ill,
             kb=self.kb_ill,
             stepz_pixel=int(pixelsize_Z / pixelsize_XY),
-            **self.factory_kwargs,
+            zernike_index=zernike_index,
+            max_zernike_amplitude=max_zernike_amplitude,
+            pupil_size=pupil_size,
+            rng=rng,
+            device=device,
+            dtype=dtype,
         )
 
         # Initialize generator for the Collection PSF
         self.generator_coll = DiffractionBlurGenerator3D(
             psf_size=psf_size,
+            num_channels=num_channels,
             fc=self.fc_coll,
             kb=self.kb_coll,
             stepz_pixel=int(pixelsize_Z / pixelsize_XY),
-            **self.factory_kwargs,
+            zernike_index=zernike_index,
+            max_zernike_amplitude=max_zernike_amplitude,
+            pupil_size=pupil_size,
+            rng=rng,
+            device=device,
+            dtype=dtype,
         )
-
-    def __update__(self):
-        self.generator_ill.generator2d.rho = self.generator_ill.generator2d.rho.to(
-            **self.factory_kwargs
-        )
-        self.generator_ill.generator2d.Z = self.generator_ill.generator2d.Z.to(
-            **self.factory_kwargs
-        )
-
-        self.generator_coll.generator2d.rho = self.generator_coll.generator2d.rho.to(
-            **self.factory_kwargs
-        )
-        self.generator_coll.generator2d.Z = self.generator_coll.generator2d.Z.to(
-            **self.factory_kwargs
-        )
+        self.to(device=device, dtype=dtype)
 
     def step(
         self,
@@ -961,6 +1207,11 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         r"""
         Generate a batch of 3D confocal PSF with a batch of Zernike coefficients
         for illumination and collection
+        :param int batch_size: number of PSFs to generate.
+        :param torch.Tensor coeff_ill: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for illumination.
+            If `None`, random coefficients are generated.
+        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection.
+            If `None`, random coefficients are generated.
 
         :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
               **'coeff_ill'**: list of sampled Zernike coefficients in this realization of illumination,
@@ -968,8 +1219,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
         :rtype: dict
         """
-        self.__update__()
-
         dict_ill = self.generator_ill.step(
             batch_size=batch_size, coeff=coeff_ill
         )  # generate illumuinition PSF
