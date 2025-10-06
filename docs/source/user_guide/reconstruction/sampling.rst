@@ -126,6 +126,7 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
     \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
                             &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
     \end{align}
+    
 where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`. 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, which is untractable:
