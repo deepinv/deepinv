@@ -632,7 +632,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         )
         assert (
             self.n_psf_prid >= self.n_eigen_psf
-        ), f"n_eigen_psf={n_eigen_psf} must be smaller than the number of psf grid points = {n_psf_prid}"
+        ), f"n_eigen_psf={n_eigen_psf} must be smaller than the number of psf grid points = {self.n_psf_prid}"
 
         # Interpolating the psf_grid coefficients with thin plate splines
         T0 = torch.linspace(
