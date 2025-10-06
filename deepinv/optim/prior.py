@@ -746,7 +746,7 @@ class WCRR(Prior):
         nb_channels=[4, 8, 64],
         filter_sizes=[5, 5, 5],
         device="cpu",
-        pretrained=None,
+        pretrained="download",
         warn_output_scaling=True,
     ):
         super(WCRR, self).__init__()
@@ -798,15 +798,21 @@ class WCRR(Prior):
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 1 and weak_convexity == 0.0:
+                    file_name = "CRR_gray.pt"
                     url = "https://drive.google.com/uc?export=download&id=1Yz2eSCM85EaGQTDviPnmqMY1ySqti3hr"
                 elif in_channels == 3 and weak_convexity == 0.0:
+                    file_name = "CRR_color.pt"
                     url = "https://drive.google.com/uc?export=download&id=1MBXxuHGmRBEalMOE4fNuCHpiIp3yFo4J"
                 elif in_channels == 1 and weak_convexity == 1.0:
+                    file_name = "WCRR_gray.pt"
                     url = "https://drive.google.com/uc?export=download&id=10Gg_C0EE-ItWCxEPDSriRz-CICL9ythY"
                 elif in_channels == 3 and weak_convexity == 1.0:
+                    file_name = "WCRR_color.pt"
                     url = "https://drive.google.com/uc?export=download&id=1Z6LW7utP8xTTvb8jktugT-E-wOM4KX_h"
                 else:
-                    raise ValueError("No weigts available for this configuration!")
+                    raise ValueError(
+                        "Weights are only available for weak_convexity in [0.0, 1.0] and in_channels in [1, 3]!"
+                    )
                 weights = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=file_name
                 )
