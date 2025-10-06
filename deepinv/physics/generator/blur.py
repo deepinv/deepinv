@@ -678,16 +678,17 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
             1, 2
         )  # B x C x n_psf_prid x (psf_size*psf_size)
         _, _, V = torch.linalg.svd(psf_grid, full_matrices=False)
-        V = V[..., : self.n_eigen_psf, :]  # B x C x n_eigen_psf x (psf_size*psf_size)
+        n_eigen_chosen = min(self.n_eigen_psf, V.size(-2))
+        V = V[..., :n_eigen_chosen, :]  # B x C x n_eigen_psf x (psf_size*psf_size)
         coeffs = torch.matmul(
             psf_grid, V.transpose(-1, -2)
         )  # B x C x n_psf_prid x n_eigen_psf
-        eigen_psf = V.reshape(V.size(0), channels, self.n_eigen_psf, *psf_size)
+        eigen_psf = V.reshape(V.size(0), channels, n_eigen_chosen, *psf_size)
 
         # compute multipliers by interpolating the coeffs with thin-plate splines
         self.tps.fit(self.X, coeffs)
         w = self.tps.transform(self.XX).transpose(-1, -2)
-        w = w.reshape(w.size(0), channels, self.n_eigen_psf, *self.img_size)
+        w = w.reshape(w.size(0), channels, n_eigen_chosen, *self.img_size)
 
         # Ending
         params_blur = {"filters": eigen_psf, "multipliers": w}
