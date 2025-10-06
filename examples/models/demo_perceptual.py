@@ -8,6 +8,8 @@ to traverse the Perception-Distortion Trade-off :footcite:p:`blau2018perception`
 
 """
 
+RESULT_DIR = "/home/s2558406/models/deepinv/perceptual"
+
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import torch
@@ -192,7 +194,7 @@ plt.scatter(x, y)
 [plt.annotate(lmbd, (x[i], y[i])) for (i, lmbd) in enumerate(results.keys())]
 plt.xlabel("MSE")
 plt.ylabel("Wasserstein metric")
-fig.savefig("/home/s2558406/models/deepinv/perceptual/results.png")
+fig.savefig(f"{RESULT_DIR}/results.png")
 
 # %%
 # We also plot the reconstructions to visualise the trade-off. Observe that
@@ -203,4 +205,4 @@ dinv.utils.plot({
     "y": results[0.01]["y"],
 } | {
     f"lmbd={lmbd}": results[lmbd]["x_hat"] for lmbd in results.keys()
-}, suptitle="Recon results for varying lambda", save_fn="/home/s2558406/models/deepinv/perceptual/recons.png")
+}, suptitle="Recon results for varying lambda", save_fn=f"{RESULT_DIR}/recons.png")
