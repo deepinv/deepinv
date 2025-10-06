@@ -844,6 +844,13 @@ class WCRR(Prior):
         return x
 
     def grad(self, x, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
         grad = self.conv(x)
         grad = grad * torch.exp(self.scaling + self.input_scaling)
         if get_energy:
@@ -866,6 +873,12 @@ class WCRR(Prior):
         return grad
 
     def fn(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
         if (
             not self.output_scaling == 0.0
             and not self.weak_cvx == 0
@@ -894,6 +907,23 @@ class WCRR(Prior):
         return super()._apply(fn)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""
+        Calculates the proximity operator of the the regularizer at :math:`x`.
+
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = \argmin_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+
+
+        where :math:`\gamma` is a stepsize. The minimizer is computed using the
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NMAPG>` algorithm.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param int l2_axis: axis in which the l2 norm is computed.
+        :return torch.Tensor: proximity operator at :math:`x`.
+        """
         f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
         nabla_f = lambda z, y: z - y + gamma * self.grad(z)
 
@@ -980,6 +1010,13 @@ class LSR(Prior):
             self.load_state_dict(torch.load(pretrained, map_location=device))
 
     def grad(self, x, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
         grad = torch.exp(self.output_scaling) * self.model.potential_grad(
             torch.exp(self.input_scaling) * x, self.sigma
         )
@@ -989,11 +1026,34 @@ class LSR(Prior):
         return grad
 
     def fn(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\|x-D(x)\|^2`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
         return torch.exp(
             self.output_scaling + self.input_scaling
         ) * self.model.potential(torch.exp(self.input_scaling) * x, self.sigma)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""
+        Calculates the proximity operator of the the regularizer at :math:`x`.
+
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = \argmin_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+
+
+        where :math:`\gamma` is a stepsize. The minimizer is computed using the
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NMAPG>` algorithm.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param int l2_axis: axis in which the l2 norm is computed.
+        :return torch.Tensor: proximity operator at :math:`x`.
+        """
         f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
         nabla_f = lambda z, y: z - y + gamma * self.grad(z)
 

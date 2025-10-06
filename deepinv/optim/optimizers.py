@@ -703,7 +703,7 @@ class NMAPG(Reconstructor):
 
     def forward(self, y, physics, compute_stats=False, x_init=None):
         r"""
-        Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
+        Runs the nmAPG for solving :ref:`(1) <optim>`.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.

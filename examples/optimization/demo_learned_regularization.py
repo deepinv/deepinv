@@ -1,5 +1,5 @@
 r"""
-Learned Regularization Functionals.
+Learned Regularization Functionals
 ====================================================================================================
 
 In this example, we show how to solve inverse problems using an explicit prior. We consider denoising, computed tomography
@@ -13,10 +13,11 @@ For the reconstructions we sovle the variational problem
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
-        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \underset{x}{\arg\min} \quad  \datafid{Ax}{y} + \lambda \reg{x},
         \end{equation}
 
-using the :class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NMAPG>` algorithm.
+for a data-fidelity term :math:`\datafid`, forward operator :math:`A` and a learned regularizer :math:`reg` using the 
+:class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NMAPG>` algorithm.
 """
 
 import deepinv as dinv
