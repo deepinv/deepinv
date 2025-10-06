@@ -62,6 +62,8 @@ class ArtifactRemoval(Reconstructor):
             for _, v in self.backbone_net.named_parameters():
                 v.requires_grad = False
             self.backbone_net = self.backbone_net.to(device)
+        
+        self.to(device)
 
     def backbone_inference(
         self, tensor_in: Tensor, physics: Physics, y: Tensor
