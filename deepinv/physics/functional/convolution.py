@@ -40,11 +40,13 @@ def conv2d(
     b, c, h, w = filter.size()
 
     if c != C:
-        assert c == 1
+        assert (
+            c == 1
+        ), "Number of channels of the kernel is not matched for broadcasting"
         filter = filter.expand(-1, C, -1, -1)
 
     if b != B:
-        assert b == 1
+        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
         filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
@@ -109,11 +111,13 @@ def conv_transpose2d(
             )
 
     if c != C:
-        assert c == 1
+        assert (
+            c == 1
+        ), "Number of channels of the kernel is not matched for broadcasting"
         filter = filter.expand(-1, C, -1, -1)
 
     if b != B:
-        assert b == 1
+        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
         filter = filter.expand(B, -1, -1, -1)
 
     # Move batch dim of the input into channels
@@ -129,55 +133,55 @@ def conv_transpose2d(
         out = x
     elif padding == "circular":
         out = x[:, :, ph : -ph + ih, pw : -pw + iw]
-        # sides
-        out[:, :, : ph - ih, :] += x[:, :, -ph + ih :, pw : -pw + iw]
-        out[:, :, -ph:, :] += x[:, :, :ph, pw : -pw + iw]
-        out[:, :, :, : pw - iw] += x[:, :, ph : -ph + ih, -pw + iw :]
-        out[:, :, :, -pw:] += x[:, :, ph : -ph + ih, :pw]
-        # corners
-        out[:, :, : ph - ih, : pw - iw] += x[:, :, -ph + ih :, -pw + iw :]
-        out[:, :, -ph:, -pw:] += x[:, :, :ph, :pw]
-        out[:, :, : ph - ih, -pw:] += x[:, :, -ph + ih :, :pw]
-        out[:, :, -ph:, : pw - iw] += x[:, :, :ph, -pw + iw :]
+
+        # sides and corners
+        for sy in (-1, 0, 1):
+            for sx in (-1, 0, 1):
+                if sy == 0 and sx == 0:
+                    continue
+                ty, sy = _tgt_src_for_axis_circular(sy, ph, ih)
+                tx, sx = _tgt_src_for_axis_circular(sx, pw, iw)
+                out[:, :, ty, tx].add_(x[:, :, sy, sx])
 
     elif padding == "reflect":
         out = x[:, :, ph : -ph + ih, pw : -pw + iw]
-        # sides
-        out[:, :, 1 : 1 + ph, :] += x[:, :, :ph, pw : -pw + iw].flip(dims=(2,))
-        out[:, :, -ph + ih - 1 : -1, :] += x[:, :, -ph + ih :, pw : -pw + iw].flip(
-            dims=(2,)
-        )
-        out[:, :, :, 1 : 1 + pw] += x[:, :, ph : -ph + ih, :pw].flip(dims=(3,))
-        out[:, :, :, -pw + iw - 1 : -1] += x[:, :, ph : -ph + ih, -pw + iw :].flip(
-            dims=(3,)
-        )
-        # corners
-        out[:, :, 1 : 1 + ph, 1 : 1 + pw] += x[:, :, :ph, :pw].flip(dims=(2, 3))
-        out[:, :, -ph + ih - 1 : -1, -pw + iw - 1 : -1] += x[
-            :, :, -ph + ih :, -pw + iw :
-        ].flip(dims=(2, 3))
-        out[:, :, -ph + ih - 1 : -1, 1 : 1 + pw] += x[:, :, -ph + ih :, :pw].flip(
-            dims=(2, 3)
-        )
-        out[:, :, 1 : 1 + ph, -pw + iw - 1 : -1] += x[:, :, :ph, -pw + iw :].flip(
-            dims=(2, 3)
-        )
+
+        for sy in (-1, 0, 1):
+            for sx in (-1, 0, 1):
+                if sy == 0 and sx == 0:
+                    continue
+                ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
+                tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
+                flip_dims = tuple(dim for s, dim in zip((sy, sx), (2, 3)) if s != 0)
+                chunk = x[:, :, ysrc, xsrc]
+                if flip_dims:
+                    chunk = chunk.flip(dims=flip_dims)
+                out[:, :, ty, tx].add_(chunk)
 
     elif padding == "replicate":
         out = x[:, :, ph : -ph + ih, pw : -pw + iw]
-        # sides
-        out[:, :, 0, :] += x[:, :, :ph, pw : -pw + iw].sum(2)
-        out[:, :, -1, :] += x[:, :, -ph + ih :, pw : -pw + iw].sum(2)
-        out[:, :, :, 0] += x[:, :, ph : -ph + ih, :pw].sum(3)
-        out[:, :, :, -1] += x[:, :, ph : -ph + ih, -pw + iw :].sum(3)
-        # corners
-        out[:, :, 0, 0] += x[:, :, :ph, :pw].sum(3).sum(2)
-        out[:, :, -1, -1] += x[:, :, -ph + ih :, -pw + iw :].sum(3).sum(2)
-        out[:, :, -1, 0] += x[:, :, -ph + ih :, :pw].sum(3).sum(2)
-        out[:, :, 0, -1] += x[:, :, :ph, -pw + iw :].sum(3).sum(2)
+
+        for sy in (-1, 0, 1):
+            for sx in (-1, 0, 1):
+                if sy == 0 and sx == 0:
+                    continue
+                ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
+                tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
+                reduce_dims = tuple(
+                    dim for red, dim in zip((yred, xred), (2, 3)) if red
+                )
+                chunk = x[:, :, ysrc, xsrc]
+                if reduce_dims:
+                    chunk = chunk.sum(dim=reduce_dims)
+                out[:, :, ty, tx].add_(chunk)
 
     elif padding == "constant":
         out = x[:, :, ph : -(ph - ih), pw : -(pw - iw)]
+
+    else:
+        raise ValueError(
+            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+        )
 
     return out
 
@@ -271,20 +275,212 @@ def filter_fft_2d(filter, img_size, real_fft=True):
     return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 
 
-def conv3d(x: Tensor, filter: Tensor, padding: str = "valid"):
+def conv3d(
+    x: Tensor, filter: Tensor, padding: str = "valid", correlation=False
+) -> torch.Tensor:
     r"""
     A helper function to perform 3D convolution of images :math:``x`` and ``filter``.
 
-    The transposed of this operation is :func:`deepinv.physics.functional.conv_transpose3d`
+    The transposed of this operation is :func:`deepinv.physics.functional.conv_transpose3d`.
+
+    :param torch.Tensor x: Image of size ``(B, C, D, H, W)``.
+    :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
+
+    :return: (:class:`torch.Tensor`) : the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
     """
-    pass
+    assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+
+    B, C, D, H, W = x.shape
+    b, c, kd, kh, kw = filter.shape
+
+    # Adjust filter shape if batch or channel is 1
+    if b != B:
+        assert c == 1, "Batch size of the kernel is not matched for broadcasting"
+        filter = filter.expand(B, -1, -1, -1, -1)
+    if c != C:
+        assert (
+            c == 1
+        ), "Number of channels of the kernel is not matched for broadcasting"
+        filter = filter.expand(-1, C, -1, -1, -1)
+
+    # Flip the kernel for true convolution
+    if not correlation:
+        filter = filter.flip(dims=[2, 3, 4])
+
+    # Determine padding
+    if padding.lower() != "valid":
+        # Calculate padding to keep output same size as input
+        pad_d = kd // 2
+        pad_h = kh // 2
+        pad_w = kw // 2
+        pad = (
+            pad_w,
+            pad_w,
+            pad_h,
+            pad_h,
+            pad_d,
+            pad_d,
+        )  # F.pad expects (W_left, W_right, H_top, H_bottom, D_front, D_back)
+        x = F.pad(x, pad, mode=padding)
+
+    # Grouped convolution trick for per-batch filters and channels
+    x = x.reshape(1, B * C, x.shape[2], x.shape[3], x.shape[4])
+    filter_reshaped = filter.reshape(B * C, 1, kd, kh, kw)
+
+    out = F.conv3d(x, filter_reshaped, groups=B * C)
+
+    # Reshape back to (B, C, D_out, H_out, W_out)
+    D_out, H_out, W_out = out.shape[2], out.shape[3], out.shape[4]
+    out = out.reshape(B, C, D_out, H_out, W_out)
+
+    return out
 
 
-def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
+def conv_transpose3d(
+    y: Tensor, filter: Tensor, padding: str = "valid", correlation=False
+) -> torch.Tensor:
     r"""
     A helper function to perform 3D transpose convolution.
+    The transposed of this operation is :func:`deepinv.physics.functional.conv3d`.
+
+    :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
+    :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+    :param bool correlation: choose True if you want a cross-correlation (default `False`).
+
+    :return: (:class:`torch.Tensor`) : the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
     """
-    pass
+
+    assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    B, C, D, H, W = y.shape
+    b, c, d, h, w = filter.shape
+
+    # Adjust filter shape if batch or channel is 1
+    if b != B:
+        assert c == 1, "Batch size of the kernel is not matched for broadcasting"
+        filter = filter.expand(B, -1, -1, -1, -1)
+    if c != C:
+        assert (
+            c == 1
+        ), "Number of channels of the kernel is not matched for broadcasting"
+        filter = filter.expand(-1, C, -1, -1, -1)
+
+    # Flip the kernel for true convolution
+    if not correlation:
+        filter = filter.flip(dims=[2, 3, 4])
+
+    # Use grouped convolution trick for per-batch filters and channels
+    y = y.reshape(1, B * C, D, H, W)
+    filter = filter.reshape(B * C, 1, d, h, w)
+
+    x = F.conv_transpose3d(y, filter, groups=B * C)
+    x = x.reshape(B, C, x.shape[2], x.shape[3], x.shape[4])
+
+    if padding == "valid":
+        out = x
+    else:
+        pd = d // 2
+        ph = h // 2
+        pw = w // 2
+        id = (d - 1) % 2
+        ih = (h - 1) % 2
+        iw = (w - 1) % 2
+
+        if pd == 0 or ph == 0 or pw == 0:
+            raise ValueError(
+                "All three dimensions of the filter must be strictly greater than 2 if padding != 'valid'"
+            )
+        if padding == "circular":
+            # Start from the central crop
+            out = x[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw]
+
+            # Triple loop over shifts for (z, y, x); skip the (0,0,0) case
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, sz_src = _tgt_src_for_axis_circular(sz, pd, id)
+                        ty, sy_src = _tgt_src_for_axis_circular(sy, ph, ih)
+                        tx, sx_src = _tgt_src_for_axis_circular(sx, pw, iw)
+                        out[:, :, tz, ty, tx].add_(x[:, :, sz_src, sy_src, sx_src])
+        elif padding == "constant":
+            out = x[:, :, pd : -(pd - id), ph : -(ph - ih), pw : -(pw - iw)]
+        elif padding == "reflect":
+            # Center crop
+            out = x[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw]
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, zsrc = _tgt_src_for_axis_reflect(sz, pd, id)
+                        ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
+                        tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
+                        flip_dims = tuple(
+                            dim for s, dim in zip((sz, sy, sx), (2, 3, 4)) if s != 0
+                        )
+                        chunk = x[:, :, zsrc, ysrc, xsrc]
+                        if flip_dims:
+                            chunk = chunk.flip(dims=flip_dims)
+                        out[:, :, tz, ty, tx].add_(chunk)
+        elif padding == "replicate":
+
+            out = x[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw]
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, zsrc, zred = _tgt_src_for_axis_replicate(sz, pd, id)
+                        ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
+                        tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
+                        reduce_dims = tuple(
+                            dim
+                            for red, dim in zip((zred, yred, xred), (2, 3, 4))
+                            if red
+                        )
+                        chunk = x[:, :, zsrc, ysrc, xsrc]
+                        if reduce_dims:
+                            chunk = chunk.sum(dim=reduce_dims)
+                        out[:, :, tz, ty, tx].add_(chunk)
+        else:
+            raise ValueError(
+                f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+            )
+    return out
+
+
+# Map the shift {-1,0,+1} to (target slice on out, source slice on x) per axis
+def _tgt_src_for_axis_circular(s, p, i):
+    # target slice on out,  source slice on x
+    if s == 0:
+        return slice(None), slice(p, -p + i)
+    elif s == -1:
+        return slice(0, p - i), slice(-p + i, None)
+    else:
+        return slice(-p, None), slice(None, p)
+
+
+def _tgt_src_for_axis_reflect(s, p, i):
+    # target slice on out, source slice on x (reflect requires flipping along axes with s != 0)
+    if s == 0:
+        return slice(None), slice(p, -p + i)
+    elif s == -1:
+        return slice(1, 1 + p), slice(0, p)
+    else:
+        return slice(-p + i - 1, -1), slice(-p + i, None)
+
+
+def _tgt_src_for_axis_replicate(s, p, i):
+    # target index/slice on out, source slice on x, and whether to reduce (sum) over this axis
+    if s == 0:
+        return slice(None), slice(p, -p + i), False
+    elif s == -1:
+        return 0, slice(0, p), True
+    else:
+        return -1, slice(-p + i, None), True
 
 
 def conv3d_fft(
@@ -295,7 +491,7 @@ def conv3d_fft(
 
     The adjoint of this operation is :func:`deepinv.physics.functional.conv_transpose3d_fft`.
 
-    If ``b = 1`` or ``c = 1``, this function applies the same filter for each channel.
+    If ``b = 1`` or ``c = 1``, this function applies the same filter for each channel and each image.
     Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     Padding conditions include ``'circular'`` and ``'valid'``.
