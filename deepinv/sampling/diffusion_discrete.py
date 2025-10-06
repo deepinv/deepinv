@@ -399,8 +399,8 @@ class PSLDDiffusionPosterior(nn.Module):
 
         :param torch.Tensor sample: Current noisy latent :math:`z_t`, shape ``(B, C, H, W)``.
         y : torch.Tensor
-            Measurement in the range/shape expected by ``forward_model.A``.
-        forward_model : Physics
+            Measurement in the range/shape expected by ``physics.A``.
+        physics : Physics
             Linear measurement operator with ``A`` and ``A_adjoint``.
         dps_eta : float, optional
             PSLD gradient step size :math:`\eta_t` (kept constant here).
@@ -488,13 +488,13 @@ class PSLDDiffusionPosterior(nn.Module):
 
             # --- PSLD loss built from z0(z_t); gradient w.r.t. z_t
             x = self.model.decode(z0.half())
-            meas_pred = forward_model.A(x.float())
+            meas_pred = physics.A(x.float())
             residual = meas_pred - y
             data_loss = torch.norm(residual)  # no σ_y scaling (by design)
 
             # Projection-based "gluing"
-            ortho = x.float() - forward_model.A_adjoint(meas_pred)  # (I - A^*A) x
-            para = forward_model.A_adjoint(y)  # A^* y
+            ortho = x.float() - physics.A_adjoint(meas_pred)  # (I - A^*A) x
+            para = physics.A_adjoint(y)  # A^* y
             projected = (para + ortho).clamp_(-1, 1)
 
             recon_z = self.model.encode(projected.half())
