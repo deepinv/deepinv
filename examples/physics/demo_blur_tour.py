@@ -225,10 +225,10 @@ plot(
 )
 
 # %%
-# Finally, notice that you can activate the aberrations you want in the ANSI
+# Finally, notice that you can activate the aberrations you want in the ANSI (or Noll)
 # nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], device=device, dtype=dtype
+    (psf_size, psf_size), fc=1 / 8, zernike_index=(5, 6), index_convention='ansi', device=device, dtype=dtype
 )
 filters = diffraction_generator.step(batch_size=3)
 plot(
