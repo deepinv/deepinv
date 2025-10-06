@@ -34,6 +34,7 @@ from .noise import (
     SaltPepperNoise,
     ZeroNoise,
     FisherTippettNoise,
+    RicianNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
