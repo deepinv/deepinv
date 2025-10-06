@@ -291,8 +291,7 @@ class PSLDDiffusionPosterior(nn.Module):
 
     Parameters
     ----------
-    beta_min : float
-        Minimum value of the linear :math:`\beta_t` schedule.
+    param float beta_min : Minimum value of the linear :math:`\beta_t` schedule.
     beta_max : float
         Maximum value of the linear :math:`\beta_t` schedule.
     alpha : float
