@@ -31,14 +31,13 @@ class LatentDiffusion(nn.Module):
     def __init__(
         self,
         guidance_scale=7.5,  # CFG scale
-        device: str | torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         dtype=torch.float16,
         model_id: str = "runwayml/stable-diffusion-v1-5",
     ):
         super().__init__()
 
         self.device = device
-        self.device = torch.device(device) if isinstance(device, str) else device
         self.guidance_scale = float(guidance_scale)
         self.dtype = dtype
 
