@@ -1,11 +1,13 @@
 import torch
+from einops import rearrange
 import numpy as np
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd, conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
-
 from deepinv.utils.decorators import _deprecated_alias
+
+from __future__ import annotations
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -151,7 +153,7 @@ class MotionBlurGenerator(PSFGenerator):
         :param float l: the length scale of the trajectory
         :param int seed: the seed for the random number generator.
 
-        :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
+        :return: dictionary with key `filter`: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
         """
         self.rng_manual_seed(seed)
         f_x = self.f_matern(batch_size, sigma, l)[..., None]
@@ -356,8 +358,11 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param torch.Tensor angle: batch_size angles in degree to rotate the PSF (defaults is `None`)
         :param int seed: the seed for the random number generator.
 
-        :return: dictionary with keys **'filter'**: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of psfs,
-            **'coeff'**: list of sampled Zernike coefficients in this realization, **'pupil'**: the pupil function.
+        :return: dictionary with keys
+            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
+            `coeff`: list of sampled Zernike coefficients in this realization,
+            `pupil`: the pupil function,
+            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, `None` otherwise.
         :rtype: dict
         """
 
@@ -376,14 +381,14 @@ class DiffractionBlurGenerator(PSFGenerator):
             self.pad_pre[1] : self.pupil_size[1] - self.pad_post[1],
         ].unsqueeze(1)
 
-        if self.apodize:
-            psf = self.apodize_mask * psf
-
         # random rotate the PSF if angle is given
         if self.random_rotate:
             if angle is None:
                 angle = self.generate_angles(batch_size)
             psf = rotate_image_via_shear(psf, angle)
+
+        if self.apodize:
+            psf = self.apodize_mask * psf
 
         psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
         return {
@@ -817,12 +822,12 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
     See :class:`deepinv.physics.SpaceVaryingBlur` for more details.
 
-    :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator, such as :class:`motion blur <deepinv.physics.generator.MotionBlurGenerator>` or
+    :param deepinv.physics.generator.PSFGenerator psf_generator: A PSF generator, such as :class:`motion blur <deepinv.physics.generator.MotionBlurGenerator>` or
         :class:`diffraction blur generator <deepinv.physics.generator.DiffractionBlurGenerator>`.
     :param tuple img_size: image size ``(H,W)``.
-    :param int n_eigen_psf: each psf in the field of view will be a linear combination of ``n_eigen_psf`` eigen psf grids.
+    :param int n_eigen_psf: each PSF in the field of view will be a linear combination of ``n_eigen_psf`` eigen PSF grids.
         Defaults to 10.
-    :param tuple spacing: steps between the psf grids used for interpolation (defaults ``(H//8, W//8)``).
+    :param tuple spacing: steps between the PSF grids used for interpolation (defaults ``(H//8, W//8)``).
     :param str padding: boundary conditions in (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``).
         Defaults to ``'valid'``.
 
@@ -870,7 +875,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
         )
         assert (
             self.n_psf_prid >= self.n_eigen_psf
-        ), f"n_eigen_psf={n_eigen_psf} must be smaller than the number of psf grid points = {self.n_psf_prid}"
+        ), f"n_eigen_psf={n_eigen_psf} must be smaller than the number of PSF grid points = {self.n_psf_prid}"
 
         # Interpolating the psf_grid coefficients with thin plate splines
         T0 = torch.linspace(
@@ -911,7 +916,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
             batch_size, self.n_psf_prid, channels, *psf_size
         )  # B x n_psf_prid x C x psf_size x psf_size
 
-        # Computing the eigen-psf
+        # Computing the eigen-PSF
         psf_grid = psf_grid.flatten(-2, -1).transpose(
             1, 2
         )  # B x C x n_psf_prid x (psf_size*psf_size)
@@ -947,6 +952,8 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
         If an int is given, a square pupil is considered.
+    :param bool apodize: whether to apodize the PSF to reduce ringing effects. Defaults to `False`.
+    :param bool random_rotate: whether to randomly rotate the PSF in the xy plane. Defaults to `False`.
     :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
         Defaults to 1.0.
     :param str index_convention: convention for the Zernike indices, either 'noll' (default) or 'ansi'.
@@ -962,10 +969,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         emission_wavelength: wavelength of the light,
         pixel_size: physical size of the pixels in the xy plane
         in the same unit as emission_wavelength
-
-    .. note::
-
-        The parameters ``apodize`` and ``random_rotate`` from :class:`deepinv.physics.generator.DiffractionBlurGenerator` are not yet supported in 3D.
 
     |sep|
 
@@ -997,6 +1000,8 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         kb: float = 0.25,
         max_zernike_amplitude: float = 0.15,
         pupil_size: tuple[int] = (512, 512),
+        apodize: bool = False,
+        random_rotate: bool = False,
         stepz_pixel: float = 1.0,
         index_convention: str = "noll",
         rng: torch.Generator = None,
@@ -1024,7 +1029,8 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             index_convention=index_convention,
             **kwargs,
         )
-
+        self.apodize = apodize
+        self.random_rotate = random_rotate
         self.stepz_pixel = stepz_pixel
         self.kb = kb
         self.nzs = self.psf_size[0]
@@ -1040,6 +1046,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self,
         batch_size: int = 1,
         coeff: torch.Tensor = None,
+        angle: torch.Tensor = None,
         seed: int = None,
         **kwargs,
     ):
@@ -1052,9 +1059,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
-            **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
-            **'pupil'**: the pupil function,
-            **'coeff'**: list of sampled Zernike coefficients in this realization,
+            `filter`: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+            `pupil`: the pupil function,
+            `coeff`: list of sampled Zernike coefficients in this realization,
+            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, `None` otherwise.
         :rtype: dict
         """
         gen_dict = self.generator2d.step(
@@ -1081,12 +1089,24 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             - self.generator2d.pad_post[1],
         ].unsqueeze(1)
 
+        if self.random_rotate:
+            if angle is None:
+                angle = self.generator2d.generate_angles(batch_size)
+
+            psf = rotate_image_via_shear(
+                rearrange(psf, "b c d h w -> b (c d) h w"), angle
+            )
+            psf = rearrange(psf, "b (c d) h w -> b c d h w", d=self.psf_size[0])
+
+        if self.apodize:
+            psf = self.generator2d.apodize_mask[None, None, None] * psf
         psf = psf / torch.sum(psf, dim=(-3, -2, -1), keepdim=True)
 
         return {
             "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
             "pupil": pupil,
             "coeff": gen_dict["coeff"],
+            "angle": angle if self.random_rotate else None,
         }
 
 
@@ -1225,9 +1245,10 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection.
             If `None`, random coefficients are generated.
 
-        :return: dictionary with keys **'filter'**: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
-              **'coeff_ill'**: list of sampled Zernike coefficients in this realization of illumination,
-              **'coeff_coll'**: list of sampled Zernike coefficients in this realization of collection,
+        :return: dictionary with keys
+            `filter`: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+            `coeff_ill`: list of sampled Zernike coefficients in this realization of illumination,
+            `coeff_coll`: list of sampled Zernike coefficients in this realization of collection,
 
         :rtype: dict
         """
