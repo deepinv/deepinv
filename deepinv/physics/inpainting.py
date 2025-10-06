@@ -1,4 +1,5 @@
-from deepinv.physics.forward import DecomposablePhysics
+from __future__ import annotations
+from deepinv.physics.forward import DecomposablePhysics, Physics
 from deepinv.physics.mri import MRI
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from deepinv.utils.decorators import _deprecated_alias
@@ -88,10 +89,10 @@ class Inpainting(DecomposablePhysics):
     @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        img_size,
-        mask=None,
-        pixelwise=True,
-        device="cpu",
+        img_size: tuple[int],
+        mask: torch.Tensor | float = None,
+        pixelwise: bool = True,
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -122,7 +123,7 @@ class Inpainting(DecomposablePhysics):
         self.register_buffer("mask", mask)
         self.to(device)
 
-    def noise(self, x, **kwargs):
+    def noise(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
 
@@ -136,7 +137,7 @@ class Inpainting(DecomposablePhysics):
         )
         return noise
 
-    def __mul__(self, other):
+    def __mul__(self, other: Physics) -> Physics:
         r"""
         Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
@@ -193,7 +194,13 @@ class Demosaicing(Inpainting):
 
     """
 
-    def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
+    def __init__(
+        self,
+        img_size: tuple[int],
+        pattern: str = "bayer",
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
         if pattern == "bayer":
             if len(img_size) == 2:
                 img_size = (3, img_size[0], img_size[1])

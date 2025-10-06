@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from deepinv.physics.forward import DecomposablePhysics
 
@@ -36,7 +37,13 @@ class Decolorize(DecomposablePhysics):
                   [1.0000, 1.0000, 1.0000]]]])
     """
 
-    def __init__(self, channels=3, srf="rec601", device="cpu", **kwargs):
+    def __init__(
+        self,
+        channels: int = 3,
+        srf: str | tuple | list = "rec601",
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if srf is None or srf == "rec601":
             srf = torch.tensor([0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851])
@@ -65,13 +72,13 @@ class Decolorize(DecomposablePhysics):
         )
         self.to(device)
 
-    def V_adjoint(self, x):
+    def V_adjoint(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.srf.shape[1]:
             raise ValueError("x should have same number of channels as SRF.")
 
         return torch.sum(x * self.srf / self.mask, dim=1, keepdim=True)
 
-    def V(self, y):
+    def V(self, y: torch.Tensor) -> torch.Tensor:
         if y.shape[1] != 1:
             raise ValueError(
                 "y should be grayscale i.e. have length 1 in the 1st dimension."
