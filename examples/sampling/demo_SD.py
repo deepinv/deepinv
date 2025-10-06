@@ -24,9 +24,7 @@ Let :math:`\hat\epsilon = \epsilon_\theta(z_t, t)` be the predicted noise at ste
 With cumulative schedule :math:`\bar\alpha_t`, the **proxy clean latent** is:
 
 .. math::
-    \hat z_0
-    \;=\;
-    \frac{z_t - \sqrt{1-\bar\alpha_t}\,\hat\epsilon}{\sqrt{\bar\alpha_t}}.
+    \hat z_0 = \frac{z_t - \sqrt{1-\bar\alpha_t}\,\hat\epsilon}{\sqrt{\bar\alpha_t}}.
 
 The **DDIM** update is:
 
