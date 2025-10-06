@@ -796,7 +796,23 @@ class WCRR(Prior):
         self.weak_cvx = weak_convexity
 
         if pretrained is not None:
-            self.load_state_dict(torch.load(pretrained, map_location=device))
+            if pretrained == "download":
+                if in_channels == 1 and weak_convexity == 0.0:
+                    url = "https://drive.google.com/uc?export=download&id=1Yz2eSCM85EaGQTDviPnmqMY1ySqti3hr"
+                elif in_channels == 3 and weak_convexity == 0.0:
+                    url = "https://drive.google.com/uc?export=download&id=1MBXxuHGmRBEalMOE4fNuCHpiIp3yFo4J"
+                elif in_channels == 1 and weak_convexity == 1.0:
+                    url = "https://drive.google.com/uc?export=download&id=10Gg_C0EE-ItWCxEPDSriRz-CICL9ythY"
+                elif in_channels == 3 and weak_convexity == 1.0:
+                    url = "https://drive.google.com/uc?export=download&id=1Z6LW7utP8xTTvb8jktugT-E-wOM4KX_h"
+                else:
+                    raise ValueError("No weigts available for this configuration!")
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+                self.load_state_dict(weights, strict=True)
+            else:
+                self.load_state_dict(torch.load(pretrained, map_location=device))
 
     def smooth_l1(self, x):
         return torch.clip(x ** 2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
