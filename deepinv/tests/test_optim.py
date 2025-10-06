@@ -620,7 +620,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    red = getattr(optim, red_algo)(
+    red = getattr(dinv.optim, red_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
