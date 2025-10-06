@@ -47,18 +47,18 @@ psnr_dyn = PSNR(min_pixel=None, max_pixel=None)  # dynamic range PSNR
 #
 
 # color versions
-crr = WCRR(weak_convexity=0.0, device=device).to(
-    device
+crr = WCRR(
+    weak_convexity=0.0, device=device
 )  # the CRR is the WCRR with weak convexity 0.0
-wcrr = WCRR(weak_convexity=1.0, device=device).to(device)
-lsr = LSR(device=device).to(device)
+wcrr = WCRR(weak_convexity=1.0, device=device)
+lsr = LSR(device=device)
 
 # grayscale versions
-crr_gray = WCRR(in_channels=1, weak_convexity=0.0, device=device).to(
-    device
+crr_gray = WCRR(
+    in_channels=1, weak_convexity=0.0, device=device
 )  # the CRR is the WCRR with weak convexity 0.0
-wcrr_gray = WCRR(in_channels=1, weak_convexity=1.0, device=device).to(device)
-lsr_gray = LSR(in_channels=1, device=device).to(device)
+wcrr_gray = WCRR(in_channels=1, weak_convexity=1.0, device=device)
+lsr_gray = LSR(in_channels=1, device=device)
 
 # data fidelity and physics
 data_fidelity_l2 = L2()
