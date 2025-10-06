@@ -159,6 +159,7 @@ for lmbd in tqdm([0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0
         device=device,
         show_progress_bar=False,
         verbose=False,
+        device=device
     )
     trainer.train()
     trainer.metrics = [ # TODO directly in trainer.test after #777 merged
