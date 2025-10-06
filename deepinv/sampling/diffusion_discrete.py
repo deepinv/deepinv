@@ -397,8 +397,8 @@ class PSLDDiffusionPosterior(nn.Module):
 
         Parameters
         ----------
-        sample : torch.Tensor
-            Current noisy latent :math:`z_t`, shape ``(B, C, H, W)``.
+
+        :param torch.Tensor sample: Current noisy latent :math:`z_t`, shape ``(B, C, H, W)``.
         y : torch.Tensor
             Measurement in the range/shape expected by ``forward_model.A``.
         forward_model : Physics
