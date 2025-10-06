@@ -189,7 +189,7 @@ for lmbd in tqdm([0.001, 0.01, 0.1, 0.3,]):
 
 fig = plt.figure(figsize=(10, 4))
 
-x, y = zip(*[(r["SupLoss"], r["SupAdversarialLoss"]) for r in results.values()])
+x, y = zip(*[(r["SupLoss"], r["Metric"]) for r in results.values()])
 plt.scatter(x, y)
 [plt.annotate(lmbd, (x[i], y[i])) for (i, lmbd) in enumerate(results.keys())]
 plt.xlabel("MSE")
