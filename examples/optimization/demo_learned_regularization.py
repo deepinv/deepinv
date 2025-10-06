@@ -32,8 +32,9 @@ from deepinv.utils.plotting import plot
 torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 test_img = load_example("CBSD_0010.png", grayscale=False).to(device)
+test_img = test_img[:, :, 50:-150, 50:-50]  # make image smaller to run faster
 test_img_ct = load_example(
-    "SheppLogan.png", img_size=128, resize_mode="resize", grayscale=True, device=device
+    "SheppLogan.png", img_size=64, resize_mode="resize", grayscale=True, device=device
 )
 psnr = PSNR()  # fixed range PSNR
 psnr_dyn = PSNR(min_pixel=None, max_pixel=None)  # dynamic range PSNR
@@ -66,7 +67,7 @@ physics_denoising = Denoising(noise_model=GaussianNoise(sigma=25 / 255))
 physics_inpainting = Inpainting(test_img[0].shape, mask=0.3, device=device)
 physics_tomography = Tomography(
     angles=60,
-    img_width=128,
+    img_width=test_img_ct.shape[-1],
     circle=False,
     device=device,
     noise_model=GaussianNoise(sigma=0.7),
