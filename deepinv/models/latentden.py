@@ -31,7 +31,7 @@ class LatentDiffusion(nn.Module):
     def __init__(
         self,
         guidance_scale=7.5,  # CFG scale
-        device="cuda",
+        device: str | torch.device ="cpu",
         dtype=torch.float16,
         model_id: str = "runwayml/stable-diffusion-v1-5",
     ):
