@@ -1287,7 +1287,7 @@ def test_reset_noise(device):
     assert physics.noise_model.sigma == 0.2
 
 
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("normalize", [True, False, None])
 @pytest.mark.parametrize("parallel_computation", [True, False])
 @pytest.mark.parametrize("fan_beam", [True, False])
 @pytest.mark.parametrize("circle", [True, False])
@@ -1328,6 +1328,11 @@ def test_tomography(
         assert physics.adjointness_test(x).abs() < 1e-3
 
     if normalize:
+        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+
+    if normalize is None:
+        # when normalize is not set by the user, it should default to True
+        assert physics.normalize is True
         assert abs(physics.compute_norm(x) - 1.0) < 1e-3
 
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))

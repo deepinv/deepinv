@@ -207,8 +207,6 @@ class Tomography(LinearPhysics):
         :param torch.Tensor x: input of shape [B,C,H,W]
         :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
         """
-        if self.img_width is None:
-            self.img_width = x.shape[-1]
         if self.fan_beam or self.adjoint_via_backprop:
             output = self.radon(x)
         else:
@@ -271,10 +269,6 @@ class Tomography(LinearPhysics):
         :return: scaled back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:
-            if self.img_width is None:
-                raise ValueError(
-                    "Image size unknown. Apply forward operator or add it for initialization."
-                )
             # lazy implementation for the adjoint...
             if (
                 self._auto_grad_adjoint_fn is None
