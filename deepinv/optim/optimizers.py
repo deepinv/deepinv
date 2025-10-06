@@ -1944,7 +1944,6 @@ class PrimalDualCP(BaseOptim):
             gamma_backtracking=gamma_backtracking,
             eta_backtracking=eta_backtracking,
             custom_metrics=custom_metrics,
-            custom_init=custom_init_CP,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
