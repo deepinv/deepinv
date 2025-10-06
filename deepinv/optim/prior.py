@@ -905,7 +905,7 @@ class WCRR(Prior):
             )
 
         return nonmonotone_accelerated_proximal_gradient(
-            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
+            x, f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
         )[0]
 
 
@@ -1001,5 +1001,5 @@ class LSR(Prior):
             )
 
         return nonmonotone_accelerated_proximal_gradient(
-            f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
+            x, f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
         )[0]
