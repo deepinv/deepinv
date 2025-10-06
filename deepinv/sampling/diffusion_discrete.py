@@ -11,23 +11,23 @@ from deepinv.models.latentden import LatentDiffusion
 class DDIMDiffusion(nn.Module):
     r"""
     DDIM sampler (:math:`\eta \ge 0`).
-    
+
     Implements the DDIM update of :footcite:t:`song2020denoising` for a latent
     trajectory :math:`z_T \rightarrow \cdots \rightarrow z_0`. For each step
     :math:`t \rightarrow t-1`, with cumulative schedule :math:`\bar{\alpha}_t`,
     we define the proxy clean latent
-    
+
     .. math::
-    
+
        z_0(z_t)
        \;=\;
        \frac{z_t - \sqrt{1-\bar{\alpha}_t}\,\epsilon_\theta(z_t,t)}
             {\sqrt{\bar{\alpha}_t}}.
-    
+
     The **DDIM** update is
-    
+
     .. math::
-    
+
        z_{t-1}
        \;=\;
        \sqrt{\bar{\alpha}_{t-1}}\, z_0
@@ -35,26 +35,26 @@ class DDIMDiffusion(nn.Module):
        \sqrt{1-\bar{\alpha}_{t-1}-\sigma_t^2}\,\epsilon_\theta
        \;+\;
        \sigma_t\,\xi,\qquad \xi\sim\mathcal{N}(0,I),
-    
+
     where the noise scale :math:`\sigma_t` is controlled by :math:`\eta`:
-    
+
     .. math::
-    
+
        \sigma_t
        \;=\;
        \eta
        \sqrt{\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}}
        \sqrt{1-\frac{\bar{\alpha}_t}{\bar{\alpha}_{t-1}}}\, .
-    
+
     **Special cases.**
     - :math:`\eta=0`: deterministic DDIM (no stochastic term).
     - :math:`\eta>0`: stochastic sampling with variance :math:`\sigma_t^2`.
-    
+
     .. note::
        This sampler expects the model to predict the noise
        :math:`\epsilon_\theta(z_t, t)` at each step. Latent shapes in SD-style
        models are typically ``(B, 4, H/8, W/8)``.
-    
+
     :param float beta_min: Minimum value of the linear :math:`\beta_t` schedule.
     :param float beta_max: Maximum value of the linear :math:`\beta_t` schedule.
     :param int num_train_timesteps: Training horizon :math:`T` used to build schedules.
@@ -65,11 +65,10 @@ class DDIMDiffusion(nn.Module):
     :param str prompt: Optional text prompt passed through to the model.
     :param torch.dtype dtype: Computation dtype used inside the sampler.
     :param torch.device | None device: Target device. Defaults to CUDA if available, else CPU.
-    
+
     :returns: The final clean latent :math:`z_0` with the same shape as the input latent.
     :rtype: torch.Tensor
     """
-
 
     def __init__(
         self,
@@ -110,11 +109,11 @@ class DDIMDiffusion(nn.Module):
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         r"""
         Build sequences derived from the cumulative schedule :math:`\bar{\alpha}_t`.
-        
+
         Given a linear noise schedule :math:`\beta_t \in [\text{beta\_start}, \text{beta\_end}]`
         over ``num_train_timesteps`` steps, we form :math:`\bar{\alpha}_t=\prod_{i\le t}(1-\beta_i)`
         and return the following vectors (all of shape ``(num_train_timesteps,)``):
-        
+
         - ``reduced_alpha_cumprod``:
           :math:`\sqrt{\dfrac{1-\bar{\alpha}_t}{\bar{\alpha}_t}}`
         - ``sqrt_recip_alphas_cumprod``:
@@ -125,14 +124,14 @@ class DDIMDiffusion(nn.Module):
           :math:`\sqrt{1-\bar{\alpha}_t}`
         - ``sqrt_alphas_cumprod``:
           :math:`\sqrt{\bar{\alpha}_t}`
-        
+
         :param float beta_start:
             Start of the linear :math:`\beta_t` schedule (inclusive).
         :param float beta_end:
             End of the linear :math:`\beta_t` schedule (inclusive).
         :param int num_train_timesteps:
             Number of timesteps :math:`T` used to build :math:`\bar{\alpha}_t`.
-        
+
         :returns:
             Tuple ``(reduced_alpha_cumprod, sqrt_recip_alphas_cumprod,
             sqrt_recipm1_alphas_cumprod, sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod)``.
@@ -171,10 +170,10 @@ class DDIMDiffusion(nn.Module):
     ) -> Tensor:
         r"""
         Run **DDIM** sampling (generic :math:`\eta \ge 0`).
-        
+
         At each step, the sampler updates the latent according to the DDIM rule with
         stochasticity controlled by :math:`\eta` (see class docstring for equations).
-        
+
         :param torch.Tensor sample:
             Initial latent :math:`z_T` of shape ``(B, C, H, W)``.
         :param float eta:
@@ -184,7 +183,7 @@ class DDIMDiffusion(nn.Module):
             Optional precomputed noise tensor (same shape as ``sample``). If provided
             and ``eta > 0``, it is used in place of freshly sampled noise (useful for
             reproducibility).
-        
+
         :returns:
             The last predicted clean latent :math:`z_0` (same shape as ``sample``).
         :rtype: torch.Tensor
@@ -267,19 +266,19 @@ class DDIMDiffusion(nn.Module):
 class PSLDDiffusionPosterior(nn.Module):
     r"""
     DDIM sampler with **PSLD** latent correction (generic :math:`\eta \ge 0`).
-    
+
     At each step :math:`t \rightarrow t-1`, with cumulative schedule
     :math:`\bar{\alpha}_t`, we
-    
+
     1. predict the proxy clean latent :math:`\hat z_0 = z_0(z_t)`,
     2. take a **DDIM** update to :math:`z'_{t-1}` (with noise scale :math:`\sigma_t`),
     3. apply a **PSLD** correction by subtracting a gradient step w.r.t. the current
        latent :math:`z_t`.
-    
+
     **DDIM update** (:footcite:t:`song2020denoising`)
-    
+
     .. math::
-    
+
        \hat z_0
        \;=\;
        \frac{z_t - \sqrt{1-\bar{\alpha}_t}\,\hat\epsilon}{\sqrt{\bar{\alpha}_t}},
@@ -291,37 +290,37 @@ class PSLDDiffusionPosterior(nn.Module):
        \sqrt{1-\bar{\alpha}_{t-1}-\sigma_t^2}\,\hat\epsilon
        +
        \sigma_t\,\xi,\quad \xi\sim\mathcal{N}(0,I),
-    
+
     with
-    
+
     .. math::
-    
+
        \sigma_t
        \;=\;
        \eta
        \sqrt{\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}}
        \sqrt{1-\frac{\bar{\alpha}_t}{\bar{\alpha}_{t-1}}}\, .
-    
+
     Thus :math:`\eta=0` yields deterministic DDIM, while :math:`\eta>0`
     injects stochasticity via :math:`\sigma_t`.
-    
+
     **PSLD loss** (evaluated via VAE decode/encode; see :footcite:t:`Rout2023SolvingLI`)
-    
+
     .. math::
-    
+
        \mathcal{L}_\text{PSLD}(z_t)
        \;=\;
        \omega\,\|A(x(\hat z_0)) - y\|
        \;+\;
        \gamma\,\|\mathrm{Enc}(\Pi(x(\hat z_0))) - \hat z_0\|,
-    
+
     where :math:`x(\hat z_0)=\mathrm{Dec}(\hat z_0)` and
     :math:`\Pi(x)=A^\*y + (I-A^\*A)\,x`. The correction step is
-    
+
     .. math::
-    
+
        z_{t-1} \;\leftarrow\; z'_{t-1} \;-\; \eta_t\,\nabla_{z_t}\mathcal{L}_\text{PSLD} \, .
-    
+
     :param float beta_min: Minimum value of the linear :math:`\beta_t` schedule.
     :param float beta_max: Maximum value of the linear :math:`\beta_t` schedule.
     :param float alpha: Unused (kept for API compatibility).
@@ -332,14 +331,13 @@ class PSLDDiffusionPosterior(nn.Module):
         :math:`\epsilon_\theta`), and VAE ``encode(x)`` / ``decode(z)``.
     :param torch.dtype dtype: Computation dtype.
     :param torch.device device: Target device (CUDA if available, else CPU).
-    
+
     :notes:
         The per-step DDIM stochasticity is controlled by the ``eta`` argument passed
         to the forward method; ``eta=0`` recovers the deterministic case. The weights
         :math:`\omega` (data term) and :math:`\gamma` (gluing term) are configurable
         in the forward method.
     """
-
 
     def __init__(
         self,
@@ -379,11 +377,11 @@ class PSLDDiffusionPosterior(nn.Module):
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         r"""
         Build sequences derived from the cumulative schedule :math:`\bar{\alpha}_t`.
-        
+
         Given a linear noise schedule :math:`\beta_t \in [\text{beta\_start}, \text{beta\_end}]`
         over ``num_train_timesteps`` steps, we form :math:`\bar{\alpha}_t=\prod_{i\le t}(1-\beta_i)`
         and return the following vectors (all of shape ``(num_train_timesteps,)``):
-        
+
         - ``reduced_alpha_cumprod``:
           :math:`\sqrt{\dfrac{1-\bar{\alpha}_t}{\bar{\alpha}_t}}`
         - ``sqrt_recip_alphas_cumprod``:
@@ -394,14 +392,14 @@ class PSLDDiffusionPosterior(nn.Module):
           :math:`\sqrt{1-\bar{\alpha}_t}`
         - ``sqrt_alphas_cumprod``:
           :math:`\sqrt{\bar{\alpha}_t}`
-        
+
         :param float beta_start:
             Start of the linear :math:`\beta_t` schedule (inclusive).
         :param float beta_end:
             End of the linear :math:`\beta_t` schedule (inclusive).
         :param int num_train_timesteps:
             Number of timesteps :math:`T` used to build :math:`\bar{\alpha}_t`.
-        
+
         :returns:
             Tuple ``(reduced_alpha_cumprod, sqrt_recip_alphas_cumprod,
             sqrt_recipm1_alphas_cumprod, sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod)``.
@@ -442,12 +440,12 @@ class PSLDDiffusionPosterior(nn.Module):
     ) -> Tensor:
         r"""
         Run **DDIM** with **PSLD** correction (generic :math:`\eta \ge 0`).
-        
+
         For each step :math:`t \to t-1`, compute :math:`\hat z_0(z_t)`, take the DDIM
         update (noise scale :math:`\sigma_t` controlled by ``DDIM_eta``), then subtract
         a PSLD gradient step (size ``dps_eta``) computed w.r.t. the current noisy latent
         :math:`z_t`.
-        
+
         :param torch.Tensor sample: Current noisy latent :math:`z_t`, shape ``(B, C, H, W)``.
         :param torch.Tensor y: Measurement in the range/shape expected by ``physics.A``.
         :param Physics physics: Linear measurement operator exposing ``A`` and ``A_adjoint``.
@@ -460,7 +458,7 @@ class PSLDDiffusionPosterior(nn.Module):
         :param torch.Tensor | None noise:
             Optional precomputed noise (same shape as ``sample``) used when ``DDIM_eta > 0``
             for reproducibility.
-        
+
         :returns: Last predicted clean latent :math:`\hat z_0`.
         :rtype: torch.Tensor
         """
