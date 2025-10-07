@@ -1,6 +1,5 @@
 import pytest
 import torch
-import deepinv as dinv
 import deepinv.physics.functional as dF
 from functools import partial
 
