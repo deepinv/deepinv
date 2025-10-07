@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 # Load image and preprocess
 # -------------------------------------------------------
 # Load example image and preprocess to emulate a high dynamic range image.
-# images are normalized to [0, 1] and then scaled to the desired dynamic range.
+# Images are normalized to [0, 1] and then scaled to the desired dynamic range.
 
 
 def channel_norm(x):
