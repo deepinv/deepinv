@@ -341,7 +341,7 @@ class ItohFidelity(L2):
         if not isinstance(physics, SpatialUnwrapping):
             raise ValueError(
                 "ItohFidelity is designed to be used with SpatialUnwrapping physics."
-        )
+            )
 
         Dx = self.D(x)
         WDy = self.WD(y)
