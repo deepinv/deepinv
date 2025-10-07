@@ -37,8 +37,8 @@ train_dataloader = DataLoader(
     Subset(
         MNISTDataset(
             ORIGINAL_DATA_DIR, train=True, transform=transforms.ToTensor(), download=True
-        ), indices=range(10000),
-    ), batch_size=64, shuffle=True, generator=torch.Generator(device="cpu").manual_seed(0)
+        ), indices=range(20000),
+    ), batch_size=128, shuffle=True, generator=torch.Generator(device="cpu").manual_seed(0)
 )
 
 test_dataloader = DataLoader(
@@ -46,7 +46,7 @@ test_dataloader = DataLoader(
         MNISTDataset(
             ORIGINAL_DATA_DIR, train=False, transform=transforms.ToTensor(), download=True
         ), indices=range(1000),
-    ), batch_size=64, shuffle=False
+    ), batch_size=128, shuffle=False
 )
 
 def display(x, h=3, w=3):
