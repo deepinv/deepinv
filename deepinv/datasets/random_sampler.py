@@ -35,7 +35,7 @@ class RandomPatchSampler(ImageDataset):
     **Notes**
     - All images must have the same dimensionality.
     - When both directories are provided, only files present in both are used.
-    - Shapes of each file are checked for consistency (spatial not smaller than ``patch_size`` + channels remain consistent across files)."
+    - Shapes of each file are checked for consistency (spatial not smaller than ``patch_size`` + channels remain consistent across files).
     """
 
     def __init__(
@@ -43,14 +43,14 @@ class RandomPatchSampler(ImageDataset):
         x_dir: str = None,
         y_dir: str = None,
         patch_size: int | tuple[int, ...] = 32,
-        format: str = ".npy",
+        file_format: str = ".npy",
         ch_axis: int = None,
     ):
         r"""
         :param str, optional x_dir: Path to folder of ground-truth images. Required if ``y_dir`` is not given.
         :param str, optional y_dir: Path to folder of measurement images. Required if ``x_dir`` is not given.
         :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions.
-        :param str format : File format to load. Other files are ignored.
+        :param str file_format : File format to load. Other files are ignored.
         :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
         """
         assert x_dir or y_dir, "Provide at least one of x_dir or y_dir."
@@ -59,29 +59,29 @@ class RandomPatchSampler(ImageDataset):
                 ch_axis == 0 or ch_axis == -1
             ), f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
         if isinstance(patch_size, tuple) or isinstance(patch_size, list):
-            for i, p in patch_size:
+            for i, p in enumerate(patch_size):
                 assert isinstance(
                     p, int
                 ), f"patch_size arguments must be integers, got type {type(p)} at index {i}"
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
-        self._set_load(format)
+        self._set_load(file_format)
 
         x_imgs, y_imgs = None, None
 
         if x_dir is not None:
             assert os.path.exists(x_dir), f"Ground-truth dir {x_dir} does not exist."
-            x_imgs = [f for f in os.listdir(x_dir) if f.endswith(format)]
+            x_imgs = [f for f in os.listdir(x_dir) if f.endswith(file_format)]
             assert (
                 len(x_imgs) != 0
-            ), f"Ground-truth dir is given but empty for file format {format}."
+            ), f"Ground-truth dir is given but empty for file format {file_format}."
 
         if y_dir is not None:
             assert os.path.exists(y_dir), f"Measurement dir {y_dir} does not exist."
-            y_imgs = [f for f in os.listdir(y_dir) if f.endswith(format)]
+            y_imgs = [f for f in os.listdir(y_dir) if f.endswith(file_format)]
             assert (
                 len(y_imgs) != 0
-            ), f"Measurement dir is given but empty for file format {format}."
+            ), f"Measurement dir is given but empty for file format {file_format}."
 
         self.imgs = (
             sorted(set(x_imgs) & set(y_imgs))
@@ -189,20 +189,20 @@ class RandomPatchSampler(ImageDataset):
             self.shapes.append(shape)
         self.shapes = tuple(self.shapes)  # avoid mutable members
 
-    def _set_load(self, format: str):
-        if format.endswith(".npy"):
+    def _set_load(self, file_format: str):
+        if file_format.endswith(".npy"):
             from deepinv.utils.io_utils import load_np
 
             self._load = load_np
-        elif format.endswith(".nii") or format.endswith(".nii.gz"):
+        elif file_format.endswith(".nii") or file_format.endswith(".nii.gz"):
             from deepinv.utils.io_utils import load_nifti
 
             self._load = load_nifti
-        elif format.endswith(".b2nd"):
+        elif file_format.endswith(".b2nd"):
             from deepinv.utils.io_utils import load_blosc2
 
             self._load = load_blosc2
         else:
             raise NotImplementedError(
-                f"No loader function for 3D volumes with extension {format}"
+                f"No loader function for 3D volumes with extension {file_format}"
             )
