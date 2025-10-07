@@ -74,7 +74,7 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
         g = dinv.physics.generator.DiffractionBlurGenerator(
             psf_size=size, device=device, num_channels=num_channels, dtype=dtype
         )
-        keys = ["filter", "coeff", "pupil"]
+        keys = ["filter", "coeff", "pupil", "angle"]
     elif name == "ProductConvolutionBlurGenerator":
         g = dinv.physics.generator.ProductConvolutionBlurGenerator(
             psf_generator=dinv.physics.generator.DiffractionBlurGenerator(
