@@ -47,7 +47,7 @@ size = 256
 dr = 2  # dynamic range
 threshold = 1.0  # threshold for spatial unwrapping
 factor = 2  # oversampling factor to ensure Itoh condition
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (size, size)
 mode = "round"  # available modes: "round", "floor"
 
@@ -94,11 +94,11 @@ def plot_itoh(sigma_blur):
 
     filter1d = dinv.physics.blur.gaussian_blur(
         sigma=(sigma_blur, sigma_blur), angle=0.0
-    )
+    ).to(device)
     filter1d = filter1d[..., filter1d.shape[2] // 2, :].squeeze()
     filter1d = filter1d / filter1d.sum()
 
-    row_x = torch.kron(row_x, torch.ones(1, factor)).squeeze()
+    row_x = torch.kron(row_x, torch.ones(1, factor).to(device)).squeeze()
     row_x = torch.nn.functional.conv1d(
         row_x[None, None, :], filter1d[None, None, :], padding=filter1d.shape[0] // 2
     ).squeeze()

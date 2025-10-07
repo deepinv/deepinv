@@ -335,10 +335,13 @@ class ItohFidelity(L2):
         :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
         """
 
-        if physics.__class__.__name__ != "SpatialUnwrapping":
-            print(
-                "Warning: ItohFidelity is designed to be used with SpatialUnwrapping physics."
-            )
+        # local import to avoid circular imports between optim and physics
+        from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
+
+        if not isinstance(physics, SpatialUnwrapping):
+            raise ValueError(
+                "ItohFidelity is designed to be used with SpatialUnwrapping physics."
+        )
 
         Dx = self.D(x)
         WDy = self.WD(y)
