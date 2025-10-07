@@ -13,9 +13,9 @@ from deepinv.optim.distance import (
 from deepinv.optim.potential import Potential
 import torch
 
-from typing import TYPECHECKING
+from typing import TYPE_CHECKING
 
-if TYPECHECKING:
+if TYPE_CHECKING:
     from deepinv.physics import Physics, StackedPhysics
 
 

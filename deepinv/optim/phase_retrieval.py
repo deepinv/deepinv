@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
-from typing import TYPECHECKING
+from typing import TYPE_CHECKING
 
-if TYPECHECKING:
+if TYPE_CHECKING:
     from deepinv.physics import Physics
 
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 import warnings
 from collections.abc import Iterable
@@ -8,9 +9,9 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.models import Reconstructor
 
-from typing import TYPECHECKING
+from typing import TYPE_CHECKING
 
-if TYPECHECKING:
+if TYPE_CHECKING:
     from deepinv.physics import Physics
 
 
