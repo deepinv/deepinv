@@ -97,7 +97,7 @@ def test_conv2d_spatial_and_fft_equivalence(
 @pytest.mark.parametrize("nchan_im,nchan_filt", [(1, 1), (3, 1), (3, 3)])
 @pytest.mark.parametrize("padding", ALL_CONV_PADDING)  # safe set
 @pytest.mark.parametrize("real_fft", [True, False])
-@pytest.mark.parametrize("use_fft", [False])
+@pytest.mark.parametrize("use_fft", [True, False])
 def test_conv3d_adjointness(
     device, B, nchan_im, nchan_filt, padding, real_fft, use_fft
 ):
@@ -143,59 +143,55 @@ def test_conv3d_adjointness(
                 )  # relative tolerance
 
 
-def test_conv3d_norm(device):
+@pytest.mark.parametrize("nchan_im,nchan_filt", [(1, 1), (3, 1)])
+@pytest.mark.parametrize("padding", ("circular",))  # safe set
+def test_conv3d_norm(device, nchan_im, nchan_filt, padding):
     torch.manual_seed(0)
     max_iter = 1000
     tol = 1e-6
-
     # Note : does not work for nchan_im, nchan_filt = (3, 3)
-    nchannels = ((1, 1), (3, 1))
-    paddings = ("circular",)
+    size_im = (
+        [nchan_im, 5, 5, 5],
+        [nchan_im, 6, 6, 6],
+        [nchan_im, 5, 5, 6],
+        [nchan_im, 5, 6, 5],
+    )
+    size_filt = (
+        [nchan_filt, 3, 3, 3],
+        [nchan_filt, 4, 4, 4],
+        [nchan_filt, 4, 3, 4],
+        [nchan_filt, 3, 4, 3],
+    )
 
-    for nchan_im, nchan_filt in nchannels:
-        size_im = (
-            [nchan_im, 5, 5, 5],
-            [nchan_im, 6, 6, 6],
-            [nchan_im, 5, 5, 6],
-            [nchan_im, 5, 6, 5],
-        )
-        size_filt = (
-            [nchan_filt, 3, 3, 3],
-            [nchan_filt, 4, 4, 4],
-            [nchan_filt, 4, 3, 4],
-            [nchan_filt, 3, 4, 3],
-        )
+    for sim in size_im:
+        for sfil in size_filt:
+            x = torch.randn(sim)[None].to(device)
+            x /= torch.norm(x)
+            h = torch.rand(sfil)[None].to(device)
+            h /= h.sum()
 
-        for pad in paddings:
-            for sim in size_im:
-                for sfil in size_filt:
-                    x = torch.randn(sim)[None].to(device)
-                    x /= torch.norm(x)
-                    h = torch.rand(sfil)[None].to(device)
-                    h /= h.sum()
+            zold = torch.zeros_like(x)
+            for it in range(max_iter):
+                y = dF.conv3d_fft(x, h, padding=padding)
+                y = dF.conv_transpose3d_fft(y, h, padding=padding)
+                z = (
+                    torch.matmul(x.conj().reshape(-1), y.reshape(-1))
+                    / torch.norm(x) ** 2
+                )
 
-                    zold = torch.zeros_like(x)
-                    for it in range(max_iter):
-                        y = dF.conv3d_fft(x, h, padding=pad)
-                        y = dF.conv_transpose3d_fft(y, h, padding=pad)
-                        z = (
-                            torch.matmul(x.conj().reshape(-1), y.reshape(-1))
-                            / torch.norm(x) ** 2
-                        )
+                rel_var = torch.norm(z - zold)
+                if rel_var < tol:
+                    break
+                zold = z
+                x = y / torch.norm(y)
 
-                        rel_var = torch.norm(z - zold)
-                        if rel_var < tol:
-                            break
-                        zold = z
-                        x = y / torch.norm(y)
-
-                    assert torch.abs(zold.item() - torch.ones(1)) < 1e-2
+            assert torch.abs(zold.item() - torch.ones(1)) < 1e-2
 
 
 @pytest.mark.parametrize("B", [1, 2])
 @pytest.mark.parametrize("nchan_im,nchan_filt", [(1, 1), (3, 1), (3, 3)])
 @pytest.mark.parametrize("padding", ALL_CONV_PADDING)
-@pytest.mark.parametrize("transposed", [False])  # test conv3d or conv_transpose3d
+@pytest.mark.parametrize("transposed", [False, True])  # test conv3d or conv_transpose3d
 def test_conv3d_spatial_and_fft_equivalence(
     device, B, nchan_im, nchan_filt, padding, transposed
 ):

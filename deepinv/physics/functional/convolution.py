@@ -805,13 +805,12 @@ def conv_transpose3d_fft(
     pd, ph, pw = d // 2, h // 2, w // 2
     id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
 
-    if padding != "valid":
-        if pd == 0 and pw == 0 and ph == 0:
-            warnings.warn(
-                f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
-                f"Consider using padding = 'valid' instead.",
-                UserWarning,
-            )
+    if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
+        warnings.warn(
+            f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
+            f"Consider using padding = 'valid' instead.",
+            UserWarning,
+        )
 
     def fft3(t, s=None):
         return (
@@ -830,27 +829,22 @@ def conv_transpose3d_fft(
     if padding == "circular":
         img_size = (D, H, W)
         filt_shifted = _center_filter_3d(filter, img_size)
-        fx = fft3(x, s=img_size)
+        fy = fft3(y, s=img_size)
         ff = fft3(filt_shifted, s=img_size)
-        return ifft3(fx * ff, s=img_size)
+        return ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
-        # Adjoint of linear conv + valid crop: embed y into center of full grid
         sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
         img_size = (sD, sH, sW)
-        y_full = torch.zeros((B, C, sD, sH, sW), device=y.device, dtype=y.dtype)
-        y_full[:, :, d - 1 : d - 1 + D, h - 1 : h - 1 + H, w - 1 : w - 1 + W] = y
-        fy = fftn3(y_full, s=img_size)
-        ff = fftn3(filter, s=img_size)
-        return ifftn3(fy * torch.conj(ff), s=img_size)
+        y_full = F.pad(
+            y, (w - 1, w - 1, h - 1, h - 1, d - 1, d - 1), mode="constant", value=0
+        )
+        fy = fft3(y_full, s=img_size)
+        ff = fft3(filter, s=img_size)
+        return ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding in ("constant", "reflect", "replicate"):
-        if pd == 0 or ph == 0 or pw == 0:
-            raise ValueError(
-                "All three dimensions of the filter must be strictly greater than 1 for this padding mode."
-            )
-
-        # Forward: pad (P) -> conv (C) -> roll (R) -> crop (S)
+        # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> R* -> C* -> P*
         Dp = D + pd + (pd - id)
         Hp = H + ph + (ph - ih)
@@ -858,21 +852,33 @@ def conv_transpose3d_fft(
         img_size = (Dp, Hp, Wp)
 
         # S*: embed y into center of padded grid
-        y_big = torch.zeros((B, C, Dp, Hp, Wp), device=y.device, dtype=y.dtype)
-        y_big[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw] = y
-        # R*: roll by +center
-        y_big = torch.roll(y_big, shifts=(pd, ph, pw), dims=(-3, -2, -1))
+        y_big = F.pad(
+            y, (pw, pw - iw, ph, ph - ih, pd, pd - id), mode="constant", value=0
+        )
 
         # C*: circular transpose conv on padded grid
-        fy = fftn3(y_big, s=img_size)
-        ff = fftn3(filter, s=img_size)
-        z_big = ifftn3(fy * torch.conj(ff), s=img_size)
+        filt_shifted = _center_filter_3d(filter, img_size)
+        fy = fft3(y_big, s=img_size)
+        ff = fft3(filt_shifted, s=img_size)
+        z_big = ifft3(fy * torch.conj(ff), s=img_size)
 
         # P*: adjoint of padding -> fold to original D x H x W
         if padding == "constant":
-            out = z_big[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw]
+            out = z_big[
+                :,
+                :,
+                _center_crop_slice_1d(pd, id),
+                _center_crop_slice_1d(ph, ih),
+                _center_crop_slice_1d(pw, iw),
+            ]
         elif padding == "reflect":
-            out = z_big[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw].clone()
+            out = z_big[
+                :,
+                :,
+                _center_crop_slice_1d(pd, id),
+                _center_crop_slice_1d(ph, ih),
+                _center_crop_slice_1d(pw, iw),
+            ].clone()
             for sz in (-1, 0, 1):
                 for sy in (-1, 0, 1):
                     for sx in (-1, 0, 1):
@@ -889,7 +895,13 @@ def conv_transpose3d_fft(
                             chunk = chunk.flip(dims=flip_dims)
                         out[:, :, tz, ty, tx].add_(chunk)
         else:  # replicate
-            out = z_big[:, :, pd : -pd + id, ph : -ph + ih, pw : -pw + iw].clone()
+            out = z_big[
+                :,
+                :,
+                _center_crop_slice_1d(pd, id),
+                _center_crop_slice_1d(ph, ih),
+                _center_crop_slice_1d(pw, iw),
+            ].clone()
             for sz in (-1, 0, 1):
                 for sy in (-1, 0, 1):
                     for sx in (-1, 0, 1):
