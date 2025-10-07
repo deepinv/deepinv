@@ -4,6 +4,24 @@ from torch import Tensor
 import torch.fft as fft
 import warnings
 
+_warned_messages = set()
+
+
+def _warn_once_padding(pad_value: list[int], padding: str, category=UserWarning):
+    """Emit a warning only once per unique message."""
+    unit_kernel = "x".join([1] * len(pad_value))
+    message = (
+        f"You're using padding = '{padding}' with a {unit_kernel} kernel. This is equivalent to no padding. "
+        f"Consider using padding = 'valid' instead."
+    )
+    if message not in _warned_messages:
+        warnings.warn(message, category)
+        _warned_messages.add(message)
+
+
+def _not_implemented_padding_messages(padding):
+    return f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+
 
 def conv2d(
     x: Tensor, filter: Tensor, padding: str = "valid", correlation=False
@@ -20,15 +38,20 @@ def conv2d(
         ``hh = h//2 - 1`` if h is even. Same for ``ww``.
     :param bool correlation: choose True if you want a cross-correlation (default False)
 
-    .. note:
-
-        Contrarily to Pytorch :func:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
-
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
         ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
     :return: (:class:`torch.Tensor`) : the output
+
+    .. note::
+
+        Contrarily to Pytorch :func:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
+
+    .. note::
+
+        This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
+        For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually more efficient.
 
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -55,13 +78,8 @@ def conv2d(
         ih = (h - 1) % 2
         pw = w // 2
         iw = (w - 1) % 2
-
         if ph == 0 and pw == 0:
-            warnings.warn(
-                f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
-                f"Consider using padding = 'valid' instead.",
-                UserWarning,
-            )
+            _warn_once_padding([ph, pw], padding)
 
         pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
 
@@ -90,13 +108,20 @@ def conv_transpose2d(
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool correlation: choose True if you want a cross-correlation (default False)
 
-    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
+    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
+    Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the output is larger than the image (padding)
         otherwise the output has the same size as the image.
 
     :return: (:class:`torch.Tensor`) : the output
+
+    .. note::
+
+        This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d_fft`. However, for small kernels, this function is faster.
+        For large kernels, :func:`deepinv.physics.functional.conv_transpose2d_fft` is usually more efficient.
+
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -114,11 +139,7 @@ def conv_transpose2d(
     iw = (w - 1) % 2
 
     if padding != "valid" and (ph == 0 and pw == 0):
-        warnings.warn(
-            f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
-            f"Consider using padding = 'valid' instead.",
-            UserWarning,
-        )
+        _warn_once_padding([ph, pw], padding)
 
     if c != C:
         assert (
@@ -188,9 +209,7 @@ def conv_transpose2d(
     elif padding == "constant":
         out = x[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
 
     return out
 
@@ -210,6 +229,7 @@ def conv2d_fft(
     .. note::
 
         The convolution here is a convolution, not a correlation as in :func:`torch.nn.functional.conv2d`.
+        This function gives the same result as :func:`deepinv.physics.functional.conv2d` and is faster for large kernels.
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
@@ -236,11 +256,7 @@ def conv2d_fft(
     ih, iw = (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (ph == 0 and pw == 0):
-        warnings.warn(
-            f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
-            f"Consider using padding = 'valid' instead.",
-            UserWarning,
-        )
+        _warn_once_padding([ph, pw], padding)
 
     def fft2(t, s=None):
         return fft.rfft2(t, s=s) if real_fft else fft.fft2(t, s=s)
@@ -277,9 +293,7 @@ def conv2d_fft(
         return y_pad[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
 
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
 
 
 def conv_transpose2d_fft(
@@ -298,6 +312,10 @@ def conv_transpose2d_fft(
     :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'circular'``.
 
     :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`y`
+
+    .. note::
+        This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d`. However, for large kernels, this function is faster.
+        For small kernels, :func:`deepinv.physics.functional.conv_transpose2d` is usually more efficient.
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -314,13 +332,8 @@ def conv_transpose2d_fft(
 
     ph, pw = h // 2, w // 2
 
-    if padding != "valid":
-        if ph == 0 and pw == 0:
-            warnings.warn(
-                f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
-                f"Consider using padding = 'valid' instead.",
-                UserWarning,
-            )
+    if padding != "valid" and (ph == 0 and pw == 0):
+        _warn_once_padding([ph, pw], padding)
 
     ih, iw = (h - 1) % 2, (w - 1) % 2
 
@@ -409,9 +422,7 @@ def conv_transpose2d_fft(
         return out
 
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
 
 
 def conv3d(
@@ -467,11 +478,7 @@ def conv3d(
         x = F.pad(x, pad, mode=padding, value=0)
 
         if pd == 0 and pw == 0 and ph == 0:
-            warnings.warn(
-                f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
-                f"Consider using padding = 'valid' instead.",
-                UserWarning,
-            )
+            _warn_once_padding([ph, pw, pd], padding)
 
         B, C, D, H, W = x.shape
 
@@ -511,11 +518,7 @@ def conv_transpose3d(
     iw = (w - 1) % 2
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
-        warnings.warn(
-            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
-            f"Consider using padding = 'valid' instead.",
-            UserWarning,
-        )
+        _warn_once_padding([ph, pw, pd], padding)
 
     # Adjust filter shape if batch or channel is 1
     if b != B:
@@ -615,9 +618,7 @@ def conv_transpose3d(
                         chunk = chunk.sum(dim=reduce_dims)
                     out[:, :, tz, ty, tx].add_(chunk)
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
     return out
 
 
@@ -668,11 +669,7 @@ def conv3d_fft(
     id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
-        warnings.warn(
-            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
-            f"Consider using padding = 'valid' instead.",
-            UserWarning,
-        )
+        _warn_once_padding([ph, pw, pd], padding)
 
     def fft3(t, s=None):
         return (
@@ -731,9 +728,7 @@ def conv3d_fft(
         ]
 
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
 
 
 def conv_transpose3d_fft(
@@ -781,11 +776,7 @@ def conv_transpose3d_fft(
     id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
-        warnings.warn(
-            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
-            f"Consider using padding = 'valid' instead.",
-            UserWarning,
-        )
+        _warn_once_padding([ph, pw, pd], padding)
 
     def fft3(t, s=None):
         return (
@@ -895,9 +886,7 @@ def conv_transpose3d_fft(
         return out
 
     else:
-        raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-        )
+        raise ValueError(_not_implemented_padding_messages(padding))
 
 
 # Some helper functions for computing the slice indices for padding modes in convolution operations
@@ -941,7 +930,7 @@ def _center_crop_slice_1d(p: int, i: int) -> slice:
 
 def filter_fft_2d(filter, img_size, real_fft=True):
     r"""
-    A helper function to zero-padded to img_size and center the frequencies.
+    A helper function to compute the centered FFT of a 2D filter zero-padded to img_size.
     """
     b, c, fh, fw = filter.shape
     ih, iw = img_size[-2:]
@@ -954,7 +943,7 @@ def filter_fft_2d(filter, img_size, real_fft=True):
 
 def filter_fft_3d(filter, img_size, real_fft=True):
     r"""
-    A helper function to zero-pad to img_size and center the filter spatially.
+    A helper function to compute the centered FFT of a 3D filter zero-padded to img_size.
     """
     b, c, fd, fh, fw = filter.shape
     id, ih, iw = img_size[-3:]
