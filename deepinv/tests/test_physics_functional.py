@@ -167,8 +167,7 @@ def test_imresize_div2k():
 
 
 def test_dct_idct(device):
-    torch.manual_seed(0)
-
+    
     shape = (1, 1, 8, 8)
     x = torch.ones(shape).to(device)
     y = dinv.physics.functional.dct_2d(x)
