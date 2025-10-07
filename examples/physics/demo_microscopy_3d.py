@@ -8,7 +8,6 @@ fluorescence microscopes.
 
 """
 
-# %%
 import torch
 
 import deepinv as dinv
@@ -20,8 +19,7 @@ import numpy as np
 # First, let's load some test images.
 
 dtype = torch.float32
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = "cuda:1"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
