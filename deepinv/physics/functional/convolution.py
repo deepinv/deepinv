@@ -36,19 +36,17 @@ def conv2d(
         and ``c`` can be either ``1`` or ``C``.
         Filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and
         ``hh = h//2 - 1`` if h is even. Same for ``ww``.
-    :param bool correlation: choose True if you want a cross-correlation (default False)
+    :param bool correlation: choose True if you want a cross-correlation (default `False`)
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
         ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
-    :return: (:class:`torch.Tensor`) : the output
+    :return: :class:`torch.Tensor`: the blurry output.
 
     .. note::
 
-        Contrarily to Pytorch :func:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
-
-    .. note::
+        Contrarily to Pytorch :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually more efficient.
@@ -106,7 +104,7 @@ def conv_transpose2d(
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param bool correlation: choose True if you want a cross-correlation (default False)
+    :param bool correlation: choose True if you want a cross-correlation (default `False`)
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
     Otherwise, each channel of each image is convolved with the corresponding kernel.
@@ -115,7 +113,7 @@ def conv_transpose2d(
         If ``padding='valid'`` the output is larger than the image (padding)
         otherwise the output has the same size as the image.
 
-    :return: (:class:`torch.Tensor`) : the output
+    :return: :class:`torch.Tensor` : the output
 
     .. note::
 
@@ -215,7 +213,7 @@ def conv_transpose2d(
 
 
 def conv2d_fft(
-    x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "circular"
+    x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
 ) -> torch.Tensor:
     r"""
     A helper function performing the 2d convolution of images ``x`` and ``filter`` using FFT.
@@ -236,8 +234,8 @@ def conv2d_fft(
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
     :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
         If ``padding = 'valid'`` the output is smaller than the image (no padding),
-        otherwise the output has the same size as the image. Default is ``'circular'``.
-    :return: torch.Tensor : the output of the convolution of the shape size as :math:`x`
+        otherwise the output has the same size as the image. Default is ``'valid'``.
+    :return: :class:`torch.Tensor`: the output of the convolution of the shape size as `x`.
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
@@ -297,7 +295,7 @@ def conv2d_fft(
 
 
 def conv_transpose2d_fft(
-    y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "circular"
+    y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
 ) -> torch.Tensor:
     r"""
     A helper function performing the 2d transposed convolution 2d of ``x`` and ``filter`` using FFT.
@@ -309,9 +307,9 @@ def conv_transpose2d_fft(
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'circular'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
-    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:`y`
+    :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`y`.
 
     .. note::
         This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d`. However, for large kernels, this function is faster.
@@ -429,7 +427,7 @@ def conv3d(
     x: Tensor, filter: Tensor, padding: str = "valid", correlation=False
 ) -> torch.Tensor:
     r"""
-    A helper function to perform 3D convolution of images :math:``x`` and ``filter``.
+    A helper function to perform 3D convolution of images `x` and `filter`.
 
     The transposed of this operation is :func:`deepinv.physics.functional.conv_transpose3d`.
 
@@ -437,7 +435,7 @@ def conv3d(
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
 
-    :return: (:class:`torch.Tensor`) : the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
+    :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
     """
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
 
@@ -503,7 +501,7 @@ def conv_transpose3d(
     :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
     :param bool correlation: choose True if you want a cross-correlation (default `False`).
 
-    :return: (:class:`torch.Tensor`) : the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
+    :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
@@ -623,7 +621,7 @@ def conv_transpose3d(
 
 
 def conv3d_fft(
-    x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "circular"
+    x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
 ) -> torch.Tensor:
     r"""
     A helper function performing the 3d convolution of ``x`` and `filter` using FFT.
@@ -635,19 +633,17 @@ def conv3d_fft(
 
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param bool real_fft: for real filters and images choose True (default) to accelerate computation
+    :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
     :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
-        If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image. Default is ``'circular'``.
+        If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
     .. note::
 
         The filter center is located at ``(d//2, h//2, w//2)``.
 
-    .. tip::
-
         This function and :func:`deepinv.physics.functional.conv3d` are equivalent. However, this function is more efficient for large filters.
 
-    :return: torch.Tensor : the output of the convolution, which has the same shape as :math:``x`` if ``padding = 'circular'``, ``(B, C, D-d+1, W-w+1, H-h+1)`` otherwise.
+    :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, ``(B, C, D-d+1, W-w+1, H-h+1)`` otherwise.
     """
 
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
@@ -732,7 +728,7 @@ def conv3d_fft(
 
 
 def conv_transpose3d_fft(
-    y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "circular"
+    y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
 ) -> torch.Tensor:
     r"""
     A helper function performing the 3d transposed convolution of ``y`` and ``filter`` using FFT.
@@ -745,15 +741,15 @@ def conv_transpose3d_fft(
 
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param bool real_fft: for real filters and images choose True (default) to accelerate computation
+    :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
     :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
-        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'circular'``.
+        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
-    .. tip::
+    .. note::
 
-        This function and :func:`deepinv.physics.functional.conv_transposed3d` are equivalent. However, this function is more efficient for large filters.
+        This function and :func:`deepinv.physics.functional.conv_transpose3d` are equivalent. However, this function is more efficient for large filters.
 
-    :return: torch.Tensor : the output of the transposed convolution, which has the same shape as :math:``y`` if ``padding = 'circular'``, ``(B, C, D+d-1, W+w-1, H+h-1)`` otherwise.
+    :return: :class:`torch.Tensor`: the output of the transposed convolution, which has the same shape as ``y`` if ``padding = 'circular'``, ``(B, C, D+d-1, W+w-1, H+h-1)`` otherwise.
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
