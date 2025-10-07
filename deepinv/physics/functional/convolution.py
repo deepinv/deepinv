@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch import Tensor
 import torch.fft as fft
 import warnings
+from itertools import chain
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 _warned_messages = set()
 
@@ -49,7 +51,7 @@ def conv2d(
         Contrarily to Pytorch :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
-        For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually more efficient.
+        For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.
 
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -64,11 +66,13 @@ def conv2d(
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1)
 
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
@@ -118,7 +122,7 @@ def conv_transpose2d(
     .. note::
 
         This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d_fft`. However, for small kernels, this function is faster.
-        For large kernels, :func:`deepinv.physics.functional.conv_transpose2d_fft` is usually more efficient.
+        For large kernels, :func:`deepinv.physics.functional.conv_transpose2d_fft` is usually faster but requires more memory.
 
     """
 
@@ -142,11 +146,13 @@ def conv_transpose2d(
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1)
 
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1)
 
     # Move batch dim of the input into channels
@@ -246,9 +252,11 @@ def conv2d_fft(
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
 
     ph, pw = h // 2, w // 2
     ih, iw = (h - 1) % 2, (w - 1) % 2
@@ -266,7 +274,7 @@ def conv2d_fft(
         # Circular convolution with kernel center aligned via filter centering
         img_size = (H, W)
         fx = fft2(x, s=img_size)
-        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
         return ifft2(fx * ff, s=img_size)
 
     elif padding == "valid":
@@ -284,7 +292,7 @@ def conv2d_fft(
         x_pad = F.pad(x, pad, mode=padding, value=0)
         img_size = x_pad.shape[-2:]
         fx = fft2(x_pad, s=img_size)
-        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
         y_pad = ifft2(fx * ff, s=img_size)
 
         # Extract central region back to original size
@@ -312,8 +320,9 @@ def conv_transpose2d_fft(
     :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`y`.
 
     .. note::
-        This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d`. However, for large kernels, this function is faster.
-        For small kernels, :func:`deepinv.physics.functional.conv_transpose2d` is usually more efficient.
+        This functions gives the same result as :func:`deepinv.physics.functional.conv_transpose2d`.
+        However, for large kernels, this function is faster but requires more memory.
+        For small kernels, consider using :func:`deepinv.physics.functional.conv_transpose2d`.
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -345,7 +354,7 @@ def conv_transpose2d_fft(
         # Circular adjoint: multiply by conj of centered filter FFT, no roll.
         img_size = (H, W)
         fy = fft2(y, s=img_size)
-        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
         return ifft2(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
@@ -368,7 +377,7 @@ def conv_transpose2d_fft(
         y_big = F.pad(y, (pw, pw - iw, ph, ph - ih), mode="constant", value=0)
         # C*: circular transpose conv on padded grid using centered filter
         fy = fft2(y_big, s=img_size)
-        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
         z_big = ifft2(fy * torch.conj(ff), s=img_size)
 
         # P*: adjoint of padding -> fold to original H x W
@@ -444,12 +453,14 @@ def conv3d(
 
     # Adjust filter shape if batch or channel is 1
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1, -1)
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1, -1)
 
     # Flip the kernel for true convolution
@@ -520,12 +531,14 @@ def conv_transpose3d(
 
     # Adjust filter shape if batch or channel is 1
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1, -1)
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1, -1)
 
     # Flip the kernel for true convolution
@@ -641,7 +654,7 @@ def conv3d_fft(
 
         The filter center is located at ``(d//2, h//2, w//2)``.
 
-        This function and :func:`deepinv.physics.functional.conv3d` are equivalent. However, this function is more efficient for large filters.
+        This function and :func:`deepinv.physics.functional.conv3d` are equivalent. However, this function is more efficient for large filters but requires more memory.
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`x` if ``padding = 'circular'``, ``(B, C, D-d+1, W-w+1, H-h+1)`` otherwise.
     """
@@ -654,11 +667,13 @@ def conv3d_fft(
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1, -1)
 
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1, -1)
 
     pd, ph, pw = d // 2, h // 2, w // 2
@@ -685,7 +700,7 @@ def conv3d_fft(
         # Circular convolution with kernel center aligned via filter centering
         img_size = (D, H, W)
         fx = fft3(x, s=img_size)
-        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
         return ifft3(fx * ff, s=img_size)
 
     elif padding == "valid":
@@ -711,7 +726,7 @@ def conv3d_fft(
         img_size = x_pad.shape[-3:]
 
         fx = fft3(x_pad, s=img_size)
-        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
         y_pad = ifft3(fx * ff, s=img_size)
 
         # Extract central region back to original size
@@ -761,11 +776,13 @@ def conv_transpose3d_fft(
     if c != C:
         assert (
             c == 1
-        ), "Number of channels of the kernel is not matched for broadcasting"
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1, -1)
 
     if b != B:
-        assert b == 1, "Batch size of the kernel is not matched for broadcasting"
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
         filter = filter.expand(B, -1, -1, -1, -1)
 
     pd, ph, pw = d // 2, h // 2, w // 2
@@ -791,7 +808,7 @@ def conv_transpose3d_fft(
     if padding == "circular":
         img_size = (D, H, W)
         fy = fft3(y, s=img_size)
-        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
         return ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
@@ -819,7 +836,7 @@ def conv_transpose3d_fft(
 
         # C*: circular transpose conv on padded grid
         fy = fft3(y_big, s=img_size)
-        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
+        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
         z_big = ifft3(fy * torch.conj(ff), s=img_size)
 
         # P*: adjoint of padding -> fold to original D x H x W
@@ -924,32 +941,39 @@ def _center_crop_slice_1d(p: int, i: int) -> slice:
     return slice(None) if (p == 0 and i == 0) else slice(p, -p + i)
 
 
-def filter_fft_2d(filter, img_size, real_fft=True):
+def filter_fft(
+    filter: Tensor,
+    img_size: tuple[int, ...],
+    real_fft: bool = True,
+    dims: tuple[int, ...] = (-1, -2),
+) -> Tensor:
+    r"""
+    A helper function to compute the centered FFT of filter zero-padded to img_size.
+    """
+    dims = sorted(dims)
+    f_shape = filter.shape
+    f_size = tuple(f_shape[d] for d in dims)
+    i_size = tuple(img_size[d] for d in dims)
+    pad = tuple(i - f for f, i in zip(reversed(f_size), reversed(i_size)))
+    pad = tuple(
+        chain.from_iterable((0, v) for v in pad)
+    )  # (0, W_right, 0, H_bottom, 0, D_back, ...)
+
+    filter = F.pad(filter, pad, mode="constant", value=0)
+
+    shifts = tuple(-int((f - 1) / 2) for f in f_size)
+    filter = torch.roll(filter, shifts=shifts, dims=dims)
+    return fft.rfftn(filter, dim=dims) if real_fft else fft.fftn(filter, dim=dims)
+
+
+# Keep it for backward compatibility
+@_deprecated_func_replaced_by(
+    replacement="deepinv.physics.functional.filter_fft", since="0.3.4"
+)
+def filter_fft_2d(
+    filter: Tensor, img_size: tuple[int, int], real_fft: bool = True
+) -> Tensor:
     r"""
     A helper function to compute the centered FFT of a 2D filter zero-padded to img_size.
     """
-    b, c, fh, fw = filter.shape
-    ih, iw = img_size[-2:]
-    ph = int((fh - 1) / 2)
-    pw = int((fw - 1) / 2)
-    filter = F.pad(filter, (0, iw - fw, 0, ih - fh))
-    filter = torch.roll(filter, shifts=(-ph, -pw), dims=(-2, -1))
-    return fft.rfft2(filter) if real_fft else fft.fft2(filter)
-
-
-def filter_fft_3d(filter, img_size, real_fft=True):
-    r"""
-    A helper function to compute the centered FFT of a 3D filter zero-padded to img_size.
-    """
-    b, c, fd, fh, fw = filter.shape
-    id, ih, iw = img_size[-3:]
-    pd = int((fd - 1) / 2)
-    ph = int((fh - 1) / 2)
-    pw = int((fw - 1) / 2)
-    filter = F.pad(filter, (0, iw - fw, 0, ih - fh, 0, id - fd))
-    filter = torch.roll(filter, shifts=(-pd, -ph, -pw), dims=(-3, -2, -1))
-    return (
-        fft.rfftn(filter, dim=(-1, -2, -3))
-        if real_fft
-        else fft.fftn(filter, dim=(-1, -2, -3))
-    )
+    return filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))

@@ -9,7 +9,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
-    filter_fft_2d,
+    filter_fft,
     product_convolution2d,
     product_convolution2d_adjoint,
     conv3d_fft,
@@ -261,7 +261,9 @@ class Downsampling(LinearPhysics):
 
             self.register_buffer(
                 "Fh",
-                filter_fft_2d(self.filter, imsize, real_fft=False).to(self.device),
+                filter_fft(self.filter, imsize, real_fft=False, dims=(-2, -1)).to(
+                    self.device
+                ),
             )
             self.register_buffer("Fhc", torch.conj(self.Fh))
             self.register_buffer("Fh2", self.Fhc * self.Fh)
@@ -435,10 +437,11 @@ class BlurFFT(DecomposablePhysics):
 
 
 
-    :param tuple img_size: Input image size in the form (C, H, W).
-    :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
+    :param tuple img_size: Input image size in the form `(C, H, W)`.
+    :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param str device: cpu or cuda
+    :param str, torch.device device: device where the tensor is stored and computations are performed. Default is ``'cpu'``.
+    :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
 
     |sep|
 
@@ -460,14 +463,21 @@ class BlurFFT(DecomposablePhysics):
                   [0.0000, 0.0000, 0.0000]]]])
     """
 
-    def __init__(self, img_size, filter: Tensor = None, device="cpu", **kwargs):
+    def __init__(
+        self,
+        img_size: tuple[int, ...],
+        filter: Tensor = None,
+        device="cpu",
+        dtype: str | torch.dtype = torch.float32,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.img_size = img_size
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
         self.update_parameters(filter=filter, **kwargs)
-        self.to(device)
+        self.to(device=device, dtype=dtype)
 
     def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         self.update_parameters(filter=filter, **kwargs)
@@ -506,7 +516,7 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None and isinstance(filter, Tensor):
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
-            mask = filter_fft_2d(filter, self.img_size)
+            mask = filter_fft(filter, self.img_size, dims=(-2, -1))
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)

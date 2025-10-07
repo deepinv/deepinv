@@ -69,6 +69,7 @@ p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
+    dtype=torch.float32,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
