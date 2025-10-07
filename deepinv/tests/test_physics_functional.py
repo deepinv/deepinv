@@ -2,6 +2,7 @@ import pytest
 import torch
 import deepinv.physics.functional as dF
 from functools import partial
+import deepinv as dinv
 
 # Some global constants
 ALL_CONV_PADDING = ("valid", "circular", "constant", "replicate", "reflect")
@@ -230,3 +231,33 @@ def test_conv3d_spatial_and_fft_equivalence(
 
                 assert spatial_output.shape == fft_output.shape
                 assert torch.allclose(spatial_output, fft_output, rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize("kernel", ["cubic", "gaussian"])
+@pytest.mark.parametrize("scale", [2, 0.5])
+@pytest.mark.parametrize("antialiasing", [True, False])
+def test_imresize(kernel, scale, antialiasing):
+    sigma = 2
+    img_size = (1, 64, 64)
+    x = torch.randn(1, *img_size)
+    y = dinv.physics.functional.imresize_matlab(
+        x,
+        scale=scale,
+        kernel=kernel,
+        sigma=sigma,
+        padding_type="reflect",
+        antialiasing=antialiasing,
+    )
+    assert y.shape == (
+        1,
+        img_size[0],
+        int(img_size[1] * scale),
+        int(img_size[2] * scale),
+    )
+
+
+def test_imresize_div2k():
+    x = dinv.utils.load_example("div2k_valid_hr_0877.png") * 255.0
+    y = dinv.utils.load_example("div2k_valid_lr_bicubic_0877x4.png") * 255.0
+    y2 = dinv.physics.functional.imresize_matlab(x, scale=1 / 4).round()
+    assert dinv.metric.PSNR()(y2 / 255.0, y / 255.0) > 59
