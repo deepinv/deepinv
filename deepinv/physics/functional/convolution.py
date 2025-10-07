@@ -251,9 +251,8 @@ def conv2d_fft(
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
         img_size = (H, W)
-        filt_shifted = _center_filter_2d(filter, img_size)
         fx = fft2(x, s=img_size)
-        ff = fft2(filt_shifted, s=img_size)
+        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
         return ifft2(fx * ff, s=img_size)
 
     elif padding == "valid":
@@ -270,12 +269,8 @@ def conv2d_fft(
         pad = (pw, pw - iw, ph, ph - ih)  # (W_left, W_right, H_top, H_bottom)
         x_pad = F.pad(x, pad, mode=padding, value=0)
         img_size = x_pad.shape[-2:]
-
-        # Center filter on (0,0) in the padded grid
-        filt_shifted = _center_filter_2d(filter, img_size)
-
         fx = fft2(x_pad, s=img_size)
-        ff = fft2(filt_shifted, s=img_size)
+        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
         y_pad = ifft2(fx * ff, s=img_size)
 
         # Extract central region back to original size
@@ -338,9 +333,8 @@ def conv_transpose2d_fft(
     if padding == "circular":
         # Circular adjoint: multiply by conj of centered filter FFT, no roll.
         img_size = (H, W)
-        filt_shifted = _center_filter_2d(filter, img_size)
         fy = fft2(y, s=img_size)
-        ff = fft2(filt_shifted, s=img_size)
+        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
         return ifft2(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
@@ -362,9 +356,8 @@ def conv_transpose2d_fft(
         # S*: embed y into center of padded grid
         y_big = F.pad(y, (pw, pw - iw, ph, ph - ih), mode="constant", value=0)
         # C*: circular transpose conv on padded grid using centered filter
-        filt_shifted = _center_filter_2d(filter, (Hp, Wp))
         fy = fft2(y_big, s=img_size)
-        ff = fft2(filt_shifted, s=img_size)
+        ff = filter_fft_2d(filter, img_size=img_size, real_fft=real_fft)
         z_big = ifft2(fy * torch.conj(ff), s=img_size)
 
         # P*: adjoint of padding -> fold to original H x W
@@ -419,20 +412,6 @@ def conv_transpose2d_fft(
         raise ValueError(
             f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
         )
-
-
-def filter_fft_2d(filter, img_size, real_fft=True):
-    ph = int((filter.shape[-2] - 1) / 2)
-    pw = int((filter.shape[-1] - 1) / 2)
-
-    filt2 = torch.zeros(
-        tuple(filter.shape[:2]) + tuple(img_size[-2:]), device=filter.device
-    )
-
-    filt2[..., : filter.shape[-2], : filter.shape[-1]] = filter
-    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(-2, -1))
-
-    return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 
 
 def conv3d(
@@ -712,9 +691,8 @@ def conv3d_fft(
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
         img_size = (D, H, W)
-        filt_shifted = _center_filter_3d(filter, img_size)
         fx = fft3(x, s=img_size)
-        ff = fft3(filt_shifted, s=img_size)
+        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
         return ifft3(fx * ff, s=img_size)
 
     elif padding == "valid":
@@ -739,11 +717,8 @@ def conv3d_fft(
         x_pad = F.pad(x, pad, mode=padding, value=0)
         img_size = x_pad.shape[-3:]
 
-        # Center filter on (0,0) in the padded grid
-        filt_shifted = _center_filter_3d(filter, img_size)
-
         fx = fft3(x_pad, s=img_size)
-        ff = fft3(filt_shifted, s=img_size)
+        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
         y_pad = ifft3(fx * ff, s=img_size)
 
         # Extract central region back to original size
@@ -828,9 +803,8 @@ def conv_transpose3d_fft(
 
     if padding == "circular":
         img_size = (D, H, W)
-        filt_shifted = _center_filter_3d(filter, img_size)
         fy = fft3(y, s=img_size)
-        ff = fft3(filt_shifted, s=img_size)
+        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
         return ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
@@ -857,9 +831,8 @@ def conv_transpose3d_fft(
         )
 
         # C*: circular transpose conv on padded grid
-        filt_shifted = _center_filter_3d(filter, img_size)
         fy = fft3(y_big, s=img_size)
-        ff = fft3(filt_shifted, s=img_size)
+        ff = filter_fft_3d(filter, img_size=img_size, real_fft=real_fft)
         z_big = ifft3(fy * torch.conj(ff), s=img_size)
 
         # P*: adjoint of padding -> fold to original D x H x W
@@ -966,7 +939,7 @@ def _center_crop_slice_1d(p: int, i: int) -> slice:
     return slice(None) if (p == 0 and i == 0) else slice(p, -p + i)
 
 
-def _center_filter_2d(filter, img_size):
+def filter_fft_2d(filter, img_size, real_fft=True):
     r"""
     A helper function to zero-padded to img_size and center the frequencies.
     """
@@ -976,10 +949,10 @@ def _center_filter_2d(filter, img_size):
     pw = int((fw - 1) / 2)
     filter = F.pad(filter, (0, iw - fw, 0, ih - fh))
     filter = torch.roll(filter, shifts=(-ph, -pw), dims=(-2, -1))
-    return filter
+    return fft.rfft2(filter) if real_fft else fft.fft2(filter)
 
 
-def _center_filter_3d(filter, img_size):
+def filter_fft_3d(filter, img_size, real_fft=True):
     r"""
     A helper function to zero-pad to img_size and center the filter spatially.
     """
@@ -990,4 +963,8 @@ def _center_filter_3d(filter, img_size):
     pw = int((fw - 1) / 2)
     filter = F.pad(filter, (0, iw - fw, 0, ih - fh, 0, id - fd))
     filter = torch.roll(filter, shifts=(-pd, -ph, -pw), dims=(-3, -2, -1))
-    return filter
+    return (
+        fft.rfftn(filter, dim=(-1, -2, -3))
+        if real_fft
+        else fft.fftn(filter, dim=(-1, -2, -3))
+    )
