@@ -1201,7 +1201,7 @@ def test_RandomPatchSampler(make_data):
     for c in make_data:
         # x-only
         ds = RandomPatchSampler(
-            x_dir=c["x"], patch_size=c["patch"], format=c["fmt"], ch_axis=c["ch_axis"]
+            x_dir=c["x"], patch_size=c["patch"], file_format=c["fmt"], ch_axis=c["ch_axis"]
         )
         assert len(ds) == 2
         x = next(iter(ds))
@@ -1214,7 +1214,7 @@ def test_RandomPatchSampler(make_data):
             x_dir=c["x"],
             y_dir=c["y"],
             patch_size=c["patch"],
-            format=c["fmt"],
+            file_format=c["fmt"],
             ch_axis=c["ch_axis"],
         )
         x, y = next(iter(ds))
@@ -1224,7 +1224,7 @@ def test_RandomPatchSampler(make_data):
     # check if x is nan behaviour happens
     c0 = make_data[0]
     ds = RandomPatchSampler(
-        y_dir=c0["y"], patch_size=c0["patch"], format=c0["fmt"], ch_axis=c0["ch_axis"]
+        y_dir=c0["y"], patch_size=c0["patch"], file_format=c0["fmt"], ch_axis=c0["ch_axis"]
     )
     assert len(ds) == 2
     x, y = next(iter(ds))
