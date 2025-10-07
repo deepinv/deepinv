@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from einops import rearrange
 import numpy as np
@@ -7,7 +8,6 @@ from deepinv.physics.functional import histogramdd, conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 
-from __future__ import annotations
 
 
 class PSFGenerator(PhysicsGenerator):
@@ -198,20 +198,25 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     .. math::
 
-        h(\theta) = \| \mathcal{F} \left( \exp \left( - i 2 \pi \phi_\theta \right) \right) \|^2,
+        h(\theta) = \left| \mathcal{F} \left( \exp \left( - i 2 \pi \phi_\theta \right) \right) \right|^2,
 
     where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}` is defined as:
 
     .. math::
-        \phi_\theta(x, y) = \sum_{k} \theta_k z_k
+        \phi_\theta= \sum_{k \in K} \theta_k z_k
 
-    is the phase aberration expressed in the Zernike basis.
-    The Zernike polynomials :math:`z_k` are indexed using the `noll` or `ansi` convention (defined by `index_convention` parameter).
+    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indexes of Zernike polynomials used in the decomposition (equal to `zernike_index`).  
+    See :footcite:t:`lakshminarayanan2011zernike` for more details.
+    (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_). 
+    
+    The Zernike polynomials :math:`z_k` are indexed using the ``'noll'`` or ``'ansi'`` convention (defined by `index_convention` parameter).
+
+    Conversion from the two conventions to the standard indexing can be done using the function :func:`deepinv.physics.generator.blur.zernike_index_conversion`.
 
     :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
     :param tuple[int] zernike_index: tuple of activated Zernike coefficients in the following `index_convention` convention.
-        defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``, correspond to radial order `n` from 2 to 3 (included) and the spherical aberration.
+        Defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``, correspond to radial order `n` from 2 to 3 (included) and the spherical aberration.
         These correspond to the following aberrations: defocus, astigmatism, coma, trefoil and spherical aberration.
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
         to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
@@ -222,10 +227,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         If a single ``int`` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing artifacts, defaults to ``False``.
     :param bool random_rotate: whether to randomly rotate the PSF, defaults to ``False``.
-    :param str index_convention: the convention for the Zernike polynomials indexing. Can be either ``noll`` (default) or ``ansi``.
-    :param str, torch.device device: device where the tensors are allocated and processed, defaults to ``cpu``.
+    :param str index_convention: the convention for the Zernike polynomials indexing. Can be either ``'noll'`` (default) or ``'ansi'``.
+    :param str, torch.device device: device where the tensors are allocated and processed, defaults to ``'cpu'``.
     :param torch.dtype dtype: data type of the tensors, defaults to ``torch.float32``.
-    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``.
+    :param torch.Generator rng: pseudo random number generator for reproducibility. Defaults to ``None``.
 
     |sep|
 
@@ -948,21 +953,20 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :param int num_channels: number of channels. Default to 1.
     :param tuple[int] zernike_index: list of activated Zernike coefficients.
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
-    :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. `Must be greater than fc`. Defaults to `0.3`.
+    :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. Must be greater than `fc`. Defaults to `0.3`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
-        If an int is given, a square pupil is considered.
+    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
+        If an `int` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing effects. Defaults to `False`.
     :param bool random_rotate: whether to randomly rotate the PSF in the xy plane. Defaults to `False`.
     :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
         Defaults to 1.0.
-    :param str index_convention: convention for the Zernike indices, either 'noll' (default) or 'ansi'.
+    :param str index_convention: convention for the Zernike indices, either ``'noll'`` (default) or ``'ansi'``.
     :param torch.Generator rng: random number generator (default to `None`).
-    :param str device: device (default to 'cpu').
-    :param type dtype: data type (default to torch.float32).
-
-    :return: a DiffractionBlurGenerator object
-
+    :param str device: device (default to ``'cpu'``).
+    :param type dtype: data type (default to `torch.float32`).
+    :param kwargs: additional arguments for :class:`deepinv.physics.generator.DiffractionBlurGenerator`.
+    
     .. note::
 
         NA: numerical aperture, NI: refraction index of the immersion medium,
@@ -1059,10 +1063,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
-            `filter`: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
             `pupil`: the pupil function,
             `coeff`: list of sampled Zernike coefficients in this realization,
-            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, `None` otherwise.
+            `angle`: the random rotation angles in degrees if `random_rotate` is `True`, `None` otherwise.
         :rtype: dict
         """
         gen_dict = self.generator2d.step(
@@ -1239,14 +1243,15 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         r"""
         Generate a batch of 3D confocal PSF with a batch of Zernike coefficients
         for illumination and collection
+        
         :param int batch_size: number of PSFs to generate.
         :param torch.Tensor coeff_ill: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for illumination.
             If `None`, random coefficients are generated.
-        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection.
+        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection. 
             If `None`, random coefficients are generated.
 
         :return: dictionary with keys
-            `filter`: tensor of size (batch_size x num_channels x psf_size[0] x psf_size[1]) batch of psfs,
+            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
             `coeff_ill`: list of sampled Zernike coefficients in this realization of illumination,
             `coeff_coll`: list of sampled Zernike coefficients in this realization of collection,
 
