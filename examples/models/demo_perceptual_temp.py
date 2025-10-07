@@ -128,7 +128,7 @@ metric_gan = dinv.loss.adversarial.DiscriminatorMetric(metric=WGANMetric(), devi
 # ~~~~~~~~
 
 results = {}
-for lmbd in tqdm([0.001, 0.01, 0.1, 0.3,]):
+for lmbd in tqdm([0.00001, 0.0001, 0.001, 0.01, 0.1,]):
     model = dinv.models.ArtifactRemoval(MNISTGenerator(), device=device)
     D = MNISTDiscriminator().to(device)
 
@@ -139,7 +139,8 @@ for lmbd in tqdm([0.001, 0.01, 0.1, 0.3,]):
 
     loss = [
         dinv.loss.SupLoss(metric=torch.nn.MSELoss()),
-        dinv.loss.adversarial.SupAdversarialLoss(
+        dinv.loss.adversarial.consistency.GPLoss(lambda_gp=10.,
+        #dinv.loss.adversarial.SupAdversarialLoss(
             D=D, weight_adv=lmbd, device=device, metric_gan=metric_gan,
             optimizer_D=optimizer_D, scheduler_D=scheduler_D, num_D_steps=4,
         ),

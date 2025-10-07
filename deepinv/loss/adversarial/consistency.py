@@ -70,6 +70,59 @@ class SupAdversarialLoss(AdversarialLoss):
         return self.adversarial_gen(x, x_net)
 
 
+class GPLoss(SupAdversarialLoss):
+    r"""
+    WGAN-GP loss extending AdversarialLoss.
+
+    Implements the gradient penalty term from:
+    Gulrajani et al., "Improved Training of Wasserstein GANs" (2017).
+
+    Critic loss:
+        L_D = L_D_base + λ * E[(||∇_x̂ D(x̂)||_2 - 1)^2]
+
+    Generator loss:
+        L_G = -E[D(fake)]  (handled by base class)
+    """
+
+    def __init__(self, lambda_gp: float = 10.0, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lambda_gp = lambda_gp
+
+    def gradient_penalty(self, real: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
+        """Compute the gradient penalty term."""
+        batch_size = real.size(0)
+        epsilon = torch.rand(batch_size, 1, 1, 1, device=self.device, requires_grad=True)
+        interpolated = epsilon * real + (1 - epsilon) * fake
+        interpolated.requires_grad_(True)
+
+        pred_interpolated = self.D(interpolated)
+        gradients = torch.autograd.grad(
+            outputs=pred_interpolated,
+            inputs=interpolated,
+            grad_outputs=torch.ones_like(pred_interpolated),
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True,
+        )[0]
+
+        gradients = gradients.view(batch_size, -1)
+        grad_norm = gradients.norm(2, dim=1)
+        gp = ((grad_norm - 1) ** 2).mean()
+        return gp
+
+    def forward(
+        self, x: torch.Tensor, x_net: torch.Tensor, model: nn.Module = None, *args, **kwargs
+    ):
+        with self.step_discrim(model) as step:
+            for _ in range(self.num_D_steps):
+                l = self.adversarial_discrim(x, x_net)
+                if model.training:
+                    l += self.lambda_gp * self.gradient_penalty(x, x_net)
+                step(l)
+
+        return self.adversarial_gen(x, x_net)
+
+
 class UnsupAdversarialLoss(AdversarialLoss):
     r"""Unsupervised adversarial consistency loss for generator.
 
