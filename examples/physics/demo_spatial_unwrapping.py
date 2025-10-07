@@ -19,11 +19,9 @@ The goal is to recover :math:`x` from the observed wrapped image :math:`y`.
 # %%
 # Imports and setup
 # -------------------------------------------------------
-import numpy as np
 import torch
 from deepinv.utils.plotting import plot
 
-np.random.seed(0)
 torch.manual_seed(0)
 from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
 import deepinv as dinv
