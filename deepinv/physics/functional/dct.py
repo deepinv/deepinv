@@ -55,7 +55,7 @@ def idct(x, norm=None):
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
     :param torch.Tensor x: the input signal
-    :param norm: the normalization, None or 'ortho'
+    :param None, str norm: the normalization, `None` or `'ortho'`
     :return: (:class:`torch.Tensor`) the inverse DCT-II of the signal over the last dimension
     """
 
