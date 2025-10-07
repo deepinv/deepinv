@@ -9,7 +9,6 @@ from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 
 
-
 class PSFGenerator(PhysicsGenerator):
     r"""
     Base class for generating Point Spread Functions (PSFs).
@@ -205,10 +204,10 @@ class DiffractionBlurGenerator(PSFGenerator):
     .. math::
         \phi_\theta= \sum_{k \in K} \theta_k z_k
 
-    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indexes of Zernike polynomials used in the decomposition (equal to `zernike_index`).  
+    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indexes of Zernike polynomials used in the decomposition (equal to `zernike_index`).
     See :footcite:t:`lakshminarayanan2011zernike` for more details.
-    (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_). 
-    
+    (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
+
     The Zernike polynomials :math:`z_k` are indexed using the ``'noll'`` or ``'ansi'`` convention (defined by `index_convention` parameter).
 
     Conversion from the two conventions to the standard indexing can be done using the function :func:`deepinv.physics.generator.blur.zernike_index_conversion`.
@@ -367,7 +366,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
             `coeff`: list of sampled Zernike coefficients in this realization,
             `pupil`: the pupil function,
-            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, `None` otherwise.
+            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, nothing otherwise.
         :rtype: dict
         """
 
@@ -396,12 +395,14 @@ class DiffractionBlurGenerator(PSFGenerator):
             psf = self.apodize_mask * psf
 
         psf = psf / torch.sum(psf, dim=(-1, -2), keepdim=True)
-        return {
+        params = {
             "filter": psf.expand(-1, self.shape[0], -1, -1),
             "coeff": coeff,
             "pupil": pupil,
-            "angle": angle if self.random_rotate else None,
         }
+        if self.random_rotate:
+            params["angle"] = angle
+        return params
 
     def generate_coeff(self, batch_size):
         r"""Generates random coefficients of the decomposition in the Zernike polynomials.
@@ -672,7 +673,9 @@ def get_zernike_polynomial(
     else:
         # TODO: For higher order polynomials, explicit formulas are not implemented here.
         # We fall back to the general definition using recursion.
-        raise NotImplementedError("Zernike polynomials of radial order > 7 are not implemented yet.")
+        raise NotImplementedError(
+            "Zernike polynomials of radial order > 7 are not implemented yet."
+        )
 
 
 def zernike_index_conversion(index, convention="ansi"):
@@ -965,7 +968,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :param str device: device (default to ``'cpu'``).
     :param type dtype: data type (default to `torch.float32`).
     :param kwargs: additional arguments for :class:`deepinv.physics.generator.DiffractionBlurGenerator`.
-    
+
     .. note::
 
         NA: numerical aperture, NI: refraction index of the immersion medium,
@@ -1037,6 +1040,9 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.stepz_pixel = stepz_pixel
         self.kb = kb
         self.nzs = self.psf_size[0]
+        self.fc = fc
+        self.zernike_index = zernike_index
+        self.n_zernike = len(self.zernike_index)
         self.defocus = (
             torch.linspace(
                 -self.nzs / 2, self.nzs / 2, self.nzs, device=device, dtype=dtype
@@ -1065,7 +1071,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
             `pupil`: the pupil function,
             `coeff`: list of sampled Zernike coefficients in this realization,
-            `angle`: the random rotation angles in degrees if `random_rotate` is `True`, `None` otherwise.
+            `angle`: the random rotation angles in degrees if `random_rotate` is `True`, nothing otherwise.
         :rtype: dict
         """
         gen_dict = self.generator2d.step(
@@ -1105,12 +1111,14 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             psf = self.generator2d.apodize_mask[None, None, None] * psf
         psf = psf / torch.sum(psf, dim=(-3, -2, -1), keepdim=True)
 
-        return {
+        params = {
             "filter": psf.expand(-1, self.shape[0], -1, -1, -1),
             "pupil": pupil,
             "coeff": gen_dict["coeff"],
-            "angle": angle if self.random_rotate else None,
         }
+        if self.random_rotate:
+            params["angle"] = angle
+        return params
 
 
 class ConfocalBlurGenerator3D(PSFGenerator):
@@ -1242,11 +1250,11 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         r"""
         Generate a batch of 3D confocal PSF with a batch of Zernike coefficients
         for illumination and collection
-        
+
         :param int batch_size: number of PSFs to generate.
         :param torch.Tensor coeff_ill: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for illumination.
             If `None`, random coefficients are generated.
-        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection. 
+        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection.
             If `None`, random coefficients are generated.
 
         :return: dictionary with keys

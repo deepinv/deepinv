@@ -6,7 +6,8 @@ This example provides a tour of 2D blur operators in DeepInverse.
 In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs.
 
 """
-# %% 
+
+# %%
 import torch
 
 import deepinv as dinv
@@ -283,8 +284,7 @@ delta = 16
 
 # Now, scattered random psfs are synthesized and interpolated spatially
 pc_generator = ProductConvolutionBlurGenerator(
-    psf_generator=MotionBlurGenerator(
-            (17, 17), device=device, dtype=dtype),
+    psf_generator=MotionBlurGenerator((17, 17), device=device, dtype=dtype),
     img_size=img_size,
     n_eigen_psf=n_eigenpsf,
     spacing=spacing,
@@ -305,8 +305,20 @@ dirac_comb = torch.zeros(
 )
 dirac_comb[0, 0, ::delta, ::delta] = 1
 psf_grid = physics(dirac_comb)
-plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip", figsize=(5, 5))
+plot(
+    psf_grid,
+    titles="Space varying impulse responses",
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
 
-image = dinv.utils.load_example("celeba_example.jpg", img_size=img_size, resize_mode='resize', device=device)
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
 blurry_image = physics(image)
-plot([image, blurry_image], titles=["Original image", "Blurry image"], rescale_mode="clip", figsize=(5, 5))
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)

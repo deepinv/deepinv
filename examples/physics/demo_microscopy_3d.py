@@ -8,6 +8,7 @@ fluorescence microscopes.
 
 """
 
+# %%
 import torch
 
 import deepinv as dinv
@@ -19,7 +20,8 @@ import numpy as np
 # First, let's load some test images.
 
 dtype = torch.float32
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = "cuda:1"
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -133,8 +135,8 @@ print(blurs["coeff"])
 # %%
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
-n_zernike = len(
-    diffraction_generator.list_param
+n_zernike = (
+    diffraction_generator.n_zernike
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
@@ -152,7 +154,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
     fc=1 / 8,
     kb=0.25,
     stepz_pixel=2,
-    list_param=["Z5", "Z6"],
+    zernike_index=(5, 6),
     device=device,
     dtype=dtype,
 )
