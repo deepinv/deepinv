@@ -210,3 +210,12 @@ dinv.utils.plot({
 } | {
     f"lmbd={lmbd}": results[lmbd]["x_hat"] for lmbd in results.keys()
 }, suptitle="Recon results for varying lambda", save_fn=f"{RESULT_DIR}/recons.png")
+
+# TEMP
+results = {k: 
+    {l: w.detach().cpu().numpy().tolist() if isinstance(w, torch.Tensor) else w for (l, w) in v.items()}
+    for (k,v) in results.items()
+}
+import json
+with open(f"{RESULT_DIR}/results.json", "w") as f:
+    json.dump(results, f)
