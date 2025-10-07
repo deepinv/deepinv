@@ -8,6 +8,11 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.models import Reconstructor
 
+from typing import TYPECHECKING
+
+if TYPECHECKING:
+    from deepinv.physics import Physics
+
 
 class BaseOptim(Reconstructor):
     r"""
@@ -310,7 +315,7 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y: torch.Tensor, physics, F_fn=None):
+    def init_iterate_fn(self, y: torch.Tensor, physics: Physics, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -451,7 +456,7 @@ class BaseOptim(Reconstructor):
         else:
             return True
 
-    def check_conv_fn(self, it: int, X_prev, X):
+    def check_conv_fn(self, it: int, X_prev, X) -> bool:
         r"""
         Checks the convergence of the algorithm.
 
@@ -487,11 +492,11 @@ class BaseOptim(Reconstructor):
     def forward(
         self,
         y: torch.Tensor,
-        physics,
+        physics: Physics,
         x_gt: torch.Tensor = None,
         compute_metrics: bool = False,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 

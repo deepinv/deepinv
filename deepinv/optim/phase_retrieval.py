@@ -1,7 +1,11 @@
 import torch
+from typing import TYPECHECKING
+
+if TYPECHECKING:
+    from deepinv.physics import Physics
 
 
-def default_preprocessing(y: torch.Tensor, physics):
+def default_preprocessing(y: torch.Tensor, physics: Physics) -> torch.Tensor:
     r"""
     Default preprocessing function for spectral methods.
 
@@ -76,7 +80,7 @@ def correct_global_phase(
     return x_recon
 
 
-def cosine_similarity(a: torch.Tensor, b: torch.Tensor):
+def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     r"""
     Compute the cosine similarity between two images.
 
@@ -192,7 +196,9 @@ def spectral_methods(
         return x
 
 
-def spectral_methods_wrapper(y: torch.Tensor, physics, n_iter: int = 5000, **kwargs):
+def spectral_methods_wrapper(
+    y: torch.Tensor, physics: Physics, n_iter: int = 5000, **kwargs
+):
     r"""
     Wrapper for spectral methods.
 
