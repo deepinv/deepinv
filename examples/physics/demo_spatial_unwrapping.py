@@ -178,7 +178,7 @@ model = dinv.optim.optim_builder(
     verbose=False,
     params_algo=params_algo,
 )
-x_model = model(wrapped_phase, physics, compute_metrics=False)
+x_model = model(wrapped_phase, physics)
 
 
 # %%
