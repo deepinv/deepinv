@@ -203,10 +203,10 @@ fig.savefig(f"{RESULT_DIR}/results.png")
 # %%
 # We also plot the reconstructions to visualise the trade-off. Observe that
 # increasing lambda gains "sharpness" of the images, but decreases accuracy ("hallucinates").
-
+_k = list(results.keys())[0]
 dinv.utils.plot({
-    "x": results[0.01]["x"],
-    "y": results[0.01]["y"],
+    "x": results[_k]["x"],
+    "y": results[_k]["y"],
 } | {
     f"lmbd={lmbd}": results[lmbd]["x_hat"] for lmbd in results.keys()
 }, suptitle="Recon results for varying lambda", save_fn=f"{RESULT_DIR}/recons.png")
