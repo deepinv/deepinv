@@ -198,7 +198,7 @@ def spectral_methods(
 
 def spectral_methods_wrapper(
     y: torch.Tensor, physics: Physics, n_iter: int = 5000, **kwargs
-):
+) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
     r"""
     Wrapper for spectral methods.
 
