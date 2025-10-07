@@ -670,10 +670,9 @@ def get_zernike_polynomial(
             raise ValueError(out_of_range_error_message)
 
     else:
-        # For higher order polynomials, explicit formulas are not implemented here.
+        # TODO: For higher order polynomials, explicit formulas are not implemented here.
         # We fall back to the general definition using recursion.
-        # TODO
-        pass
+        raise NotImplementedError("Zernike polynomials of radial order > 7 are not implemented yet.")
 
 
 def zernike_index_conversion(index, convention="ansi"):
