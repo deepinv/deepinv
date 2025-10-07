@@ -58,7 +58,7 @@ def conv2d(
 
         if ph == 0 and pw == 0:
             warnings.warn(
-                f"Use are using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
+                f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
                 f"Consider using padding = 'valid' instead.",
                 UserWarning,
             )
@@ -115,7 +115,7 @@ def conv_transpose2d(
 
     if padding != "valid" and (ph == 0 and pw == 0):
         warnings.warn(
-            f"Use are using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
+            f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
             f"Consider using padding = 'valid' instead.",
             UserWarning,
         )
@@ -237,7 +237,7 @@ def conv2d_fft(
 
     if padding != "valid" and (ph == 0 and pw == 0):
         warnings.warn(
-            f"Use are using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
+            f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
             f"Consider using padding = 'valid' instead.",
             UserWarning,
         )
@@ -322,7 +322,7 @@ def conv_transpose2d_fft(
     if padding != "valid":
         if ph == 0 and pw == 0:
             warnings.warn(
-                f"Use are using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
+                f"You're using padding = '{padding}' with a 1x1 kernel. This is equivalent to no padding. "
                 f"Consider using padding = 'valid' instead.",
                 UserWarning,
             )
@@ -489,7 +489,7 @@ def conv3d(
 
         if pd == 0 and pw == 0 and ph == 0:
             warnings.warn(
-                f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
+                f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
                 f"Consider using padding = 'valid' instead.",
                 UserWarning,
             )
@@ -533,7 +533,7 @@ def conv_transpose3d(
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         warnings.warn(
-            f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
+            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
             f"Consider using padding = 'valid' instead.",
             UserWarning,
         )
@@ -690,7 +690,7 @@ def conv3d_fft(
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         warnings.warn(
-            f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
+            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
             f"Consider using padding = 'valid' instead.",
             UserWarning,
         )
@@ -807,7 +807,7 @@ def conv_transpose3d_fft(
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         warnings.warn(
-            f"Use are using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
+            f"You're using padding = '{padding}' with a 1x1x1 kernel. This is equivalent to no padding. "
             f"Consider using padding = 'valid' instead.",
             UserWarning,
         )
