@@ -132,7 +132,7 @@ for lmbd in tqdm([0.00001, 0.0001, 0.001, 0.01, 0.1,]):
     model = dinv.models.ArtifactRemoval(MNISTGenerator(), device=device)
     D = MNISTDiscriminator().to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.5, 0.9))
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.5, 0.9))
     optimizer_D = torch.optim.Adam(D.parameters(), lr=1e-4, betas=(0.5, 0.9))
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     scheduler_D = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=10, gamma=0.5)
