@@ -150,7 +150,7 @@ class EPLL(nn.Module):
                 )
             return x
 
-    def negative_log_likelihood(self, x: torch.Tensor):
+    def negative_log_likelihood(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Takes patches and returns the negative log likelihood of the GMM for each patch.
 
