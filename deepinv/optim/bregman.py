@@ -15,7 +15,7 @@ class Bregman(Potential):
     def __init__(self, phi: Callable[torch.Tensor, torch.Tensor] = None):
         super().__init__(fn=phi)
 
-    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
+    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the Bregman divergence :math:`D_\phi(x,y)` with Bregman potential :math:`\phi`.
 
@@ -35,7 +35,7 @@ class Bregman(Potential):
 
     def MD_step(
         self, x: torch.Tensor, grad: torch.Tensor, *args, gamma: float = 1.0, **kwargs
-    ):
+    ) -> torch.Tensor:
         r"""
         Performs a Mirror Descent step :math:`x = \nabla \phi^*(\nabla \phi(x) - \gamma \nabla f(x))`.
 
@@ -56,7 +56,7 @@ class BregmanL2(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x: torch.Tensor):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the L2 norm potential :math:`\phi(x) = \frac{1}{2} \|x\|_2^2`.
 
@@ -65,7 +65,7 @@ class BregmanL2(Bregman):
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
-    def conjugate(self, x: torch.Tensor):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = \frac{1}{2} \|y\|_2^2`.
 
@@ -74,7 +74,7 @@ class BregmanL2(Bregman):
         """
         return 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
 
-    def grad(self, x: torch.Tensor, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the L2 norm :math:`\nabla \phi(x) = x`.
 
@@ -83,7 +83,7 @@ class BregmanL2(Bregman):
         """
         return x
 
-    def grad_conj(self, x: torch.Tensor, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of the L2 norm :math:`\nabla \phi^*(x) = x`.
 
@@ -92,7 +92,7 @@ class BregmanL2(Bregman):
         """
         return x
 
-    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
+    def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the Bregman divergence with potential :math:`\phi`. Here falls back to the L2 distance.
 
@@ -115,7 +115,7 @@ class BurgEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x: torch.Tensor):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes Burg's entropy potential :math:`\phi(x) = - \sum_i \log x_i`.
         The input :math:`x` must be postive.
@@ -125,7 +125,7 @@ class BurgEntropy(Bregman):
         """
         return -torch.sum(torch.log(x).reshape(x.shape[0], -1), dim=-1)
 
-    def conjugate(self, x: torch.Tensor):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = - - \sum_i \log (-x_i)`.
         The input :math:`x` must be negative.
@@ -136,7 +136,7 @@ class BurgEntropy(Bregman):
         n = torch.shape(x.reshape(x.shape[0], -1))[-1]
         return -torch.sum(torch.log(-x).reshape(x.shape[0], -1), dim=-1) - n
 
-    def grad(self, x: torch.Tensor, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of Burg's entropy :math:`\nabla \phi(x) = - 1 / x`.
 
@@ -145,7 +145,7 @@ class BurgEntropy(Bregman):
         """
         return -1 / x
 
-    def grad_conj(self, x: torch.Tensor, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of Burg's entropy :math:`\nabla h^*(x) = - 1 / x`.
 
@@ -165,7 +165,7 @@ class NegEntropy(Bregman):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x: torch.Tensor):
+    def fn(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes negative entropy potential :math:`\phi(x) = \sum_i x_i \log x_i`.
         The input :math:`x` must be postive.
@@ -175,7 +175,7 @@ class NegEntropy(Bregman):
         """
         return torch.sum((x * torch.log(x)).reshape(x.shape[0], -1), dim=-1)
 
-    def conjugate(self, x: torch.Tensor):
+    def conjugate(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`\phi^*(y) = \sum_i y_i \log y_i`.
         The input :math:`x` must be negative.
@@ -185,7 +185,7 @@ class NegEntropy(Bregman):
         """
         return torch.sum(torch.exp(x - 1).reshape(x.shape[0], -1), dim=-1)
 
-    def grad(self, x: torch.Tensor, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of negative entropy :math:`\nabla \phi(x) = 1 + \log x`.
 
@@ -194,7 +194,7 @@ class NegEntropy(Bregman):
         """
         return 1 + torch.log(x)
 
-    def grad_conj(self, x: torch.Tensor, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the conjugate of negative entropy :math:`\nabla \phi^*(x) = 1 + \log x`.
 
