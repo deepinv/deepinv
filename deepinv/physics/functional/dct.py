@@ -10,7 +10,7 @@ Modifications have been made for integration with the DeepInverse library.
 
 import torch
 
-pi = torch.acos(torch.zeros(1)).item() * 2
+pi = torch.pi
 
 
 def dct(x, norm=None):
