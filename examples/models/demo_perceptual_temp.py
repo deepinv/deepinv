@@ -128,7 +128,7 @@ metric_gan = dinv.loss.adversarial.DiscriminatorMetric(metric=WGANMetric(), devi
 # ~~~~~~~~
 
 results = {}
-for lmbd in tqdm([0.00001, 0.0001, 0.001, 0.01, 0.1,]):
+for lmbd in tqdm([1e-10, 0.00001, 0.0001, 0.02, 0.1,]):
     model = dinv.models.ArtifactRemoval(MNISTGenerator(), device=device)
     D = MNISTDiscriminator().to(device)
 
@@ -149,7 +149,7 @@ for lmbd in tqdm([0.00001, 0.0001, 0.001, 0.01, 0.1,]):
     rng = torch.Generator(device=device).manual_seed(0)
     #physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=1., rng=rng))
     _mask = torch.ones((1, 28, 28), device=device)
-    _mask[:, 6:22, 6:22] = 0
+    _mask[:, 4:24, 4:24] = 0
     physics = dinv.physics.Inpainting(mask=_mask, img_size=_mask.shape, device=device)
 
     trainer = dinv.Trainer(
