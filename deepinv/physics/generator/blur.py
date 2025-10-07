@@ -1,6 +1,5 @@
 from __future__ import annotations
 import torch
-from einops import rearrange
 import numpy as np
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
@@ -1099,6 +1098,8 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         ].unsqueeze(1)
 
         if self.random_rotate:
+            from einops import rearrange
+
             if angle is None:
                 angle = self.generator2d.generate_angles(batch_size)
 
