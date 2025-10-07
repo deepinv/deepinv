@@ -7,6 +7,11 @@ from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
 from deepinv.models.base import Denoiser
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+
 
 class EPLL(nn.Module):
     r"""
@@ -160,7 +165,15 @@ class EPLL(nn.Module):
         logpz = self.GMM(x.view(B * n_patches, -1))
         return logpz.view(B, n_patches)
 
-    def _reconstruction_step(self, Aty, x, sigma_sq, beta, physics, batch_size):
+    def _reconstruction_step(
+        self,
+        Aty: torch.Tensor,
+        x: torch.Tensor,
+        sigma_sq: float | torch.Tensor,
+        beta: float,
+        physics: Physics,
+        batch_size: int,
+    ):
         # precomputations for GMM with covariance regularization
         self.GMM.set_cov_reg(1.0 / beta)
         N, M = x.shape[2:4]
