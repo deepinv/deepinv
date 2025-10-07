@@ -79,7 +79,7 @@ x_rgb = channel_norm(x_rgb) * dr
 # Below, we illustrate this for a single row of the image by visualizing the pixel values, their differences, and the wrapped differences.
 # We can understand the condition by artificially blurring the images with a Gaussian kernel to reduce their high frequencies (and thus the :math:`\|Dx\|_{\infty}) until the condition is verified.
 # For instace, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
-# and consequenly, missmatch with the wrapped differences :math:`w_t(Dy)`.
+# and consequently, we observe a mismatch with the wrapped differences :math:`w_t(Dy)`,
 # while with a blur of 2.0, the differences :math:`Dx` remain within the threshold are match the wrapped differences :math:`w_t(Dy)`,
 # indicating that the Itoh condition is satisfied.
 
