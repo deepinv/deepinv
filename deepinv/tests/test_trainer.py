@@ -753,9 +753,9 @@ class ConstantLossEvalTrain(dinv.loss.Loss):
 class ConstantLossEvalTrain2(ConstantLossEvalTrain):
     pass
 
-@pytest.mark.parametrize("compute_losses_eval", [True, False])
+@pytest.mark.parametrize("compute_eval_losses", [True, False])
 @pytest.mark.parametrize("compute_train_metrics", [True, False])
-def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, compute_losses_eval, compute_train_metrics):
+def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, compute_eval_losses, compute_train_metrics):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
@@ -780,7 +780,7 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, comput
         device=device,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
-        compute_losses_eval=compute_losses_eval,
+        compute_eval_losses=compute_eval_losses,
         compute_train_metrics=compute_train_metrics,
         optimizer=torch.optim.Adam(dummy_model.parameters(), lr=1),
         verbose=False,
@@ -793,7 +793,7 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, comput
     for k, (loss_name, loss_history) in enumerate(trainer.train_loss_history.items()):
         l = losses[k]
         assert loss_name == l.__class__.__name__
-        assert all([torch.allclose(value, l.value_train) for value in loss_history])
+        assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
 
     for k, (metric_name, metrics_history) in enumerate(
         trainer.eval_metrics_history.items()
@@ -801,18 +801,16 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, comput
         l = metrics[k]
 
         assert metric_name == l.__class__.__name__
-        if compute_train_metrics:
-            assert all([torch.allclose(value, l.value_train) for value in metrics_history])
-        else:
-            assert all([torch.allclose(value, l.value_eval) for value in metrics_history])
+        assert all([abs(value - l.value_eval) < 1e-6 for value in metrics_history])
 
-    if compute_losses_eval:
+    if compute_eval_losses:
         for k, (loss_name, loss_history) in enumerate(trainer.eval_loss_history.items()):
             l = losses[k]
             assert loss_name == l.__class__.__name__
-            assert all([torch.allclose(value, l.value) for value in loss_history])
+            assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
     else:
-        assert len(trainer.eval_loss_history) == 0
+        for loss_history in trainer.eval_loss_history.values():
+            assert len(loss_history) == 0
 
 
 class DummyModel(dinv.models.Reconstructor):
@@ -831,7 +829,7 @@ class DummyModel(dinv.models.Reconstructor):
         return x * self.param
 
 
-@pytest.mark.parametrize("compute_losses_eval", [True, False])
+@pytest.mark.parametrize("compute_eval_losses", [True, False])
 @pytest.mark.parametrize("compute_train_metrics", [True, False])
 @pytest.mark.parametrize("epochs", [4, 5])
 @pytest.mark.paramtrize("eval_interval", [1, 2])
@@ -840,7 +838,7 @@ def test_model_forward_passes(
     imsize,
     device,
     tmpdir,
-    compute_losses_eval,
+    compute_eval_losses,
     compute_train_metrics,
     epochs,
     eval_interval
@@ -867,7 +865,7 @@ def test_model_forward_passes(
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
         online_measurements=True,
-        compute_losses_eval=compute_losses_eval,
+        compute_eval_losses=compute_eval_losses,
         compute_train_metrics=compute_train_metrics,
     )
 
@@ -880,14 +878,14 @@ def test_model_forward_passes(
     eval_calls = len(eval_dataloader) * (epochs // eval_interval + 1)
 
     # checking number of train calls
-    if compute_losses_eval:
+    if compute_eval_losses:
         assert model.train_count == train_calls + eval_calls
     else:
         assert model.train_count == train_calls
 
     # checking number of eval calls
     if compute_train_metrics:
-        if compute_losses_eval:
+        if compute_eval_losses:
             assert model.eval_count == 0  # all metrics computed in train mode
     else:
         assert model.eval_count == eval_calls
@@ -900,7 +898,7 @@ def test_model_forward_passes(
     test_calls = len(eval_dataloader)
     assert model.eval_count == test_calls
 
-    if compute_losses_eval:
+    if compute_eval_losses:
         assert model.train_count == test_calls
     else:
         assert model.train_count == 0

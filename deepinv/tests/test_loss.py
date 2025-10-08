@@ -378,7 +378,7 @@ def test_losses(
     trainer.metrics = (
         [] if (loss_name == "reducedresolution") else [deepinv.metric.PSNR()]
     )
-    trainer.compute_losses_eval = True
+    trainer.compute_eval_losses = True
 
     trainer.train()
     final_test = trainer.test(

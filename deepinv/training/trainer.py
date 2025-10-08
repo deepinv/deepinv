@@ -103,7 +103,7 @@ class Trainer:
         Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
     :param None, int early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
-        after `early_stop` validations. Default is ``None`` (no early stopping).
+        after `early_stop` passes over the eval dataset. Default is ``None`` (no early stopping).
         The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
     :param bool early_stop_on_losses: Early stop using losses computed on the eval set instead of metrics. Default is ``False``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
@@ -127,7 +127,7 @@ class Trainer:
           still possible to validate using i) :ref:`no reference metrics
           <no-reference-metrics>`, e.g. :class:`deepinv.metric.NIQE`, or ii)
           :ref:`self-supervised losses <self-supervised-losses>` with
-          ``compute_losses_eval=True`` and ``metrics=None``. If self-supervised losses
+          ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
           are used we recommend setting ``compute_train_metrics=False`` to avoid computing
           metrics in ``model.train()`` mode. This is required by many self-supervised losses, such as
           :class:`splitting <deepinv.loss.SplittingLoss>` or :class:`recorruption <deepinv.loss.R2RLoss>` losses,
@@ -151,7 +151,7 @@ class Trainer:
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
         This is useful for visualising train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
-    :param bool compute_losses_eval: If ``True``, the losses are computed during evaluation. Default is ``False``.
+    :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``.
 
     .. tip::
         If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
@@ -273,7 +273,7 @@ class Trainer:
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
-    compute_losses_eval: bool = False
+    compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
     verbose_individual_losses: bool = True
@@ -328,7 +328,7 @@ class Trainer:
         if self.early_stop:
             if not self.early_stop_on_losses:
                 assert len(self.losses) > 0, "At least one loss should be provided for early stopping if early_stop_on_losses=False."
-                assert self.compute_losses_eval, "compute_losses_eval should be True when early_stop_on_losses is True."
+                assert self.compute_eval_losses, "compute_eval_losses should be True when early_stop_on_losses is True."
             else:
                 assert len(self.metrics) > 0, "At least one metric should be provided for early stopping if early_stop_on_losses=True."
 
@@ -398,7 +398,7 @@ class Trainer:
             self.metrics = [self.metrics]
 
         if len(self.metrics) == 0 and not train:
-            self.compute_losses_eval = True
+            self.compute_eval_losses = True
             warnings.warn("As no metrics were provided for testing, "
                           "evaluating with provided losses instead of metrics")
 
@@ -754,8 +754,7 @@ class Trainer:
         if train and step:
             self.optimizer.zero_grad()
 
-        x_net = None
-        if train or self.compute_losses_eval:
+        if train or self.compute_eval_losses:
             # Evaluate reconstruction network
             x_net = self.model_inference(y=y, physics=physics, x=x, train=True)
 
@@ -781,8 +780,9 @@ class Trainer:
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
             logs[f"TotalLoss"] = meters.avg
-        else:  # TODO question: what do we want to do at test time?
+        else:
             loss_total = 0
+            x_net = None
 
         if train:
             loss_total.backward()  # Backward the total loss
@@ -1146,7 +1146,7 @@ class Trainer:
         Save the best model using validation metrics.
 
         By default, uses validation based on first metric. If no metric is provided (e.g. in self-supervised learning),
-        uses the first loss on the eval dataset instead (requires having `compute_losses_eval=True`).
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
 
         Override this method to provide custom criterion.
 
@@ -1202,7 +1202,7 @@ class Trainer:
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
 
         If `early_stop_on_losses=True` (default is `False`)
-        uses the first loss on the eval dataset instead (requires having `compute_losses_eval=True`).
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
 
         Override this method to early stop on a custom condition.
 
@@ -1341,7 +1341,7 @@ class Trainer:
                         )
 
                     # store losses history
-                    if self.compute_losses_eval:
+                    if self.compute_eval_losses:
                         for l in self.losses:
                             self.eval_loss_history[l.__class__.__name__].append(
                                 self.logs_losses_eval[self.losses.index(l)].avg
