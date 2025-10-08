@@ -573,35 +573,16 @@ class LinearPhysics(Physics):
         elif squared is not False:
             raise ValueError(f"squared must be True or False, got {squared}")
 
-        x = torch.randn_like(x0)
-        x /= torch.norm(x)
-        zold = torch.zeros_like(x)
-        for it in range(max_iter):
-            y = self.A(x, **kwargs)
-            y = self.A_adjoint(y, **kwargs)
-            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
-
-            rel_var = torch.norm(z - zold)
-            if rel_var < tol:
-                if verbose:
-                    norm_type = "||A^T A||_2" if squared else "||A||_2"
-                    value = z.real.item() if squared else z.real.sqrt().item()
-                    print(
-                        f"Power iteration converged at iteration {it}, {norm_type}={value:.2f}"
-                    )
-                break
-            zold = z
-            x = y / torch.norm(y)
-        else:
-            warnings.warn("Power iteration: convergence not reached")
-
-        result = z.real
-        if not squared:
-            result = result.sqrt()
+        # Compute squared norm using compute_sqnorm
+        sqnorm = self.compute_sqnorm(x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs)
         
-        return result
+        # Return squared or non-squared norm based on parameter
+        if squared:
+            return sqnorm
+        else:
+            return sqnorm.sqrt()
 
-    def compute_sqnorm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+    def compute_sqnorm(self, x0, *, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
         Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
 

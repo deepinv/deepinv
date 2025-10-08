@@ -107,7 +107,7 @@ dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 # It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.LinearPhysics.compute_norm`.
 # We see that this physics fails this.
 
-print(f"The linear operator has norm={physics.compute_norm(x, squared=False):.2f}")
+print(f"The linear operator has norm={physics.compute_sqnorm(x).sqrt():.2f}")
 
 # %%
 # All parameters or buffers of the physics, such as `coefficients` in the case of `Decolorize`, can be updated on the fly
@@ -220,7 +220,7 @@ dinv.utils.plot({"x": x, "y": y2, "Linear pseudo-inverse": physics2.A_dagger(y2)
 if physics.adjointness_test(x) < 1e-5:
     print("The decomposable operator has a well defined transpose")
 
-print(f"The decomposable operator has norm={physics.compute_norm(x, squared=False):.2f}")
+print(f"The decomposable operator has norm={physics.compute_sqnorm(x).sqrt():.2f}")
 
 # %%
 # Benefits of using a decomposable forward operator.
