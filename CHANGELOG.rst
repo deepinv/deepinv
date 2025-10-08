@@ -9,6 +9,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.5
+------
+New Features
+^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
@@ -31,6 +43,8 @@ Fixed
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
+
+
 
 
 v0.3.4
