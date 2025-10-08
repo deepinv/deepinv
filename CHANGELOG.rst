@@ -17,12 +17,12 @@ New Features
 
 Changed
 ^^^^^^^
+- Add ``squared`` parameter to ``LinearPhysics.compute_norm()`` and ``compute_sqnorm()`` method (:gh:`832` by `Jérémy Scanvic`_)
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
 ^^^^^
-- Add ``squared`` parameter to ``LinearPhysics.compute_norm()`` and ``compute_sqnorm()`` method (:gh:`719` by `Jérémy Scanvic`_)
 - Use the learning-free model for learning-free metrics in Trainer (:gh:`788` by `Jérémy Scanvic`_)
 - Fix device dirac_like and bilinear, bicubic and gaussian filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
