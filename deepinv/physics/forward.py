@@ -608,7 +608,7 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: initialisation point of the algorithm
+        :param torch.Tensor x0: initialization point of the algorithm
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
