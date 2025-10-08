@@ -980,14 +980,14 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
     >>> import torch
     >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
-    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, zernike_index=(0,))
+    >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, zernike_index=(3,))
     >>> dict = generator.step()
     >>> filter = dict['filter']
     >>> print(filter.shape)
     torch.Size([1, 1, 21, 51, 51])
     >>> batch_size = 2
     >>> n_zernike = len(generator.generator2d.zernike_index)
-    >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
+    >>> dict = generator.step(batch_size=batch_size, coeff=0.1 * torch.rand(batch_size, n_zernike))
     >>> dict.keys()
     dict_keys(['filter', 'pupil', 'coeff'])
 
