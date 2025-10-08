@@ -84,6 +84,9 @@ html_copy_source = True
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
+# Exclude _modules pages from sitemap (they are viewcode source pages)
+# These pages show the source code of modules and should not be indexed
+sitemap_excludes = ["_modules/*"]
 
 ####  userguide directive ###
 from docutils import nodes
