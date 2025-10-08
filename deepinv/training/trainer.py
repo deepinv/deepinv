@@ -307,31 +307,6 @@ class Trainer:
 
         self.G = len(self.train_dataloader)
 
-        if self.early_stop is not None and self.eval_dataloader is None:
-            warnings.warn(
-                "early_stop is set but no eval_dataloader is provided. early_stop will be ignored."
-            )
-        elif isinstance(self.early_stop, bool):  # for backwards compatibility
-            if self.early_stop:
-                self.early_stop = 3
-                warnings.warn(
-                    "early_stop should be an integer or None. Setting early_stop=3. "
-                    "This behaviour will be deprecated in future versions."
-                )
-            else:
-                self.early_stop = None
-        elif self.early_stop is not None:
-            assert (
-                isinstance(self.early_stop, int) and self.early_stop > 0
-            ), "early_stop should be a positive integer or None."
-
-        if self.early_stop:
-            if not self.early_stop_on_losses:
-                assert len(self.losses) > 0, "At least one loss should be provided for early stopping if early_stop_on_losses=False."
-                assert self.compute_eval_losses, "compute_eval_losses should be True when early_stop_on_losses is True."
-            else:
-                assert len(self.metrics) > 0, "At least one metric should be provided for early stopping if early_stop_on_losses=True."
-
         if self.freq_plot is not None:
             warnings.warn(
                 "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
@@ -472,6 +447,31 @@ class Trainer:
             self.physics_generator = [self.physics_generator]
 
         self.save_folder_im = None
+
+        if self.early_stop is not None and self.eval_dataloader is None:
+            warnings.warn(
+                "early_stop is set but no eval_dataloader is provided. early_stop will be ignored."
+            )
+        elif isinstance(self.early_stop, bool):  # for backwards compatibility
+            if self.early_stop:
+                self.early_stop = 3
+                warnings.warn(
+                    "early_stop should be an integer or None. Setting early_stop=3. "
+                    "This behaviour will be deprecated in future versions."
+                )
+            else:
+                self.early_stop = None
+        elif self.early_stop is not None:
+            assert (
+                isinstance(self.early_stop, int) and self.early_stop > 0
+            ), "early_stop should be a positive integer or None."
+
+        if self.early_stop:
+            if not self.early_stop_on_losses:
+                assert len(self.losses) > 0, "At least one loss should be provided for early stopping if early_stop_on_losses=False."
+                assert self.compute_eval_losses, "compute_eval_losses should be True when early_stop_on_losses is True."
+            else:
+                assert len(self.metrics) > 0, "At least one metric should be provided for early stopping if early_stop_on_losses=True."
 
         _ = self.load_model()
 

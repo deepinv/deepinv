@@ -832,7 +832,7 @@ class DummyModel(dinv.models.Reconstructor):
 @pytest.mark.parametrize("compute_eval_losses", [True, False])
 @pytest.mark.parametrize("compute_train_metrics", [True, False])
 @pytest.mark.parametrize("epochs", [4, 5])
-@pytest.mark.paramtrize("eval_interval", [1, 2])
+@pytest.mark.parametrize("eval_interval", [1, 2])
 def test_model_forward_passes(
     dummy_dataset,
     imsize,
@@ -908,7 +908,7 @@ def test_model_forward_passes(
 # standard output. To do that, we mock backprop to control the gradient norms.
 # More precisely, we make it so the gradient norm is 1.0 for epoch 1, 2.0 for
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
-# output to get # the reported values for the gradient norms and compare them
+# output to get the reported values for the gradient norms and compare them
 # to the expected values.
 def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
