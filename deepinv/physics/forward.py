@@ -538,21 +538,42 @@ class LinearPhysics(Physics):
         """
         return stack(self, other)
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, squared=None, **kwargs):
         r"""
-        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
+        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
-        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,
+        .. warning::
 
-        using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+            By default, for backward compatibility, this method computes the **squared** spectral norm of :math:`A`,
+            i.e., :math:`\|A^{\top}A\|_2`. This behavior is deprecated and will change in a future version.
+            Set ``squared=False`` to compute the non-squared spectral norm :math:`\|A\|_2`, or use
+            :meth:`compute_sqnorm` to explicitly compute the squared norm.
+
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
         :param torch.Tensor x0: initialisation point of the algorithm
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param bool squared: If ``True``, computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
+            If ``None`` (default), uses ``True`` for backward compatibility but issues a deprecation warning.
 
-        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
+        :returns z: (float) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
         """
+        if squared is None:
+            warnings.warn(
+                "The default behavior of `compute_norm()` is deprecated. "
+                "Currently it computes the squared spectral norm of A (i.e., ||A^T A||_2). "
+                "In a future version, it will compute the non-squared spectral norm (i.e., ||A||_2). "
+                "To suppress this warning and get the new behavior, set `squared=False`. "
+                "To keep the current behavior, set `squared=True` or use `compute_sqnorm()` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            squared = True
+
         x = torch.randn_like(x0)
         x /= torch.norm(x)
         zold = torch.zeros_like(x)
@@ -564,8 +585,10 @@ class LinearPhysics(Physics):
             rel_var = torch.norm(z - zold)
             if rel_var < tol:
                 if verbose:
+                    norm_type = "||A^T A||_2" if squared else "||A||_2"
+                    value = z.real.item() if squared else z.real.sqrt().item()
                     print(
-                        f"Power iteration converged at iteration {it}, value={z.item():.2f}"
+                        f"Power iteration converged at iteration {it}, {norm_type}={value:.2f}"
                     )
                 break
             zold = z
@@ -573,7 +596,28 @@ class LinearPhysics(Physics):
         else:
             warnings.warn("Power iteration: convergence not reached")
 
-        return z.real
+        result = z.real
+        if not squared:
+            result = result.sqrt()
+        
+        return result
+
+    def compute_sqnorm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+        r"""
+        Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
+
+        This is equivalent to computing the spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`.
+
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: initialisation point of the algorithm
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+
+        :returns z: (float) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
+        """
+        return self.compute_norm(x0, max_iter=max_iter, tol=tol, verbose=verbose, squared=True, **kwargs)
 
     def adjointness_test(self, u, **kwargs):
         r"""

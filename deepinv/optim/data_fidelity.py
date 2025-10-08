@@ -339,7 +339,7 @@ class IndicatorL2(DataFidelity):
         if physics.A(x).shape == x.shape and (physics.A(x) == x).all():  # Identity case
             return self.d.prox(x, y, gamma=None, radius=radius)
         else:
-            norm_AtA = physics.compute_norm(x, verbose=False)
+            norm_AtA = physics.compute_norm(x, verbose=False, squared=True)
             stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
             u = physics.A(x)
             for it in range(max_iter):
@@ -433,7 +433,7 @@ class L1(DataFidelity):
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
-        norm_AtA = physics.compute_norm(x)
+        norm_AtA = physics.compute_norm(x, squared=True)
         stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
         u = x.clone()
         for it in range(max_iter):

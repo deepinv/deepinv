@@ -798,10 +798,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose, squared=True)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
+    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose, squared=True)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -1328,12 +1328,12 @@ def test_tomography(
         assert physics.adjointness_test(x).abs() < 1e-3
 
     if normalize:
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_norm(x, squared=False) - 1.0) < 1e-3
 
     if normalize is None:
         # when normalize is not set by the user, it should default to True
         assert physics.normalize is True
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_norm(x, squared=False) - 1.0) < 1e-3
 
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
