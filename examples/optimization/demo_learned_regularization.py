@@ -2,9 +2,9 @@ r"""
 Learned Regularization Functionals
 ====================================================================================================
 
-In this example, we show how to solve inverse problems using an explicit prior. We consider denoising, computed tomography
-and inpainting with the convex ridge regularizer (CRR) :footcite:t:`goujon2023neural`, weakly convex ridge regularizer (WCRR) 
-:footcite:t:`goujon2024learning` and least squares regularizer (LSR) (see, e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`).
+In this example, we show how to solve inverse problems using a learned regularizer and the nonmonotonic accelerated proximal gradient algorithm. 
+We consider denoising, computed tomography and inpainting with the convex ridge regularizer (CRR) (:footcite:t:`goujon2023neural`), 
+weakly convex ridge regularizer (WCRR) (:footcite:t:`goujon2024learning`) and least squares regularizer (LSR) (see, e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`).
 This example only covers the reconstruction with these regularizers. For the training them in a bilevel regime we refer to :footcite:t:`hertrich2025learning`.
 
 For the reconstructions we sovle the variational problem
