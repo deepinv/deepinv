@@ -538,7 +538,9 @@ class LinearPhysics(Physics):
         """
         return stack(self, other)
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, squared=True, **kwargs):
+    def compute_norm(
+        self, x0, max_iter=100, tol=1e-3, verbose=True, squared=True, **kwargs
+    ):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
@@ -574,8 +576,10 @@ class LinearPhysics(Physics):
             raise ValueError(f"squared must be True or False, got {squared}")
 
         # Compute squared norm using compute_sqnorm
-        sqnorm = self.compute_sqnorm(x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs)
-        
+        sqnorm = self.compute_sqnorm(
+            x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+        )
+
         # Return squared or non-squared norm based on parameter
         if squared:
             return sqnorm

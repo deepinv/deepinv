@@ -198,7 +198,7 @@ class Tomography(LinearPhysics):
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
                 )[None, None],
-                squared=False
+                squared=False,
             )
             self.normalize = True
 
@@ -562,7 +562,7 @@ class TomographyWithAstra(LinearPhysics):
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
                 )[None, None],
-                squared=False
+                squared=False,
             )
             self.normalize = True
 
