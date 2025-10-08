@@ -28,6 +28,7 @@ class Trainer:
 
     ## Core Components
     model: torch.nn.Module
+    iterative_model_returns_different_outputs: bool = False
     physics: Union[Physics, list[Physics]]
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -66,7 +67,7 @@ class Trainer:
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
 
-    ## Checkpointing & Persistence
+    ## Checkpointing & Persistence (at the end of epoch)
     ckpt_pretrained: str = None
     ckpt_interval: int = 1
 
@@ -78,24 +79,23 @@ class Trainer:
     log_images: bool = False
     rescale_mode: str = "clip"
     check_grad: bool = False
-    plot_convergence_metrics: bool = False
     show_progress_bar: bool = True
     verbose: bool = True
 
-    def setup_run(self):
+    def setup_run(self) -> None:
         r"""
         Set up the training/testing process.
 
         :param bool train: whether model is being trained.
         """
-        # resume training from a training checkpoint
+        # resume state from a training checkpoint
         self.epoch_start = 0
         self.load_ckpt(self.ckpt_pretrained)
 
         self._setup_data()
         self._setup_logging()
 
-    def _setup_data(self):
+    def _setup_data(self) -> None:
         """
         Set up data and physics before running an experience.
         """
@@ -115,11 +115,11 @@ class Trainer:
         if not isinstance(self.test_dataloader, list):
             self.test_dataloader = [self.test_dataloader]
 
-        # ???
+        # ensure that dataset in each dataloader respects the right format
         for loader in self.train_dataloader + self.val_dataloader:
             check_dataset(loader.dataset)
 
-        # ???
+        # useful when training on multiple dataset
         self.G = len(self.train_dataloader)
 
         # ensure that physics is a list for format consistency
@@ -142,19 +142,17 @@ class Trainer:
             if not isinstance(self.physics_generator, list):
                 self.physics_generator = [self.physics_generator]
 
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         r"""
-        Set up loggers before running an experience.
-
-        It initializes the loggers and transforms some attributes to list if needed.
-
-        :param bool train: whether model is being trained.
+        Set up the monitoring before running an experience..
         """
+        # losses processing
         if not isinstance(self.losses, list):
             self.losses = [self.losses]
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
+        # metrics processing
         if not isinstance(self.metrics, list):
             self.metrics = [self.metrics]
 
@@ -233,64 +231,58 @@ class Trainer:
             for logger in self.loggers:
                 logger.setLevel("WARNING")
 
-    def save_ckpt(self, epoch, state=None, name: str = None):
+    def save_ckpt(self, epoch: int, name: str = None) -> None:
         r"""
-        Save the model.
-
-        It saves the model every ``ckpt_interval`` epochs.
+        Save necessary information to resume training.
 
         :param int epoch: Current epoch.
-        :param dict state: custom objects to save with model
+        :param str name: Name of the checkpoint file.
         """
-        if state is None:
-            state = {
-                "epoch": epoch,
-                "state_dict": self.model.state_dict(),
-                "optimizer": self.optimizer.state_dict() if self.optimizer else None,
-                "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-                "loss": self.loss_history,
-                "val_metrics": self.val_metrics_history_per_epoch,
-            }
+        state = {
+            "epoch": epoch,
+            "state_dict": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "loss": self.loss_history,
+            "val_metrics": self.val_metrics_history_per_epoch,
+        }
 
-            for logger in self.loggers:
-                logger.log_checkpoint(epoch=epoch, state=state, name=name)
+        for logger in self.loggers:
+            logger.log_checkpoint(epoch=epoch, state=state, name=name)
 
     def load_ckpt(
         self,
         ckpt_pretrained: Optional[str] = None,
-    ) -> dict:
+    ) -> None:
         """Load model from checkpoint.
 
-        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
-            If not `None`, override checkpoint passed to class.
-        :param bool strict: strict load weights to model.
-        :return: if checkpoint loaded, return checkpoint dict, else return ``None``
+        :param str ckpt_pretrained: Path to the checkpoint file.
         """
-        self.ckpt_pretrained = ckpt_pretrained
+        if ckpt_pretrained is not None:
+            self.ckpt_pretrained = ckpt_pretrained
 
-        if self.ckpt_pretrained is not None:
-            # Load checkpoint from file
-            checkpoint = torch.load(
-                self.ckpt_pretrained, map_location=self.device, weights_only=False
-            )
+        # Load checkpoint from file
+        checkpoint = torch.load(
+            self.ckpt_pretrained, map_location=self.device, weights_only=False
+        )
 
-            self.epoch_start = checkpoint["epoch"] + 1
-            self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+        self.epoch_start = checkpoint["epoch"] + 1
+        self.model.load_state_dict(checkpoint["state_dict"], strict=True)
 
-            # TODO
-            if self.optimizer is not None:
-                self.optimizer.load_state_dict(checkpoint["optimizer"])
-            if self.scheduler is not None:
-                self.scheduler.load_state_dict(checkpoint["scheduler"])
+        # TODO
+        if self.optimizer is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
 
-            for logger in self.loggers:
-                logger.load_from_checkpoint(checkpoint)
-        return self.model
+        for logger in self.loggers:
+            logger.load_from_checkpoint(checkpoint)
 
-    def check_clip_grad(self):
+    def apply_clip_grad(self) -> float:
         r"""
-        Check the gradient norm and perform gradient clipping if necessary.
+        Perform gradient clipping.
 
+        :return float: Gradient norm after clipping.
         """
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
@@ -434,7 +426,7 @@ class Trainer:
 
         return x, y, physics
 
-    def model_inference(self, y, physics, x=None, train=True, **kwargs):
+    def model_inference(self, y, physics, x=None, train=True, **kwargs) -> torch.Tensor:
         r"""
         Perform the model inference.
 
@@ -443,7 +435,7 @@ class Trainer:
         :param torch.Tensor y: Measurement.
         :param deepinv.physics.Physics physics: Current physics operator.
         :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.
-        :returns: The network reconstruction.
+        :returns torch.Tensor: The network reconstruction.
         """
         y = y.to(self.device)
 
@@ -455,8 +447,8 @@ class Trainer:
 
         if not train:
             with torch.no_grad():
-                if self.plot_convergence_metrics:
-                    x_net, self.conv_metrics = self.model(
+                if self.iterative_model_returns_different_outputs:
+                    x_net, _ = self.model(
                         y, physics, x_gt=x, compute_metrics=True, **kwargs
                     )
                 else:
@@ -466,33 +458,29 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
+    def compute_loss(
+        self, x, x_net, y, physics, train=True, epoch: int = None
+    ) -> tuple[torch.Tensor, dict]:
         r"""
-        Compute the loss and perform the backward pass.
+        Compute the loss.
 
-        It evaluates the reconstruction network, computes the losses, and performs the backward pass.
+        Loss can be the sum of several individual losses and we keep track of these individual losses.
 
-        :param deepinv.physics.Physics physics: Current physics operator.
         :param torch.Tensor x: Ground truth.
+        :param torch.Tensor x_net: Network reconstruction.
         :param torch.Tensor y: Measurement.
+        :param deepinv.physics.Physics physics: Current physics operator.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
-        :param int epoch: current epoch.
-        :param bool step: Whether to perform an optimization step when computing the loss.
-        :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
-            the logs (for printing the training progress).
+        :param int epoch: Current epoch.
+        :returns torch.Tensor: The loss evaluated on the current batch.
+        :returns dict: The loss and individual losses evaluted on several batches.
         """
         logs = {}
 
-        if train and step:
-            self.optimizer.zero_grad()
-
-        # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
-
-        if train:
-            # Compute the losses
-            loss_total = 0
-            for k, l in enumerate(self.losses):
+        # Compute the losses
+        loss_total = 0
+        with torch.set_grad_enabled(train):  # dynamically choose whether to track gradients
+            for l in self.losses:  # global loss is computed as the sum of individual losses
                 loss = l(
                     x=x,
                     x_net=x_net,
@@ -501,41 +489,30 @@ class Trainer:
                     model=self.model,
                     epoch=epoch,
                 )
-                loss_total += loss.mean()
+                loss_total += loss.mean()  # average of the current loss function evaluted on our batch of data
                 if len(self.losses) > 1:
                     meters = (
-                        self.meters_losses_train[k]
+                        self.meters_losses_train[l.__class__.__name__]
                         if train
-                        else self.meters_losses_val[k]
+                        else self.meters_losses_val[l.__class__.__name__]
                     )
-                    meters.update(loss.detach().cpu().numpy())
-                    logs[l.__class__.__name__] = meters.avg
+                    meters.update(loss.detach().cpu().numpy())  # track the current loss per img (img are from several batches)
+                    logs[l.__class__.__name__] = meters.avg  # average of the current loss evaluated on several batches
 
             meters = self.meter_total_loss_train if train else self.meter_total_loss_val
             meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
-        else:  # TODO question: what do we want to do at test time?
-            loss_total = 0
+            logs[f"TotalLoss"] = meters.avg  # average of total loss evalutated on several batches
 
-        if train:
-            loss_total.backward()  # Backward the total loss
-
-            norm = self.check_clip_grad()
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
-
-            if step:
-                self.optimizer.step()  # Optimizer step
-
-        return loss_total, x_net, logs
+        return loss_total, logs
 
     def compute_metrics(
         self, x, x_net, y, physics, logs, train=True, epoch: int = None
-    ):
+    ) -> dict:
         r"""
         Compute the metrics.
 
         It computes the metrics over the batch.
+        During val/test, we can compare our model to a baseline linear reconstruction.
 
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor x_net: Network reconstruction.
@@ -543,37 +520,34 @@ class Trainer:
         :param deepinv.physics.Physics physics: Current physics operator.
         :param dict logs: Dictionary containing the logs for printing the training progress.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
-        :param int epoch: current epoch.
+        :param int epoch: Current epoch.
         :returns: The logs with the metrics.
         """
-
-        # Compute the metrics over the batch
         with torch.no_grad():
-            for k, l in enumerate(self.metrics):
-                metric = l(
+            for m in self.metrics:
+                metric = m(
                     x=x,
                     x_net=x_net,
                     y=y,
                     physics=physics,
                     model=self.model,
                 )
-
-                current_log = (
-                    self.meters_metrics_train[k]
+                meters = (
+                    self.meters_metrics_train[m.__class__.__name__]
                     if train
-                    else self.meters_metrics_val[k]
+                    else self.meters_metrics_val[m.__class__.__name__]
                 )
-                current_log.update(metric.detach().cpu().numpy())
-                logs[l.__class__.__name__] = current_log.avg
+                meters.update(metric.detach().cpu().numpy())  # track the current metric per img (img are from several batches)
+                logs[m.__class__.__name__] = meters.avg  # average of the current metric evaluated on several batches
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
-                    self.meters_metrics_no_learning[k].update(
+                    metric = m(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    self.meters_metrics_no_learning[m.__class__.__name__].update(
                         metric.detach().cpu().numpy()
                     )
-                    logs[f"{l.__class__.__name__} no learning"] = (
-                        self.meters_metrics_no_learning[k].avg
+                    logs[f"{m.__class__.__name__} no learning"] = (
+                        self.meters_metrics_no_learning[m.__class__.__name__].avg
                     )
         return logs
 
@@ -635,31 +609,46 @@ class Trainer:
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if train and self.optimizer_step_multi_dataset:
+        if self.log_every_step:
+            self.reset_metrics()  # we stop tracking losses and metrics accross epoch
+
+        if train:
             self.optimizer.zero_grad()  # Clear stored gradients
 
         # random permutation of the dataloaders
         G_perm = np.random.permutation(self.G)
-        loss = 0
-
-        if self.log_every_step and train:
-            self.reset_metrics()
+        loss_multi_dataset_step = 0
         for g in G_perm:  # for each dataloader
+            if train and not self.optimizer_step_multi_dataset:
+                self.optimizer.zero_grad()
+
             x, y, physics_cur = self.get_samples(
                 self.current_train_iterators if train else self.current_val_iterators,
                 g,
             )
 
-            # Compute loss and perform backprop
-            loss_cur, x_net, log_losses = self.compute_loss(
-                physics_cur,
-                x,
-                y,
-                train=train,
-                epoch=epoch,
-                step=(not self.optimizer_step_multi_dataset),
+            # Evaluate reconstruction network
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
+
+            # Compute the loss for the batch
+            loss_cur, log_losses = self.compute_loss(
+                x, x_net,
+                y, physics_cur,
+                train=train,epoch=epoch,
             )
-            loss += loss_cur
+            loss_multi_dataset_step += loss_cur
+
+            if train:
+                loss_cur.backward()
+                
+            if train and not self.optimizer_step_multi_dataset:
+                # gradient clipping
+                norm = self.apply_clip_grad()
+                if norm is not None:
+                    log_losses["gradient_norm"] = self.check_grad_val.avg
+
+                self.optimizer.step()  # Optimizer step
+            
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -672,9 +661,11 @@ class Trainer:
             # Update the progress bar
             progress_bar.set_postfix(metrics)
 
+        if train and self.optimizer_step_multi_dataset:
+            self.optimizer.step()  # Optimizer step
+
         # Log metrics and losses
         phase = "train" if train else "val"
-
         for logger in self.loggers:
             if self.log_every_step:
                 logger.log_metrics(metrics, step=train_ite, epoch=epoch, phase=phase)
@@ -682,18 +673,15 @@ class Trainer:
                 logger.log_losses(log_losses, step=train_ite, epoch=epoch, phase=phase)
             elif last_batch:
                 logger.log_metrics(metrics, step=train_ite, epoch=epoch, phase=phase)
-
-        if train and self.optimizer_step_multi_dataset:
-            self.optimizer.step()  # Optimizer step
-
-            self.save_images(
-                epoch,
-                physics_cur,
-                x,
-                y,
-                x_net,
-                train=train,
-            )
+        
+        self.save_images(
+            epoch,
+            physics_cur,
+            x,
+            y,
+            x_net,
+            train=train,
+        )
 
     def save_images(self, epoch, physics, x, y, x_net, train=True):
         r"""
@@ -723,14 +711,6 @@ class Trainer:
                 logger.log_images(
                     dict_imgs, epoch=epoch, phase="train" if train else "val"
                 )
-
-        # if self.conv_metrics is not None:
-        #     plot_curves(
-        #         self.conv_metrics,
-        #         save_dir=f"{self.save_folder_im}/convergence_metrics/",
-        #         show=True,
-        #     )
-        #     self.conv_metrics = None
 
     def reset_metrics(self):
         r"""
