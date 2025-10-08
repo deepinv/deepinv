@@ -50,6 +50,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         >>> import torch
         >>> from deepinv.transform import Shift, Rotate
+        >>> from torchvision.transforms import InterpolationMode
         >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
         >>> transform = Shift() # Define random shift transform
         >>> transform(x).shape
@@ -68,19 +69,25 @@ class Transform(torch.nn.Module, TimeMixin):
 
         Multiply transforms to create compound transforms (direct product of groups) - similar to ``torchvision.transforms.Compose``:
 
-        >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+        >>> rotoshift = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) * Shift() # Chain rotate and shift transforms
         >>> rotoshift(x).shape
         torch.Size([1, 1, 2, 2])
 
         Sum transforms to create stacks of transformed images (along the batch dimension).
 
-        >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) + Shift() # Stack rotate and shift transforms
         >>> transform(x).shape
         torch.Size([2, 1, 2, 2])
 
         Randomly select from transforms - similar to ``torchvision.transforms.RandomApply``:
 
-        >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) | Shift() # Randomly select rotate or shift transforms
         >>> transform(x).shape
         torch.Size([1, 1, 2, 2])
 
