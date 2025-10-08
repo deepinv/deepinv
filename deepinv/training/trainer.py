@@ -811,7 +811,7 @@ class Trainer:
         :param dict logs: Dictionary containing the logs for printing the training progress.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :returns: The logs with the metrics.
+        :returns: The reconstructed signal during eval (if `x_net=None`) and the logs with the metrics
         """
 
         if len(self.metrics) > 0 and (
