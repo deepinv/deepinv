@@ -141,7 +141,7 @@ Click on the model name to learn more about the type of model and use `pretraine
 
 .. _pretrained-learned-reg:
 
-For the learned regularizers (:class:`(W)CRR <deepinv.optim.WCRRr>` and :class:`LSR <deepinv.optim.LSR>`)
+For the learned regularizers (:class:`(W)CRR <deepinv.optim.WCRR>` and :class:`LSR <deepinv.optim.LSR>`)
  
 Click on the model name to learn more about the type of model and use `pretrained="download"` to use the pretrained weights.
 
