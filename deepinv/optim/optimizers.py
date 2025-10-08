@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Callable, TYPE_CHECKING
 import sys
 import warnings
 from collections.abc import Iterable
@@ -6,13 +7,15 @@ from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.prior import Zero
+from deepinv.optim.prior import Zero, Prior
+from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
+    from deepinv.loss.metric import Metric
 
 
 class BaseOptim(Reconstructor):
@@ -153,20 +156,22 @@ class BaseOptim(Reconstructor):
     def __init__(
         self,
         iterator: OptimIterator,
-        params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
-        data_fidelity=None,
-        prior=None,
+        params_algo: dict[str, float | Iterable] = MappingProxyType(
+            {"lambda": 1.0, "stepsize": 1.0}
+        ),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
         max_iter: int = 100,
         crit_conv: str = "residual",
-        thres_conv=1e-5,
+        thres_conv: float = 1e-5,
         early_stop: bool = False,
         has_cost: bool = False,
         backtracking: bool = False,
         gamma_backtracking: float = 0.1,
         eta_backtracking: float = 0.9,
-        custom_metrics=None,
-        custom_init=None,
-        get_output=lambda X: X["est"][0],
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        get_output: Callable[[dict], torch.Tensor] = lambda X: X["est"][0],
         anderson_acceleration: bool = False,
         history_size: int = 5,
         beta_anderson_acc: float = 1.0,
@@ -276,7 +281,7 @@ class BaseOptim(Reconstructor):
 
         self.psnr = PSNR()
 
-    def update_params_fn(self, it: int):
+    def update_params_fn(self, it: int) -> dict[str, float | Iterable]:
         r"""
         For each parameter ``params_algo``, selects the parameter value for iteration ``it``
         (if this parameter depends on the iteration number).
@@ -290,7 +295,7 @@ class BaseOptim(Reconstructor):
         }
         return cur_params_dict
 
-    def update_prior_fn(self, it: int):
+    def update_prior_fn(self, it: int) -> Prior:
         r"""
         For each prior function in `prior`, selects the prior value for iteration ``it``
         (if this prior depends on the iteration number).
@@ -301,7 +306,7 @@ class BaseOptim(Reconstructor):
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior
 
-    def update_data_fidelity_fn(self, it: int):
+    def update_data_fidelity_fn(self, it: int) -> DataFidelity:
         r"""
         For each data_fidelity function in `data_fidelity`, selects the data_fidelity value for iteration ``it``
         (if this data_fidelity depends on the iteration number).
@@ -316,7 +321,22 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y: torch.Tensor, physics: Physics, F_fn=None):
+    def init_iterate_fn(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float | Iterable],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+    ) -> dict:
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -355,7 +375,9 @@ class BaseOptim(Reconstructor):
         init_X["cost"] = F
         return init_X
 
-    def init_metrics_fn(self, X_init, x_gt=None):
+    def init_metrics_fn(
+        self, X_init: torch.Tensor, x_gt: torch.Tensor = None
+    ) -> dict[str, list]:
         r"""
         Initializes the metrics.
 
@@ -387,7 +409,13 @@ class BaseOptim(Reconstructor):
                 init[custom_metric_name] = [[] for i in range(self.batch_size)]
         return init
 
-    def update_metrics_fn(self, metrics, X_prev, X, x_gt=None):
+    def update_metrics_fn(
+        self,
+        metrics: dict[str, Metric],
+        X_prev: dict,
+        X: dict,
+        x_gt: torch.Tensor = None,
+    ) -> dict[str, list[torch.Tensor]]:
         r"""
         Function that compute all the metrics, across all batches, for the current iteration.
 
@@ -426,7 +454,7 @@ class BaseOptim(Reconstructor):
                         )
         return metrics
 
-    def check_iteration_fn(self, X_prev, X):
+    def check_iteration_fn(self, X_prev: dict, X: dict) -> bool:
         r"""
         Performs stepsize backtracking.
 
@@ -457,7 +485,7 @@ class BaseOptim(Reconstructor):
         else:
             return True
 
-    def check_conv_fn(self, it: int, X_prev, X) -> bool:
+    def check_conv_fn(self, it: int, X_prev: dict, X: dict) -> bool:
         r"""
         Checks the convergence of the algorithm.
 
@@ -521,8 +549,15 @@ class BaseOptim(Reconstructor):
 
 
 def create_iterator(
-    iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
-):
+    iteration: OptimIterator,
+    prior: Prior | list[Prior] = None,
+    F_fn: Callable[
+        [torch.Tensor, DataFidelity, Prior, dict[str, float], torch.Tensor, Physics],
+        torch.Tensor,
+    ] = None,
+    g_first: bool = False,
+    bregman_potential: Bregman = None,
+) -> OptimIterator:
     r"""
     Helper function for creating an iterator, instance of the :class:`deepinv.optim.OptimIterator` class,
     corresponding to the chosen minimization algorithm.
@@ -581,16 +616,28 @@ def create_iterator(
 
 
 def optim_builder(
-    iteration,
-    max_iter=100,
-    params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05}),
-    data_fidelity=None,
-    prior=None,
-    F_fn=None,
-    g_first=False,
-    bregman_potential=None,
+    iteration: str | OptimIterator,
+    max_iter: int = 100,
+    params_algo: dict[str, float | Iterable] = MappingProxyType(
+        {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05}
+    ),
+    data_fidelity: DataFidelity | list[DataFidelity] = None,
+    prior: Prior | list[Prior] = None,
+    F_fn: Callable[
+        [
+            torch.Tensor,
+            DataFidelity,
+            Prior,
+            dict[str, float | Iterable],
+            torch.Tensor,
+            Physics,
+        ],
+        torch.Tensor,
+    ] = None,
+    g_first: bool = False,
+    bregman_potential: Bregman = None,
     **kwargs,
-):
+) -> BaseOptim:
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
