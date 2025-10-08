@@ -966,7 +966,7 @@ class LSR(Prior):
         self,
         in_channels=3,
         device="cpu",
-        pretrained=None,
+        pretrained="download",
         nc=[
             32,
             64,
@@ -1007,7 +1007,23 @@ class LSR(Prior):
         self.sigma = sigma
 
         if pretrained is not None:
-            self.load_state_dict(torch.load(pretrained, map_location=device))
+            if pretrained == "download":
+                if in_channels == 1:
+                    file_name = "LSR_gray.pt"
+                    raise ValueError("weights not there yet")
+                elif in_channels == 3:
+                    file_name = "LSR_color.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1am3EG6XQubZM3oO08ByKyC2sRPrc7VzV"
+                else:
+                    raise ValueError(
+                        "Weights are only available for in_channels in [1, 3]!"
+                    )
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+                self.load_state_dict(weights, strict=True)
+            else:
+                self.load_state_dict(torch.load(pretrained, map_location=device))
 
     def grad(self, x, *args, get_energy=False, **kwargs):
         r"""
@@ -1018,7 +1034,7 @@ class LSR(Prior):
         :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
         grad = torch.exp(self.output_scaling) * self.model.potential_grad(
-            torch.exp(self.input_scaling) * x, self.sigma
+            torch.exp(self.input_scaling) * x.contiguous(), self.sigma
         )
         if get_energy:
             reg = self(x)
@@ -1034,7 +1050,9 @@ class LSR(Prior):
         """
         return torch.exp(
             self.output_scaling + self.input_scaling
-        ) * self.model.potential(torch.exp(self.input_scaling) * x, self.sigma)
+        ) * self.model.potential(
+            torch.exp(self.input_scaling) * x.contiguous(), self.sigma
+        )
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
