@@ -928,8 +928,11 @@ class WCRR(Prior):
         :param int l2_axis: axis in which the l2 norm is computed.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
-        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+        f = (
+            lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3))
+            + gamma * self(z).detach()
+        )
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z).detach()
 
         def f_and_nabla(z, y):
             with torch.no_grad():
@@ -1075,8 +1078,11 @@ class LSR(Prior):
         :param int l2_axis: axis in which the l2 norm is computed.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
-        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+        f = (
+            lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3))
+            + gamma * self(z).detach()
+        )
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z).detach()
 
         def f_and_nabla(z, y):
             with torch.no_grad():

@@ -1171,3 +1171,10 @@ def test_nmapg_and_learned_priors(
         final_psnr = psnr(recon, test_sample)
 
         assert final_psnr > psnr_thresh
+
+    # functional test
+    f = lambda x: x[:, 0] ** 4 - 4 * x[:, 0] ** 2 + x[:, 0] + x[:, 1] ** 2
+    x0 = torch.tensor(
+        [[15, 1], [-15, -2], [0, 0]], dtype=test_sample.dtype, device=device
+    )
+    dinv.optim.utils.nonmonotone_accelerated_proximal_gradient(x0, f)

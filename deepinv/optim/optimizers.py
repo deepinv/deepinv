@@ -653,6 +653,10 @@ class NMAPG(Reconstructor):
     We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
     supplementary material of the paper. The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
+    .. warning::
+        Due to the line search, the nmAPG is not differentiable and backpropagating through it (e.g. in an unrolling setting)
+        does not make sense. As a consequence, to prevent memory leaks, gradients of the intermediate steps are detached.
+
     :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}` as an instance of
         :class:`deepinv.optim.DataFidelity`. Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
     :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}` as an instance of
@@ -713,23 +717,25 @@ class NMAPG(Reconstructor):
                 Else, returns (torch.Tensor, dict) the output of the algorithm and a dictionary with the stats.
         """
         if self.gradient_for_both:
-            f = lambda x, y: self.data_fidelity(
-                x, y, physics
-            ) + self.lambda_reg * self.prior(x)
-            nabla_f = lambda x, y: self.data_fidelity.grad(
-                x, y, physics
-            ) + self.lambda_reg * self.prior.grad(x)
+            f = (
+                lambda x, y: self.data_fidelity(x, y, physics).detach()
+                + self.lambda_reg * self.prior(x).detach()
+            )
+            nabla_f = (
+                lambda x, y: self.data_fidelity.grad(x, y, physics).detach()
+                + self.lambda_reg * self.prior.grad(x).detach()
+            )
             f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
             g = None
             prox_g = None
         else:
-            f = lambda x, y: self.lambda_reg * self.prior(x)
-            nabla_f = lambda x, y: self.lambda_reg * self.prior.grad(x)
+            f = lambda x, y: self.lambda_reg * self.prior(x).detach()
+            nabla_f = lambda x, y: self.lambda_reg * self.prior.grad(x).detach()
             f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
-            g = lambda x, y: self.data_fidelity(x, y, physics)
+            g = lambda x, y: self.data_fidelity(x, y, physics).detach()
             prox_g = lambda x, y, gamma: self.data_fidelity.prox(
                 x, y, physics, gamma=gamma
-            )
+            ).detach()
         if self.custom_init is None:
             x0 = physics.A_dagger(y)
         else:

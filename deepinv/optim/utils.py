@@ -1442,6 +1442,10 @@ def nonmonotone_accelerated_proximal_gradient(
     We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
     supplementary material of the paper. The specific implementation is taken from :footcite:t:`hertrich2025learning`.
 
+    .. warning::
+        Due to the line search, the nmAPG is not differentiable and backpropagating through it (e.g. in an unrolling setting)
+        does not make sense. As a consequence, to prevent memory leaks, gradients of the intermediate steps are detached.
+
     :param torch.Tensor x0: Initialization :math:`x_0` of the algorithm. The first dimension is a batch dimension (with `y.shape[0]==x0.shape[0]` if `y is not None`).
     :param Callable f: Differentiable part :math:`f(x,y)` of the objective function. It takes two inputs: the argument `x` (we are minimizing over `x`)
         and the parmeters `y` (which remains fixed over the optimization).
@@ -1467,7 +1471,7 @@ def nonmonotone_accelerated_proximal_gradient(
         a bool `converged` indicating whether the algorithm reached the convergence criterion or not.
     """
     if y is None:
-        y = x.clone()
+        y = x0.clone()
         f_ = f
         f = lambda x, y: f_(x)
         if nabla_f is not None:
@@ -1486,9 +1490,12 @@ def nonmonotone_accelerated_proximal_gradient(
                 with torch.enable_grad():
                     x_ = x.clone()
                     x_.requires_grad_(True)
-                    z = torch.sum(f(x_, y))
+                    vals = f(x_, y)
+                    z = torch.sum(vals)
                     grad = torch.autograd.grad(z, x_)[0]
-                return z.detach(), grad.detach()
+                return vals.detach(), grad.detach()
+
+            nabla_f = lambda x, y: f_and_nabla(x, y)[1]
 
         else:
             f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
@@ -1519,6 +1526,7 @@ def nonmonotone_accelerated_proximal_gradient(
 
     iterations = torch.ones((x.shape[0],), dtype=torch.int, device=x.device)
     line_searches = torch.zeros((x.shape[0],), dtype=torch.int, device=x.device)
+    n_dims = len(x0.shape) - 1
 
     # Main loop
     for i in range(max_iter):
@@ -1561,7 +1569,8 @@ def nonmonotone_accelerated_proximal_gradient(
             )  # Eq 151, 1/L = alpha_y
             dx[idx_sub] = z[idx_search] - x_bar[idx_search]
             bound = torch.max(
-                energy[idx_sub, None, None, None], c[idx_search, None, None, None]
+                energy[idx_sub].view([-1] + n_dims * [1]),
+                c[idx_search].view([-1] + n_dims * [1]),
             ) - delta * (dx[idx_sub] * dx[idx_sub]).sum(
                 list(range(1, len(x0.shape))), keepdim=True
             )
@@ -1611,14 +1620,14 @@ def nonmonotone_accelerated_proximal_gradient(
                     weighting / L[idx_idx2],
                 )
                 dx = v - x[idx_idx2]
-                bound = c[idx_idx2, None, None, None] - delta * (dx * dx).sum(
+                bound = c[idx_idx2].view([-1] + n_dims * [1]) - delta * (dx * dx).sum(
                     list(range(1, len(x0.shape))), keepdim=True
                 )
                 energy_new2 = f(v, y[idx_idx2]) + weighting * g(v, y[idx_idx2])
                 if torch.all(energy_new2 <= bound.view(-1) * (1 + 1e-4)):
                     break
                 L[idx_idx2] = torch.where(
-                    energy_new2[:, None, None, None] <= bound,
+                    energy_new2.view([-1] + n_dims * [1]) <= bound,
                     L[idx_idx2],
                     L[idx_idx2] / rho,
                 )

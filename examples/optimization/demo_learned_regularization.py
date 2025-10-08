@@ -60,6 +60,11 @@ crr_gray = WCRR(
 wcrr_gray = WCRR(in_channels=1, weak_convexity=1.0, device=device)
 lsr_gray = LSR(in_channels=1, device=device)
 
+# set all parameters to be not trainable
+for reg in [crr, wcrr, lsr, crr_gray, wcrr_gray, lsr_gray]:
+    for p in reg.parameters():
+        p.requires_grad_(False)
+
 # data fidelity and physics
 data_fidelity_l2 = L2()
 data_fidelity_ind = IndicatorL2(0)
