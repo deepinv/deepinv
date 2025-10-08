@@ -1143,13 +1143,14 @@ def test_nmapg_and_learned_priors(
     prior = get_prior(prior_name, in_channels=1 if gray else 3, device=device)
     psnr = dinv.loss.metric.PSNR()
 
-    # test only gradient
-    if only_gradient:
-        physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(0.1))
+    if only_gradient:  # test only gradient
+        physics = dinv.physics.Denoising(
+            noise_model=dinv.physics.GaussianNoise(25 / 255)
+        )
         data_fidelity = L2()
         optim = dinv.optim.NMAPG(data_fidelity, prior, 1.0)
         psnr_thresh = 21
-    else:
+    else:  # test prox on data fidelity
         physics = dinv.physics.Inpainting(test_sample[0].shape, mask=0.3, device=device)
         data_fidelity = IndicatorL2(0)
         optim = dinv.optim.NMAPG(data_fidelity, prior, 1.0, gradient_for_both=False)
@@ -1164,3 +1165,9 @@ def test_nmapg_and_learned_priors(
 
     assert final_objective < initial_objective
     assert final_psnr > psnr_thresh
+
+    if only_gradient:  # test prox argument
+        recon = prior.prox(y, gamma=0.5)
+        final_psnr = psnr(recon, test_sample)
+
+        assert final_psnr > psnr_thresh
