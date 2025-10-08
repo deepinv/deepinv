@@ -539,8 +539,14 @@ class LinearPhysics(Physics):
         return stack(self, other)
 
     def compute_norm(
-        self, x0, max_iter=100, tol=1e-3, verbose=True, squared=True, **kwargs
-    ):
+        self,
+        x0: torch.Tensor,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        squared: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
@@ -561,7 +567,7 @@ class LinearPhysics(Physics):
             Use :meth:`compute_sqnorm` instead.
             If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
 
-        :returns z: (float) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
             If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
         """
         if squared is True:
@@ -586,7 +592,15 @@ class LinearPhysics(Physics):
         else:
             return sqnorm.sqrt()
 
-    def compute_sqnorm(self, x0, *, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+    def compute_sqnorm(
+        self,
+        x0: torch.Tensor,
+        *,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
 
@@ -599,7 +613,7 @@ class LinearPhysics(Physics):
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
 
-        :returns z: (float) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
+        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
         x = torch.randn_like(x0)
         x /= torch.norm(x)
