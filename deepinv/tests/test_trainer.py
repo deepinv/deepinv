@@ -743,32 +743,48 @@ class ConstantLossEvalTrain(dinv.loss.Loss):
     def forward(self, model, *args, **kwargs):
         if model.training:
             return torch.tensor(
-                self.value_train, device=self.device, dtype=torch.float32, requires_grad=True
+                self.value_train,
+                device=self.device,
+                dtype=torch.float32,
+                requires_grad=True,
             )
         else:
             return torch.tensor(
-                self.value_eval, device=self.device, dtype=torch.float32, requires_grad=True
+                self.value_eval,
+                device=self.device,
+                dtype=torch.float32,
+                requires_grad=True,
             )
+
 
 class ConstantLossEvalTrain2(ConstantLossEvalTrain):
     pass
 
+
 @pytest.mark.parametrize("compute_eval_losses", [True, False])
 @pytest.mark.parametrize("compute_train_metrics", [True, False])
-def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, compute_eval_losses, compute_train_metrics):
+def test_loss_logging(
+    dummy_dataset,
+    imsize,
+    device,
+    dummy_model,
+    tmpdir,
+    compute_eval_losses,
+    compute_train_metrics,
+):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     losses = [
-        ConstantLossEvalTrain(1 / 2, -1/2 , device),
-        ConstantLossEvalTrain2(1 / 3, -1/3, device)
+        ConstantLossEvalTrain(1 / 2, -1 / 2, device),
+        ConstantLossEvalTrain2(1 / 3, -1 / 3, device),
     ]
 
     metrics = [
-        ConstantLossEvalTrain(1 / 4, -1/4, device),
-        ConstantLossEvalTrain2(1 / 5, -1/5, device),
+        ConstantLossEvalTrain(1 / 4, -1 / 4, device),
+        ConstantLossEvalTrain2(1 / 5, -1 / 5, device),
     ]
 
     trainer = dinv.Trainer(
@@ -804,7 +820,9 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, comput
         assert all([abs(value - l.value_eval) < 1e-6 for value in metrics_history])
 
     if compute_eval_losses:
-        for k, (loss_name, loss_history) in enumerate(trainer.eval_loss_history.items()):
+        for k, (loss_name, loss_history) in enumerate(
+            trainer.eval_loss_history.items()
+        ):
             l = losses[k]
             assert loss_name == l.__class__.__name__
             assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
@@ -841,7 +859,7 @@ def test_model_forward_passes(
     compute_eval_losses,
     compute_train_metrics,
     epochs,
-    eval_interval
+    eval_interval,
 ):
     train_data = get_dummy_dataset(imsize=imsize, N=4, value=1.0)
     eval_data = get_dummy_dataset(imsize=imsize, N=2, value=1.0)
@@ -1086,7 +1104,6 @@ def test_trainer_speed(device):  # pragma: no cover
 
     # 10% overhead allowed
     assert time_trainer / time_naive < 1.1
-
 
 
 @pytest.mark.parametrize("model_performance", [40.0])

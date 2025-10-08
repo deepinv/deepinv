@@ -244,7 +244,9 @@ class Trainer:
     epochs: int = 100
     max_batch_steps: int = 10**10
     losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
-    eval_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.Dataloader] | None = None
+    eval_dataloader: (
+        torch.utils.data.DataLoader | list[torch.utils.data.Dataloader] | None
+    ) = None
     early_stop: None | int = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
@@ -302,8 +304,6 @@ class Trainer:
                 check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
-
-
 
         self.G = len(self.train_dataloader)
 
@@ -374,8 +374,10 @@ class Trainer:
 
         if len(self.metrics) == 0 and not train:
             self.compute_eval_losses = True
-            warnings.warn("As no metrics were provided for testing, "
-                          "evaluating with provided losses instead of metrics")
+            warnings.warn(
+                "As no metrics were provided for testing, "
+                "evaluating with provided losses instead of metrics"
+            )
 
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
@@ -468,10 +470,16 @@ class Trainer:
 
         if self.early_stop:
             if not self.early_stop_on_losses:
-                assert len(self.losses) > 0, "At least one loss should be provided for early stopping if early_stop_on_losses=False."
-                assert self.compute_eval_losses, "compute_eval_losses should be True when early_stop_on_losses is True."
+                assert (
+                    len(self.losses) > 0
+                ), "At least one loss should be provided for early stopping if early_stop_on_losses=False."
+                assert (
+                    self.compute_eval_losses
+                ), "compute_eval_losses should be True when early_stop_on_losses is True."
             else:
-                assert len(self.metrics) > 0, "At least one metric should be provided for early stopping if early_stop_on_losses=True."
+                assert (
+                    len(self.metrics) > 0
+                ), "At least one metric should be provided for early stopping if early_stop_on_losses=True."
 
         _ = self.load_model()
 
