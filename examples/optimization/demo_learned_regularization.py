@@ -22,7 +22,6 @@ for a data-fidelity term :math:`\datafid`, forward operator :math:`A` and a lear
 
 import deepinv as dinv
 from deepinv.optim import WCRR, LSR, NMAPG
-from torchvision import transforms
 from deepinv.utils.demo import load_example
 from deepinv.optim import L2, IndicatorL2
 from deepinv.physics import Denoising, Tomography, Inpainting, GaussianNoise
