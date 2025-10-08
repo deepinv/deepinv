@@ -280,7 +280,7 @@ def conjugate_gradient(
     p = r
     rsold = dot(r, r, dim=dim).real
     flag = True
-    tol = dot(b, b, dim=dim).real * (tol ** 2)
+    tol = dot(b, b, dim=dim).real * (tol**2)
     for _ in range(int(max_iter)):
         Ap = A(p)
         alpha = rsold / (dot(p, Ap, dim=dim) + eps)
@@ -354,7 +354,7 @@ def bicgstab(
     p = r
     max_iter = int(max_iter)
 
-    tol = dot(b, b, dim=dim).real * (tol ** 2)
+    tol = dot(b, b, dim=dim).real * (tol**2)
     eps = torch.finfo(b.dtype).eps  # Breakdown tolerance, to avoid division by zero
     flag = False
     for i in range(max_iter):
@@ -597,14 +597,14 @@ def lsqr(
 
         if torch.all(beta > 0):
             u = scalar(u, 1 / beta, b_domain=True)
-            anorm = torch.sqrt(anorm ** 2 + alpha ** 2 + beta ** 2 + dampsq)
+            anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
             v = AT(u) - scalar(v, beta, b_domain=False)
             alpha = normf(v)
             if torch.all(alpha > 0):
                 v = scalar(v, 1 / alpha, b_domain=False)
 
         if torch.any(eta > 0):
-            rhobar1 = torch.sqrt(rhobar ** 2 + dampsq)
+            rhobar1 = torch.sqrt(rhobar**2 + dampsq)
             cs1 = rhobar / rhobar1
             sn1 = eta_sqrt / rhobar1
             psi = sn1 * phibar
@@ -636,14 +636,14 @@ def lsqr(
         rhs = phi - delta * z
         # zbar = rhs / gambar
         # xnorm = torch.sqrt(xxnorm + zbar ** 2)
-        gamma = torch.sqrt(gambar ** 2 + theta ** 2)
+        gamma = torch.sqrt(gambar**2 + theta**2)
         cs2 = gambar / gamma
         sn2 = theta / gamma
         z = rhs / gamma
-        xxnorm = xxnorm + z ** 2
+        xxnorm = xxnorm + z**2
 
         acond = anorm * torch.sqrt(ddnorm).mean()
-        rnorm = torch.sqrt(phibar ** 2 + psi ** 2)
+        rnorm = torch.sqrt(phibar**2 + psi**2)
         # arnorm = alpha * abs(tau)
 
         if torch.all(rnorm <= tol * bnorm):
@@ -956,7 +956,7 @@ class LeastSquaresSolver(torch.autograd.Function):
             # vdot gives correct conjugation for complex; .real keeps real scalar
             grad_gamma = torch.sum(
                 mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
-            ).real / (gamma ** 2)
+            ).real / (gamma**2)
 
             # If gamma was batched in the forward, we return a batched grad
             if len(ctx.gamma_orig_shape) > 0:
@@ -1544,10 +1544,10 @@ def nonmonotone_accelerated_proximal_gradient(
                 / (dx * (x_bar[idx] - x_bar_old[idx]))
                 .sum(list(range(1, len(x0.shape))), keepdim=True)
                 .abs()
-                .clip(min=0.0, max=None),  # alpha_y = <s,r>/<r,r> in paper, Eq 150
+                .clip(min=1e-12, max=None),  # alpha_y = <s,r>/<r,r> in paper, Eq 150
                 min=1.0,
                 max=None,
-            )  # clips for stability --> on a long term we can adjust min-clip based on the spectral norm of physics.A
+            )  # clips for stability
         # line search on z (Eq 151 and 152)
         idx_search = idx
         idx_sub = torch.arange(0, idx.shape[0], device=x.device)
@@ -1577,7 +1577,7 @@ def nonmonotone_accelerated_proximal_gradient(
             idx_search = idx[idx_sub]
             L[idx_search] = L[idx_search] / rho
             line_searches[idx_search] += 1
-        # If for Eq 153-158
+        # If for Eq 153-158 of the paper
         idx2 = (
             (
                 energy_new[:]
@@ -1597,7 +1597,7 @@ def nonmonotone_accelerated_proximal_gradient(
                     s
                     / (dx * (x[idx_idx2] - x_bar_old[idx_idx2]))
                     .sum(list(range(1, len(x0.shape))), keepdim=True)
-                    .clip(min=0, max=None),
+                    .clip(min=1e-12, max=None),
                     min=1.0,
                     max=None,
                 )
@@ -1630,10 +1630,9 @@ def nonmonotone_accelerated_proximal_gradient(
         else:
             x[idx] = z[idx]
 
-        if i > 0:
-            res[idx] = torch.norm(
-                x[idx] - x_old[idx], p=2, dim=list(range(1, len(x0.shape)))
-            ) / torch.norm(x[idx], p=2, dim=list(range(1, len(x0.shape))))
+        res[idx] = torch.norm(
+            x[idx] - x_old[idx], p=2, dim=list(range(1, len(x0.shape)))
+        ) / torch.norm(x[idx], p=2, dim=list(range(1, len(x0.shape))))
         assert not torch.any(
             torch.isnan(res)
         ), "Numerical errors! Some values became NaN!"
@@ -1646,12 +1645,12 @@ def nonmonotone_accelerated_proximal_gradient(
                 print(f"Converged in iter {i}, tol {torch.max(res).item():.6f}")
             break
         t_old = t
-        t = (np.sqrt(4.0 * t_old ** 2 + 1.0) + 1.0) / 2.0  # Eq 159
+        t = (np.sqrt(4.0 * t_old**2 + 1.0) + 1.0) / 2.0  # Eq 159 of the paper
         q_old = q
-        q = eta * q + 1.0  # Eq 160
+        q = eta * q + 1.0  # Eq 160 of the paper
         c[idx] = (
             eta * q_old * c[idx] + f(x[idx], y[idx]) + weighting * g(x[idx], y[idx])
-        ) / q  # Eq 161
+        ) / q  # Eq 161 of the paper
         x_bar_old.copy_(x_bar)
         grad_f_old.copy_(grad_f)
     if verbose and (torch.max(res) >= tol):

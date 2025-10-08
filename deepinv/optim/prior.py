@@ -172,7 +172,7 @@ class ScorePrior(Prior):
         :param float sigma_denoiser: the noise level.
         """
         return self.stable_division(
-            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser ** 2
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
         )
 
     def score(self, x, sigma_denoiser, *args, **kwargs):
@@ -183,7 +183,7 @@ class ScorePrior(Prior):
         :param float sigma_denoiser: the noise level.
         """
         return self.stable_division(
-            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser ** 2
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
         )
 
     @staticmethod
@@ -577,7 +577,7 @@ class PatchNR(Prior):
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
-            dimension = patch_size ** 2 * channels
+            dimension = patch_size**2 * channels
 
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
@@ -822,7 +822,7 @@ class WCRR(Prior):
                 self.load_state_dict(torch.load(pretrained, map_location=device))
 
     def smooth_l1(self, x):
-        return torch.clip(x ** 2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
+        return torch.clip(x**2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
 
     def grad_smooth_l1(self, x):
         return torch.clip(x, -1.0, 1.0)
