@@ -1155,7 +1155,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
 
     >>> import torch
     >>> from deepinv.physics.generator import ConfocalBlurGenerator3D
-    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), zernike_index=['Z0'])
+    >>> generator = ConfocalBlurGenerator3D((21, 51, 51), zernike_index=(3,))
     >>> dict = generator.step()
     >>> filter = dict['filter']
     >>> print(filter.shape)
