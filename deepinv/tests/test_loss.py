@@ -132,7 +132,9 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(
             dinv.loss.mri.ENSURELoss(
                 0.01,
-                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                    imsize, 0.5, device=device
+                ),
                 rng=rng,
             )
         )
@@ -492,7 +494,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     elif loss_name == "splitting-gaussian":
         loss = dinv.loss.SplittingLoss(
             mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
-                imsize, split_ratio=0.7
+                imsize, split_ratio=0.7, device=device
             ),
             metric=test_metric,
             eval_split_input=False,
