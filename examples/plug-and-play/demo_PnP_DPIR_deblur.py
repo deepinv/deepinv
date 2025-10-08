@@ -50,7 +50,9 @@ val_transform = transforms.Compose(
 
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
+kernel_torch = load_degradation(
+    "Levin09.npy", DEG_DIR / "kernels", index=kernel_index
+).to(torch.float32)
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
@@ -69,7 +71,6 @@ p = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
-    dtype=torch.float32,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 

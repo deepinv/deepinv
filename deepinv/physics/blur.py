@@ -467,7 +467,7 @@ class BlurFFT(DecomposablePhysics):
         self,
         img_size: tuple[int, ...],
         filter: Tensor = None,
-        device="cpu",
+        device: str | torch.device = "cpu",
         dtype: str | torch.dtype = torch.float32,
         **kwargs,
     ):
@@ -477,7 +477,7 @@ class BlurFFT(DecomposablePhysics):
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
         self.update_parameters(filter=filter, **kwargs)
-        self.to(device=device, dtype=dtype)
+        self.to(device=device)
 
     def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         self.update_parameters(filter=filter, **kwargs)
@@ -516,7 +516,7 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None and isinstance(filter, Tensor):
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
-            mask = filter_fft(filter, self.img_size, dims=(-2, -1))
+            mask = filter_fft(filter, self.img_size, dims=(-2, -1), real_fft=True)
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)

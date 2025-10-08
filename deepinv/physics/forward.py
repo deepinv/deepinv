@@ -1116,10 +1116,11 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
         if not isinstance(self.mask, float):
-            mask = torch.zeros_like(self.mask)
-            mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
+            mask = torch.where(
+                self.mask > 1e-5, self.mask.reciprocal(), torch.zeros_like(self.mask)
+            )
         else:
-            mask = 1 / self.mask
+            mask = 0.0 if self.mask <= 1e-5 else 1.0 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
 
