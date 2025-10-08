@@ -169,6 +169,7 @@ trainer = dinv.Trainer(
     epochs=epochs,
     losses=loss,
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     metrics=None,  # no supervised metrics
     early_stop=2,  # early stop using the self-supervised loss on the test set
     optimizer=optimizer,

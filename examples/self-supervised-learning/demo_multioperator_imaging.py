@@ -194,6 +194,7 @@ trainer = dinv.Trainer(
     early_stop=2,  # early stop using the self-supervised loss on the test set
     save_path=str(CKPT_DIR / operation),
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     verbose=verbose,
     plot_images=True,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.

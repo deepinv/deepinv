@@ -166,6 +166,7 @@ trainer = dinv.Trainer(
     metrics=None,  # no supervised metrics
     early_stop=2,  # we can use early stopping as we have a validation loss
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=False,
     save_path=None,
     verbose=True,

@@ -131,6 +131,7 @@ model = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     epochs=1,
     losses=losses,
     metrics=None,  # no supervised metrics

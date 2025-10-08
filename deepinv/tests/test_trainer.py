@@ -733,24 +733,42 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-class ConstantLoss2(ConstantLoss):
+class ConstantLossEvalTrain(dinv.loss.Loss):
+    def __init__(self, value_train, value_eval, device):
+        super().__init__()
+        self.value_train = value_train
+        self.value_eval = value_eval
+        self.device = device
+
+    def forward(self, model, *args, **kwargs):
+        if model.training:
+            return torch.tensor(
+                self.value_train, device=self.device, dtype=torch.float32, requires_grad=True
+            )
+        else:
+            return torch.tensor(
+                self.value_eval, device=self.device, dtype=torch.float32, requires_grad=True
+            )
+
+class ConstantLossEvalTrain2(ConstantLossEvalTrain):
     pass
 
-
-def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
+@pytest.mark.parametrize("compute_losses_eval", [True, False])
+@pytest.mark.parametrize("compute_train_metrics", [True, False])
+def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir, compute_losses_eval, compute_train_metrics):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     losses = [
-        ConstantLoss(1 / 2, device),
-        ConstantLoss2(1 / 3, device),
+        ConstantLossEvalTrain(1 / 2, -1/2 , device),
+        ConstantLossEvalTrain2(1 / 3, -1/3, device)
     ]
 
     metrics = [
-        ConstantLoss(1 / 4, device),
-        ConstantLoss2(1 / 5, device),
+        ConstantLossEvalTrain(1 / 4, -1/4, device),
+        ConstantLossEvalTrain2(1 / 5, -1/5, device),
     ]
 
     trainer = dinv.Trainer(
@@ -762,8 +780,9 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
         device=device,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
-        compute_losses_eval=True,
-        optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
+        compute_losses_eval=compute_losses_eval,
+        compute_train_metrics=compute_train_metrics,
+        optimizer=torch.optim.Adam(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
         save_path=tmpdir,
@@ -774,19 +793,26 @@ def test_loss_logging(dummy_dataset, imsize, device, dummy_model, tmpdir):
     for k, (loss_name, loss_history) in enumerate(trainer.train_loss_history.items()):
         l = losses[k]
         assert loss_name == l.__class__.__name__
-        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+        assert all([torch.allclose(value, l.value_train) for value in loss_history])
 
     for k, (metric_name, metrics_history) in enumerate(
         trainer.eval_metrics_history.items()
     ):
         l = metrics[k]
-        assert metric_name == l.__class__.__name__
-        assert all([abs(value - l.value) < 1e-6 for value in metrics_history])
 
-    for k, (loss_name, loss_history) in enumerate(trainer.eval_loss_history.items()):
-        l = losses[k]
-        assert loss_name == l.__class__.__name__
-        assert all([abs(value - l.value) < 1e-6 for value in loss_history])
+        assert metric_name == l.__class__.__name__
+        if compute_train_metrics:
+            assert all([torch.allclose(value, l.value_train) for value in metrics_history])
+        else:
+            assert all([torch.allclose(value, l.value_eval) for value in metrics_history])
+
+    if compute_losses_eval:
+        for k, (loss_name, loss_history) in enumerate(trainer.eval_loss_history.items()):
+            l = losses[k]
+            assert loss_name == l.__class__.__name__
+            assert all([torch.allclose(value, l.value) for value in loss_history])
+    else:
+        assert len(trainer.eval_loss_history) == 0
 
 
 class DummyModel(dinv.models.Reconstructor):
@@ -806,16 +832,18 @@ class DummyModel(dinv.models.Reconstructor):
 
 
 @pytest.mark.parametrize("compute_losses_eval", [True, False])
-@pytest.mark.parametrize("disable_train_metrics", [True, False])
+@pytest.mark.parametrize("compute_train_metrics", [True, False])
 @pytest.mark.parametrize("epochs", [4, 5])
+@pytest.mark.paramtrize("eval_interval", [1, 2])
 def test_model_forward_passes(
     dummy_dataset,
     imsize,
     device,
     tmpdir,
     compute_losses_eval,
-    disable_train_metrics,
+    compute_train_metrics,
     epochs,
+    eval_interval
 ):
     train_data = get_dummy_dataset(imsize=imsize, N=4, value=1.0)
     eval_data = get_dummy_dataset(imsize=imsize, N=2, value=1.0)
@@ -825,7 +853,6 @@ def test_model_forward_passes(
 
     model = DummyModel().to(device)
 
-    eval_interval = 2
     trainer = dinv.Trainer(
         model=model,
         device=device,
@@ -836,12 +863,12 @@ def test_model_forward_passes(
         epochs=epochs,
         eval_interval=eval_interval,
         losses=dinv.loss.SupLoss(),
-        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        optimizer=torch.optim.SGD(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
         online_measurements=True,
         compute_losses_eval=compute_losses_eval,
-        disable_train_metrics=disable_train_metrics,
+        compute_train_metrics=compute_train_metrics,
     )
 
     assert model.train_count == 0
@@ -859,8 +886,9 @@ def test_model_forward_passes(
         assert model.train_count == train_calls
 
     # checking number of eval calls
-    if not disable_train_metrics and compute_losses_eval:
-        assert model.eval_count == 0  # all metrics computed in train mode
+    if compute_train_metrics:
+        if compute_losses_eval:
+            assert model.eval_count == 0  # all metrics computed in train mode
     else:
         assert model.eval_count == eval_calls
 
@@ -1021,7 +1049,7 @@ def test_trainer_speed(device):  # pragma: no cover
         ckp_interval=epochs + 1,
         show_progress_bar=True,
         verbose_individual_losses=True,
-        disable_train_metrics=False,
+        compute_train_metrics=False,
         verbose=True,
         device=device,
     )
@@ -1047,15 +1075,20 @@ def test_trainer_speed(device):  # pragma: no cover
     end = time.time()
     time_naive = end - start
 
+    # remove setup time
+    start = time.time()
+    trainer.setup_train()
+    end = time.time()
+    time_setup = end - start
+
     start = time.time()
     trainer.train()
     end = time.time()
-    time_trainer = end - start
+    time_trainer = end - start - time_setup
 
-    # 30% overhead allowed
-    assert time_trainer / time_naive < 1.3
+    # 10% overhead allowed
+    assert time_trainer / time_naive < 1.1
 
-    assert time_trainer / time_naive < 1.3
 
 
 @pytest.mark.parametrize("model_performance", [40.0])

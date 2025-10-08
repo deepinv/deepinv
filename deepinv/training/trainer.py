@@ -105,6 +105,7 @@ class Trainer:
     :param None, int early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
         after `early_stop` validations. Default is ``None`` (no early stopping).
         The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+    :param bool early_stop_on_losses: Early stop using losses computed on the eval set instead of metrics. Default is ``False``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`.
@@ -120,27 +121,29 @@ class Trainer:
     .. note::
 
         - **Supervised evaluation**: If ground-truth data is available for validation, use any
-          :ref:`full reference metric <full-reference-metrics>`, e.g. ``metrics=dinv.metric.PSNR()``.
+          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`deepinv.metric.PSNR`.
 
         - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
           still possible to validate using i) :ref:`no reference metrics
-          <no-reference-metrics>`, e.g. ``metrics=dinv.metric.NIQE()``, or ii)
+          <no-reference-metrics>`, e.g. :class:`deepinv.metric.NIQE`, or ii)
           :ref:`self-supervised losses <self-supervised-losses>` with
           ``compute_losses_eval=True`` and ``metrics=None``. If self-supervised losses
-          are used we recommend setting ``disable_train_metrics=True`` to avoid computing
-          metrics in ``model.train()`` mode.
+          are used we recommend setting ``compute_train_metrics=False`` to avoid computing
+          metrics in ``model.train()`` mode. This is required by many self-supervised losses, such as
+          :class:`splitting <deepinv.loss.SplittingLoss>` or :class:`recorruption <deepinv.loss.R2RLoss>` losses,
+          that have a different behaviour in ``model.train()`` and ``model.eval()`` mode.
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool disable_train_metrics: If `True` (default), do not compute metrics during training on train set.
-        If `False`, all metrics are computed both during training on the training dataloader.
+    :param bool compute_train_metrics: If `False` (default), do not compute metrics during training on train set.
+        If `True`, during training all metrics are computed on the training dataloader.
 
         .. warning::
 
-            If `disable_train_metrics=False` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
+            If `compute_train_metrics=True` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
             forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode.
 
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
@@ -237,22 +240,23 @@ class Trainer:
     model: torch.nn.Module
     physics: Physics | list[Physics]
     optimizer: torch.optim.Optimizer | None
-    train_dataloader: torch.utils.data.DataLoader
+    train_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader]
     epochs: int = 100
     max_batch_steps: int = 10**10
     losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
-    eval_dataloader: torch.utils.data.DataLoader = None
+    eval_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.Dataloader] | None = None
     early_stop: None | int = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
     physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric], None] = field(default_factory=PSNR)
-    disable_train_metrics: bool = True
-    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_pretrained: Union[str, None] = None
-    save_path: Union[str, Path, None] = "."
+    metrics: Metric | list[Metric] | None = field(default_factory=PSNR)
+    compute_train_metrics: bool = False
+    early_stop_on_losses: bool = False
+    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+    ckpt_pretrained: str | None = None
+    save_path: str | Path | None = "."
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
@@ -299,10 +303,7 @@ class Trainer:
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
-        if train:
-            self.compute_metrics_on_eval_mode = self.disable_train_metrics
-        else:
-            self.compute_metrics_on_eval_mode = True
+
 
         self.G = len(self.train_dataloader)
 
@@ -323,6 +324,13 @@ class Trainer:
             assert (
                 isinstance(self.early_stop, int) and self.early_stop > 0
             ), "early_stop should be a positive integer or None."
+
+        if self.early_stop:
+            if not self.early_stop_on_losses:
+                assert len(self.losses) > 0, "At least one loss should be provided for early stopping if early_stop_on_losses=False."
+                assert self.compute_losses_eval, "compute_losses_eval should be True when early_stop_on_losses is True."
+            else:
+                assert len(self.metrics) > 0, "At least one metric should be provided for early stopping if early_stop_on_losses=True."
 
         if self.freq_plot is not None:
             warnings.warn(
@@ -391,6 +399,8 @@ class Trainer:
 
         if len(self.metrics) == 0 and not train:
             self.compute_losses_eval = True
+            warnings.warn("As no metrics were provided for testing, "
+                          "evaluating with provided losses instead of metrics")
 
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
@@ -805,7 +815,7 @@ class Trainer:
         """
 
         if len(self.metrics) > 0 and (
-            self.compute_metrics_on_eval_mode or x_net is None
+            not (train and self.compute_train_metrics) or x_net is None
         ):
             # re-evaluate the model in eval mode if needed
             x_net = self.model_inference(y=y, physics=physics, x=x, train=False)
@@ -943,7 +953,7 @@ class Trainer:
             loss += loss_cur
 
             # compute metrics
-            if not (self.disable_train_metrics and train):
+            if self.compute_train_metrics or not train:
                 if x_net is not None:
                     x_net = x_net.detach()
 
@@ -1191,7 +1201,7 @@ class Trainer:
 
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
 
-        If no metric is provided (e.g. in self-supervised learning),
+        If `early_stop_on_losses=True` (default is `False`)
         uses the first loss on the eval dataset instead (requires having `compute_losses_eval=True`).
 
         Override this method to early stop on a custom condition.
@@ -1204,7 +1214,7 @@ class Trainer:
         """
         k = 0  # use first metric
 
-        if len(self.metrics) == 0:
+        if self.early_stop_on_losses:
             history = self.eval_loss_history[self.losses[k].__class__.__name__]
             lower_better = True
         else:

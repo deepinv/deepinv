@@ -230,6 +230,7 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     train_dataloader=train_dataloader,
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True, # stop using self-supervised eval loss
     metrics=None,
     eval_dataloader=test_dataloader,
     early_stop=2,  # early stop using the self-supervised loss on the test set

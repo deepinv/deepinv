@@ -69,7 +69,7 @@ class ReducedResolutionLoss(SupLoss):
 
     .. hint::
 
-        During training, consider using the `disable_train_metrics` option in :class:`deepinv.Trainer` to prevent a shape
+        During training, consider using the `compute_train_metrics=False` option in :class:`deepinv.Trainer` to prevent a shape
         mismatch during metric computation since the reduced resolution output will smaller than ground truth.
 
     This loss was used in :footcite:t:`shocher2017zero-shot` for downsampling tasks, and is named Wald's protocol :footcite:p:`wald1997fusion`

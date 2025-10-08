@@ -174,6 +174,7 @@ trainer = dinv.Trainer(
     eval_dataloader=test_dataloader,
     metrics=None,  # no supervised metrics
     compute_losses_eval=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     early_stop=2,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
