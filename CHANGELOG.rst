@@ -43,7 +43,7 @@ Fixed
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
-
+- Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
 
 
 
