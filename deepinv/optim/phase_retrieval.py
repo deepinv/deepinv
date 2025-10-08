@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -109,7 +109,9 @@ def spectral_methods(
     physics,
     x: torch.Tensor = None,
     n_iter: int = 50,
-    preprocessing=default_preprocessing,
+    preprocessing: Callable[
+        [torch.Tensor, torch.Tensor], torch.Tensor
+    ] = default_preprocessing,
     lamb: float = 10.0,
     x_true=None,
     log: bool = False,

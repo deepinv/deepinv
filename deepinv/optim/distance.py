@@ -397,8 +397,8 @@ class ZeroDistance(Distance):
     def __init__(self):
         super().__init__()
 
-    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs):
-        return 0.0
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        return torch.zeros(x.size(0), device=x.device, dtype=x.dtype)
 
     def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         return torch.zeros_like(x)

@@ -12,7 +12,7 @@ class Bregman(Potential):
     :param Callable h: Potential function :math:`\phi(x)` to be used in the Bregman framework.
     """
 
-    def __init__(self, phi: Callable[torch.Tensor, torch.Tensor] = None):
+    def __init__(self, phi: Callable[[torch.Tensor], torch.Tensor] = None):
         super().__init__(fn=phi)
 
     def div(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:

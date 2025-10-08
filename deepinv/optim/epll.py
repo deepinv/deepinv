@@ -10,7 +10,7 @@ from deepinv.models.base import Denoiser
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from deepinv.physics import Physics
+    from deepinv.physics import LinearPhysics
 
 
 class EPLL(nn.Module):
@@ -91,7 +91,7 @@ class EPLL(nn.Module):
     def forward(
         self,
         y: torch.Tensor,
-        physics,
+        physics: LinearPhysics,
         sigma: float | torch.Tensor = None,
         x_init: torch.Tensor = None,
         betas: list[float] = None,
@@ -171,7 +171,7 @@ class EPLL(nn.Module):
         x: torch.Tensor,
         sigma_sq: float | torch.Tensor,
         beta: float,
-        physics: Physics,
+        physics: LinearPhysics,
         batch_size: int,
     ):
         # precomputations for GMM with covariance regularization

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
@@ -13,7 +13,6 @@ from deepinv.optim.distance import (
 from deepinv.optim.potential import Potential
 import torch
 
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics, StackedPhysics
@@ -283,7 +282,7 @@ class L2(DataFidelity):
         y: torch.Tensor,
         physics: Physics,
         *args,
-        gamma: float = 1.0,
+        gamma: float | torch.Tensor = 1.0,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -356,8 +355,6 @@ class IndicatorL2(DataFidelity):
         :param float stepsize: step-size of the dual-forward-backward algorithm.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
-        :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
-                            operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
 
         """
@@ -434,7 +431,7 @@ class L1(DataFidelity):
         y: torch.Tensor,
         physics: Physics,
         *args,
-        gamma: float = 1.0,
+        gamma: float | torch.Tensor = 1.0,
         stepsize: float = None,
         crit_conv: float = 1e-5,
         max_iter: int = 100,
@@ -456,6 +453,7 @@ class L1(DataFidelity):
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`\forw{x}`.
         :param deepinv.physics.Physics physics: physics model.
         :param float stepsize: step-size of the dual-forward-backward algorithm.
+        :param float gamma: stepsize of the proximity operator.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
@@ -563,32 +561,3 @@ class ZeroFidelity(DataFidelity):
         This function returns the input image.
         """
         return u
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-
-    # define a loss function
-    data_fidelity = L2()
-
-    # create a measurement operator dxd
-    A = torch.Tensor([[2, 0], [0, 0.5]])
-    A_forward = lambda v: torch.matmul(A, v)
-    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
-
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-    # Define two points of size Bxd
-    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-
-    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
-    f = data_fidelity(x, y, physics)  # print f gives 1.0
-    # Compute the gradient of :math:`f`
-    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
-
-    # Compute the proximity operator of :math:`f`
-    prox = data_fidelity.prox(
-        x, y, physics, gamma=1.0
-    )  # print prox_fA gives [0.6000, 3.6000]

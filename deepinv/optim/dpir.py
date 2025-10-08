@@ -14,7 +14,7 @@ def get_DPIR_params(noise_level_img: float, device: str | torch.device = "cpu"):
     Default parameters for the DPIR Plug-and-Play algorithm.
 
     :param float noise_level_img: Noise level of the input image.
-    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
+    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
     :return: tuple(list with denoiser noise level per iteration, list with stepsize per iteration, iterations).
     """
     max_iter = 8
@@ -50,7 +50,7 @@ class DPIR(BaseOptim):
     :param float, torch.Tensor sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param deepinv.models.Denoiser denoiser: optional denoiser. If `None`, use a pretrained denoiser :class:`deepinv.models.DRUNet`.
-    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
+    :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cpu".
 
 
     """
@@ -59,7 +59,7 @@ class DPIR(BaseOptim):
         self,
         sigma: float | Tensor = 0.1,
         denoiser: Denoiser = None,
-        device: str | torch.device = "cuda",
+        device: str | torch.device = "cpu",
     ):
         prior = PnP(
             denoiser=(
