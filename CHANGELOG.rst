@@ -30,6 +30,7 @@ New Features
 Changed
 ^^^^^^^
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Allow self-supervised eval by removing the model.eval() from Trainer.train() (:gh:`777` by `Julian Tachella`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
@@ -42,6 +43,7 @@ Fixed
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
+- Save training loss history (:gh:`777` by `Julian Tachella`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 - Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
 

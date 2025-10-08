@@ -147,8 +147,14 @@ if noise_name == "poisson":
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
 #
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+
 
 verbose = True  # print training information
 
@@ -169,8 +175,12 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     device=device,
+    metrics=None,  # no supervised metrics
     train_dataloader=train_dataloader,
-    eval_dataloader=None,
+    eval_dataloader=test_dataloader,
+    early_stop=2,  # early stop using the self-supervised loss on the test set
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -184,10 +194,10 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
-#
-
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:
