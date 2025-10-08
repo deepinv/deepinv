@@ -14,6 +14,7 @@ New Features
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
+- Add learned regularizers and nonmonotonic accelerated proximal gradient algorithm (:gh:`829` by `Johannes Hertrich`_)
 
 Changed
 ^^^^^^^
