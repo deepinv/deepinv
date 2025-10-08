@@ -9,7 +9,7 @@ from deepinv.optim import BaseOptim
 import torch
 
 
-def get_DPIR_params(noise_level_img):
+def get_DPIR_params(noise_level_img, device="cpu"):
     r"""
     Default parameters for the DPIR Plug-and-Play algorithm.
 
@@ -24,6 +24,7 @@ def get_DPIR_params(noise_level_img):
         torch.log10(torch.tensor(s2, dtype=torch.float32)),
         steps=max_iter,
         dtype=torch.float32,
+        device=device,
     )
 
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
@@ -66,7 +67,7 @@ class DPIR(BaseOptim):
                 else denoiser
             )
         )
-        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
+        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma, device=device)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(
             create_iterator("HQS", prior=prior, F_fn=None, g_first=False),

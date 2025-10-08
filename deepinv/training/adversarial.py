@@ -129,7 +129,8 @@ class AdversarialTrainer(Trainer):
         ...     losses = SupAdversarialGeneratorLoss(),
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
-        ...     verbose = False
+        ...     verbose = False,
+        ...     optimizer_step_multi_dataset = False
         ... )
         >>>
         >>> generator = trainer.train()

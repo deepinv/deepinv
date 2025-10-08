@@ -13,6 +13,7 @@ NOISES = [
     "Uniform",
     "LogPoisson",
     "SaltPepper",
+    "RicianNoise",
 ]
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
@@ -41,6 +42,8 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu, rng=rng)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s, rng=rng)
+    elif noise_type == "RicianNoise":
+        noise_model = dinv.physics.RicianNoise(sigma=sigma, rng=rng)
     else:
         raise Exception("Noise model not found")
 

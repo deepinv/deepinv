@@ -24,6 +24,7 @@ LOSSES = [
     "ensure",
     "ensure_mri",
     "reducedresolution",
+    "reducedresolution_manual_physics",
 ]
 
 LIST_SURE = [
@@ -147,6 +148,12 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         )
     elif loss_name == "reducedresolution":
         loss.append(dinv.loss.ReducedResolutionLoss())
+    elif loss_name == "reducedresolution_manual_physics":
+        loss.append(
+            dinv.loss.ReducedResolutionLoss(
+                physics=dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 

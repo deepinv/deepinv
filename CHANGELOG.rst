@@ -9,13 +9,29 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.5
+------
+New Features
+^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
+- Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
+- Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
+- Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 - Allow self-supervised eval by removing the model.eval() from Trainer.train() (:gh:`777` by `Julian Tachella`_)
+- (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
 ^^^^^
@@ -28,6 +44,9 @@ Fixed
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Save training loss history (:gh:`777` by `Julian Tachella`_)
+- Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
+
+
 
 
 v0.3.4
@@ -462,3 +481,4 @@ Authors
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
 .. _Louise Friot Giroux: https://github.com/Louisefg
+.. _Vicky De Ridder: https://github.com/nucli-vicky
