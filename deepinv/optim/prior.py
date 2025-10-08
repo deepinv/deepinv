@@ -1010,7 +1010,7 @@ class LSR(Prior):
             if pretrained == "download":
                 if in_channels == 1:
                     file_name = "LSR_gray.pt"
-                    raise ValueError("weights not there yet")
+                    url = "https://drive.google.com/uc?export=download&id=1YclYsQe7eM7l9Cmp9bxqT7f2WbOF0SKy"
                 elif in_channels == 3:
                     file_name = "LSR_color.pt"
                     url = "https://drive.google.com/uc?export=download&id=1am3EG6XQubZM3oO08ByKyC2sRPrc7VzV"
