@@ -754,7 +754,7 @@ class WCRR(Prior):
         warn_output_scaling=True,
     ):
         super(WCRR, self).__init__()
-        nb_channels = [in_channels] + nb_channels
+        nb_channels = [in_channels] + list(nb_channels)
         self.warn_output_scaling = warn_output_scaling
         self.nb_filters = nb_channels[-1]
         self.filter_size = sum(filter_sizes) - len(filter_sizes) + 1
@@ -975,7 +975,7 @@ class LSR(Prior):
         in_channels=3,
         device="cpu",
         pretrained="download",
-        nc=(64, 128, 256, 512),
+        nc=(32, 64, 128, 256),
         nb=2,
         pretrained_GSDRUNet=None,
         alpha=1.0,
