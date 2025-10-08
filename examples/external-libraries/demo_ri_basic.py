@@ -235,7 +235,7 @@ physics.setWeight(nWimag / tau)
 
 # compute operator norm (note: increase the iteration number for higher precision)
 opnorm = physics.compute_norm(
-    torch.randn_like(image_gdth, device=device), max_iter=20, tol=1e-6, verbose=False
+    torch.randn_like(image_gdth, device=device), max_iter=20, tol=1e-6, verbose=False, squared=False
 ).item()
 print("Operator norm: ", opnorm)
 
