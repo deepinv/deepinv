@@ -538,7 +538,7 @@ class LinearPhysics(Physics):
         """
         return stack(self, other)
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, squared=None, **kwargs):
+    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, squared=True, **kwargs):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
@@ -555,24 +555,23 @@ class LinearPhysics(Physics):
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
-        :param bool squared: If ``True``, computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+        :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            Use :meth:`compute_sqnorm` instead.
             If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
-            If ``None`` (default), uses ``True`` for backward compatibility but issues a deprecation warning.
 
         :returns z: (float) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
             If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
         """
-        if squared is None:
+        if squared is True:
             warnings.warn(
-                "The default behavior of `compute_norm()` is deprecated. "
-                "Currently it computes the squared spectral norm of A (i.e., ||A^T A||_2). "
-                "In a future version, it will compute the non-squared spectral norm (i.e., ||A||_2). "
-                "To suppress this warning and get the new behavior, set `squared=False`. "
-                "To keep the current behavior, set `squared=True` or use `compute_sqnorm()` instead.",
+                "Using `compute_norm(squared=True)` is deprecated. "
+                "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
+                "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            squared = True
+        elif squared is not False:
+            raise ValueError(f"squared must be True or False, got {squared}")
 
         x = torch.randn_like(x0)
         x /= torch.norm(x)
@@ -617,7 +616,27 @@ class LinearPhysics(Physics):
 
         :returns z: (float) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        return self.compute_norm(x0, max_iter=max_iter, tol=tol, verbose=verbose, squared=True, **kwargs)
+        x = torch.randn_like(x0)
+        x /= torch.norm(x)
+        zold = torch.zeros_like(x)
+        for it in range(max_iter):
+            y = self.A(x, **kwargs)
+            y = self.A_adjoint(y, **kwargs)
+            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+
+            rel_var = torch.norm(z - zold)
+            if rel_var < tol:
+                if verbose:
+                    print(
+                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
+                    )
+                break
+            zold = z
+            x = y / torch.norm(y)
+        else:
+            warnings.warn("Power iteration: convergence not reached")
+
+        return z.real
 
     def adjointness_test(self, u, **kwargs):
         r"""

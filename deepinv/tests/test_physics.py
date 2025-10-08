@@ -798,10 +798,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose, squared=True)
+        physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose, squared=True)
+    norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
