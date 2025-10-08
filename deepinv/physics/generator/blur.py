@@ -1018,7 +1018,13 @@ class DiffractionBlurGenerator3D(PSFGenerator):
                 "You should provide a tuple of len == 3 to generate 3D PSFs."
             )
 
-        super().__init__(device=device, dtype=dtype, rng=rng)
+        super().__init__(
+            psf_size=psf_size,
+            num_channels=num_channels,
+            device=device,
+            dtype=dtype,
+            rng=rng,
+        )
 
         self.generator2d = DiffractionBlurGenerator(
             psf_size=psf_size[1:],
@@ -1027,6 +1033,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             fc=fc,
             max_zernike_amplitude=max_zernike_amplitude,
             pupil_size=pupil_size,
+            apodize=apodize,
             device=device,
             dtype=dtype,
             rng=rng,
@@ -1037,7 +1044,8 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.random_rotate = random_rotate
         self.stepz_pixel = stepz_pixel
         self.kb = kb
-        self.nzs = self.psf_size[0]
+        self.psf_size = psf_size
+        self.nzs = psf_size[0]
         self.fc = fc
         self.zernike_index = zernike_index
         self.n_zernike = len(self.zernike_index)
@@ -1095,7 +1103,6 @@ class DiffractionBlurGenerator3D(PSFGenerator):
             self.generator2d.pad_pre[1] : self.generator2d.pupil_size[1]
             - self.generator2d.pad_post[1],
         ].unsqueeze(1)
-
         if self.random_rotate:
             from einops import rearrange
 
