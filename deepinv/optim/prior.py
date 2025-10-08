@@ -734,7 +734,11 @@ class WCRR(Prior):
     :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
     :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
     :param str device: Device for the weights. Default: `"cpu"`
-    :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+    :param str, None pretrained: use pretrained weights. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
     :param bool warn_output_scaling: warn if `weak_convexity>0` and the output scaling (:math:`\log(\alpha)` in the above description) is not zero. This case
         destroys the weak convexity constant defined by teh `weak_convexity` argument. Default: `True`
     """
@@ -953,7 +957,11 @@ class LSR(Prior):
 
     :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
     :param str device: Device for the weights. Default: `"cpu"`
-    :param str pretrained: Path to pretrained weights. `None` for random initialization. Default: `None`
+    :param str, None pretrained: use pretrained weights. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
     :param list of int nc: number of channels of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `[32, 64, 128, 256]`
     :param int nb: number of residual blocks of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `2`.
     :param deepinv.models.GSPnP.GSDRUNet pretrained_GSDRUNet: If already a GSDRUNet object exists, a LSR with this GSDRUNet can be created

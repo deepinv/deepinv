@@ -483,7 +483,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     assert pnp.has_converged
 
 
-def get_prior(prior_name, device="cpu"):
+def get_prior(prior_name, device="cpu", in_channels=3):
     if prior_name == "L1Prior":
         prior = dinv.optim.prior.L1Prior()
     elif prior_name == "L12Prior":
@@ -492,6 +492,16 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
         prior = dinv.optim.prior.TVPrior()
+    elif prior_name == "CRR":
+        prior = dinv.optim.prior.WCRR(
+            weak_convexity=0.0, in_channels=in_channels, device=device
+        )
+    elif prior_name == "WCRR":
+        prior = dinv.optim.prior.WCRR(
+            weak_convexity=1.0, in_channels=in_channels, device=device
+        )
+    elif prior_name == "LSR":
+        prior = dinv.optim.prior.LSR(in_channels=in_channels, device=device)
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -1117,3 +1127,40 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             )
 
     torch.use_deterministic_algorithms(prev_deterministic)
+
+
+@pytest.mark.parametrize("gray", [True, False])
+@pytest.mark.parametrize("only_gradient", [True, False])
+@pytest.mark.parametrize("prior_name", ["CRR", "WCRR", "LSR"])
+def test_nmapg_and_learned_priors(
+    imsize, dummy_dataset, prior_name, gray, only_gradient, device
+):
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+
+    test_sample = next(iter(dataloader)).to(device)
+    if gray:
+        test_sample = test_sample.mean(1, keepdim=True)
+    prior = get_prior(prior_name, in_channels=1 if gray else 3, device=device)
+    psnr = dinv.loss.metric.PSNR()
+
+    # test only gradient
+    if only_gradient:
+        physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(0.1))
+        data_fidelity = L2()
+        optim = dinv.optim.NMAPG(data_fidelity, prior, 1.0)
+        psnr_thresh = 21
+    else:
+        physics = dinv.physics.Inpainting(test_sample[0].shape, mask=0.3, device=device)
+        data_fidelity = IndicatorL2(0)
+        optim = dinv.optim.NMAPG(data_fidelity, prior, 1.0, gradient_for_both=False)
+        psnr_thresh = 15
+
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+    x_init = physics.A_dagger(y)
+    initial_objective = data_fidelity(x_init, y, physics) + prior(x_init)
+    recon = optim(y, physics)
+    final_objective = data_fidelity(recon, y, physics) + prior(recon)
+    final_psnr = psnr(recon, test_sample)
+
+    assert final_objective < initial_objective
+    assert final_psnr > psnr_thresh

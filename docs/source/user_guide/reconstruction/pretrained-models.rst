@@ -56,6 +56,10 @@ These models can be set-up in one line and perform inference in another line:
      - Feedforward
      - Denoising
      - Fast
+   * - :ref:`Pretrained learned regularizers <pretrained-learned-reg>`
+     - Feedforward
+     - Denoising
+     - Fast
 
 .. tip::
 
@@ -74,7 +78,7 @@ For each model (:class:`Denoiser <deepinv.models.Denoiser>` or :class:`Reconstru
 associated reference and relevant details. All pretrained weights are hosted on
 `HuggingFace <https://huggingface.co/deepinv>`_.
 
-Click on the model name to learn more about the type of model and use `pretrained=True` to use the pretrained weights.
+Click on the model name to learn more about the type of model and use `pretrained="download"` to use the pretrained weights.
 
 .. list-table:: Summary of pretrained weights
    :widths: 20 5 25
@@ -133,3 +137,27 @@ Click on the model name to learn more about the type of model and use `pretraine
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.
+
+
+.. _pretrained-learned-reg:
+
+For the learned regularizers (:class:`(W)CRR <deepinv.optim.WCRRr>` and :class:`LSR <deepinv.optim.LSR>`)
+ 
+Click on the model name to learn more about the type of model and use `pretrained="download"` to use the pretrained weights.
+
+.. list-table:: Summary of pretrained weights
+   :widths: 20 5 25
+   :header-rows: 1
+
+   * - Model
+     - Type
+     - Weight
+   * - :class:`deepinv.optim.WCRR`
+     - Prior
+     - The weights are trained using bilevel optimization using the code from `Hertrich et al. <https://github.com/johertrich/LearnedRegularizers>`_ :footcite:p:`hertrich2025learning` on BSDS500 for noise level `25/255`.
+        We provide pretrained weights for color images (`in_channels=3`) and grayscale images (`in_channels=1`) and for the cases `weak_convexity=0.0` (CRR) and `weak_convexity=1.0` (WCRR).
+   * - :class:`deepinv.optim.LSR`
+     - Prior
+     - The weights are trained using bilevel optimization using the code from `Hertrich et al. <https://github.com/johertrich/LearnedRegularizers>`_ :footcite:p:`hertrich2025learning` on BSDS500 for noise level `25/255`.
+        We provide pretrained weights for color images (`in_channels=3`) and images grayscale (`in_channels=1`).
+
