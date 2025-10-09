@@ -3,6 +3,12 @@ name: PR Comment Trigger
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to trigger tests for (optional if using comment)"
+        required: false
+        type: number
 
 permissions:
   pull-requests: read
