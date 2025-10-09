@@ -759,6 +759,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
         verbose=False,
         online_measurements=True,
         save_path=tmpdir,
+        device=device,
     )
 
     trainer.train()
