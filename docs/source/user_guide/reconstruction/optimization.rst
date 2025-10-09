@@ -303,7 +303,7 @@ Some predefined optimizers are provided:
      - (phase-retrieval only)
 
 
-.. _optim-params:
+.. _optim-non-convex:
 
 Nonconvex Optimization
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -314,6 +314,9 @@ implmented in :class:`deepinv.optim.NMAPG` can be used. It basically combines a 
 algorithm with momentum and line search methods. In contrast to the methods implemented via an iterator it
 admits convergence guarantees to a stationary point even in the nonconvex case.
 A functional interface is implemented at :class:`deepinv.optim.utils.nonmonotone_accelerated_proximal_gradient`.
+
+
+.. _optim-params:
 
 Parameters
 ~~~~~~~~~~

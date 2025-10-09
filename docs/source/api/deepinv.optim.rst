@@ -150,7 +150,7 @@ Iterators
 Nonconvex Optimization
 ----------------------
 
-.. userguide:: optim-iterators
+.. userguide:: optim-non-convex
 
 For nonconvex optimization problems, the nonmonotonic accelerated proximal gradient descent algorithm (nmAPG)
 implmented in:
