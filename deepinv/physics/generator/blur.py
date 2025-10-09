@@ -247,7 +247,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         self,
         psf_size: tuple,
         num_channels: int = 1,
-        zernike_index: tuple[int | str, ...] = tuple(range(4, 12)),
+        zernike_index: tuple[int, ...] | tuple[str, ...] = tuple(range(4, 12)),
         fc: float = 0.2,
         max_zernike_amplitude: float = 0.15,
         pupil_size: tuple[int, ...] = (256, 256),
@@ -269,6 +269,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         zernike_index = list(zernike_index)
         for i, index in enumerate(zernike_index):
             if isinstance(index, str):
+                if not index.upper().startswith("Z"):
+                    raise ValueError(f"Zernike index must start with 'Z', got {index}")
                 index = int(index[1:])  # Convert "Z4" to 4
             zernike_index[i] = index
 
@@ -676,7 +678,9 @@ def get_zernike_polynomial(
         )
 
 
-def zernike_index_conversion(index, convention="ansi"):
+def zernike_index_conversion(
+    index: int, *, convention: str = "ansi"
+) -> tuple[int, int]:
     r"""
     Converts a single index for Zernike polynomials between different conventions.
     For more details on the conventions, see `wikipedia <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`_.
@@ -1049,7 +1053,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.fc = fc
         self.zernike_index = zernike_index
         self.n_zernike = len(self.zernike_index)
-        self.defocus = (
+        self._defocus = (
             torch.linspace(
                 -self.nzs / 2, self.nzs / 2, self.nzs, device=device, dtype=dtype
             )[:, None, None]
@@ -1087,7 +1091,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         pupil = gen_dict["pupil"]
         d = ((self.kb) ** 2 - (self.generator2d.rho * self.fc) ** 2 + 0j) ** 0.5
 
-        propKer = torch.exp(-1j * 2 * torch.pi * d * self.defocus) + 0j
+        propKer = torch.exp(-1j * 2 * torch.pi * d * self._defocus) + 0j
         p = pupil[:, None, ...] * propKer[None, ...]
         p[torch.isnan(p)] = 0
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
