@@ -45,18 +45,18 @@ def _register_deprecated_attr(
     def fget(self) -> bool:
         val = getattr(self, attr_underscore_name)
         # warn last in case retrieval fails
-        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+        warn(deprecation_message, DeprecationWarning, stacklevel=2)
         return val
 
     def fset(self, value: bool) -> None:
         setattr(self, attr_underscore_name, value)
         # warn last in case setting fails
-        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+        warn(deprecation_message, DeprecationWarning, stacklevel=2)
 
     def fdel(self) -> None:
         delattr(self, attr_underscore_name)
         # warn last in case deletion fails
-        warn(deprecation_message, DeprecationWarning, sacklevel=2)
+        warn(deprecation_message, DeprecationWarning, stacklevel=2)
 
     attr_value = property(fget=fget, fset=fset, fdel=fdel, doc=doc)
     setattr(self, attr_name, attr_value)
@@ -135,10 +135,7 @@ class HDF5Dataset(ImageDataset):
             y = None
 
         # Process forward operator parameters
-        if load_physics_generator_params:
-            params = {}
-        else:
-            params = None
+        params = {} if load_physics_generator_params else None
 
         # Register members in the HDF5 file as ground truths, parts of stacked
         # measurements or regular measurements and forward operator parameters
@@ -218,12 +215,13 @@ class HDF5Dataset(ImageDataset):
     def __getitem__(self, index: int) -> tuple:
         r"""Get an entry in the dataset.
 
-        Return the measuremet and signal pair ``(x, y)`` at the given index, in
+        Return the measurement and signal pair ``(x, y)`` at the given index, in
         the selected split. If forward operator parameters are available, it
         returns ``(x, y, params)`` where ``params`` is a dict of parameters.
 
-        If the split contains no ground truth, it returns a scalar NaN tensor
-        as the ground truth, similarly to :class:`deepinv.training.Trainer`.
+        The method returns a scalar NaN tensor as the ground truth when none is
+        present in the dataset, in accordance with the conventions of the
+        library (see :ref:`datasets user guide <datasets>`).
 
         :param int index: Index of the pair to return.
         """
@@ -296,6 +294,11 @@ class HDF5Dataset(ImageDataset):
     @property
     def unsupervised(self) -> bool:
         """Test if the split is unsupervised (i.e. contains no ground truths)."""
+        warn(
+            "The attribute 'unsupervised' is deprecated and will be removed in future versions. Please check the dataset entries directly instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
         return not hasattr(self, "x")
 
     def _register_deprecated_attributes(self) -> None:
