@@ -917,7 +917,7 @@ class WCRR(Prior):
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma g}(x) = \argmin_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{argmin}_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
 
 
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
@@ -1067,7 +1067,7 @@ class LSR(Prior):
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma g}(x) = \argmin_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{argmin}_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
 
 
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
