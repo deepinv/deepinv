@@ -1176,7 +1176,7 @@ class Trainer:
             for i in (
                 progress_bar := tqdm(
                     range(batches),
-                    ncols=150,
+                    dynamic_ncols=True,
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
@@ -1222,7 +1222,7 @@ class Trainer:
                     for j in (
                         eval_progress_bar := tqdm(
                             range(eval_batches),
-                            ncols=150,
+                            dynamic_ncols=True,
                             disable=(not self.verbose or not self.show_progress_bar),
                             colour="green",
                         )
@@ -1326,7 +1326,7 @@ class Trainer:
         for i in (
             progress_bar := tqdm(
                 range(batches),
-                ncols=150,
+                dynamic_ncols=True,
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):

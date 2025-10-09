@@ -891,37 +891,6 @@ class SaltPepperNoise(NoiseModel):
         return y
 
 
-def _infer_device(
-    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
-) -> torch.device:
-    """Infer the device from a list of candidates.
-
-    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
-
-    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
-
-    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
-    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
-    :raises RuntimeError: if more than one device is found among the inputs.
-    :return: the device of the candidates or the default device if no candidates are bound to a device.
-    """
-    input_devices = set()
-
-    for device_held_candidate in device_held_candidates:
-        if isinstance(
-            device_held_candidate,
-            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
-        ):
-            input_devices.add(device_held_candidate.device)
-
-    if len(input_devices) > 1:
-        raise RuntimeError(
-            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
-        )
-
-    return input_devices.pop() if input_devices else default
-
-
 class FisherTippettNoise(NoiseModel):
     r"""
     Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
@@ -952,3 +921,79 @@ class FisherTippettNoise(NoiseModel):
         x = torch.exp(x)
         gamma = GammaNoise(self.l)
         return torch.log(gamma(x))
+
+
+class RicianNoise(NoiseModel):
+    r"""
+    RicianNoise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
+
+    where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`
+
+    This noise model is often used in MRI imaging and has the property of keeping pixel intensities :math:`\geq 0`
+
+    .. warning:: All pixel intensities will become positive: this noise model may not be suited for data with negative intensities.
+
+    :param Union[float, torch.Tensor] sigma: Standard deviation used.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    """
+
+    def __init__(
+        self,
+        sigma: float | torch.Tensor = 0.1,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([sigma, rng])
+        super().__init__(rng=rng)
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
+
+    def forward(
+        self, x: torch.Tensor, sigma: float | torch.Tensor = None, seed: int = None
+    ):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param float, torch.Tensor, None sigma: standard deviation to be used.
+            If not `None`, it will overwrite the current noise level.
+        :param int, None seed: the seed for the random number generator.
+        :returns: noisy measurements
+        """
+        self.update_parameters(sigma=sigma)
+        self.rng_manual_seed(seed)
+
+        N1 = self.randn_like(x)
+        N2 = self.randn_like(x)
+        return torch.sqrt((self.sigma * N1 + x) ** 2 + (self.sigma * N2) ** 2)
+
+
+def _infer_device(
+    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
+) -> torch.device:
+    """Infer the device from a list of candidates.
+
+    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
+
+    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
+
+    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
+    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
+    :raises RuntimeError: if more than one device is found among the inputs.
+    :return: the device of the candidates or the default device if no candidates are bound to a device.
+    """
+    input_devices = set()
+
+    for device_held_candidate in device_held_candidates:
+        if isinstance(
+            device_held_candidate,
+            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
+        ):
+            input_devices.add(device_held_candidate.device)
+
+    if len(input_devices) > 1:
+        raise RuntimeError(
+            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
+        )
+
+    return input_devices.pop() if input_devices else default
