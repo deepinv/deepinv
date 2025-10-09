@@ -1,25 +1,16 @@
 import pytest
-
 import torch
 from torch.utils.data import DataLoader
-
 import deepinv as dinv
-from deepinv.optim import DataFidelity
+from deepinv.optim import DataFidelity, PrimalDualCP
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
 from deepinv.optim.prior import Prior, PnP, RED
-from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
 from deepinv.optim.utils import least_squares_implicit_backward
 
 from functools import partial
 import copy
-
-
-def custom_init_CP(y, physics):
-    x_init = physics.A_adjoint(y)
-    u_init = y
-    return {"est": (x_init, x_init, u_init)}
 
 
 def test_data_fidelity_l2(device):
@@ -295,7 +286,19 @@ def test_data_fidelity_amplitude_loss(device):
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
+@pytest.mark.parametrize(
+    "name_algo",
+    [
+        "GradientDescent",
+        "ProximalGradientDescent",
+        "ADMM",
+        "DRS",
+        "HQS",
+        "FISTA",
+        "MirrorDescent",
+        "ProximalMirrorDescent",
+    ],
+)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
@@ -319,7 +322,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         prior = Prior(g=prior_g)  # The prior term
 
         if (
-            name_algo == "CP"
+            name_algo == "PrimalDualCP"
         ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = 1.0
@@ -327,19 +330,19 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = None
 
-        lamb = 0.9
+        lambda_reg = 0.9
         max_iter = 1000
-        params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        optimalgo = optim_builder(
-            name_algo,
+        optimalgo = getattr(dinv.optim, name_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
             crit_conv="residual",
             thres_conv=1e-11,
             verbose=True,
-            params_algo=params_algo,
+            stepsize=stepsize,
+            lambda_reg=lambda_reg,
+            g_param=sigma,
             early_stop=True,
             g_first=g_first,
         )
@@ -364,15 +367,15 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                     stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    moreau_grad, -lamb * subdiff, atol=1e-8
+                    moreau_grad, -lambda_reg * subdiff, atol=1e-8
                 )  # Optimality condition
             else:
                 subdiff = data_fidelity.grad(x, y, physics)
-                moreau_grad = (x - prior.prox(x, gamma=lamb * stepsize)) / (
-                    lamb * stepsize
+                moreau_grad = (x - prior.prox(x, gamma=lambda_reg * stepsize)) / (
+                    lambda_reg * stepsize
                 )  # Gradient of the moreau envelope
                 assert torch.allclose(
-                    lamb * moreau_grad, -subdiff, atol=1e-8
+                    lambda_reg * moreau_grad, -subdiff, atol=1e-8
                 )  # Optimality condition
         else:
             subdiff = prior.grad(x)
@@ -380,7 +383,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             # The optimality condition is then :math:`0 \in  \nabla f(x)+ \lambda \partial g(x)`
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                grad_deepinv, -lamb * subdiff, atol=1e-8
+                grad_deepinv, -lambda_reg * subdiff, atol=1e-8
             )  # Optimality condition
 
 
@@ -416,7 +419,10 @@ def test_denoiser(imsize, dummy_dataset, device):
 
 
 # GD not implemented for this one
-@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
@@ -435,36 +441,36 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     sigma_denoiser = torch.tensor([[0.1]])
     stepsize = 1.0
-    lamb = 1.0
+    lambda_reg = 1.0
 
     data_fidelity = L2()
 
     # here the prior model is common for all iterations
     prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    stepsize_dual = 1.0 if pnp_algo == "CP" else None
-    params_algo = {
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-        "stepsize_dual": stepsize_dual,
-    }
+    stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
 
-    custom_init = custom_init_CP if pnp_algo == "CP" else None
+    if pnp_algo == "PrimalDualCP":
+        x_init = physics.A_adjoint(y)
+        u_init = y
+        init = (x_init, x_init, u_init)
+    else:
+        init = None
 
-    pnp = optim_builder(
-        pnp_algo,
+    pnp = getattr(dinv.optim, pnp_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         thres_conv=1e-4,
         verbose=True,
-        params_algo=params_algo,
+        stepsize=stepsize,
+        stepsize_dual=stepsize_dual,
+        g_param=sigma_denoiser,
+        lambda_reg=lambda_reg,
         early_stop=True,
-        custom_init=custom_init,
     )
 
-    x = pnp(y, physics)
+    x = pnp(y, physics, init=init)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
     # plot = True
@@ -508,7 +514,10 @@ def get_prior(prior_name, device="cpu"):
     return prior
 
 
-@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
         "L1Prior",
@@ -536,36 +545,36 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # sigma_denoiser = torch.tensor([[0.1]])
         sigma_denoiser = torch.tensor([[1.0]], device=device)
         stepsize = 1.0
-        lamb = 1.0
+        lambda_reg = 1.0
 
         data_fidelity = L2()
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
 
-        stepsize_dual = 1.0 if pnp_algo == "CP" else None
-        params_algo = {
-            "stepsize": stepsize,
-            "g_param": sigma_denoiser,
-            "lambda": lamb,
-            "stepsize_dual": stepsize_dual,
-        }
+        stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
 
-        custom_init = custom_init_CP if pnp_algo == "CP" else None
+        if pnp_algo == "PrimalDualCP":
+            x_init = physics.A_adjoint(y)
+            u_init = y
+            init = (x_init, x_init, u_init)
+        else:
+            init = None
 
-        opt_algo = optim_builder(
-            pnp_algo,
+        opt_algo = getattr(dinv.optim, pnp_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
             thres_conv=1e-4,
             verbose=True,
-            params_algo=params_algo,
+            stepsize=stepsize,
+            g_param=sigma_denoiser,
+            lambda_reg=lambda_reg,
+            stepsize_dual=stepsize_dual,
             early_stop=True,
-            custom_init=custom_init,
         )
 
-        x = opt_algo(y, physics)
+        x = opt_algo(y, physics, init=init)
 
         # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
         # plot = True
@@ -584,7 +593,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         assert opt_algo.has_converged
 
 
-@pytest.mark.parametrize("red_algo", ["GD", "PGD", "FISTA"])
+@pytest.mark.parametrize(
+    "red_algo", ["GradientDescent", "ProximalGradientDescent", "FISTA"]
+)
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
@@ -603,22 +614,21 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     max_iter = 1000
     sigma_denoiser = 1.0  # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     stepsize = 1.0
-    lamb = 1.0
+    lambda_reg = 1.0
 
     data_fidelity = L2()
 
     prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
-
-    red = optim_builder(
-        red_algo,
+    red = getattr(dinv.optim, red_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         thres_conv=1e-4,
         verbose=True,
-        params_algo=params_algo,
+        stepsize=stepsize,
+        g_param=sigma_denoiser,
+        lambda_reg=lambda_reg,
         early_stop=True,
         g_first=True,
     )
@@ -692,34 +702,32 @@ def test_CP_K(imsize, dummy_dataset, device):
         reg_param = 1.0
         stepsize_dual = 1.0
 
-        lamb = 0.6
+        lambda_reg = 0.6
         max_iter = 1000
 
-        params_algo = {
-            "stepsize": stepsize,
-            "g_param": reg_param,
-            "lambda": lamb,
-            "stepsize_dual": stepsize_dual,
-            "K": K_forward,
-            "K_adjoint": K_adjoint,
-        }
-
-        optimalgo = optim_builder(
-            "CP",
+        optimalgo = PrimalDualCP(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
             crit_conv="residual",
             thres_conv=1e-11,
             verbose=True,
-            params_algo=params_algo,
+            stepsize=stepsize,
+            g_param=reg_param,
+            lambda_reg=lambda_reg,
+            stepsize_dual=stepsize_dual,
+            K=K_forward,
+            K_adjoint=K_adjoint,
             early_stop=True,
             g_first=g_first,
-            custom_init=custom_init_CP,
         )
 
+        x_init = physics.A_adjoint(y)
+        u_init = y
+        init = (x_init, x_init, u_init)
+
         # Run the optimization algorithm
-        x = optimalgo(y, physics)
+        x = optimalgo(y, physics, init=init)
 
         print("g_first: ", g_first)
         assert optimalgo.has_converged
@@ -731,14 +739,14 @@ def test_CP_K(imsize, dummy_dataset, device):
                 data_fidelity.grad(K_forward(x), y, physics)
             )  # This test is only valid for differentiable data fidelity terms.
             assert torch.allclose(
-                grad_deepinv, -lamb * subdiff, atol=1e-12
+                grad_deepinv, -lambda_reg * subdiff, atol=1e-12
             )  # Optimality condition
 
         else:
             subdiff = K_adjoint(prior.grad(K_forward(x)))
             grad_deepinv = data_fidelity.grad(x, y, physics)
             assert torch.allclose(
-                grad_deepinv, -lamb * subdiff, atol=1e-12
+                grad_deepinv, -lambda_reg * subdiff, atol=1e-12
             )  # Optimality condition
 
 
@@ -780,34 +788,32 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     reg_param = 1.0
     stepsize_dual = 1.0
 
-    lamb = 0.6
+    lambda_reg = 0.6
     max_iter = 1000
 
-    params_algo = {
-        "stepsize": stepsize,
-        "g_param": reg_param,
-        "lambda": lamb,
-        "stepsize_dual": stepsize_dual,
-        "K": A_forward,
-        "K_adjoint": A_adjoint,
-    }
-
-    optimalgo = optim_builder(
-        "CP",
+    optimalgo = PrimalDualCP(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         crit_conv="residual",
         thres_conv=1e-11,
         verbose=True,
-        params_algo=params_algo,
+        stepsize=stepsize,
+        g_param=reg_param,
+        lambda_reg=lambda_reg,
+        stepsize_dual=stepsize_dual,
+        K=A_forward,
+        K_adjoint=A_adjoint,
         early_stop=True,
         g_first=g_first,
-        custom_init=custom_init_CP,
     )
 
+    x_init = physics.A_adjoint(y)
+    u_init = y
+    init = (x_init, x_init, u_init)
+
     # Run the optimization algorithm
-    x = optimalgo(y, physics)
+    x = optimalgo(y, physics, init=init)
 
     assert optimalgo.has_converged
 
@@ -818,7 +824,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         data_fidelity.d.grad(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
-        grad_deepinv, -lamb * subdiff, atol=1e-12
+        grad_deepinv, -lambda_reg * subdiff, atol=1e-12
     )  # Optimality condition
 
 
