@@ -9,11 +9,12 @@ on:
 
 jobs:
   test:
-    name: Test and docs GPU
+    name: Test GPU
     runs-on: gpu
     env:
       DEEPINV_MOCK_TESTS: "True"
       UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+      WORKING_DIR: "/local/jtachell"
 
     steps:
       - uses: actions/checkout@v5
@@ -50,6 +51,7 @@ jobs:
       - name: Cleanup environment and workspace
         if: always()
         run: |
+          cd ${{ env.WORKING_DIR }}
           shopt -s dotglob
           for item in *; do
             if [ "$item" != ".git" ] && [ "$item" != ".github" ] && [ "$item" != ".cache" ]; then
