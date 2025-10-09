@@ -620,7 +620,10 @@ class LinearPhysics(Physics):
         zold = torch.zeros_like(x)
         for it in range(max_iter):
             y = self.A_adjoint_A(x, **kwargs)
-            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.linalg.vector_norm(x) ** 2
+            z = (
+                torch.matmul(x.conj().reshape(-1), y.reshape(-1))
+                / torch.linalg.vector_norm(x) ** 2
+            )
 
             rel_var = torch.linalg.vector_norm(z - zold)
             if rel_var < tol:
