@@ -669,7 +669,7 @@ def test_dataloader_formats(
     trainer.train()
 
 
-@pytest.mark.parametrize("early_stop", [True, False])
+@pytest.mark.parametrize("early_stop", [True, False, 3, None])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
     non_blocking_plots,

@@ -415,8 +415,10 @@ class Trainer:
             ]
 
         self.eval_metrics_history = {}
+        self.train_metrics_history = {}
         for l in self.metrics:
             self.eval_metrics_history[l.__class__.__name__] = []
+            self.train_metrics_history[l.__class__.__name__] = []
 
         # gradient clipping
         if train and self.check_grad:
@@ -469,7 +471,7 @@ class Trainer:
             ), "early_stop should be a positive integer or None."
 
         if self.early_stop:
-            if not self.early_stop_on_losses:
+            if self.early_stop_on_losses:
                 assert (
                     len(self.losses) > 0
                 ), "At least one loss should be provided for early stopping if early_stop_on_losses=False."
@@ -1105,6 +1107,7 @@ class Trainer:
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
             "loss": self.train_loss_history,
+            "train_metrics": self.train_metrics_history,
             "eval_loss": self.eval_loss_history,
             "eval_metrics": self.eval_metrics_history,
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
@@ -1353,6 +1356,12 @@ class Trainer:
                         for l in self.losses:
                             self.eval_loss_history[l.__class__.__name__].append(
                                 self.logs_losses_eval[self.losses.index(l)].avg
+                            )
+
+                    if self.compute_train_metrics:
+                        for m in self.metrics:
+                            self.train_metrics_history[m.__class__.__name__].append(
+                                self.logs_metrics_train[self.metrics.index(m)].avg
                             )
 
                     # store metrics history
