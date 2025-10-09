@@ -619,8 +619,7 @@ class LinearPhysics(Physics):
         x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
-            y = self.A(x, **kwargs)
-            y = self.A_adjoint(y, **kwargs)
+            y = self.A_adjoint_A(y, **kwargs)
             z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.linalg.vector_norm(x) ** 2
 
             rel_var = torch.linalg.vector_norm(z - zold)
