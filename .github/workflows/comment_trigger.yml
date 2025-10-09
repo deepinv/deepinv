@@ -30,7 +30,6 @@ jobs:
               username: commenter
             });
             core.setOutput('permission', perm.permission);
-        result-encoding: string
 
       - name: Stop if not maintainer
         if: steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
@@ -73,4 +72,6 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            🚀 GPU test workflows triggered by **@${{ gi**
+            🚀 GPU test workflows triggered by **@${{ github.event.comment.user.login }}**
+            - ✅ [GPU Tests](../../actions/workflows/test_gpu.yml)
+            - ✅ [GPU Docs Check](../../actions/workflows/gpu_docs.yml)
