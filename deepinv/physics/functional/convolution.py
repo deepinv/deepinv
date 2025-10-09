@@ -266,27 +266,21 @@ def conv2d_fft(
     if padding != "valid" and (ph == 0 and pw == 0):
         _warn_once_padding([ph, pw], padding)
 
-    def fft2(t, s=None):
-        return fft.rfft2(t, s=s) if real_fft else fft.fft2(t, s=s)
-
-    def ifft2(t, s):
-        return fft.irfft2(t, s=s).real if real_fft else fft.ifft2(t, s=s).real
-
     x = x.contiguous()
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
         img_size = (H, W)
-        fx = fft2(x, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        out = ifft2(fx * ff, s=img_size)
+        out = _circular_conv_fft(
+            x, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), shift_filter=True
+        )
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
         sH, sW = H + h - 1, W + w - 1
         img_size = (sH, sW)
-        fx = fft2(x, s=img_size)
-        ff = fft2(filter, s=img_size)
-        full = ifft2(fx * ff, s=img_size)
+        full = _circular_conv_fft(
+            x, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), shift_filter=False
+        )
         out = full[:, :, h - 1 : H, w - 1 : W]
 
     elif padding in ("constant", "reflect", "replicate"):
@@ -294,12 +288,16 @@ def conv2d_fft(
         pad = (pw, pw - iw, ph, ph - ih)  # (W_left, W_right, H_top, H_bottom)
         x_pad = F.pad(x, pad, mode=padding, value=0)
         img_size = x_pad.shape[-2:]
-        fx = fft2(x_pad, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        y_pad = ifft2(fx * ff, s=img_size)
-
+        out = _circular_conv_fft(
+            x_pad,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-2, -1),
+            shift_filter=True,
+        )
         # Extract central region back to original size
-        out = y_pad[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
+        out = out[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
 
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
@@ -349,27 +347,29 @@ def conv_transpose2d_fft(
 
     ih, iw = (h - 1) % 2, (w - 1) % 2
 
-    def fft2(t, s=None):
-        return fft.rfft2(t, s=s) if real_fft else fft.fft2(t, s=s)
-
-    def ifft2(t, s):
-        return fft.irfft2(t, s=s).real if real_fft else fft.ifft2(t, s=s).real
+    y = y.contiguous()
+    filter = filter.contiguous()
 
     if padding == "circular":
         # Circular adjoint: multiply by conj of centered filter FFT, no roll.
         img_size = (H, W)
-        fy = fft2(y, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        out = ifft2(fy * torch.conj(ff), s=img_size)
-
+        out = _circular_conv_fft(
+            y,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-2, -1),
+            shift_filter=True,
+            transpose=True,
+        )
     elif padding == "valid":
         # Adjoint of full-conv + center crop
         sH, sW = H + h - 1, W + w - 1
         img_size = (sH, sW)
         y_full = F.pad(y, (w - 1, w - 1, h - 1, h - 1), mode="constant", value=0)
-        fy = fft2(y_full, s=img_size)
-        ff = fft2(filter, s=img_size)
-        out = ifft2(fy * torch.conj(ff), s=img_size)
+        out = _circular_conv_fft(
+            y_full, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), transpose=True
+        )
 
     elif padding in ("constant", "reflect", "replicate"):
         # Forward: pad (P) -> conv (C) -> crop (S)
@@ -377,29 +377,29 @@ def conv_transpose2d_fft(
         Hp = H + ph + (ph - ih)
         Wp = W + pw + (pw - iw)
         img_size = (Hp, Wp)
-
         # S*: embed y into center of padded grid
         y_big = F.pad(y, (pw, pw - iw, ph, ph - ih), mode="constant", value=0)
         # C*: circular transpose conv on padded grid using centered filter
-        fy = fft2(y_big, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        z_big = ifft2(fy * torch.conj(ff), s=img_size)
-
+        z_big = _circular_conv_fft(
+            y_big,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-2, -1),
+            shift_filter=True,
+            transpose=True,
+        )
         # P*: adjoint of padding -> fold to original H x W
+
+        out = z_big[
+            :,
+            :,
+            _center_crop_slice_1d(ph, ih),
+            _center_crop_slice_1d(pw, iw),
+        ].clone()
         if padding == "constant":
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ]
+            pass
         elif padding == "reflect":
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ].clone()
             for sy in (-1, 0, 1):
                 for sx in (-1, 0, 1):
                     if sy == 0 and sx == 0:
@@ -412,12 +412,6 @@ def conv_transpose2d_fft(
                         chunk = chunk.flip(dims=flip_dims)
                     out[:, :, ty, tx].add_(chunk)
         else:  # replicate
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ].clone()
             for sy in (-1, 0, 1):
                 for sx in (-1, 0, 1):
                     if sy == 0 and sx == 0:
@@ -557,82 +551,64 @@ def conv_transpose3d(
 
     if padding == "valid":
         out = x
-    elif padding == "circular":
-        # Start from the central crop
-        out = x[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ]
-        # Triple loop over shifts for (z, y, x); skip the (0,0,0) case
-        for sz in (-1, 0, 1):
-            for sy in (-1, 0, 1):
-                for sx in (-1, 0, 1):
-                    if sz == 0 and sy == 0 and sx == 0:
-                        continue
-                    tz, sz_src = _tgt_src_for_axis_circular(sz, pd, id)
-                    ty, sy_src = _tgt_src_for_axis_circular(sy, ph, ih)
-                    tx, sx_src = _tgt_src_for_axis_circular(sx, pw, iw)
-                    out[:, :, tz, ty, tx].add_(x[:, :, sz_src, sy_src, sx_src])
-    elif padding == "constant":
-        out = x[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ]
-    elif padding == "reflect":
-        # Center crop
-        out = x[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ]
-        for sz in (-1, 0, 1):
-            for sy in (-1, 0, 1):
-                for sx in (-1, 0, 1):
-                    if sz == 0 and sy == 0 and sx == 0:
-                        continue
-                    tz, zsrc = _tgt_src_for_axis_reflect(sz, pd, id)
-                    ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
-                    tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
-                    flip_dims = tuple(
-                        dim for s, dim in zip((sz, sy, sx), (2, 3, 4)) if s != 0
-                    )
-                    chunk = x[:, :, zsrc, ysrc, xsrc]
-                    if flip_dims:
-                        chunk = chunk.flip(dims=flip_dims)
-                    out[:, :, tz, ty, tx].add_(chunk)
-    elif padding == "replicate":
-        out = x[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ]
-        for sz in (-1, 0, 1):
-            for sy in (-1, 0, 1):
-                for sx in (-1, 0, 1):
-                    if sz == 0 and sy == 0 and sx == 0:
-                        continue
-                    tz, zsrc, zred = _tgt_src_for_axis_replicate(sz, pd, id)
-                    ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
-                    tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
-                    reduce_dims = tuple(
-                        dim for red, dim in zip((zred, yred, xred), (2, 3, 4)) if red
-                    )
-                    chunk = x[:, :, zsrc, ysrc, xsrc]
-                    if reduce_dims:
-                        chunk = chunk.sum(dim=reduce_dims)
-                    out[:, :, tz, ty, tx].add_(chunk)
+
     else:
-        raise ValueError(_not_implemented_padding_messages(padding))
+        out = x[
+            :,
+            :,
+            _center_crop_slice_1d(pd, id),
+            _center_crop_slice_1d(ph, ih),
+            _center_crop_slice_1d(pw, iw),
+        ].clone()
+        if padding == "circular":
+            # Triple loop over shifts for (z, y, x); skip the (0,0,0) case
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, sz_src = _tgt_src_for_axis_circular(sz, pd, id)
+                        ty, sy_src = _tgt_src_for_axis_circular(sy, ph, ih)
+                        tx, sx_src = _tgt_src_for_axis_circular(sx, pw, iw)
+                        out[:, :, tz, ty, tx].add_(x[:, :, sz_src, sy_src, sx_src])
+        elif padding == "constant":
+            pass
+        elif padding == "reflect":
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, zsrc = _tgt_src_for_axis_reflect(sz, pd, id)
+                        ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
+                        tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
+                        flip_dims = tuple(
+                            dim for s, dim in zip((sz, sy, sx), (2, 3, 4)) if s != 0
+                        )
+                        chunk = x[:, :, zsrc, ysrc, xsrc]
+                        if flip_dims:
+                            chunk = chunk.flip(dims=flip_dims)
+                        out[:, :, tz, ty, tx].add_(chunk)
+        elif padding == "replicate":
+            for sz in (-1, 0, 1):
+                for sy in (-1, 0, 1):
+                    for sx in (-1, 0, 1):
+                        if sz == 0 and sy == 0 and sx == 0:
+                            continue
+                        tz, zsrc, zred = _tgt_src_for_axis_replicate(sz, pd, id)
+                        ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
+                        tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
+                        reduce_dims = tuple(
+                            dim
+                            for red, dim in zip((zred, yred, xred), (2, 3, 4))
+                            if red
+                        )
+                        chunk = x[:, :, zsrc, ysrc, xsrc]
+                        if reduce_dims:
+                            chunk = chunk.sum(dim=reduce_dims)
+                        out[:, :, tz, ty, tx].add_(chunk)
+        else:
+            raise ValueError(_not_implemented_padding_messages(padding))
     return out.contiguous()
 
 
@@ -687,35 +663,26 @@ def conv3d_fft(
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         _warn_once_padding([ph, pw, pd], padding)
 
-    def fft3(t, s=None):
-        return (
-            fft.rfftn(t, s=s, dim=(-3, -2, -1))
-            if real_fft
-            else fft.fftn(t, s=s, dim=(-3, -2, -1))
-        )
-
-    def ifft3(t, s=None):
-        return (
-            fft.irfftn(t, s=s, dim=(-3, -2, -1)).real
-            if real_fft
-            else fft.ifftn(t, s=s, dim=(-3, -2, -1)).real
-        )
-
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
         img_size = (D, H, W)
-        fx = fft3(x, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        out = ifft3(fx * ff, s=img_size)
+        out = _circular_conv_fft(
+            x,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
+            shift_filter=True,
+        )
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
         sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
         img_size = (sD, sH, sW)
-        fx = fft3(x, s=img_size)
-        ff = fft3(filter, s=img_size)
-        full = ifft3(fx * ff, s=img_size)
-        out = full[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
+        out = _circular_conv_fft(
+            x, filter, s=img_size, real_fft=real_fft, dims=(-3, -2, -1)
+        )
+        out = out[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
 
     elif padding in ("constant", "reflect", "replicate"):
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
@@ -729,13 +696,16 @@ def conv3d_fft(
         )  # (W_left, W_right, H_top, H_bottom, D_front, D_back)
         x_pad = F.pad(x, pad, mode=padding, value=0)
         img_size = x_pad.shape[-3:]
-
-        fx = fft3(x_pad, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        y_pad = ifft3(fx * ff, s=img_size)
-
+        out = _circular_conv_fft(
+            x_pad,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
+            shift_filter=True,
+        )
         # Extract central region back to original size
-        out = y_pad[
+        out = out[
             :,
             :,
             _center_crop_slice_1d(pd, id),
@@ -800,25 +770,17 @@ def conv_transpose3d_fft(
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         _warn_once_padding([ph, pw, pd], padding)
 
-    def fft3(t, s=None):
-        return (
-            fft.rfftn(t, s=s, dim=(-3, -2, -1))
-            if real_fft
-            else fft.fftn(t, s=s, dim=(-3, -2, -1))
-        )
-
-    def ifft3(t, s):
-        return (
-            fft.irfftn(t, s=s, dim=(-3, -2, -1)).real
-            if real_fft
-            else fft.ifftn(t, s=s, dim=(-3, -2, -1)).real
-        )
-
     if padding == "circular":
         img_size = (D, H, W)
-        fy = fft3(y, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        out = ifft3(fy * torch.conj(ff), s=img_size)
+        out = _circular_conv_fft(
+            y,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
+            shift_filter=True,
+            transpose=True,
+        )
 
     elif padding == "valid":
         sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
@@ -826,9 +788,15 @@ def conv_transpose3d_fft(
         y_full = F.pad(
             y, (w - 1, w - 1, h - 1, h - 1, d - 1, d - 1), mode="constant", value=0
         )
-        fy = fft3(y_full, s=img_size)
-        ff = fft3(filter, s=img_size)
-        out = ifft3(fy * torch.conj(ff), s=img_size)
+
+        out = _circular_conv_fft(
+            y_full,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
+            transpose=True,
+        )
 
     elif padding in ("constant", "reflect", "replicate"):
         # Forward: pad (P) -> conv (C) -> crop (S)
@@ -844,27 +812,27 @@ def conv_transpose3d_fft(
         )
 
         # C*: circular transpose conv on padded grid
-        fy = fft3(y_big, s=img_size)
-        ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        z_big = ifft3(fy * torch.conj(ff), s=img_size)
+        z_big = _circular_conv_fft(
+            y_big,
+            filter,
+            s=img_size,
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
+            shift_filter=True,
+            transpose=True,
+        )
 
         # P*: adjoint of padding -> fold to original D x H x W
+        out = z_big[
+            :,
+            :,
+            _center_crop_slice_1d(pd, id),
+            _center_crop_slice_1d(ph, ih),
+            _center_crop_slice_1d(pw, iw),
+        ].clone()
         if padding == "constant":
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(pd, id),
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ]
+            pass
         elif padding == "reflect":
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(pd, id),
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ].clone()
             for sz in (-1, 0, 1):
                 for sy in (-1, 0, 1):
                     for sx in (-1, 0, 1):
@@ -881,13 +849,6 @@ def conv_transpose3d_fft(
                             chunk = chunk.flip(dims=flip_dims)
                         out[:, :, tz, ty, tx].add_(chunk)
         else:  # replicate
-            out = z_big[
-                :,
-                :,
-                _center_crop_slice_1d(pd, id),
-                _center_crop_slice_1d(ph, ih),
-                _center_crop_slice_1d(pw, iw),
-            ].clone()
             for sz in (-1, 0, 1):
                 for sy in (-1, 0, 1):
                     for sx in (-1, 0, 1):
@@ -995,3 +956,34 @@ def _flip_filter_if_needed(
     if not correlation:
         filter = filter.flip(dims=dims)
     return filter.contiguous()
+
+
+def _circular_conv_fft(
+    x: Tensor,
+    filter: Tensor,
+    s: tuple[int, ...],
+    real_fft: bool,
+    dims: tuple[int, ...],
+    shift_filter: bool = False,
+    transpose: bool = False,
+) -> Tensor:
+    r"""
+    A helper function performing the circular convolution of ``x`` and ``filter`` using FFT.
+    Can be used for 1D, 2D or 3D convolution depending on the dims argument.
+    """
+    dims = sorted(dims)
+    fx = fft.rfftn(x, s=s, dim=dims) if real_fft else fft.fftn(x, s=s, dim=dims)
+    if shift_filter:
+        ff = filter_fft(filter, img_size=s, real_fft=real_fft, dims=dims)
+    else:
+        ff = (
+            fft.rfftn(filter, s=s, dim=dims)
+            if real_fft
+            else fft.fftn(filter, s=s, dim=dims)
+        )
+    prod = fx * ff if not transpose else fx * torch.conj(ff)
+    return (
+        fft.irfftn(prod, s=s, dim=dims).real
+        if real_fft
+        else fft.ifftn(prod, s=s, dim=dims).real
+    )

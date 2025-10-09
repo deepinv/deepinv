@@ -14,6 +14,7 @@ New Features
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
+- Add conv3d, conv_transpose3d, support all conv functional to all padding modes, make FFT and spatial equivalent (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
