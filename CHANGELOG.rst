@@ -30,6 +30,7 @@ New Features
 Changed
 ^^^^^^^
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Make tqdm progress bar auto-resize (:gh:`835` by `Andrew Wang`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
