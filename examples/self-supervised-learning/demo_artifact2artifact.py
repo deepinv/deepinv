@@ -131,7 +131,7 @@ mask = torch.stack([mask] * H, -2)
 # Now define physics using this time-varying mask of shape [B,C,T,H,W]:
 #
 
-physics = dinv.physics.SequentialMRI(mask=mask)
+physics = dinv.physics.SequentialMRI(mask=mask, device=device)
 
 
 # %%
@@ -140,7 +140,7 @@ physics = dinv.physics.SequentialMRI(mask=mask)
 # frame-by-frame no-learning zero-filled reconstruction.
 #
 
-x = next(iter(train_dataloader))
+x = next(iter(train_dataloader)).to(device)
 y = physics(x)
 dinv.utils.plot_videos(
     [physics.repeat(x, mask), y, mask, physics.A_adjoint(y, keep_time_dim=True)],
