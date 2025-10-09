@@ -161,8 +161,7 @@ class PhysicsGenerator(nn.Module):
             params = self.step(batch_size=n_batch, **kwargs)
             n_processed += n_batch
             params_partial_sum = {
-                k: v.sum(0, keepdim=True) if v is not None else None
-                for (k, v) in params.items()
+                k: v.sum(0, keepdim=True) for (k, v) in params.items()
             }
             if params_sum is None:
                 params_sum = params_partial_sum
@@ -174,9 +173,7 @@ class PhysicsGenerator(nn.Module):
                 for k in keys:
                     if params_partial_sum[k] is not None:
                         params_sum[k] += params_partial_sum[k]
-        params_avg = {
-            k: v / n if v is not None else None for (k, v) in params_sum.items()
-        }
+        params_avg = {k: v / n for (k, v) in params_sum.items()}
         return params_avg
 
 

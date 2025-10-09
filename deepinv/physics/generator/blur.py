@@ -203,7 +203,7 @@ class DiffractionBlurGenerator(PSFGenerator):
     .. math::
         \phi_\theta= \sum_{k \in K} \theta_k z_k
 
-    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indexes of Zernike polynomials used in the decomposition (equal to `zernike_index`).
+    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indices of Zernike polynomials used in the decomposition (equal to `zernike_index`).
     See :footcite:t:`lakshminarayanan2011zernike` for more details.
     (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
 
@@ -732,10 +732,8 @@ def rotate_image_via_shear(image: torch.Tensor, angle_deg: torch.Tensor, center=
 
     angle[angle > 3 * torch.pi / 2] -= 2 * torch.pi
 
-    transformed_image = (
-        torch.zeros_like(image).expand(mask_angles.shape[0], -1, -1, -1).clone()
-    )
-    expanded_image = image.clone().expand(mask_angles.shape[0], -1, -1, -1).clone()
+    transformed_image = torch.zeros_like(image).expand(mask_angles.shape[0], -1, -1, -1)
+    expanded_image = image.clone().expand(mask_angles.shape[0], -1, -1, -1)
     transformed_image[~mask_angles] = expanded_image[~mask_angles]
     transformed_image[mask_angles] = torch.rot90(
         expanded_image[mask_angles], k=-2, dims=(-2, -1)
