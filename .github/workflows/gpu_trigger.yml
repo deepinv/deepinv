@@ -3,9 +3,6 @@ name: PR Comment Trigger
 on:
   issue_comment:
     types: [created]
-  push:
-    branches:
-      - ci_experiments
   workflow_dispatch:
     inputs:
       pr_number:
