@@ -11,7 +11,7 @@ _warned_messages = set()
 
 def _warn_once_padding(pad_value: list[int], padding: str, category=UserWarning):
     """Emit a warning only once per unique message."""
-    unit_kernel = "x".join([1] * len(pad_value))
+    unit_kernel = "x".join(["1"] * len(pad_value))
     message = (
         f"You're using padding = '{padding}' with a {unit_kernel} kernel. This is equivalent to no padding. "
         f"Consider using padding = 'valid' instead."
@@ -56,12 +56,14 @@ def conv2d(
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
-    if not correlation:
-        filter = torch.flip(filter, [-2, -1])
+    filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
     # Get dimensions of the input and the filter
     B, C, H, W = x.size()
     b, c, h, w = filter.size()
+
+    # Ensure fast memory layout before heavy ops.
+    x = x.contiguous()
 
     if c != C:
         assert (
@@ -97,7 +99,7 @@ def conv2d(
     # Make it in the good shape
     output = output.view(B, C, output.size(-2), -1)
 
-    return output
+    return output.contiguous()
 
 
 def conv_transpose2d(
@@ -128,8 +130,7 @@ def conv_transpose2d(
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
-    if not correlation:
-        filter = torch.flip(filter, [-2, -1])
+    filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
@@ -156,6 +157,7 @@ def conv_transpose2d(
         filter = filter.expand(B, -1, -1, -1)
 
     # Move batch dim of the input into channels
+    y = y.contiguous()
     y = y.reshape(1, -1, H, W)
     # Expand the channel dim of the filter and move it into batch dimension
     filter = filter.reshape(B * C, -1, h, w)
@@ -215,7 +217,7 @@ def conv_transpose2d(
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
 
-    return out
+    return out.contiguous()
 
 
 def conv2d_fft(
@@ -270,12 +272,13 @@ def conv2d_fft(
     def ifft2(t, s):
         return fft.irfft2(t, s=s).real if real_fft else fft.ifft2(t, s=s).real
 
+    x = x.contiguous()
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
         img_size = (H, W)
         fx = fft2(x, s=img_size)
         ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        return ifft2(fx * ff, s=img_size)
+        out = ifft2(fx * ff, s=img_size)
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
@@ -284,7 +287,7 @@ def conv2d_fft(
         fx = fft2(x, s=img_size)
         ff = fft2(filter, s=img_size)
         full = ifft2(fx * ff, s=img_size)
-        return full[:, :, h - 1 : H, w - 1 : W]
+        out = full[:, :, h - 1 : H, w - 1 : W]
 
     elif padding in ("constant", "reflect", "replicate"):
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
@@ -296,10 +299,12 @@ def conv2d_fft(
         y_pad = ifft2(fx * ff, s=img_size)
 
         # Extract central region back to original size
-        return y_pad[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
+        out = y_pad[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
 
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
+
+    return out.contiguous()
 
 
 def conv_transpose2d_fft(
@@ -355,7 +360,7 @@ def conv_transpose2d_fft(
         img_size = (H, W)
         fy = fft2(y, s=img_size)
         ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
-        return ifft2(fy * torch.conj(ff), s=img_size)
+        out = ifft2(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
         # Adjoint of full-conv + center crop
@@ -364,7 +369,7 @@ def conv_transpose2d_fft(
         y_full = F.pad(y, (w - 1, w - 1, h - 1, h - 1), mode="constant", value=0)
         fy = fft2(y_full, s=img_size)
         ff = fft2(filter, s=img_size)
-        return ifft2(fy * torch.conj(ff), s=img_size)
+        out = ifft2(fy * torch.conj(ff), s=img_size)
 
     elif padding in ("constant", "reflect", "replicate"):
         # Forward: pad (P) -> conv (C) -> crop (S)
@@ -426,10 +431,10 @@ def conv_transpose2d_fft(
                     if reduce_dims:
                         chunk = chunk.sum(dim=reduce_dims)
                     out[:, :, ty, tx].add_(chunk)
-        return out
-
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
+
+    return out.contiguous()
 
 
 def conv3d(
@@ -464,9 +469,8 @@ def conv3d(
         filter = filter.expand(-1, C, -1, -1, -1)
 
     # Flip the kernel for true convolution
-    if not correlation:
-        filter = filter.flip(dims=[2, 3, 4])
-
+    filter = _flip_filter_if_needed(filter, correlation, dims=(-3, -2, -1))
+    x = x.contiguous()
     # Determine padding
     if padding.lower() != "valid":
         # Calculate padding to keep output same size as input
@@ -497,7 +501,7 @@ def conv3d(
     out = F.conv3d(x, filter, padding="valid", groups=B * C)
     # Make it in the good shape
     out = out.reshape(B, C, *out.shape[-3:])
-    return out
+    return out.contiguous()
 
 
 def conv_transpose3d(
@@ -528,6 +532,8 @@ def conv_transpose3d(
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         _warn_once_padding([ph, pw, pd], padding)
+    # Flip the kernel for true convolution
+    filter = _flip_filter_if_needed(filter, correlation, dims=(-3, -2, -1))
 
     # Adjust filter shape if batch or channel is 1
     if b != B:
@@ -541,11 +547,8 @@ def conv_transpose3d(
         ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
         filter = filter.expand(-1, C, -1, -1, -1)
 
-    # Flip the kernel for true convolution
-    if not correlation:
-        filter = filter.flip(dims=[2, 3, 4])
-
     # Use grouped convolution trick for per-batch filters and channels
+    y = y.contiguous()
     y = y.reshape(1, B * C, D, H, W)
     filter = filter.reshape(B * C, 1, d, h, w)
 
@@ -630,7 +633,7 @@ def conv_transpose3d(
                     out[:, :, tz, ty, tx].add_(chunk)
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
-    return out
+    return out.contiguous()
 
 
 def conv3d_fft(
@@ -664,6 +667,8 @@ def conv3d_fft(
     B, C, D, H, W = x.size()
     b, c, d, h, w = filter.size()
 
+    filter = filter.contiguous()
+    x = x.contiguous()
     if c != C:
         assert (
             c == 1
@@ -701,7 +706,7 @@ def conv3d_fft(
         img_size = (D, H, W)
         fx = fft3(x, s=img_size)
         ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        return ifft3(fx * ff, s=img_size)
+        out = ifft3(fx * ff, s=img_size)
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
@@ -710,7 +715,7 @@ def conv3d_fft(
         fx = fft3(x, s=img_size)
         ff = fft3(filter, s=img_size)
         full = ifft3(fx * ff, s=img_size)
-        return full[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
+        out = full[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
 
     elif padding in ("constant", "reflect", "replicate"):
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
@@ -730,7 +735,7 @@ def conv3d_fft(
         y_pad = ifft3(fx * ff, s=img_size)
 
         # Extract central region back to original size
-        return y_pad[
+        out = y_pad[
             :,
             :,
             _center_crop_slice_1d(pd, id),
@@ -740,6 +745,8 @@ def conv3d_fft(
 
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
+
+    return out.contiguous()
 
 
 def conv_transpose3d_fft(
@@ -773,6 +780,8 @@ def conv_transpose3d_fft(
     B, C, D, H, W = y.size()
     b, c, d, h, w = filter.size()
 
+    filter = filter.contiguous()
+    y = y.contiguous()
     if c != C:
         assert (
             c == 1
@@ -809,7 +818,7 @@ def conv_transpose3d_fft(
         img_size = (D, H, W)
         fy = fft3(y, s=img_size)
         ff = filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-3, -2, -1))
-        return ifft3(fy * torch.conj(ff), s=img_size)
+        out = ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding == "valid":
         sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
@@ -819,7 +828,7 @@ def conv_transpose3d_fft(
         )
         fy = fft3(y_full, s=img_size)
         ff = fft3(filter, s=img_size)
-        return ifft3(fy * torch.conj(ff), s=img_size)
+        out = ifft3(fy * torch.conj(ff), s=img_size)
 
     elif padding in ("constant", "reflect", "replicate"):
         # Forward: pad (P) -> conv (C) -> crop (S)
@@ -896,10 +905,10 @@ def conv_transpose3d_fft(
                         if reduce_dims:
                             chunk = chunk.sum(dim=reduce_dims)
                         out[:, :, tz, ty, tx].add_(chunk)
-        return out
-
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
+
+    return out.contiguous()
 
 
 # Some helper functions for computing the slice indices for padding modes in convolution operations
@@ -977,3 +986,12 @@ def filter_fft_2d(
     A helper function to compute the centered FFT of a 2D filter zero-padded to img_size.
     """
     return filter_fft(filter, img_size=img_size, real_fft=real_fft, dims=(-2, -1))
+
+
+def _flip_filter_if_needed(
+    filter: Tensor, correlation: bool, dims: tuple[int, ...]
+) -> Tensor:
+    # Flip the kernel for true convolution
+    if not correlation:
+        filter = filter.flip(dims=dims)
+    return filter.contiguous()
