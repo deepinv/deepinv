@@ -58,9 +58,21 @@ jobs:
         if: always()
         run: |
           cd ${{ env.WORKING_DIR }}
-          shopt -s dotglob
+      
+          # Enable matching hidden files
+          shopt -s dotglob nullglob
+      
+          # Remove everything except GitHub metadata and caches
           for item in *; do
-            if [ "$item" != ".git" ] && [ "$item" != ".github" ] && [ "$item" != ".cache" ]; then
-              rm -rf "$item"
-            fi
+            case "$item" in
+              .git|.github|.cache|_actions|_work)
+                echo "Preserving $item"
+                ;;
+              *)
+                echo "Removing $item"
+                rm -rf "$item"
+                ;;
+            esac
           done
+      
+          echo "✅ Workspace cleanup complete."
