@@ -16,7 +16,7 @@ For the reconstructions we sovle the variational problem
         \underset{x}{\arg\min} \quad  \datafid{Ax}{y} + \lambda \reg{x},
         \end{equation}
 
-for a data-fidelity term :math:`\datafid`, forward operator :math:`A` and a learned regularizer :math:`reg` using the
+for a data-fidelity term :math:`\datafid{x}{y}`, forward operator :math:`A` and a learned regularizer :math:`reg` using the
 :class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NMAPG>` algorithm.
 """
 
@@ -75,6 +75,7 @@ physics_tomography = Tomography(
     img_width=test_img_ct.shape[-1],
     circle=False,
     device=device,
+    normalize=False,
     noise_model=GaussianNoise(sigma=0.7),
 )
 
