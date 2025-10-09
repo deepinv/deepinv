@@ -559,7 +559,7 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: initialisation point of the algorithm
+        :param torch.Tensor x0: initialization point of the algorithm
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -641,7 +641,7 @@ class LinearPhysics(Physics):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
-        :param torch.Tensor u: initialisation point of the adjointness test method
+        :param torch.Tensor u: initialization point of the adjointness test method
 
         :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
 
