@@ -52,12 +52,12 @@ jobs:
 
       - name: Sphinx build
         run: |
-          uv run python -m sphinx-build docs/source _build
+          uv run python -m sphinx docs/source _build
 
       - name: Run doctests
         run: |
           _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
-          uv run python -m sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
+          uv run python -m sphinx -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
 
       - name: Cleanup environment and workspace
         if: always()
