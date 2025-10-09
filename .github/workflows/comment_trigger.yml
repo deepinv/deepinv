@@ -1,0 +1,76 @@
+name: PR Comment Trigger
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: read
+  issues: read
+  contents: read
+  actions: write  # needed to trigger other workflows
+
+jobs:
+  trigger-gpu-workflows:
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/gpu-tests')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify commenter permissions
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            const { data: perm } = await github.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: commenter
+            });
+            core.setOutput('permission', perm.permission);
+        result-encoding: string
+
+      - name: Stop if not maintainer
+        if: steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
+        run: |
+          echo "❌ User not authorized (needs write/admin access)"
+          exit 1
+
+      - name: Extract PR number
+        id: pr
+        run: echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+
+      - name: Add reaction to comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: rocket
+
+      - name: Trigger GPU Tests
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: test_gpu.yml
+          ref: main
+          inputs: |
+            pr_number: ${{ steps.pr.outputs.pr_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger GPU Docs Check
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: gpu_docs.yml
+          ref: main
+          inputs: |
+            pr_number: ${{ steps.pr.outputs.pr_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Confirm trigger
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            🚀 GPU test workflows triggered by **@${{ gi**
