@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   trigger-gpu-workflows:
+    name: Trigger GPU Workflows
     if: >
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/gpu-tests')
