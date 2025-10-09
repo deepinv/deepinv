@@ -66,22 +66,21 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          # FIX: Inputs must be a valid JSON string.
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
-          # FIX: Inputs must be a valid JSON string.
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
-      - name: Post confirmation comment
-        if: github.event_name == 'issue_comment'
+      - name: Post results to PR
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ steps.pr.outputs.pr_number }}
           body: |
-            🚀 GPU test workflows successfully triggered for PR #${{ steps.pr.outputs.pr_number }} by **@${{ github.event.comment.user.login }}**.
-            - Workflow Run: [GPU Tests](../../actions/workflows/test_gpu.yml)
-            - Workflow Run: [GPU Docs Check](../../actions/workflows/gpu_docs.yml)
+            ✅ GPU test workflows triggered
+            - [GPU Tests](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - [GPU Docs Check](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            ⚠️ Note: If this was a manual dispatch, the workflows may not be automatically attached to the PR.
