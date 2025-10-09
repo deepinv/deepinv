@@ -616,14 +616,14 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
         x = torch.randn_like(x0)
-        x /= torch.norm(x)
+        x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
             y = self.A(x, **kwargs)
             y = self.A_adjoint(y, **kwargs)
-            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.linalg.vector_norm(x) ** 2
 
-            rel_var = torch.norm(z - zold)
+            rel_var = torch.linalg.vector_norm(z - zold)
             if rel_var < tol:
                 if verbose:
                     print(
@@ -631,7 +631,7 @@ class LinearPhysics(Physics):
                     )
                 break
             zold = z
-            x = y / torch.norm(y)
+            x = y / torch.linalg.vector_norm(y)
         else:
             warnings.warn("Power iteration: convergence not reached")
 
