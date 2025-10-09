@@ -5,7 +5,7 @@ on:
     - cron: "30 2 */1 * *"
   push:
     branches:
-      - ci_experiments
+      - main
 
 jobs:
   test:
