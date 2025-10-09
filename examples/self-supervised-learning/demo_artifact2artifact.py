@@ -173,7 +173,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL()
+model = MoDL().to(device)
 
 
 # %%
