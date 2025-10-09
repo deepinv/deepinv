@@ -42,6 +42,9 @@ jobs:
       - name: Install the project
         run: uv sync --extra dataset --extra denoisers --extra test --extra training
 
+      - name: Install sphinx
+        run: uv pip install sphinx
+
       - name: Check installed packages
         run: |
           uv pip list
