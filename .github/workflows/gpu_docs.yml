@@ -40,10 +40,7 @@ jobs:
           uv run python --version
 
       - name: Install the project
-        run: uv sync --extra dataset --extra denoisers --extra test --extra training
-
-      - name: Install sphinx
-        run: uv pip install sphinx
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
 
       - name: Check installed packages
         run: |
