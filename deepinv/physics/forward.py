@@ -576,7 +576,7 @@ class LinearPhysics(Physics):
                 "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
                 "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
                 DeprecationWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
         elif squared is not False:
             raise ValueError(f"squared must be True or False, got {squared}")
