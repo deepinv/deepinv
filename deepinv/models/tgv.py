@@ -107,7 +107,7 @@ class TGVDenoiser(Denoiser):
             self.restart = False
 
         f = 3 if (y.ndim - 2) == 3 else 1
-        self.sigma = 1 / self.tau / (72 * f)
+        sigma = 1 / self.tau / (72 * f)
 
         if ths is not None:
             lambda1 = (
@@ -141,8 +141,7 @@ class TGVDenoiser(Denoiser):
             r = self.prox_tau_fr(self.r2 + tmp, lambda1)
             u = self.prox_sigma_g_conj(
                 self.u2
-                + self.sigma
-                * self.epsilon(self.nabla(2 * x - self.x2) - (2 * r - self.r2)),
+                + sigma * self.epsilon(self.nabla(2 * x - self.x2) - (2 * r - self.r2)),
                 lambda2,
             )
             self.x2 = self.x2 + self.rho * (x - self.x2)
@@ -221,56 +220,42 @@ class TGVDenoiser(Denoiser):
         r"""
         Applies the jacobian of a vector field.
         """
-        if I.ndim == 5:  # 2D case
-            b, c, h, w, _ = I.shape
-            G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
-            G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # du/dy
-            G[..., 0] = G[..., 0] + I[..., 0]
-            G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # du/dx
-            G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
-            G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # dv/dx
-            G[..., 2] = G[..., 2] + I[..., 1]
-            G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # dv/dy
-            G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
-        elif I.ndim == 6:  # 3D case
-            b, c, d, h, w, _ = I.shape
-            G = torch.zeros((b, c, d, h, w, 9), device=I.device, dtype=I.dtype)
+        if I.ndim not in [5, 6]:
+            raise ValueError(f"Input tensor must be 5D or 6D, got {I.ndim}D")
 
-            # du/dz (component 0)
-            G[:, :, 1:, :, :, 0] = G[:, :, 1:, :, :, 0] - I[:, :, :-1, :, :, 0]
-            G[:, :, 1:, :, :, 0] = G[:, :, 1:, :, :, 0] + I[:, :, 1:, :, :, 0]
+        n_spatial = (
+            I.ndim - 3
+        )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
+        n_components = n_spatial**2  # Jacobian components (4 for 2D, 9 for 3D)
 
-            # du/dy (component 1)
-            G[:, :, :, 1:, :, 1] = G[:, :, :, 1:, :, 1] - I[:, :, :, :-1, :, 0]
-            G[:, :, :, 1:, :, 1] = G[:, :, :, 1:, :, 1] + I[:, :, :, 1:, :, 0]
+        G = torch.zeros((*I.shape[:-1], n_components), device=I.device, dtype=I.dtype)
 
-            # du/dx (component 2)
-            G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 0]
-            G[..., 1:, 2] = G[..., 1:, 2] + I[..., 1:, 0]
+        # Compute all Jacobian components: d(component_i)/d(spatial_j)
+        comp_idx = 0
+        for i in range(n_spatial):  # Vector component index
+            for j in range(n_spatial):  # Spatial derivative index
+                dim = (
+                    j + 2
+                )  # Dimension to differentiate along (skip batch and channel dims)
 
-            # dv/dz (component 3)
-            G[:, :, 1:, :, :, 3] = G[:, :, 1:, :, :, 3] - I[:, :, :-1, :, :, 1]
-            G[:, :, 1:, :, :, 3] = G[:, :, 1:, :, :, 3] + I[:, :, 1:, :, :, 1]
+                # Create slice objects for spatial differencing
+                slice_from = [slice(None)] * (I.ndim - 1)
+                slice_to = [slice(None)] * (I.ndim - 1)
+                slice_from[dim] = slice(None, -1)
+                slice_to[dim] = slice(1, None)
 
-            # dv/dy (component 4)
-            G[:, :, :, 1:, :, 4] = G[:, :, :, 1:, :, 4] - I[:, :, :, :-1, :, 1]
-            G[:, :, :, 1:, :, 4] = G[:, :, :, 1:, :, 4] + I[:, :, :, 1:, :, 1]
+                # Slice for input component
+                slice_input_from = (*slice_from, i)
+                slice_input_to = (*slice_to, i)
 
-            # dv/dx (component 5)
-            G[..., 1:, 5] = G[..., 1:, 5] - I[..., :-1, 1]
-            G[..., 1:, 5] = G[..., 1:, 5] + I[..., 1:, 1]
+                # Slice for output component
+                slice_output_from = (*slice_from, comp_idx)
+                slice_output_to = (*slice_to, comp_idx)
 
-            # dw/dz (component 6)
-            G[:, :, 1:, :, :, 6] = G[:, :, 1:, :, :, 6] - I[:, :, :-1, :, :, 2]
-            G[:, :, 1:, :, :, 6] = G[:, :, 1:, :, :, 6] + I[:, :, 1:, :, :, 2]
+                # Apply finite difference
+                G[slice_output_to] = I[slice_input_to] - I[slice_input_from]
 
-            # dw/dy (component 7)
-            G[:, :, :, 1:, :, 7] = G[:, :, :, 1:, :, 7] - I[:, :, :, :-1, :, 2]
-            G[:, :, :, 1:, :, 7] = G[:, :, :, 1:, :, 7] + I[:, :, :, 1:, :, 2]
-
-            # dw/dx (component 8)
-            G[..., 1:, 8] = G[..., 1:, 8] - I[..., :-1, 2]
-            G[..., 1:, 8] = G[..., 1:, 8] + I[..., 1:, 2]
+                comp_idx += 1
 
         return G
 
@@ -279,55 +264,39 @@ class TGVDenoiser(Denoiser):
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """
-        if G.ndim == 5:  # 2D case
-            b, c, h, w, _ = G.shape
-            I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
-            I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
-            I[..., 0] = I[..., 0] + G[..., 0]
-            I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
-            I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
-            I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
-            I[..., 1] = I[..., 1] + G[..., 2]
-            I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
-            I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
-        elif G.ndim == 6:  # 3D case
-            b, c, d, h, w, _ = G.shape
-            I = torch.zeros((b, c, d, h, w, 3), device=G.device, dtype=G.dtype)
+        if G.ndim not in [5, 6]:
+            raise ValueError(f"Input tensor must be 5D or 6D, got {G.ndim}D")
 
-            # Adjoint of du/dz (from component 0)
-            I[:, :, :-1, :, :, 0] = I[:, :, :-1, :, :, 0] - G[:, :, 1:, :, :, 0]
-            I[:, :, 1:, :, :, 0] = I[:, :, 1:, :, :, 0] + G[:, :, 1:, :, :, 0]
+        n_spatial = (
+            G.ndim - 3
+        )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
+        I = torch.zeros((*G.shape[:-1], n_spatial), device=G.device, dtype=G.dtype)
 
-            # Adjoint of du/dy (from component 1)
-            I[:, :, :, :-1, :, 0] = I[:, :, :, :-1, :, 0] - G[:, :, :, 1:, :, 1]
-            I[:, :, :, 1:, :, 0] = I[:, :, :, 1:, :, 0] + G[:, :, :, 1:, :, 1]
+        # Apply adjoint for all Jacobian components: d(component_i)/d(spatial_j)
+        comp_idx = 0
+        for i in range(n_spatial):  # Vector component index
+            for j in range(n_spatial):  # Spatial derivative index
+                dim = (
+                    j + 2
+                )  # Dimension to differentiate along (skip batch and channel dims)
 
-            # Adjoint of du/dx (from component 2)
-            I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 2]
-            I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 2]
+                # Create slice objects for spatial differencing
+                slice_from = [slice(None)] * (G.ndim - 1)
+                slice_to = [slice(None)] * (G.ndim - 1)
+                slice_from[dim] = slice(None, -1)
+                slice_to[dim] = slice(1, None)
 
-            # Adjoint of dv/dz (from component 3)
-            I[:, :, :-1, :, :, 1] = I[:, :, :-1, :, :, 1] - G[:, :, 1:, :, :, 3]
-            I[:, :, 1:, :, :, 1] = I[:, :, 1:, :, :, 1] + G[:, :, 1:, :, :, 3]
+                # Slice for output component
+                slice_output_from = (*slice_from, i)
+                slice_output_to = (*slice_to, i)
 
-            # Adjoint of dv/dy (from component 4)
-            I[:, :, :, :-1, :, 1] = I[:, :, :, :-1, :, 1] - G[:, :, :, 1:, :, 4]
-            I[:, :, :, 1:, :, 1] = I[:, :, :, 1:, :, 1] + G[:, :, :, 1:, :, 4]
+                # Slice for input component
+                slice_input_to = (*slice_to, comp_idx)
 
-            # Adjoint of dv/dx (from component 5)
-            I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 5]
-            I[..., 1:, 1] = I[..., 1:, 1] + G[..., 1:, 5]
+                # Apply adjoint operator (reversed finite difference)
+                I[slice_output_from] -= G[slice_input_to]
+                I[slice_output_to] += G[slice_input_to]
 
-            # Adjoint of dw/dz (from component 6)
-            I[:, :, :-1, :, :, 2] = I[:, :, :-1, :, :, 2] - G[:, :, 1:, :, :, 6]
-            I[:, :, 1:, :, :, 2] = I[:, :, 1:, :, :, 2] + G[:, :, 1:, :, :, 6]
-
-            # Adjoint of dw/dy (from component 7)
-            I[:, :, :, :-1, :, 2] = I[:, :, :, :-1, :, 2] - G[:, :, :, 1:, :, 7]
-            I[:, :, :, 1:, :, 2] = I[:, :, :, 1:, :, 2] + G[:, :, :, 1:, :, 7]
-
-            # Adjoint of dw/dx (from component 8)
-            I[..., :-1, 2] = I[..., :-1, 2] - G[..., 1:, 8]
-            I[..., 1:, 2] = I[..., 1:, 2] + G[..., 1:, 8]
+                comp_idx += 1
 
         return I

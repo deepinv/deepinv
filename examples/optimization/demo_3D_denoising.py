@@ -122,6 +122,11 @@ dinv.utils.plot(
     fontsize=12,
 )
 
+# sphinx_gallery_start_ignore
+assert psnr > 29.0
+# sphinx_gallery_end_ignore
+
+
 # %%
 # Other variational priors do also support 3D implementation. For instance, this is the case with TV or TGV priors.
 # Below, we illustrate the use of a TV denoiser, that solves the problem
@@ -155,6 +160,10 @@ dinv.utils.plot(
     tight=False,
     fontsize=12,
 )
+
+# sphinx_gallery_start_ignore
+assert psnr_tv > 29.5
+# sphinx_gallery_end_ignore
 
 # %%
 # One can extend the above denoisers to more general denoisers.
@@ -277,6 +286,10 @@ dinv.utils.plot(
     tight=False,
     fontsize=12,
 )
+
+# sphinx_gallery_start_ignore
+assert psnr > 29.4
+# sphinx_gallery_end_ignore
 
 
 # %%
