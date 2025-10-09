@@ -3,7 +3,7 @@ name: PR Comment Trigger
 on:
   issue_comment:
     types: [created]
-  workflow_dispatch:
+  workflow_dispatch:   # 👈 allows manual triggering from the Actions tab
     inputs:
       pr_number:
         description: "PR number to trigger tests for (optional if using comment)"
@@ -18,13 +18,25 @@ permissions:
 
 jobs:
   trigger-gpu-workflows:
+    # Run on manual trigger OR if a comment matches "/rerun-tests"
     if: >
-      github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '/gpu-tests')
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/gpu-tests'))
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify commenter permissions
+      - name: Get PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify commenter permissions (only for comment trigger)
+        if: github.event_name == 'issue_comment'
         id: check
         uses: actions/github-script@v7
         with:
@@ -37,17 +49,14 @@ jobs:
             });
             core.setOutput('permission', perm.permission);
 
-      - name: Stop if not maintainer
-        if: steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
+      - name: Stop if not maintainer (only for comment trigger)
+        if: github.event_name == 'issue_comment' && steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
         run: |
           echo "❌ User not authorized (needs write/admin access)"
           exit 1
 
-      - name: Extract PR number
-        id: pr
-        run: echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-
       - name: Add reaction to comment
+        if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -74,6 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Confirm trigger
+        if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
