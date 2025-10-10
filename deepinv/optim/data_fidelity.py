@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Callable, TYPE_CHECKING
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
@@ -12,6 +14,10 @@ from deepinv.optim.potential import Potential
 import torch
 
 
+if TYPE_CHECKING:
+    from deepinv.physics import Physics, StackedPhysics
+
+
 class DataFidelity(Potential):
     r"""
     Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
@@ -21,11 +27,13 @@ class DataFidelity(Potential):
     :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
     """
 
-    def __init__(self, d=None):
+    def __init__(self, d: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = None):
         super().__init__()
         self.d = Distance(d=d)
 
-    def fn(self, x, y, physics, *args, **kwargs):
+    def fn(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
 
@@ -36,7 +44,9 @@ class DataFidelity(Potential):
         """
         return self.d(physics.A(x), y, *args, **kwargs)
 
-    def grad(self, x, y, physics, *args, **kwargs):
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
@@ -55,7 +65,7 @@ class DataFidelity(Potential):
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
 
-    def grad_d(self, u, y, *args, **kwargs):
+    def grad_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
 
@@ -69,7 +79,7 @@ class DataFidelity(Potential):
         """
         return self.d.grad(u, y, *args, **kwargs)
 
-    def prox_d(self, u, y, *args, **kwargs):
+    def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
 
@@ -83,7 +93,9 @@ class DataFidelity(Potential):
         """
         return self.d.prox(u, y, *args, **kwargs)
 
-    def prox_d_conjugate(self, u, y, *args, **kwargs):
+    def prox_d_conjugate(
+        self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
 
@@ -122,11 +134,13 @@ class StackedPhysicsDataFidelity(DataFidelity):
 
     """
 
-    def __init__(self, data_fidelity_list):
+    def __init__(self, data_fidelity_list: list[DataFidelity]):
         super(StackedPhysicsDataFidelity, self).__init__()
         self.data_fidelity_list = data_fidelity_list
 
-    def fn(self, x, y, physics, *args, **kwargs):
+    def fn(
+        self, x: torch.Tensor, y: torch.Tensor, physics: StackedPhysics, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
 
@@ -140,7 +154,9 @@ class StackedPhysicsDataFidelity(DataFidelity):
             out += data_fidelity.fn(x, y[i], physics[i], *args, **kwargs)
         return out
 
-    def grad(self, x, y, physics, *args, **kwargs):
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: StackedPhysics, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
 
@@ -164,7 +180,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
             out += data_fidelity.grad(x, y[i], physics[i], *args, **kwargs)
         return out
 
-    def grad_d(self, u, y, *args, **kwargs):
+    def grad_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
 
@@ -181,7 +197,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
             out += data_fidelity.grad_d(u, y[i], *args, **kwargs)
         return out
 
-    def prox_d(self, u, y, *args, **kwargs):
+    def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
 
@@ -198,7 +214,9 @@ class StackedPhysicsDataFidelity(DataFidelity):
             out += data_fidelity.prox_d(u, y[i], *args, **kwargs)
         return out
 
-    def prox_d_conjugate(self, u, y, *args, **kwargs):
+    def prox_d_conjugate(
+        self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
 
@@ -253,12 +271,20 @@ class L2(DataFidelity):
                   [1., 1., 1.]]]])
     """
 
-    def __init__(self, sigma=1.0):
+    def __init__(self, sigma: float = 1.0):
         super().__init__()
         self.d = L2Distance(sigma=sigma)
         self.norm = 1 / (sigma**2)
 
-    def prox(self, x, y, physics, *args, gamma=1.0, **kwargs):
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        gamma: float | torch.Tensor = 1.0,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Proximal operator of :math:`\gamma \datafid{Ax}{y} = \frac{\gamma}{2\sigma^2}\|Ax-y\|^2`.
 
@@ -296,23 +322,23 @@ class IndicatorL2(DataFidelity):
 
     """
 
-    def __init__(self, radius=None):
+    def __init__(self, radius: float = None):
         super().__init__()
         self.d = IndicatorL2Distance(radius=radius)
         self.radius = radius
 
     def prox(
         self,
-        x,
-        y,
-        physics,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
         *args,
-        radius=None,
-        stepsize=None,
-        crit_conv=1e-5,
-        max_iter=100,
+        radius: float = None,
+        stepsize: float = None,
+        crit_conv: float = 1e-5,
+        max_iter: int = 100,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         r"""
         Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
 
@@ -329,8 +355,6 @@ class IndicatorL2(DataFidelity):
         :param float stepsize: step-size of the dual-forward-backward algorithm.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
-        :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
-                            operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
 
         """
@@ -377,7 +401,7 @@ class PoissonLikelihood(DataFidelity):
     :param bool denormalize: if True, the measurement is multiplied by the gain. Default: True.
     """
 
-    def __init__(self, gain=1.0, bkg=0, denormalize=True):
+    def __init__(self, gain: float = 1.0, bkg: float = 0, denormalize: bool = True):
         super().__init__()
         self.d = PoissonLikelihoodDistance(gain=gain, bkg=bkg, denormalize=denormalize)
         self.bkg = bkg
@@ -403,16 +427,16 @@ class L1(DataFidelity):
 
     def prox(
         self,
-        x,
-        y,
-        physics,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
         *args,
-        gamma=1.0,
-        stepsize=None,
-        crit_conv=1e-5,
-        max_iter=100,
+        gamma: float | torch.Tensor = 1.0,
+        stepsize: float = None,
+        crit_conv: float = 1e-5,
+        max_iter: int = 100,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         r"""
         Proximal operator of the :math:`\ell_1` norm composed with A, i.e.
 
@@ -429,6 +453,7 @@ class L1(DataFidelity):
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`\forw{x}`.
         :param deepinv.physics.Physics physics: physics model.
         :param float stepsize: step-size of the dual-forward-backward algorithm.
+        :param float gamma: stepsize of the proximity operator.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
@@ -483,40 +508,11 @@ class LogPoissonLikelihood(DataFidelity):
     :param float mu: normalization constant
     """
 
-    def __init__(self, N0=1024.0, mu=1 / 50.0):
+    def __init__(self, N0: float = 1024.0, mu: float = 1 / 50.0):
         super().__init__()
         self.d = LogPoissonLikelihoodDistance(N0=N0, mu=mu)
         self.mu = mu
         self.N0 = N0
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-
-    # define a loss function
-    data_fidelity = L2()
-
-    # create a measurement operator dxd
-    A = torch.Tensor([[2, 0], [0, 0.5]])
-    A_forward = lambda v: torch.matmul(A, v)
-    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
-
-    # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-    # Define two points of size Bxd
-    x = torch.Tensor([1, 4]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-    y = torch.Tensor([1, 1]).unsqueeze(0).repeat(4, 1).unsqueeze(-1)
-
-    # Compute the loss :math:`f(x) = \datafid{A(x)}{y}`
-    f = data_fidelity(x, y, physics)  # print f gives 1.0
-    # Compute the gradient of :math:`f`
-    grad = data_fidelity.grad(x, y, physics)  # print grad_f gives [2.0000, 0.5000]
-
-    # Compute the proximity operator of :math:`f`
-    prox = data_fidelity.prox(
-        x, y, physics, gamma=1.0
-    )  # print prox_fA gives [0.6000, 3.6000]
 
 
 class ZeroFidelity(DataFidelity):
@@ -530,31 +526,37 @@ class ZeroFidelity(DataFidelity):
         super().__init__()
         self.d = ZeroDistance()
 
-    def fn(self, x, y, physics, *args, **kwargs):
+    def fn(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
         """
         This function returns zero for all inputs.
         """
         return torch.zeros(x.size(0), device=x.device, dtype=x.dtype)
 
-    def grad(self, x, y, physics, *args, **kwargs):
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
         """
         This function returns a zero image.
         """
         return torch.zeros_like(x)
 
-    def grad_d(self, u, y, *args, **kwargs):
+    def grad_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         This function returns a zero image.
         """
         return torch.zeros_like(u)
 
-    def prox_d(self, u, y, *args, **kwargs):
+    def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         This function returns the input image.
         """
         return u
 
-    def prox_d_conjugate(self, u, y, *args, **kwargs):
+    def prox_d_conjugate(
+        self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs
+    ) -> torch.Tensor:
         """
         This function returns the input image.
         """
