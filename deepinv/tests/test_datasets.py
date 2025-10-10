@@ -258,7 +258,7 @@ def test_hdf5dataset(
                 dtype=data.dtype,
             )
 
-        # Every tensor has a constnat value, which is distinct for different
+        # Every tensor has a constant value, which is distinct for different
         # splits and fields (x, y, and params indiscriminately). It allows
         # identification of each tensor to detect possible mismatches. The
         # value is defined as:
