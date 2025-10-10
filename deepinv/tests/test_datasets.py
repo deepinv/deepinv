@@ -212,6 +212,7 @@ SPLIT_NAMES = ["train", "test", "val", "dummy"]
 @pytest.mark.parametrize("load_physics_generator_params", [True, False])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 @pytest.mark.parametrize("complex_dtype", [torch.complex64, torch.complex128])
+@pytest.mark.parametrize("complex_data", [False, True])
 @pytest.mark.parametrize("length", [10])
 @pytest.mark.parametrize("with_params", [False, True])
 @pytest.mark.parametrize("unsupervised", [False, True])
@@ -225,6 +226,7 @@ def test_hdf5dataset(
     load_physics_generator_params,
     dtype,
     complex_dtype,
+    complex_data,
     length,
     with_params,
     unsupervised,
@@ -245,8 +247,10 @@ def test_hdf5dataset(
         if stack_size > 1:
             f.attrs["stacked"] = stack_size
 
-        def populate_dummy_data(field_name):
-            data = np.random.randn(length, 1, 4, 4)
+        def populate_dummy_data(field_name, *, value: int):
+            data_dtype = complex_dtype if complex_data else dtype
+            data = torch.full((length, 1, 4, 4), value, dtype=data_dtype)
+            data = data.numpy()
             f.create_dataset(
                 field_name,
                 shape=data.shape,
@@ -254,18 +258,28 @@ def test_hdf5dataset(
                 dtype=data.dtype,
             )
 
-        for split_name in SPLIT_NAMES:
+        # Every tensor has a constnat value, which is distinct for different
+        # splits and fields (x, y, and params indiscriminately). It allows
+        # identification of each tensor to detect possible mismatches. The
+        # value is defined as:
+        # value = split_index * 3 + field_index
+        # where field_index = 0 for x, 1 for y, and 2 for params.
+        # Note that different ys in a stack share the same value and that
+        # different params share the same value as well.
+        for idx, split_name in enumerate(SPLIT_NAMES):
             if not unsupervised:
-                populate_dummy_data(f"x_{split_name}")
+                populate_dummy_data(f"x_{split_name}", value=idx * 3 + 0)
 
             for stack_idx in range(stack_size):
                 subfield_suffix = f"{stack_idx}" if stack_size > 1 else ""
-                populate_dummy_data(f"y{subfield_suffix}_{split_name}")
+                populate_dummy_data(
+                    f"y{subfield_suffix}_{split_name}", value=idx * 3 + 1
+                )
 
             if with_params:
                 param_name = "kernel"
                 field_name = f"{param_name}_{split_name}"
-                populate_dummy_data(f"{param_name}_{split_name}")
+                populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
 
     dataset = HDF5Dataset(
         path,
@@ -289,6 +303,44 @@ def test_hdf5dataset(
     assert (
         len(entry) == expected_entry_length
     ), f"Dataset entry should have length {expected_entry_length} but got {len(entry)}."
+
+    x, y = entry[:2]
+    if len(entry) == 3:
+        params = entry[2]
+    else:
+        params = None
+
+    # Make the case disjunction at the start to simplify the logic
+    split_name = split if split is not None else ("train" if train else "test")
+    expected_value_x = SPLIT_NAMES.index(split_name) * 3 + 0
+    expected_value_y = SPLIT_NAMES.index(split_name) * 3 + 1
+    expected_value_params = SPLIT_NAMES.index(split_name) * 3 + 2
+
+    if not torch.isnan(x).all():
+        assert torch.allclose(
+            x,
+            torch.full((1, 4, 4), float(expected_value_x), dtype=dtype),
+        ), f"Dataset x tensor has incorrect values."
+
+    if stack_size == 1:
+        expected_type_y = torch.Tensor
+        ys = [y]
+    else:
+        expected_type_y = TensorList
+        ys = y.x
+
+    assert isinstance(y, expected_type_y), f"Dataset y has incorrect type."
+    for y_el in ys:
+        assert torch.allclose(
+            y_el,
+            torch.full((1, 4, 4), float(expected_value_y), dtype=dtype),
+        ), f"Dataset y tensor has incorrect values."
+
+    if with_params and load_physics_generator_params:
+        assert torch.allclose(
+            params["kernel"],
+            torch.full((1, 4, 4), float(expected_value_params), dtype=dtype),
+        ), f"Dataset params tensor has incorrect values."
 
     if transform is not None:
         assert transform.called == (
