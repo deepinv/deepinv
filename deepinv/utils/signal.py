@@ -68,4 +68,4 @@ def complex_abs(data: torch.Tensor | None, dim=1, keepdim=True):
         return torch.abs(data)
     else:
         assert data.size(dim) == 2
-        return (data**2).sum(dim=dim, keepdim=keepdim).sqrt()
+        return torch.linalg.vector_norm(data, dim=dim, ord=2, keepdim=keepdim)
