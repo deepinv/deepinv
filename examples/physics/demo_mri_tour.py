@@ -340,7 +340,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
-            img_size=kspace_shape, acceleration=4, rng=rng, device=device
+            img_size=kspace_shape,
+            acceleration=4,
         ),
         seed_mask_generator=False,  # More diversity during training
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
@@ -403,6 +404,7 @@ trainer = dinv.Trainer(
     epochs=1,
     save_path=None,
     show_progress_bar=False,
+    device=device,
 )
 _ = trainer.train()
 
@@ -484,7 +486,8 @@ print(
 #
 
 physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
-    img_size=x.shape[1:], acceleration=16, rng=rng, device=device
+    img_size=x.shape[1:],
+    acceleration=16,
 )
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
@@ -495,6 +498,10 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
+
+x = x.to(device)
+y = y.to(device)
+params = {k: v.to(device) for k, v in params.items()}
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we

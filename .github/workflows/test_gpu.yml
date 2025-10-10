@@ -57,26 +57,3 @@ jobs:
       - name: Test with pytest
         run: |
           uv run python -m pytest -n 2 --dist=loadgroup
-
-      - name: Cleanup environment and workspace
-        if: always()
-        run: |
-          cd ${{ env.WORKING_DIR }}
-      
-          # Enable matching hidden files
-          shopt -s dotglob nullglob
-      
-          # Remove everything except GitHub metadata and caches
-          for item in *; do
-            case "$item" in
-              .git|.github|.cache|_actions|_work)
-                echo "Preserving $item"
-                ;;
-              *)
-                echo "Removing $item"
-                rm -rf "$item"
-                ;;
-            esac
-          done
-      
-          echo "✅ Workspace cleanup complete."

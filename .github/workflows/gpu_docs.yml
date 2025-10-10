@@ -62,26 +62,3 @@ jobs:
         run: |
           _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
           uv run python -m sphinx -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
-
-      - name: Cleanup environment and workspace
-        if: always()
-        run: |
-          cd ${{ env.WORKING_DIR }}
-      
-          # Enable matching hidden files
-          shopt -s dotglob nullglob
-      
-          # Remove everything except GitHub metadata and caches
-          for item in *; do
-            case "$item" in
-              .git|.github|.cache|_actions|_work)
-                echo "Preserving $item"
-                ;;
-              *)
-                echo "Removing $item"
-                rm -rf "$item"
-                ;;
-            esac
-          done
-      
-          echo "✅ Workspace cleanup complete."
