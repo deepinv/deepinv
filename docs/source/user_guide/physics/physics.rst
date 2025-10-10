@@ -180,3 +180,6 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
      
    * - :class:`deepinv.physics.FisherTippettNoise`
      - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+   * - :class:`deepinv.physics.RicianNoise`
+     - :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`, :math:`\epsilon_1\sim\mathcal{N}(0,I)`, :math:`\epsilon_2\sim\mathcal{N}(0,I)`

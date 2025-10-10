@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -46,7 +46,7 @@ class EILoss(Loss):
     def __init__(
         self,
         transform: Transform,
-        metric: Optional[Union[Metric, nn.Module]] = None,
+        metric: Metric | nn.Module | None = None,
         apply_noise=True,
         weight=1.0,
         no_grad=False,
