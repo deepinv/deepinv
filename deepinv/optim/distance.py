@@ -67,7 +67,11 @@ class L2Distance(Distance):
         :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
-        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
+        d = (
+            0.5
+            * torch.linalg.vector_norm(z, ord=2, dim=tuple(range(1, z.dim()))) ** 2
+            * self.norm
+        )
         return d
 
     def grad(self, x, y, *args, **kwargs):
@@ -138,7 +142,7 @@ class IndicatorL2Distance(Distance):
         :return: (:class:`torch.Tensor`) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
         diff = x - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
+        dist = torch.linalg.vector_norm(diff, dim=tuple(range(1, diff.dim())), ord=2)
         radius = self.radius if radius is None else radius
         loss = (dist > radius) * 1e16
         return loss
@@ -163,10 +167,10 @@ class IndicatorL2Distance(Distance):
         """
         radius = self.radius if radius is None else radius
         diff = x - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
-        return y + diff * (
-            torch.min(torch.tensor([radius]).to(x.device), dist) / (dist + 1e-12)
-        ).view(-1, 1, 1, 1)
+        dist = torch.linalg.vector_norm(diff, dim=tuple(range(1, diff.dim())), ord=2)
+
+        factor = torch.clamp(dist, min=radius) / (dist + 1e-12)
+        return y + diff * factor.view(-1, *([1] * (diff.dim() - 1)))
 
 
 class PoissonLikelihoodDistance(Distance):
@@ -252,7 +256,7 @@ class L1Distance(Distance):
 
     def fn(self, x, y, *args, **kwargs):
         diff = x - y
-        return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
+        return torch.linalg.vector_norm(diff.view(diff.size(0), -1), ord=1, dim=1)
 
     def grad(self, x, y, *args, **kwargs):
         r"""
@@ -321,7 +325,7 @@ class AmplitudeLossDistance(Distance):
         :return: (:class:`torch.Tensor`) the amplitude loss of shape B where B is the batch size.
         """
         x = torch.sqrt(u) - torch.sqrt(y)
-        d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
+        d = torch.linalg.vector_norm(x, ord=2, dim=tuple(range(1, x.dim()))) ** 2
         return d
 
     def grad(self, u, y, *args, epsilon=1e-12, **kwargs):
