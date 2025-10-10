@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from deepinv.optim.potential import Potential
 
 
@@ -221,7 +222,7 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return self.gain * (torch.ones_like(x) - y / (x / self.gain + self.bkg))
+        return self.gain * (1 - y / (x / self.gain + self.bkg))
 
     def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
@@ -295,9 +296,7 @@ class L1Distance(Distance):
         :return: (:class:`torch.Tensor`) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
-        aux = torch.sign(d) * torch.maximum(
-            d.abs() - gamma, torch.tensor([0]).to(d.device)
-        )
+        aux = F.softshrink(d, lambd=gamma)
         return aux + y
 
 
@@ -342,7 +341,7 @@ class AmplitudeLossDistance(Distance):
         :param float epsilon: small value to avoid division by zero.
         :return: (:class:`torch.Tensor`) gradient of the amplitude loss function.
         """
-        return (torch.sqrt(u + epsilon) - torch.sqrt(y)) / torch.sqrt(u + epsilon)
+        return 1 - torch.sqrt(y / (u + epsilon))
 
 
 class LogPoissonLikelihoodDistance(Distance):
