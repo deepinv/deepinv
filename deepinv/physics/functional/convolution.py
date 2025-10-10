@@ -75,17 +75,8 @@ def conv2d(
     # Ensure fast memory layout before heavy ops.
     x = x.contiguous()
 
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1)
-
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1)
+    # Prepare filter for grouped conv trick (supports broadcasting b==1 or c==1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     if padding != "valid":
         ph = h // 2
@@ -154,17 +145,8 @@ def conv_transpose2d(
     if padding != "valid" and (ph == 0 and pw == 0):
         _warn_once_padding([ph, pw], padding)
 
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1)
-
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1)
+    # Prepare filter for grouped conv trick (supports broadcasting b==1 or c==1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     # Move batch dim of the input into channels
     y = y.contiguous()
@@ -214,14 +196,7 @@ def conv2d_fft(
     B, C, H, W = x.size()
     b, c, h, w = filter.size()
 
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
+    filter = _prepare_filter_for_grouped(filter, B, C, raise_error_only=True)
 
     ph, pw = h // 2, w // 2
     ih, iw = (h - 1) % 2, (w - 1) % 2
@@ -295,11 +270,7 @@ def conv_transpose2d_fft(
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
 
-    if c != C:
-        assert c == 1
-
-    if b != B:
-        assert b == 1
+    filter = _prepare_filter_for_grouped(filter, B, C, raise_error_only=True)
 
     ph, pw = h // 2, w // 2
 
@@ -376,17 +347,8 @@ def conv3d(
     B, C, D, H, W = x.shape
     b, c, d, h, w = filter.shape
 
-    # Adjust filter shape if batch or channel is 1
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1, -1)
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1, -1)
+    # Prepare filter for grouped conv trick (supports broadcasting b==1 or c==1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     # Flip the kernel for true convolution
     filter = _flip_filter_if_needed(filter, correlation, dims=(-3, -2, -1))
@@ -456,17 +418,8 @@ def conv_transpose3d(
     # Flip the kernel for true convolution
     filter = _flip_filter_if_needed(filter, correlation, dims=(-3, -2, -1))
 
-    # Adjust filter shape if batch or channel is 1
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1, -1)
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1, -1)
+    # Prepare filter for grouped conv trick (supports broadcasting b==1 or c==1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     # Use grouped convolution trick for per-batch filters and channels
     y = y.contiguous()
@@ -512,19 +465,8 @@ def conv3d_fft(
     B, C, D, H, W = x.size()
     b, c, d, h, w = filter.size()
 
-    filter = filter.contiguous()
     x = x.contiguous()
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1, -1)
-
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1, -1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     pd, ph, pw = d // 2, h // 2, w // 2
     id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
@@ -616,19 +558,8 @@ def conv_transpose3d_fft(
     B, C, D, H, W = y.size()
     b, c, d, h, w = filter.size()
 
-    filter = filter.contiguous()
     y = y.contiguous()
-    if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
-        filter = filter.expand(-1, C, -1, -1, -1)
-
-    if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
-        filter = filter.expand(B, -1, -1, -1, -1)
+    filter = _prepare_filter_for_grouped(filter, B, C)
 
     pd, ph, pw = d // 2, h // 2, w // 2
     id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
@@ -737,10 +668,8 @@ def _tgt_src_for_axis(mode: str, s: int, p: int, i: int):
             return 0, slice(0, p), False, True
         else:
             return -1, slice(-p + i, None), False, True
-
-    raise ValueError(
-        f"padding = '{mode}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
-    )
+    else:
+        _raise_value_error_padding_messages(mode)
 
 
 def _center_crop_slice_1d(p: int, i: int) -> slice:
@@ -816,6 +745,35 @@ def _apply_transpose_padding(
         out[tgt_index].add_(chunk)
 
     return out.contiguous()
+
+
+def _prepare_filter_for_grouped(
+    filter: Tensor, B: int, C: int, *, raise_error_only: bool = False
+) -> Tensor:
+    """
+    Prepare filter tensor for grouped convolution trick used in direct conv/transpose conv.
+    Works for both 2D (b, c, h, w) and 3D (b, c, d, h, w) filters.
+        Broadcasting behavior:
+            - If c != C, require c == 1 and expand along channel to C.
+            - If b != B, require b == 1 and expand along batch to B.
+    """
+    b, c = filter.shape[:2]
+    spatial = filter.shape[2:]
+
+    if c != C:
+        assert (
+            c == 1
+        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
+        if not raise_error_only:
+            filter = filter.expand(-1, C, *spatial)
+    if b != B:
+        assert (
+            b == 1
+        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
+        if not raise_error_only:
+            filter = filter.expand(B, -1, *spatial)
+
+    return filter.contiguous()
 
 
 def filter_fft(
