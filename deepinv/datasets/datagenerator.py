@@ -162,6 +162,22 @@ class HDF5Dataset(ImageDataset):
         # Process ground truths
         x = None
 
+        # We make sure that the split contains as many xs as ys and params.
+        split_size = None
+        def update_split_size(size: int, *, field_name: str) -> None:
+            nonlocal split_size
+            if split_size is None:
+                split_size = size
+            else:
+                if split_size != size:
+                    warn(
+                        f"Found different sizes for split {split} between fields, {split_size} for previous fields and {size} for field {field_name}. Using the minimum size. There is most likely an error with the dataset.",
+                        UserWarning,
+                        stacklevel=1,
+                    )
+                # Using min we can still load the data, only losing some samples.
+                split_size = min(split_size, size)
+
         # Process measurements
         attrs: dict = f.attrs
         marked_stacked = "stacked" in attrs
@@ -186,10 +202,12 @@ class HDF5Dataset(ImageDataset):
                 # Register the ground truths
                 if attr_name == "x":
                     x = member
+                    update_split_size(len(x), field_name="x")
                 # Register the measurements
                 elif attr_name == "y":
                     if not marked_stacked:
                         y = member
+                        update_split_size(len(y), field_name="y")
                     else:
                         warn(
                             f"Dataset marked as stacked but found unstacked member {member_name}. There is probably an error with the dataset.",
@@ -216,6 +234,10 @@ class HDF5Dataset(ImageDataset):
                                 if marked_stacked:
                                     registered_as_measurements = True
                                     y[stacking_index] = member
+                                    update_split_size(
+                                        len(member),
+                                        field_name=f"y{stacking_index}",
+                                    )
                                 else:
                                     warn(
                                         f"Dataset not marked as stacked but found stacked member {member_name}. There is probably an error with the dataset.",
@@ -232,6 +254,7 @@ class HDF5Dataset(ImageDataset):
                     # Register the forward operator parameters
                     if params is not None and not registered_as_measurements:
                         params[attr_name] = member
+                        update_split_size(len(member), field_name=f"params.{attr_name}")
 
         # Process ground truths
         if x is not None:
@@ -248,6 +271,8 @@ class HDF5Dataset(ImageDataset):
         # Process forward operator parameters
         if params is not None:
             self.params = params
+
+        self._split_size = split_size
 
     def __getitem__(self, index: int) -> tuple:
         r"""Get an entry in the dataset.
@@ -313,12 +338,7 @@ class HDF5Dataset(ImageDataset):
         Returns the size of the dataset.
 
         """
-        import h5py
-
-        y = self.y
-        if not isinstance(y, h5py.Dataset):
-            y = y[0]
-        return len(y)
+        return self._split_size
 
     def close(self) -> None:
         """
