@@ -109,8 +109,8 @@ def plot_itoh(sigma_blur):
         row_x = row_x - dynamic_range / 2
 
     # Compute differences and wrapped differences
-    row_dx  = row_x[1:] - row_x[:-1]
-    row_y   = modulo_fn(row_x)
+    row_dx = row_x[1:] - row_x[:-1]
+    row_y = modulo_fn(row_x)
     row_wdy = modulo_round(row_y[1:] - row_y[:-1])
 
     plt.figure(figsize=(10, 2.5))
@@ -152,7 +152,9 @@ x_rgb = blur_op(x_rgb)
 # -------------------------------------------------------
 # Include Gaussian noise and wrap the image using SpatialUnwrapping physics
 noise_model = dinv.physics.GaussianNoise(sigma=0.1)
-physics = dinv.physics.SpatialUnwrapping(threshold=threshold, mode=mode, noise_model=noise_model)
+physics = dinv.physics.SpatialUnwrapping(
+    threshold=threshold, mode=mode, noise_model=noise_model
+)
 phase_map = x_rgb
 wrapped_phase = physics(phase_map)
 
