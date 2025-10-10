@@ -21,8 +21,17 @@ def _warn_once_padding(pad_value: list[int], padding: str, category=UserWarning)
         _warned_messages.add(message)
 
 
-def _not_implemented_padding_messages(padding):
-    return f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+def _raise_value_error_padding_messages(padding):
+    if padding.lower() not in [
+        "valid",
+        "circular",
+        "replicate",
+        "reflect",
+        "constant",
+    ]:
+        raise ValueError(
+            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+        )
 
 
 def conv2d(
@@ -55,6 +64,7 @@ def conv2d(
 
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    _raise_value_error_padding_messages(padding)
 
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
@@ -129,7 +139,7 @@ def conv_transpose2d(
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-
+    _raise_value_error_padding_messages(padding)
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
     # Get dimensions of the input and the filter
@@ -166,6 +176,8 @@ def conv_transpose2d(
     # Make it in the good shape
     x = x.view(B, C, x.size(-2), -1)
 
+    if padding == "valid":
+        return x
     out = _apply_transpose_padding(x, padding=padding, p=(ph, pw), i=(ih, iw))
     return out
 
@@ -196,6 +208,7 @@ def conv2d_fft(
     :return: :class:`torch.Tensor`: the output of the convolution of the shape size as `x`.
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
     B, C, H, W = x.size()
@@ -233,7 +246,7 @@ def conv2d_fft(
         )
         out = full[:, :, h - 1 : H, w - 1 : W]
 
-    elif padding in ("constant", "reflect", "replicate"):
+    else:
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
         pad = (pw, pw - iw, ph, ph - ih)  # (W_left, W_right, H_top, H_bottom)
         x_pad = F.pad(x, pad, mode=padding, value=0)
@@ -248,9 +261,6 @@ def conv2d_fft(
         )
         # Extract central region back to original size
         out = out[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
-
-    else:
-        raise ValueError(_not_implemented_padding_messages(padding))
 
     return out.contiguous()
 
@@ -279,6 +289,7 @@ def conv_transpose2d_fft(
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
+    _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
@@ -321,7 +332,7 @@ def conv_transpose2d_fft(
             y_full, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), transpose=True
         )
 
-    elif padding in ("constant", "reflect", "replicate"):
+    else:
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> C* -> P*
         Hp = H + ph + (ph - ih)
@@ -341,8 +352,6 @@ def conv_transpose2d_fft(
         )
         # P*: adjoint of padding -> fold to original H x W
         out = _apply_transpose_padding(z_big, padding=padding, p=(ph, pw), i=(ih, iw))
-    else:
-        raise ValueError(_not_implemented_padding_messages(padding))
 
     return out.contiguous()
 
@@ -362,6 +371,7 @@ def conv3d(
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
     """
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.shape
     b, c, d, h, w = filter.shape
@@ -430,6 +440,7 @@ def conv_transpose3d(
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    _raise_value_error_padding_messages(padding)
     B, C, D, H, W = y.shape
     b, c, d, h, w = filter.shape
 
@@ -496,6 +507,7 @@ def conv3d_fft(
     """
 
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
+    _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.size()
     b, c, d, h, w = filter.size()
@@ -541,7 +553,7 @@ def conv3d_fft(
         )
         out = out[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
 
-    elif padding in ("constant", "reflect", "replicate"):
+    else:
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
         pad = (
             pw,
@@ -569,9 +581,6 @@ def conv3d_fft(
             _center_crop_slice_1d(ph, ih),
             _center_crop_slice_1d(pw, iw),
         ]
-
-    else:
-        raise ValueError(_not_implemented_padding_messages(padding))
 
     return out.contiguous()
 
@@ -602,7 +611,7 @@ def conv_transpose3d_fft(
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
-
+    _raise_value_error_padding_messages(padding)
     # Get dimensions of the input and the filter
     B, C, D, H, W = y.size()
     b, c, d, h, w = filter.size()
@@ -655,7 +664,7 @@ def conv_transpose3d_fft(
             transpose=True,
         )
 
-    elif padding in ("constant", "reflect", "replicate"):
+    else:
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> R* -> C* -> P*
         Dp = D + pd + (pd - id)
@@ -683,43 +692,55 @@ def conv_transpose3d_fft(
         out = _apply_transpose_padding(
             z_big, padding=padding, p=(pd, ph, pw), i=(id, ih, iw)
         )
-    else:
-        raise ValueError(_not_implemented_padding_messages(padding))
 
     return out.contiguous()
 
 
 # Some helper functions for computing the slice indices for padding modes in convolution operations
-# Map the shift {-1,0,+1} to (target slice on out, source slice on x) per axis
+# Map the shift {-1,0,+1} to (target, source[, flip][, reduce]) per axis based on padding mode
 # --------------------------------------------------------------------------------------------------
-def _tgt_src_for_axis_circular(s, p, i):
-    # target slice on out,  source slice on x
-    if s == 0:
-        return slice(None), slice(p, -p + i)
-    elif s == -1:
-        return slice(0, p - i), slice(-p + i, None)
-    else:
-        return slice(-p, None), slice(None, p)
+def _tgt_src_for_axis(mode: str, s: int, p: int, i: int):
+    """
+    Unified axis mapping for transpose padding accumulation.
 
+    Args:
+        mode: one of 'circular', 'reflect', 'replicate'
+        s: shift in {-1, 0, +1}
+        p: half-size along axis (e.g., h//2)
+        i: parity (f-1) % 2 for filter along axis
 
-def _tgt_src_for_axis_reflect(s, p, i):
-    # target slice on out, source slice on x (reflect requires flipping along axes with s != 0)
-    if s == 0:
-        return slice(None), slice(p, -p + i)
-    elif s == -1:
-        return slice(1, 1 + p), slice(0, p)
-    else:
-        return slice(-p + i - 1, -1), slice(-p + i, None)
+    Returns:
+        For 'circular': (target_slice, source_slice, False, False)
+        For 'reflect' : (target_slice, source_slice, flip(bool), False)
+        For 'replicate': (target_slice_or_index, source_slice, False, reduce(bool))
+    """
+    if mode == "circular":
+        if s == 0:
+            return slice(None), slice(p, -p + i), False, False
+        elif s == -1:
+            return slice(0, p - i), slice(-p + i, None), False, False
+        else:
+            return slice(-p, None), slice(None, p), False, False
 
+    if mode == "reflect":
+        if s == 0:
+            return slice(None), slice(p, -p + i), False, False
+        elif s == -1:
+            return slice(1, 1 + p), slice(0, p), True, False
+        else:
+            return slice(-p + i - 1, -1), slice(-p + i, None), True, False
 
-def _tgt_src_for_axis_replicate(s, p, i):
-    # target index/slice on out, source slice on x, and whether to reduce (sum) over this axis
-    if s == 0:
-        return slice(None), slice(p, -p + i), False
-    elif s == -1:
-        return 0, slice(0, p), True
-    else:
-        return -1, slice(-p + i, None), True
+    if mode == "replicate":
+        if s == 0:
+            return slice(None), slice(p, -p + i), False, False
+        elif s == -1:
+            return 0, slice(0, p), False, True
+        else:
+            return -1, slice(-p + i, None), False, True
+
+    raise ValueError(
+        f"padding = '{mode}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+    )
 
 
 def _center_crop_slice_1d(p: int, i: int) -> slice:
@@ -736,14 +757,16 @@ def _apply_transpose_padding(
 
     Args:
         x: result of conv_transposeNd with shape (B, C, ...spatial...)
-        padding: one of 'valid', 'circular', 'replicate', 'reflect', 'constant'
+        padding: one of 'circular', 'replicate', 'reflect', 'constant'
         p: half sizes per spatial dim (e.g., (ph, pw) for 2D or (pd, ph, pw) for 3D)
         i: parity flags per spatial dim: (f-1) % 2 for each filter size
 
     Returns:
         Tensor shaped like the input image (center-cropped and with edge folding applied as needed).
     """
+
     if padding == "valid":
+        # No padding to apply
         return x.contiguous()
 
     n_spatial = len(p)
@@ -772,24 +795,13 @@ def _apply_transpose_padding(
 
         for axis, s in enumerate(shifts):
             pk, ik = p[axis], i[axis]
-            if padding == "circular":
-                t, src = _tgt_src_for_axis_circular(s, pk, ik)
-                tgt_indices.append(t)
-                src_slices.append(src)
-            elif padding == "reflect":
-                t, src = _tgt_src_for_axis_reflect(s, pk, ik)
-                tgt_indices.append(t)
-                src_slices.append(src)
-                if s != 0:
-                    flip_dims.append(2 + axis)
-            elif padding == "replicate":
-                t, src, red = _tgt_src_for_axis_replicate(s, pk, ik)
-                tgt_indices.append(t)
-                src_slices.append(src)
-                if red:
-                    reduce_dims.append(2 + axis)
-            else:
-                raise ValueError(_not_implemented_padding_messages(padding))
+            t, src, flip, red = _tgt_src_for_axis(padding, s, pk, ik)
+            tgt_indices.append(t)
+            src_slices.append(src)
+            if flip:
+                flip_dims.append(2 + axis)
+            if red:
+                reduce_dims.append(2 + axis)
 
         src_index = (slice(None), slice(None), *src_slices)
         tgt_index = (slice(None), slice(None), *tgt_indices)
@@ -798,8 +810,8 @@ def _apply_transpose_padding(
         if padding == "reflect" and flip_dims:
             chunk = chunk.flip(dims=tuple(flip_dims))
         if padding == "replicate" and reduce_dims:
-            # Sum over specified spatial dims; need to sort descending to keep dim numbers valid
-            chunk = chunk.sum(dim=reduce_dims)
+            # Sum over specified spatial dims (supports tuple of dims)
+            chunk = chunk.sum(dim=tuple(reduce_dims))
 
         out[tgt_index].add_(chunk)
 
