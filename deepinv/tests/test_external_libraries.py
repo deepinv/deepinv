@@ -143,7 +143,7 @@ class TestTomographyWithAstra:
             loss.backward()
             assert pred.grad is not None
 
-            threshold = 1e-3 if geometry_type != 'conebeam' else 5e-2
+            threshold = 1e-3 if geometry_type != "conebeam" else 5e-2
             if normalize:
                 assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold
 
