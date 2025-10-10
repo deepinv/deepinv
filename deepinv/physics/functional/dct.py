@@ -20,6 +20,8 @@ def dct(x, norm=None):
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
+    Parts of this code are adapted from the `torch-dct` repository by zh217: https://github.com/zh217/torch-dct
+
     :param torch.Tensor x: the input signal
     :param None, str norm: the normalization, `None` or `'ortho'`
     :return: (:class:`torch.Tensor`) the DCT-II of the signal over the last dimension
@@ -53,6 +55,8 @@ def idct(x, norm=None):
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
+
+    Parts of this code are adapted from the `torch-dct` repository by zh217: https://github.com/zh217/torch-dct
 
     :param torch.Tensor x: the input signal
     :param None, str norm: the normalization, `None` or `'ortho'`
@@ -99,6 +103,8 @@ def dct_2d(x, norm=None):
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
+    Parts of this code are adapted from the `torch-dct` repository by zh217: https://github.com/zh217/torch-dct
+
     :param torch.Tensor x: the input signal
     :param None, str norm: the normalization, `None` or `'ortho'`
     :return: (:class:`torch.Tensor`) the DCT-II of the signal over the last 2 dimensions
@@ -116,6 +122,8 @@ def idct_2d(X, norm=None):
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
+
+    Parts of this code are adapted from the `torch-dct` repository by zh217: https://github.com/zh217/torch-dct
 
     :param torch.Tensor x: the input signal
     :param None, str norm: the normalization, `None` or `'ortho'`
