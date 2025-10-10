@@ -277,9 +277,14 @@ def test_hdf5dataset(
                 )
 
             if with_params:
-                param_name = "kernel"
-                field_name = f"{param_name}_{split_name}"
-                populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
+                param_names = ["kernel"]
+                # We test that y0 is loaded as a parameter if and only if the
+                # measurements are not marked as stacked.
+                if stack_size == 1:
+                    param_names.append("y0")
+                for param_name in param_names:
+                    field_name = f"{param_name}_{split_name}"
+                    populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
 
     dataset = HDF5Dataset(
         path,
@@ -339,6 +344,17 @@ def test_hdf5dataset(
         ), f"Dataset y tensor has incorrect values."
 
     if with_params and load_physics_generator_params:
+        assert "kernel" in params, "Params should contain kernel."
+
+        if stack_size > 1:
+            assert "y0" not in params, "Params should not contain y0 (stacked measurements)."
+            expected_num_params = 1
+        else:
+            assert "y0" in params, "Params might contain y0 if the measurements are not stacked."
+            expected_num_params = 2
+
+        assert len(params) == expected_num_params, f"Params should contain {expected_num_params} tensors but got {len(params)}."
+
         assert torch.allclose(
             params["kernel"],
             torch.full((1, 4, 4), expected_value_params, dtype=data_dtype),
