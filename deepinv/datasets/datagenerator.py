@@ -104,23 +104,6 @@ class HDF5Dataset(ImageDataset):
         # Process ground truths
         x = None
 
-        # We make sure that the split contains as many xs as ys and params.
-        split_size = None
-
-        def update_split_size(size: int, *, field_name: str) -> None:
-            nonlocal split_size
-            if split_size is None:
-                split_size = size
-            else:
-                if split_size != size:
-                    warn(
-                        f"Found different sizes for split {split} between fields, {split_size} for previous fields and {size} for field {field_name}. Using the minimum size. There is most likely an error with the dataset.",
-                        UserWarning,
-                        stacklevel=1,
-                    )
-                # Using min we can still load the data, only losing some samples.
-                split_size = min(split_size, size)
-
         # Process measurements
         attrs: dict = f.attrs
         marked_stacked = "stacked" in attrs
@@ -137,6 +120,24 @@ class HDF5Dataset(ImageDataset):
         # measurements or regular measurements and forward operator parameters
         split_name = split if split is not None else ("train" if train else "test")
         split_suffix = f"_{split_name}"
+
+        # We make sure that the split contains as many xs as ys and params.
+        split_size = None
+
+        def update_split_size(size: int, *, field_name: str) -> None:
+            nonlocal split_size
+            if split_size is None:
+                split_size = size
+            else:
+                if split_size != size:
+                    warn(
+                        f"Found different sizes for split {split_name} between fields, {split_size} for previous fields and {size} for field {field_name}. Using the minimum size. There is most likely an error with the dataset.",
+                        UserWarning,
+                        stacklevel=1,
+                    )
+                # Using min we can still load the data, only losing some samples.
+                split_size = min(split_size, size)
+
         for member_name, member in f.items():
             # Only register members corresponding to the selected split
             if member_name.endswith(split_suffix):
