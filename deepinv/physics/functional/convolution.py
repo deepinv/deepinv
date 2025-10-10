@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import Tensor
 import torch.fft as fft
 import warnings
-from itertools import chain
+from itertools import chain, product
 from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 _warned_messages = set()
@@ -166,58 +166,8 @@ def conv_transpose2d(
     # Make it in the good shape
     x = x.view(B, C, x.size(-2), -1)
 
-    if padding == "valid":
-        out = x
-    elif padding == "circular":
-        out = x[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
-
-        # sides and corners
-        for sy in (-1, 0, 1):
-            for sx in (-1, 0, 1):
-                if sy == 0 and sx == 0:
-                    continue
-                ty, ysrc = _tgt_src_for_axis_circular(sy, ph, ih)
-                tx, xsrc = _tgt_src_for_axis_circular(sx, pw, iw)
-                out[:, :, ty, tx].add_(x[:, :, ysrc, xsrc])
-
-    elif padding == "reflect":
-        out = x[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
-
-        for sy in (-1, 0, 1):
-            for sx in (-1, 0, 1):
-                if sy == 0 and sx == 0:
-                    continue
-                ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
-                tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
-                flip_dims = tuple(dim for s, dim in zip((sy, sx), (2, 3)) if s != 0)
-                chunk = x[:, :, ysrc, xsrc]
-                if flip_dims:
-                    chunk = chunk.flip(dims=flip_dims)
-                out[:, :, ty, tx].add_(chunk)
-
-    elif padding == "replicate":
-        out = x[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
-
-        for sy in (-1, 0, 1):
-            for sx in (-1, 0, 1):
-                if sy == 0 and sx == 0:
-                    continue
-                ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
-                tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
-                reduce_dims = tuple(
-                    dim for red, dim in zip((yred, xred), (2, 3)) if red
-                )
-                chunk = x[:, :, ysrc, xsrc]
-                if reduce_dims:
-                    chunk = chunk.sum(dim=reduce_dims)
-                out[:, :, ty, tx].add_(chunk)
-
-    elif padding == "constant":
-        out = x[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
-    else:
-        raise ValueError(_not_implemented_padding_messages(padding))
-
-    return out.contiguous()
+    out = _apply_transpose_padding(x, padding=padding, p=(ph, pw), i=(ih, iw))
+    return out
 
 
 def conv2d_fft(
@@ -390,41 +340,7 @@ def conv_transpose2d_fft(
             transpose=True,
         )
         # P*: adjoint of padding -> fold to original H x W
-
-        out = z_big[
-            :,
-            :,
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ].clone()
-        if padding == "constant":
-            pass
-        elif padding == "reflect":
-            for sy in (-1, 0, 1):
-                for sx in (-1, 0, 1):
-                    if sy == 0 and sx == 0:
-                        continue
-                    ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
-                    tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
-                    flip_dims = tuple(dim for s, dim in zip((sy, sx), (2, 3)) if s != 0)
-                    chunk = z_big[:, :, ysrc, xsrc]
-                    if flip_dims:
-                        chunk = chunk.flip(dims=flip_dims)
-                    out[:, :, ty, tx].add_(chunk)
-        else:  # replicate
-            for sy in (-1, 0, 1):
-                for sx in (-1, 0, 1):
-                    if sy == 0 and sx == 0:
-                        continue
-                    ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
-                    tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
-                    reduce_dims = tuple(
-                        dim for red, dim in zip((yred, xred), (2, 3)) if red
-                    )
-                    chunk = z_big[:, :, ysrc, xsrc]
-                    if reduce_dims:
-                        chunk = chunk.sum(dim=reduce_dims)
-                    out[:, :, ty, tx].add_(chunk)
+        out = _apply_transpose_padding(z_big, padding=padding, p=(ph, pw), i=(ih, iw))
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
 
@@ -549,67 +465,8 @@ def conv_transpose3d(
     x = F.conv_transpose3d(y, filter, groups=B * C)
     x = x.reshape(B, C, *x.shape[-3:])
 
-    if padding == "valid":
-        out = x
-
-    else:
-        out = x[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ].clone()
-        if padding == "circular":
-            # Triple loop over shifts for (z, y, x); skip the (0,0,0) case
-            for sz in (-1, 0, 1):
-                for sy in (-1, 0, 1):
-                    for sx in (-1, 0, 1):
-                        if sz == 0 and sy == 0 and sx == 0:
-                            continue
-                        tz, sz_src = _tgt_src_for_axis_circular(sz, pd, id)
-                        ty, sy_src = _tgt_src_for_axis_circular(sy, ph, ih)
-                        tx, sx_src = _tgt_src_for_axis_circular(sx, pw, iw)
-                        out[:, :, tz, ty, tx].add_(x[:, :, sz_src, sy_src, sx_src])
-        elif padding == "constant":
-            pass
-        elif padding == "reflect":
-            for sz in (-1, 0, 1):
-                for sy in (-1, 0, 1):
-                    for sx in (-1, 0, 1):
-                        if sz == 0 and sy == 0 and sx == 0:
-                            continue
-                        tz, zsrc = _tgt_src_for_axis_reflect(sz, pd, id)
-                        ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
-                        tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
-                        flip_dims = tuple(
-                            dim for s, dim in zip((sz, sy, sx), (2, 3, 4)) if s != 0
-                        )
-                        chunk = x[:, :, zsrc, ysrc, xsrc]
-                        if flip_dims:
-                            chunk = chunk.flip(dims=flip_dims)
-                        out[:, :, tz, ty, tx].add_(chunk)
-        elif padding == "replicate":
-            for sz in (-1, 0, 1):
-                for sy in (-1, 0, 1):
-                    for sx in (-1, 0, 1):
-                        if sz == 0 and sy == 0 and sx == 0:
-                            continue
-                        tz, zsrc, zred = _tgt_src_for_axis_replicate(sz, pd, id)
-                        ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
-                        tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
-                        reduce_dims = tuple(
-                            dim
-                            for red, dim in zip((zred, yred, xred), (2, 3, 4))
-                            if red
-                        )
-                        chunk = x[:, :, zsrc, ysrc, xsrc]
-                        if reduce_dims:
-                            chunk = chunk.sum(dim=reduce_dims)
-                        out[:, :, tz, ty, tx].add_(chunk)
-        else:
-            raise ValueError(_not_implemented_padding_messages(padding))
-    return out.contiguous()
+    out = _apply_transpose_padding(x, padding=padding, p=(pd, ph, pw), i=(id, ih, iw))
+    return out
 
 
 def conv3d_fft(
@@ -823,49 +680,9 @@ def conv_transpose3d_fft(
         )
 
         # P*: adjoint of padding -> fold to original D x H x W
-        out = z_big[
-            :,
-            :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
-        ].clone()
-        if padding == "constant":
-            pass
-        elif padding == "reflect":
-            for sz in (-1, 0, 1):
-                for sy in (-1, 0, 1):
-                    for sx in (-1, 0, 1):
-                        if sz == 0 and sy == 0 and sx == 0:
-                            continue
-                        tz, zsrc = _tgt_src_for_axis_reflect(sz, pd, id)
-                        ty, ysrc = _tgt_src_for_axis_reflect(sy, ph, ih)
-                        tx, xsrc = _tgt_src_for_axis_reflect(sx, pw, iw)
-                        flip_dims = tuple(
-                            dim for s, dim in zip((sz, sy, sx), (2, 3, 4)) if s != 0
-                        )
-                        chunk = z_big[:, :, zsrc, ysrc, xsrc]
-                        if flip_dims:
-                            chunk = chunk.flip(dims=flip_dims)
-                        out[:, :, tz, ty, tx].add_(chunk)
-        else:  # replicate
-            for sz in (-1, 0, 1):
-                for sy in (-1, 0, 1):
-                    for sx in (-1, 0, 1):
-                        if sz == 0 and sy == 0 and sx == 0:
-                            continue
-                        tz, zsrc, zred = _tgt_src_for_axis_replicate(sz, pd, id)
-                        ty, ysrc, yred = _tgt_src_for_axis_replicate(sy, ph, ih)
-                        tx, xsrc, xred = _tgt_src_for_axis_replicate(sx, pw, iw)
-                        reduce_dims = tuple(
-                            dim
-                            for red, dim in zip((zred, yred, xred), (2, 3, 4))
-                            if red
-                        )
-                        chunk = z_big[:, :, zsrc, ysrc, xsrc]
-                        if reduce_dims:
-                            chunk = chunk.sum(dim=reduce_dims)
-                        out[:, :, tz, ty, tx].add_(chunk)
+        out = _apply_transpose_padding(
+            z_big, padding=padding, p=(pd, ph, pw), i=(id, ih, iw)
+        )
     else:
         raise ValueError(_not_implemented_padding_messages(padding))
 
@@ -909,6 +726,84 @@ def _center_crop_slice_1d(p: int, i: int) -> slice:
     # When p == i == 0, return the whole axis; otherwise replicate p : -p + i
     # This prevent issues with 0:-0 slices
     return slice(None) if (p == 0 and i == 0) else slice(p, -p + i)
+
+
+def _apply_transpose_padding(
+    x: Tensor, padding: str, p: tuple[int, ...], i: tuple[int, ...]
+) -> Tensor:
+    """
+    Fold/crop the result of a transpose convolution to handle padding modes for 2D or 3D.
+
+    Args:
+        x: result of conv_transposeNd with shape (B, C, ...spatial...)
+        padding: one of 'valid', 'circular', 'replicate', 'reflect', 'constant'
+        p: half sizes per spatial dim (e.g., (ph, pw) for 2D or (pd, ph, pw) for 3D)
+        i: parity flags per spatial dim: (f-1) % 2 for each filter size
+
+    Returns:
+        Tensor shaped like the input image (center-cropped and with edge folding applied as needed).
+    """
+    if padding == "valid":
+        return x.contiguous()
+
+    n_spatial = len(p)
+    assert n_spatial in (2, 3), "Only 2D or 3D supported"
+
+    # Build center crop
+    center_slices = tuple(_center_crop_slice_1d(pk, ik) for pk, ik in zip(p, i))
+    index = (slice(None), slice(None), *center_slices)
+    out = x[index]
+
+    if padding == "constant":
+        return out.contiguous()
+
+    # For modes that add side/corner contributions, clone to avoid aliasing issues
+    out = out.clone()
+
+    # Iterate over all combinations of shifts per spatial axis
+    for shifts in product((-1, 0, 1), repeat=n_spatial):
+        if all(s == 0 for s in shifts):
+            continue
+
+        tgt_indices = []
+        src_slices = []
+        flip_dims = []  # dims to flip for reflect
+        reduce_dims = []  # dims to reduce (sum) for replicate
+
+        for axis, s in enumerate(shifts):
+            pk, ik = p[axis], i[axis]
+            if padding == "circular":
+                t, src = _tgt_src_for_axis_circular(s, pk, ik)
+                tgt_indices.append(t)
+                src_slices.append(src)
+            elif padding == "reflect":
+                t, src = _tgt_src_for_axis_reflect(s, pk, ik)
+                tgt_indices.append(t)
+                src_slices.append(src)
+                if s != 0:
+                    flip_dims.append(2 + axis)
+            elif padding == "replicate":
+                t, src, red = _tgt_src_for_axis_replicate(s, pk, ik)
+                tgt_indices.append(t)
+                src_slices.append(src)
+                if red:
+                    reduce_dims.append(2 + axis)
+            else:
+                raise ValueError(_not_implemented_padding_messages(padding))
+
+        src_index = (slice(None), slice(None), *src_slices)
+        tgt_index = (slice(None), slice(None), *tgt_indices)
+
+        chunk = x[src_index]
+        if padding == "reflect" and flip_dims:
+            chunk = chunk.flip(dims=tuple(flip_dims))
+        if padding == "replicate" and reduce_dims:
+            # Sum over specified spatial dims; need to sort descending to keep dim numbers valid
+            chunk = chunk.sum(dim=reduce_dims)
+
+        out[tgt_index].add_(chunk)
+
+    return out.contiguous()
 
 
 def filter_fft(
