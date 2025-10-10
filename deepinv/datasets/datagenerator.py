@@ -164,6 +164,7 @@ class HDF5Dataset(ImageDataset):
 
         # We make sure that the split contains as many xs as ys and params.
         split_size = None
+
         def update_split_size(size: int, *, field_name: str) -> None:
             nonlocal split_size
             if split_size is None:
