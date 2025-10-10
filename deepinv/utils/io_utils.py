@@ -7,59 +7,44 @@ from numpy.lib.format import open_memmap
 
 import torch
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import nibabel as nib
+    import blosc2
+
 
 def load_np(
-    fname: str | Path,
-    as_memmap: bool = False,
-    start_coords: tuple | list = None,
-    patch_size: tuple | list = None,
-) -> torch.Tensor:
+    fname: str | Path, as_memmap: bool = False, dtype: np.typing.DtypeLike = np.float32
+) -> torch.Tensor | np.memmap:
     """Load numpy array from file as torch tensor.
 
     :param str, pathlib.Path fname: file to load.
-    :param bool, as_memmap: open this file as a memmap and return
-    :param tuple | list, start_coords: starting indices when patch is to be extracted
-    :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
-    :return: :class:`torch.Tensor` containing loaded numpy array.
+    :param bool, as_memmap: open this file as a memmap, which does not load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
+    :param dtype: data type to use when loading the numpy array. This is ignored if as_memmap is True.
+    :return: :class:`torch.Tensor` containing loaded numpy array. If as_memmap is True, returns a numpy memmap object instead.
     """
-    if start_coords is not None:
-        arr = open_memmap(fname)
-        assert len(start_coords) == len(
-            arr.shape
-        )  # I am assuming here that the images are single channel / have no channel on disk. To fix so start_coords can be different length for other cases
-        if isinstance(patch_size, int):
-            patch_size = [patch_size for i in range(len(start_coords))]
-        assert len(start_coords) == len(patch_size)
-
-        # We should check that we're not out of bound here?
-        return torch.from_numpy(
-            arr[
-                tuple(
-                    slice(s, s + p if s is not None else None)
-                    for s, p in zip(start_coords, patch_size)
-                )
-            ]
-        )
-    elif as_memmap:
+    if as_memmap:
         return open_memmap(fname)
     else:
-        return torch.from_numpy(np.load(fname, allow_pickle=False))
+        return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
 
 def load_nifti(
     fname: str | Path,
     as_memmap: bool = False,
-    start_coords: tuple | list = None,
-    patch_size: tuple | list = None,
     dtype: np.typing.DTypeLike = np.float32,
-) -> torch.Tensor:
+) -> torch.Tensor | nib.arrayproxy.ArrayProxy:
     """Load volume from nifti file as torch tensor.
 
+    .. warning::
+
+        When loading zipped nifti files (e.g., .nii.gz), it is recommended to install indexed_gzip (`pip install indexed-gzip`) to speed up loading times.
+
     :param str, pathlib.Path fname: file to load.
-    :param bool, as_memmap: open this file as a memmap and return
-    :param tuple | list, start_coords: starting indices when patch is to be extracted
-    :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
-    :return: :class:`torch.Tensor` containing loaded numpy array.
+    :param bool, as_memmap: open this file as a proxy array, which does not eagerly load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
+    :param dtype: data type to use when loading the nifti file. This is ignored if as_memmap is True.
+    :return: :class:`torch.Tensor` containing nifti image. If as_memmap is True, returns a proxy array instead.
     """
     try:
         import nibabel as nib
@@ -67,45 +52,24 @@ def load_nifti(
         raise ImportError(
             "load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`."
         )
-
-    if start_coords is not None:
-        arr = nib.load(fname).dataobj
-        assert len(start_coords) == len(
-            arr.shape
-        )  # I am assuming here that the images are single channel / have no channel on disk. To fix so start_coords can be different length for other cases
-        if isinstance(patch_size, int):
-            patch_size = [patch_size for i in range(len(start_coords))]
-
-        assert len(start_coords) == len(patch_size)
-
-        return torch.from_numpy(
-            arr[
-                tuple(
-                    slice(s, s + p if s is not None else None)
-                    for s, p in zip(start_coords, patch_size)
-                )
-            ].astype(dtype)
-        )
-    elif as_memmap:
-        return nib.load(fname).dataobj  # dtype argument is not used in this case...
+    im = nib.load(fname)
+    if as_memmap:
+        return im.dataobj
     else:
-        return torch.from_numpy(nib.load(fname).get_fdata(dtype=dtype))
+        return torch.from_numpy(im.get_fdata(dtype=dtype))
 
 
 def load_blosc2(
     fname: str | Path,
     as_memmap: bool = False,
-    start_coords: tuple | list = None,
-    patch_size: tuple | list = None,
     dtype: np.typing.DTypeLike = np.float32,
-) -> torch.Tensor:
+) -> torch.Tensor | blosc2.ndarray.NDArray:
     """Load volume from blosc2 file as torch tensor.
 
     :param str, pathlib.Path fname: file to load.
-    :param bool, as_memmap: open this file as a memmap and return
-    :param tuple | list, start_coords: starting indices when patch is to be extracted
-    :param tuple | list | int, patch_size: patch size if start_coords is given. If sequence, length must match start_coords
-    :return: :class:`torch.Tensor` containing loaded numpy array.
+    :param bool, as_memmap: open this file as a memory-mapped array (which does not load the entire array into memory). This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
+    :param dtype: data type to use when loading the blosc2 file. This is ignored if as_memmap is True.
+    :return: :class:`torch.Tensor` containing loaded numpy array. If as_memmap is True, returns a blosc2 array object instead.
     """
     try:
         import blosc2
@@ -114,23 +78,7 @@ def load_blosc2(
             "load_blosc2 requires blosc2, which is not installed. Please install it with `pip install blosc2`."
         )
     arr = blosc2.open(fname)
-    if start_coords is not None:
-        assert len(start_coords) == len(
-            arr.shape
-        )  # I am assuming here that the images have no channel on disk. To fix this start_coords can be different length for other cases
-        if isinstance(patch_size, int):
-            patch_size = [patch_size for i in range(len(start_coords))]
-        assert len(start_coords) == len(patch_size)
-
-        return torch.from_numpy(
-            arr[
-                tuple(
-                    slice(s, s + p if s is not None else None)
-                    for s, p in zip(start_coords, patch_size)
-                )
-            ]
-        )
-    elif as_memmap:
+    if as_memmap:
         return arr
     else:
         return torch.from_numpy(arr[:].astype(dtype))

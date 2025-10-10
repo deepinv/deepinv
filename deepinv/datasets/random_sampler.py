@@ -45,6 +45,7 @@ class RandomPatchSampler(ImageDataset):
         patch_size: int | tuple[int, ...] = 32,
         file_format: str = ".npy",
         ch_axis: int = None,
+        dtype: torch.dtype = torch.float32,
     ):
         r"""
         :param str, optional x_dir: Path to folder of ground-truth images. Required if ``y_dir`` is not given.
@@ -52,6 +53,7 @@ class RandomPatchSampler(ImageDataset):
         :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions.
         :param str file_format : File format to load. Other files are ignored.
         :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
+        :param
         """
         assert x_dir or y_dir, "Provide at least one of x_dir or y_dir."
         if ch_axis is not None:
@@ -65,6 +67,7 @@ class RandomPatchSampler(ImageDataset):
                 ), f"patch_size arguments must be integers, got type {type(p)} at index {i}"
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
+        self.dtype = dtype
         self._set_load(file_format)
 
         x_imgs, y_imgs = None, None
@@ -109,10 +112,9 @@ class RandomPatchSampler(ImageDataset):
 
         x = (
             self._fix_ch(
-                self._load(
+                self.load(
                     os.path.join(self.x_dir, fname),
                     start_coords=start_coords,
-                    patch_size=self.patch_size,
                 )
             )
             if self.x_dir
@@ -120,10 +122,9 @@ class RandomPatchSampler(ImageDataset):
         )
         if self.y_dir is not None:
             y = self._fix_ch(
-                self._load(
+                self.load(
                     os.path.join(self.y_dir, fname),
                     start_coords=start_coords,
-                    patch_size=self.patch_size,
                 )
             )
             return (x, y)
@@ -206,3 +207,12 @@ class RandomPatchSampler(ImageDataset):
             raise NotImplementedError(
                 f"No loader function for 3D volumes with extension {file_format}"
             )
+
+    def load(self, f, start_coords: tuple = None):
+        arr = self._load(f, as_memmap=True)
+        slices = tuple(
+            slice(start, start + size) if size is not None else slice(None)
+            for start, size in zip(start_coords, self.patch_size)
+        )
+        arr = arr[slices]
+        return torch.from_numpy(arr).to(self.dtype)
