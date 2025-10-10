@@ -559,13 +559,14 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: initialization point of the algorithm
+        :param torch.Tensor x0: a tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
         :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
             Use :meth:`compute_sqnorm` instead.
             If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
+        :param dict kwargs: optional parameters for the forward operator
 
         :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
             If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
@@ -608,10 +609,11 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: initialization point of the algorithm
+        :param torch.Tensor x0: a tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param dict kwargs: optional parameters for the forward operator
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
