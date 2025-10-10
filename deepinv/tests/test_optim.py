@@ -355,11 +355,11 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         if (
             name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_sqnorm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = 1.0
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = None
 
         lamb = 0.9
@@ -919,13 +919,21 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["inpainting", "super_resolution_circular", "deblur_valid"]
+least_squares_physics = [
+    "inpainting",
+    "super_resolution_circular",
+    "deblur_valid",
+    "MultiCoilMRI",
+]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("implicit_backward_solver", [False, True])
-def test_least_square_solvers(device, solver, physics_name, implicit_backward_solver):
+@pytest.mark.parametrize("gamma_scalar", [False, True])
+def test_least_square_solvers(
+    device, solver, physics_name, implicit_backward_solver, gamma_scalar
+):
     batch_size = 4
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
@@ -943,7 +951,10 @@ def test_least_square_solvers(device, solver, physics_name, implicit_backward_so
     ).all()
 
     z = x.clone()
-    gamma = 1.0
+    if gamma_scalar:
+        gamma = 1.0
+    else:
+        gamma = torch.ones((batch_size, 1, 1, 1), device=device)
 
     x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
@@ -969,10 +980,10 @@ DTYPES = [torch.float32, torch.complex64]
 
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_linear_system(device, solver, dtype):
+def test_linear_system(device, solver, dtype, rng):
     # test the solution of linear systems with random matrices
     batch_size = 2
-    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
         mat = mat.adjoint() @ mat
@@ -983,7 +994,7 @@ def test_linear_system(device, solver, dtype):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
     A = lambda x: (mat @ x.T).T
     AT = lambda x: (mat.adjoint() @ x.T).T
@@ -1024,6 +1035,7 @@ def test_condition_number(device):
     assert rel_error < 0.1
 
 
+@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",
     [
@@ -1032,9 +1044,8 @@ def test_condition_number(device):
     ],
 )
 @pytest.mark.parametrize("solver", solvers)
-def test_least_squares_implicit_backward(device, solver, physics_name):
+def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
     # Check that the backward gradient matches the finite difference gradient
-    batch_size = 1
     prev_deterministic = torch.are_deterministic_algorithms_enabled()
     torch.use_deterministic_algorithms(True)
 
@@ -1051,7 +1062,9 @@ def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check gradients w.r.t y, z, gamma
     y.requires_grad_(True)
     z = torch.randn_like(x).requires_grad_(True)
-    gamma = torch.tensor(0.4, dtype=dtype, requires_grad=True)
+    gamma = (
+        torch.rand((batch_size,), dtype=dtype, device=device, requires_grad=True) + 0.1
+    )
     init = torch.zeros_like(z).requires_grad_(False)
 
     # This check can be quite slow since it needs to compute finite differences in all directions

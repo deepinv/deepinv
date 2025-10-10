@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os
@@ -6,15 +8,17 @@ from tqdm import tqdm
 import torch
 
 from pathlib import Path
-from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
+from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -70,9 +74,9 @@ class Trainer:
 
     .. note::
 
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
-        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
-        a dictionary with the setup for wandb.
+        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
+        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``. The user can also customize the setup of wandb and MLflow
+        by providing a dictionary for the parameters ``wandb_setup`` or ``mlflow_setup`` respectively.
 
     Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
     **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
@@ -190,6 +194,8 @@ class Trainer:
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
+        Increasing this may speed up training.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
     :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
 
@@ -199,38 +205,45 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+    :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
+
+    |sep|
+
+    :MLflow:
+
+    :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
+    :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
     """
 
     model: torch.nn.Module
-    physics: Union[Physics, list[Physics]]
-    optimizer: Union[torch.optim.Optimizer, None]
+    physics: Physics | list[Physics]
+    optimizer: torch.optim.Optimizer | None
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
-        SupLoss()
-    )
+    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
+    physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
+    metrics: Metric | list[Metric] = field(default_factory=PSNR)
     disable_train_metrics: bool = False
-    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_pretrained: Union[str, None] = None
-    save_path: Union[str, Path] = "."
+    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+    ckpt_pretrained: str | None = None
+    save_path: str | Path = "."
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
+    mlflow_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
+    mlflow_setup: dict = field(default_factory=dict)
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
@@ -244,6 +257,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
+    freq_update_progress_bar: int = 1
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -285,6 +299,15 @@ class Trainer:
                 "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
             )
 
+        if (
+            self.mlflow_setup != {}
+            and self.mlflow_setup is not None
+            and not self.mlflow_vis
+        ):  # pragma: no cover
+            warnings.warn(
+                "mlflow_vis is False but mlflow_setup is provided. Mlflow deactivated (mlflow_vis=False)."
+            )
+
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
@@ -307,6 +330,12 @@ class Trainer:
 
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
+
+        if self.mlflow_vis:
+            import mlflow
+
+            if mlflow.active_run() is None:
+                mlflow.start_run(**self.mlflow_setup)
 
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
@@ -384,10 +413,19 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider increasing this."
+            )
+
         _ = self.load_model()
 
     def load_model(
-        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
+        self, ckpt_pretrained: str | Path = None, strict: bool = True
     ) -> dict:
         """Load model from checkpoint.
 
@@ -413,15 +451,28 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
+            if "mlflow_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
+                self.mlflow_setup["run_id"] = checkpoint["mlflow_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
-        Log the metrics to wandb.
+        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
+        """
+        warnings.warn(
+            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
-        It logs the metrics to wandb.
+    def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
+        r"""
+        Log the metrics to MLOps tools including wandb and MLflow.
+
+        It logs the metrics to wandb and MLflow.
 
         :param dict logs: Dictionary containing the metrics to log.
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
@@ -437,6 +488,11 @@ class Trainer:
             import wandb
 
             wandb.log(logs, step=step)
+
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.log_metrics(logs, step=step)
 
     def check_clip_grad(self):
         r"""
@@ -525,7 +581,7 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
+        if not isinstance(data, (tuple, list)) or len(data) < 2:
             raise ValueError(
                 "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
@@ -543,13 +599,18 @@ class Trainer:
                 "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
             )
 
-        if type(x) is list or type(x) is tuple:
-            x = [s.to(self.device) for s in x]
+        batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
+        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
+
+        if batch_size_x != batch_size_y:  # pragma: no cover
+            raise ValueError(
+                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+            )
+
+        if torch.isnan(x).all() and x.ndim <= 1:
+            x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
             x = x.to(self.device)
-
-        if x.numel() == 1 and torch.isnan(x):
-            x = None  # unsupervised case
 
         y = y.to(self.device)
         physics = self.physics[g]
@@ -715,7 +776,10 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    no_learning_model = self._NoLearningModel(trainer=self)
+                    metric = l(
+                        x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
+                    )
                     self.logs_metrics_no_learning[k].update(
                         metric.detach().cpu().numpy()
                     )
@@ -762,6 +826,21 @@ class Trainer:
 
         return x_nl
 
+    class _NoLearningModel(Reconstructor):
+        def __init__(self, *, trainer: Trainer):
+            super().__init__()
+            self.trainer = trainer
+
+        def forward(self, y, physics, **kwargs):
+            if kwargs:
+                warnings.warn(
+                    f"The learning-free model in Trainer expects no keyword argument, but got {list(kwargs.keys())}. "
+                    "You might be using metrics which pass extra arguments to the trained model but the learning-free model does not use them.",
+                    UserWarning,
+                    stacklevel=1,
+                )
+            return self.trainer.no_learning_inference(y, physics)
+
     def step(
         self,
         epoch,
@@ -769,6 +848,7 @@ class Trainer:
         train_ite=None,
         train=True,
         last_batch=False,
+        update_progress_bar=False,
     ):
         r"""
         Train/Eval a batch.
@@ -819,10 +899,11 @@ class Trainer:
                 )
 
             # Update the progress bar
-            progress_bar.set_postfix(logs)
+            if update_progress_bar:  # implicit syncing with gpu, slow
+                progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
-            self.log_metrics_wandb(logs, step=train_ite, train=train)
+            self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
@@ -843,12 +924,12 @@ class Trainer:
                 logs["step"] = train_ite
             elif train:
                 logs["step"] = epoch
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
             elif self.log_train_batch:  # train=False
                 logs["step"] = train_ite
-                self.log_metrics_wandb(logs, step=train_ite, train=train)
+                self.log_metrics_mlops(logs, step=train_ite, train=train)
             else:
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
 
             self.plot(
                 epoch,
@@ -906,6 +987,13 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch, step=epoch)
 
+            if self.mlflow_vis:
+                import mlflow
+
+                image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_metrics({"step": epoch}, step=epoch)
+                mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
+
         if save_images:
             # save images
             for k, img in enumerate(imgs):
@@ -954,6 +1042,11 @@ class Trainer:
             import wandb
 
             state["wandb_id"] = wandb.run.id
+
+        if self.mlflow_vis:
+            import mlflow
+
+            state["mlflow_id"] = mlflow.active_run().info.run_id
 
         torch.save(
             state,
@@ -1094,7 +1187,7 @@ class Trainer:
             for i in (
                 progress_bar := tqdm(
                     range(batches),
-                    ncols=150,
+                    dynamic_ncols=True,
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
@@ -1107,6 +1200,7 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
+                    update_progress_bar=(i % self.freq_update_progress_bar == 0),
                 )
 
                 perform_eval = self.eval_dataloader and (
@@ -1139,7 +1233,7 @@ class Trainer:
                     for j in (
                         eval_progress_bar := tqdm(
                             range(eval_batches),
-                            ncols=150,
+                            dynamic_ncols=True,
                             disable=(not self.verbose or not self.show_progress_bar),
                             colour="green",
                         )
@@ -1153,6 +1247,9 @@ class Trainer:
                             train_ite=train_ite,
                             train=False,
                             last_batch=(j == eval_batches - 1),
+                            update_progress_bar=(
+                                i % self.freq_update_progress_bar == 0
+                            ),
                         )
 
                     for k in range(len(self.metrics)):
@@ -1190,15 +1287,19 @@ class Trainer:
         if self.wandb_vis:
             import wandb
 
-            wandb.save("model.h5")
             wandb.finish()
+
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.end_run()
 
         return self.model
 
     def test(
         self,
         test_dataloader,
-        save_path: Union[str, Path] = None,
+        save_path: str | Path = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
@@ -1216,8 +1317,11 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = (self.wandb_vis, self.log_train_batch)
+
+        # Disable mlops and visualization during testing
+        former_values = (self.wandb_vis, self.mlflow_vis, self.log_train_batch)
         self.wandb_vis = False
+        self.mlflow_vis = False
         self.log_train_batch = False
 
         self.reset_metrics()
@@ -1236,14 +1340,20 @@ class Trainer:
         for i in (
             progress_bar := tqdm(
                 range(batches),
-                ncols=150,
+                dynamic_ncols=True,
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
             progress_bar.set_description(f"Test")
-            self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
+            self.step(
+                0,
+                progress_bar,
+                train=False,
+                last_batch=(i == batches - 1),
+                update_progress_bar=(i % self.freq_update_progress_bar == 0),
+            )
 
-        self.wandb_vis, self.log_train_batch = aux
+        self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
 
         if self.verbose:
             print("Test results:")
@@ -1278,7 +1388,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, list[Loss], None] = None,
+    losses: Loss | list[Loss] | None = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,

@@ -34,7 +34,7 @@ Let :math:`M` denote the inverse :math:`\left( A_\theta^T A_\theta + \frac{1}{\g
     \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
     \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
     
-where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v ` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
+where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
 
 .. note::
 

@@ -1,10 +1,11 @@
+from __future__ import annotations
 import torch
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
 from urllib.parse import urlparse
 from os.path import basename, join
-from typing import Callable, Union
+from typing import Callable
 from types import MappingProxyType
 from pathlib import Path
 
@@ -122,8 +123,8 @@ class Kohler(ImageDataset):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        frames: Union[int, str, list[Union[int, str]]] = "middle",
+        root: str | Path,
+        frames: int | str | list[int | str] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
@@ -137,7 +138,7 @@ class Kohler(ImageDataset):
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: Union[str, Path], remove_finished: bool = False) -> None:
+    def download(cls, root: str | Path, remove_finished: bool = False) -> None:
         """Download the dataset.
 
         :param Union[str, pathlib.Path] root: Root directory of the dataset.
@@ -203,7 +204,7 @@ class Kohler(ImageDataset):
         self,
         printout_index: int,
         trajectory_index: int,
-        frames: Union[None, int, str, list[Union[int, str]]] = None,
+        frames: None | int | str | list[int | str] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get a sharp frame and a blurry shot from the dataset.
 
@@ -255,7 +256,7 @@ class Kohler(ImageDataset):
 
     def get_sharp_frame(
         self, printout_index: int, trajectory_index: int, frame_index: int
-    ) -> Union[torch.Tensor, Image.Image, any]:
+    ) -> torch.Tensor | Image.Image | any:
         path = join(
             self.root,
             f"Image{printout_index}",
@@ -269,7 +270,7 @@ class Kohler(ImageDataset):
 
     def get_blurry_shot(
         self, printout_index: int, trajectory_index: int
-    ) -> Union[torch.Tensor, Image.Image, any]:
+    ) -> torch.Tensor | Image.Image | any:
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)
         if self.transform is not None:
@@ -278,7 +279,7 @@ class Kohler(ImageDataset):
 
     @classmethod
     def select_frame(
-        cls, printout_index: int, trajectory_index: int, frame: Union[int, str]
+        cls, printout_index: int, trajectory_index: int, frame: int | str
     ) -> int:
         if isinstance(frame, int):
             frame_index = frame

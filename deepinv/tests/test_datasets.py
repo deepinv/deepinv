@@ -896,7 +896,7 @@ def test_FastMRISliceDataset(download_fastmri):
     assert physics_estim.adjointness_test(x0) < 1e-3
     assert (
         torch.abs(
-            physics.compute_norm(x0, max_iter=1000, tol=1e-6, verbose=False) - 1.0
+            physics.compute_sqnorm(x0, max_iter=1000, tol=1e-6, verbose=False) - 1.0
         )
         < 1e-3
     )

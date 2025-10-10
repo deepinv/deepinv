@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 import torch
 from torch import Tensor
 from torch.nn.functional import pad
@@ -63,10 +63,10 @@ class CompressiveSpectralImaging(LinearPhysics):
     def __init__(
         self,
         img_size: tuple[int, int, int],  # C,H,W
-        mask: Union[Tensor, float] = None,
+        mask: Tensor | float = None,
         mode: str = "ss",
         shear_dir: str = "h",
-        device: torch.device = "cpu",
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -121,7 +121,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         elif self.shear_dir == "w":
             return x[:, :, :, : (1 - self.C)]
 
-    def shear(self, x: Tensor, un=False) -> Tensor:
+    def shear(self, x: Tensor, un: bool = False) -> Tensor:
         """Efficient pixel shear in channel-spatial plane
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
