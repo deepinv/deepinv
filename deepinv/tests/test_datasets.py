@@ -316,10 +316,12 @@ def test_hdf5dataset(
     expected_value_y = SPLIT_NAMES.index(split_name) * 3 + 1
     expected_value_params = SPLIT_NAMES.index(split_name) * 3 + 2
 
+    data_dtype = complex_dtype if complex_data else dtype
+
     if not torch.isnan(x).all():
         assert torch.allclose(
             x,
-            torch.full((1, 4, 4), float(expected_value_x), dtype=dtype),
+            torch.full((1, 4, 4), expected_value_x, dtype=data_dtype),
         ), f"Dataset x tensor has incorrect values."
 
     if stack_size == 1:
@@ -333,13 +335,13 @@ def test_hdf5dataset(
     for y_el in ys:
         assert torch.allclose(
             y_el,
-            torch.full((1, 4, 4), float(expected_value_y), dtype=dtype),
+            torch.full((1, 4, 4), expected_value_y, dtype=data_dtype),
         ), f"Dataset y tensor has incorrect values."
 
     if with_params and load_physics_generator_params:
         assert torch.allclose(
             params["kernel"],
-            torch.full((1, 4, 4), float(expected_value_params), dtype=dtype),
+            torch.full((1, 4, 4), expected_value_params, dtype=data_dtype),
         ), f"Dataset params tensor has incorrect values."
 
     if transform is not None:
