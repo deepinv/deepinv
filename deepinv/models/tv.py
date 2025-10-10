@@ -59,7 +59,7 @@ class TVDenoiser(Denoiser):
 
         self.tau = tau
         self.rho = rho
-        self.sigma = 1 / self.tau / 8
+        self.sigma = 0.125 / self.tau
 
         self.x2 = x2
         self.u2 = u2
@@ -74,9 +74,9 @@ class TVDenoiser(Denoiser):
 
     def prox_sigma_g_conj(self, u, lambda2):
         return u / (
-            torch.maximum(
-                torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device, dtype=u.dtype),
+            torch.clamp(
+                torch.linalg.vector_norm(u, dim=-1, ord=2),
+                min=lambda2,
             ).unsqueeze(-1)
         )
 
