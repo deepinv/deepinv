@@ -260,7 +260,6 @@ class HDF5Dataset(ImageDataset):
             deprecation_message="The attribute 'data_cache' is deprecated and will be removed in future versions.",
         )
 
-
     def __getitem__(self, index: int) -> tuple:
         r"""Get an entry in the dataset.
 
