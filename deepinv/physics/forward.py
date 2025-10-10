@@ -559,7 +559,7 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: a tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -609,7 +609,7 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: a tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
