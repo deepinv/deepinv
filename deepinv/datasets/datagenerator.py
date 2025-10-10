@@ -101,64 +101,6 @@ class HDF5Dataset(ImageDataset):
 
         f = h5py.File(path, "r")
 
-        self._register_members(
-            f,
-            train=train,
-            split=split,
-            load_physics_generator_params=load_physics_generator_params,
-        )
-
-        self.hd5 = f
-        self.transform = transform
-        self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
-
-        # The attribute load_physics_generator_params is redundant with the attribute params.
-        # Indeed, it is true if and only if the attribute params exists.
-        _register_deprecated_attr(
-            self,
-            attr_name="load_physics_generator_params",
-            attr_underscore_name="_load_physics_generator_params",
-            attr_initial_value=hasattr(self, "params"),
-            deprecation_message="The attribute 'load_physics_generator_params' is deprecated and will be removed in future versions. Use the attribute 'params' instead.",
-        )
-
-        # The attribute stacked is redundant with the attribute y. It is the
-        # number of elements in y if y is a list, otherwise y is a h5py.Dataset
-        # and it is 0.
-        _register_deprecated_attr(
-            self,
-            attr_name="stacked",
-            attr_underscore_name="_stacked",
-            attr_initial_value=0 if isinstance(self.y, h5py.Dataset) else len(self.y),
-            deprecation_message="The attribute 'stacked' is deprecated and will be removed in future versions. Use the attribute 'y' instead.",
-        )
-
-        # The attribute data_info is used nowhere.
-        _register_deprecated_attr(
-            self,
-            attr_name="data_info",
-            attr_underscore_name="_data_info",
-            attr_initial_value=[],
-            deprecation_message="The attribute 'data_info' is deprecated and will be removed in future versions.",
-        )
-
-        # The attribute data_cache is used nowhere.
-        _register_deprecated_attr(
-            self,
-            attr_name="data_cache",
-            attr_underscore_name="_data_cache",
-            attr_initial_value={},
-            deprecation_message="The attribute 'data_cache' is deprecated and will be removed in future versions.",
-        )
-
-    def _register_members(
-        self,
-        f: Any,
-        *,
-        train: bool,
-        split: str | None,
-        load_physics_generator_params: bool,
-    ) -> None:
         # Process ground truths
         x = None
 
@@ -274,6 +216,50 @@ class HDF5Dataset(ImageDataset):
             self.params = params
 
         self._split_size = split_size
+
+        self.hd5 = f
+        self.transform = transform
+        self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
+
+        # The attribute load_physics_generator_params is redundant with the attribute params.
+        # Indeed, it is true if and only if the attribute params exists.
+        _register_deprecated_attr(
+            self,
+            attr_name="load_physics_generator_params",
+            attr_underscore_name="_load_physics_generator_params",
+            attr_initial_value=hasattr(self, "params"),
+            deprecation_message="The attribute 'load_physics_generator_params' is deprecated and will be removed in future versions. Use the attribute 'params' instead.",
+        )
+
+        # The attribute stacked is redundant with the attribute y. It is the
+        # number of elements in y if y is a list, otherwise y is a h5py.Dataset
+        # and it is 0.
+        _register_deprecated_attr(
+            self,
+            attr_name="stacked",
+            attr_underscore_name="_stacked",
+            attr_initial_value=0 if isinstance(self.y, h5py.Dataset) else len(self.y),
+            deprecation_message="The attribute 'stacked' is deprecated and will be removed in future versions. Use the attribute 'y' instead.",
+        )
+
+        # The attribute data_info is used nowhere.
+        _register_deprecated_attr(
+            self,
+            attr_name="data_info",
+            attr_underscore_name="_data_info",
+            attr_initial_value=[],
+            deprecation_message="The attribute 'data_info' is deprecated and will be removed in future versions.",
+        )
+
+        # The attribute data_cache is used nowhere.
+        _register_deprecated_attr(
+            self,
+            attr_name="data_cache",
+            attr_underscore_name="_data_cache",
+            attr_initial_value={},
+            deprecation_message="The attribute 'data_cache' is deprecated and will be removed in future versions.",
+        )
+
 
     def __getitem__(self, index: int) -> tuple:
         r"""Get an entry in the dataset.
