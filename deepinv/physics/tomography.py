@@ -197,8 +197,9 @@ class Tomography(LinearPhysics):
                     (img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None]
-            ).sqrt()
+                )[None, None],
+                squared=False,
+            )
             self.normalize = True
 
     def A(self, x, **kwargs) -> torch.Tensor:
@@ -560,8 +561,9 @@ class TomographyWithAstra(LinearPhysics):
                     self.img_size,
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None]
-            ).sqrt()
+                )[None, None],
+                squared=False,
+            )
             self.normalize = True
 
     @property

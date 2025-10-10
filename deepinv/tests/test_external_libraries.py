@@ -144,9 +144,9 @@ class TestTomographyWithAstra:
             assert pred.grad is not None
 
             if normalize:
-                assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+                assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
             if normalize is None:
                 # when normalize is not set by the user, it should default to True
                 assert physics.normalize is True
-                assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+                assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
