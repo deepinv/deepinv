@@ -1094,108 +1094,110 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
 
 
 @pytest.fixture
-def make_data(tmp_path):
+def make_data(tmp_path, request):
     """Minimal synthetic datasets for 3D (.npy/.b2nd/.nii.gz), 2D+channels (C,H,W & H,W,C), and >3D no-channels (H,W,D,T)."""
     import nibabel as nib
     import blosc2
 
     root = tmp_path
-
     cases = []
 
-    # 3D volumes all formats
+    # 3D volumes
     shape3d = (40, 40, 40)
-    for fmt in (".npy", ".b2nd", ".nii.gz"):
-        dx = root / f"{fmt.strip('.').replace('.','_')}_x"
-        dy = root / f"{fmt.strip('.').replace('.','_')}_y"
-        dx.mkdir()
-        dy.mkdir()
-        for i in range(2):
-            vol = np.random.normal(size=shape3d)
-            if fmt == ".npy":
-                np.save(dx / f"{i}.npy", vol)
-                np.save(dy / f"{i}.npy", vol)
-            elif fmt == ".b2nd":
-                blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dx / f"{i}.b2nd"))
-                blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dy / f"{i}.b2nd"))
-            else:
-                nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dx / f"{i}.nii.gz"))
-                nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dy / f"{i}.nii.gz"))
-
-        cases.append(
-            dict(
-                name=f"3d-{fmt}",
-                x=str(dx),
-                y=str(dy),
-                fmt=fmt,
-                ch_axis=None,
-                patch=(32, 32, 32),
-                expected=(1, 32, 32, 32),
-            )
-        )
-
-    # 2D with channels
-    C = 3
-    # (C,H,W)
-    d0x = root / "npy_2d_ch0_x"
-    d0y = root / "npy_2d_ch0_y"
-    d0x.mkdir()
-    d0y.mkdir()
-    # (H,W,C)
-    dmx = root / "npy_2d_chm1_x"
-    dmy = root / "npy_2d_chm1_y"
-    dmx.mkdir()
-    dmy.mkdir()
+    fmt = getattr(request, "param")
+    dx = root / f"{fmt.strip('.').replace('.','_')}_x"
+    dy = root / f"{fmt.strip('.').replace('.','_')}_y"
+    dx.mkdir()
+    dy.mkdir()
     for i in range(2):
-        np.save(d0x / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
-        np.save(d0y / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
-        np.save(dmx / f"{i}.npy", np.random.normal(size=(48, 48, C)))
-        np.save(dmy / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+        vol = np.random.normal(size=shape3d)
+        if fmt == ".npy":
+            np.save(dx / f"{i}.npy", vol)
+            np.save(dy / f"{i}.npy", vol)
+        elif fmt == ".b2nd":
+            blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dx / f"{i}.b2nd"))
+            blosc2.asarray(np.ascontiguousarray(vol), urlpath=str(dy / f"{i}.b2nd"))
+        elif fmt == ".nii.gz":
+            nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dx / f"{i}.nii.gz"))
+            nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dy / f"{i}.nii.gz"))
+        else:
+            raise ValueError(f"Unsupported fmt: {fmt}")
 
-    cases += [
-        dict(
-            name="2d-ch0",
-            x=str(d0x),
-            y=str(d0y),
-            fmt=".npy",
-            ch_axis=0,
-            patch=(16, 16),
-            expected=(3, 16, 16),
-        ),
-        dict(
-            name="2d-chm1",
-            x=str(dmx),
-            y=str(dmy),
-            fmt=".npy",
-            ch_axis=-1,
-            patch=(16, 16),
-            expected=(3, 16, 16),
-        ),
-    ]
-
-    # (H,W,D,T)
-    d4x = root / "npy_4d_noch_x"
-    d4y = root / "npy_4d_noch_y"
-    d4x.mkdir()
-    d4y.mkdir()
-    for i in range(2):
-        np.save(d4x / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
-        np.save(d4y / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
     cases.append(
         dict(
-            name="4d-noch",
-            x=str(d4x),
-            y=str(d4y),
-            fmt=".npy",
+            name=f"3d-{fmt}",
+            x=str(dx),
+            y=str(dy),
+            fmt=fmt,
             ch_axis=None,
-            patch=(12, 12, 10, 2),
-            expected=(1, 12, 12, 10, 2),
+            patch=(32, 32, 32),
+            expected=(1, 32, 32, 32),
         )
     )
 
-    return cases
+    if fmt == ".npy":
+        # 2D with channels
+        C = 3
+        # (C,H,W)
+        d0x = root / "npy_2d_ch0_x"
+        d0y = root / "npy_2d_ch0_y"
+        d0x.mkdir()
+        d0y.mkdir()
+        # (H,W,C)
+        dmx = root / "npy_2d_chm1_x"
+        dmy = root / "npy_2d_chm1_y"
+        dmx.mkdir()
+        dmy.mkdir()
+        for i in range(2):
+            np.save(d0x / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+            np.save(d0y / f"{i}.npy", np.random.normal(size=(C, 48, 48)))
+            np.save(dmx / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+            np.save(dmy / f"{i}.npy", np.random.normal(size=(48, 48, C)))
+
+        cases += [
+            dict(
+                name="2d-ch0",
+                x=str(d0x),
+                y=str(d0y),
+                fmt=".npy",
+                ch_axis=0,
+                patch=(16, 16),
+                expected=(3, 16, 16),
+            ),
+            dict(
+                name="2d-chm1",
+                x=str(dmx),
+                y=str(dmy),
+                fmt=".npy",
+                ch_axis=-1,
+                patch=(16, 16),
+                expected=(3, 16, 16),
+            ),
+        ]
+
+        # (H, D, W, T) (or general 4D case)
+        d4x = root / "npy_4d_noch_x"
+        d4y = root / "npy_4d_noch_y"
+        d4x.mkdir()
+        d4y.mkdir()
+        for i in range(2):
+            np.save(d4x / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+            np.save(d4y / f"{i}.npy", np.random.normal(size=(36, 36, 20, 4)))
+        cases.append(
+            dict(
+                name="4d-noch",
+                x=str(d4x),
+                y=str(d4y),
+                fmt=".npy",
+                ch_axis=None,
+                patch=(12, 12, 10, 2),
+                expected=(1, 12, 12, 10, 2),
+            )
+        )
+    yield cases
 
 
+@pytest.mark.parametrize("make_data", [".npy", ".b2nd", ".nii.gz"], indirect=True)
 def test_RandomPatchSampler(make_data):
     # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
     for c in make_data:
@@ -1210,9 +1212,9 @@ def test_RandomPatchSampler(make_data):
         x = next(iter(ds))
         assert (
             x.shape == (1,) + tuple(c["patch"])
-            if c["ch_axis"] is None and len(c["patch"]) == 3
-            else (c["expected"] if len(c["patch"]) != 3 else c["expected"])
-        )  # keep logic flat
+            if c["ch_axis"] is None
+            else (c["expected"])
+        )
         ds = RandomPatchSampler(
             x_dir=c["x"],
             y_dir=c["y"],

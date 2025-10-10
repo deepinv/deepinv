@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
-import random
+from pathlib import Path
+
 import torch
 from deepinv.datasets.base import ImageDataset
 
@@ -11,6 +12,10 @@ class RandomPatchSampler(ImageDataset):
 
     This dataset builds from one or two directories of nD images (`.npy`, `.nii(.gz)`, or `.b2nd`).
     On each epoch, it returns a randomly sampled patch of fixed size from each volume.
+
+    .. warning::
+
+        This loader uses torch's random functionality. To ensure reproducibility, set the DataLoader's ``generator`` with a fixed seed.
 
     **Supported use cases:**
     - Single-directory: provide only the ground-truth folder ``x_dir`` or measurement folder ``y_dir`` (returns patches from that directory).
@@ -53,58 +58,58 @@ class RandomPatchSampler(ImageDataset):
         :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions.
         :param str file_format : File format to load. Other files are ignored.
         :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
-        :param
+        :param torch.dtype dtype: Data type to use when loading the images.
         """
-        assert x_dir or y_dir, "Provide at least one of x_dir or y_dir."
+        if not (x_dir or y_dir):
+            raise RuntimeError("Provide at least one of x_dir or y_dir.")
         if ch_axis is not None:
-            assert (
-                ch_axis == 0 or ch_axis == -1
-            ), f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
+            if not (ch_axis == 0 or ch_axis == -1):
+                raise ValueError(
+                    f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
+                )
         if isinstance(patch_size, tuple) or isinstance(patch_size, list):
             for i, p in enumerate(patch_size):
-                assert isinstance(
-                    p, int
-                ), f"patch_size arguments must be integers, got type {type(p)} at index {i}"
+                if not isinstance(p, int):
+                    raise TypeError(
+                        f"patch_size must be int or tuple of ints, got {type(patch_size)}"
+                    )
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
         self.dtype = dtype
         self._set_load(file_format)
 
-        x_imgs, y_imgs = None, None
+        imgs = [None, None]  # x_imgs, y_imgs
 
-        if x_dir is not None:
-            assert os.path.exists(x_dir), f"Ground-truth dir {x_dir} does not exist."
-            x_imgs = [f for f in os.listdir(x_dir) if f.endswith(file_format)]
-            assert (
-                len(x_imgs) != 0
-            ), f"Ground-truth dir is given but empty for file format {file_format}."
+        for i, d in enumerate([x_dir, y_dir]):
+            if d is not None and not os.path.exists(d):
+                raise RuntimeError(f"Directory {d} does not exist.")
+            if d is not None:
+                imgs[i] = [f for f in os.listdir(d) if f.endswith(file_format)]
+                if len(imgs[i]) == 0:
+                    raise RuntimeError(
+                        f"Directory {d} is given but empty for file format {file_format}."
+                    )
 
-        if y_dir is not None:
-            assert os.path.exists(y_dir), f"Measurement dir {y_dir} does not exist."
-            y_imgs = [f for f in os.listdir(y_dir) if f.endswith(file_format)]
-            assert (
-                len(y_imgs) != 0
-            ), f"Measurement dir is given but empty for file format {file_format}."
-
-        self.imgs = (
-            sorted(set(x_imgs) & set(y_imgs))
-            if (x_imgs and y_imgs)
-            else (x_imgs or y_imgs)
+        self.imgs = list(
+            sorted(set(imgs[0]) & set(imgs[1]))
+            if (imgs[0] and imgs[1])
+            else (imgs[0] or imgs[1])
         )
 
-        assert len(self.imgs) > 0, "No (shared) images available."
+        if len(self.imgs) == 0:
+            raise RuntimeError("No (shared) images available.")
 
         self._set_shapes()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.imgs)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor] | torch.Tensor:
 
         shape = self.shapes[idx]
-        # We use random here: need to ensure deterministic behaviour based on seed --> seed worker function, see torch reproducibility page
+
         start_coords = [
-            random.randint(0, s - p) if p is not None else p
+            torch.randint(0, s - p, (1,)).item() if p is not None else p
             for p, s in zip(self.patch_size, shape)
         ]
 
@@ -131,7 +136,7 @@ class RandomPatchSampler(ImageDataset):
         else:
             return x
 
-    def _fix_ch(self, v: torch.Tensor):
+    def _fix_ch(self, v: torch.Tensor) -> torch.Tensor:
         if self.ch_ax is None:
             v = v.unsqueeze(0)
         elif self.ch_ax == -1:
@@ -205,10 +210,10 @@ class RandomPatchSampler(ImageDataset):
             self._load = load_blosc2
         else:
             raise NotImplementedError(
-                f"No loader function for 3D volumes with extension {file_format}"
+                f"No loader function for images with extension {file_format}"
             )
 
-    def load(self, f, start_coords: tuple = None):
+    def load(self, f: str | Path, start_coords: tuple) -> torch.Tensor:
         arr = self._load(f, as_memmap=True)
         slices = tuple(
             slice(start, start + size) if size is not None else slice(None)
