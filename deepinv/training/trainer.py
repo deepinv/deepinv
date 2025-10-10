@@ -413,6 +413,15 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider increasing this."
+            )
+
         _ = self.load_model()
 
     def load_model(
