@@ -347,13 +347,19 @@ def test_hdf5dataset(
         assert "kernel" in params, "Params should contain kernel."
 
         if stack_size > 1:
-            assert "y0" not in params, "Params should not contain y0 (stacked measurements)."
+            assert (
+                "y0" not in params
+            ), "Params should not contain y0 (stacked measurements)."
             expected_num_params = 1
         else:
-            assert "y0" in params, "Params might contain y0 if the measurements are not stacked."
+            assert (
+                "y0" in params
+            ), "Params might contain y0 if the measurements are not stacked."
             expected_num_params = 2
 
-        assert len(params) == expected_num_params, f"Params should contain {expected_num_params} tensors but got {len(params)}."
+        assert (
+            len(params) == expected_num_params
+        ), f"Params should contain {expected_num_params} tensors but got {len(params)}."
 
         assert torch.allclose(
             params["kernel"],
