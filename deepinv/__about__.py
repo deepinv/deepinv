@@ -5,7 +5,9 @@ __title__ = metadata["Name"]
 __summary__ = metadata["Summary"]
 __version__ = metadata["Version"]
 __author__ = metadata["Author"]
-__license__ = metadata["License"]
+__license__ = metadata.get(
+    "License", metadata.get("License-Expression", "BSD-3-Clause")
+)
 __url__ = metadata["Project-URL"]
 
 __all__ = [
