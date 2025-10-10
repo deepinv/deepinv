@@ -87,7 +87,6 @@ def conv2d(
             _warn_once_padding([ph, pw], padding)
 
         pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
-
         x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
 
@@ -137,10 +136,7 @@ def conv_transpose2d(
     B, C, H, W = y.size()
     b, c, h, w = filter.size()
 
-    ph = h // 2
-    pw = w // 2
-    ih = (h - 1) % 2
-    iw = (w - 1) % 2
+    ph, pw, ih, iw = h // 2, w // 2, (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (ph == 0 and pw == 0):
         _warn_once_padding([ph, pw], padding)
@@ -160,8 +156,7 @@ def conv_transpose2d(
 
     if padding == "valid":
         return x
-    out = _apply_transpose_padding(x, padding=padding, p=(ph, pw), i=(ih, iw))
-    return out
+    return _apply_transpose_padding(x, padding=padding, p=(ph, pw), i=(ih, iw))
 
 
 def conv2d_fft(
@@ -198,8 +193,7 @@ def conv2d_fft(
 
     filter = _prepare_filter_for_grouped(filter, B, C, raise_error_only=True)
 
-    ph, pw = h // 2, w // 2
-    ih, iw = (h - 1) % 2, (w - 1) % 2
+    ph, pw, ih, iw = h // 2, w // 2, (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (ph == 0 and pw == 0):
         _warn_once_padding([ph, pw], padding)
@@ -207,17 +201,19 @@ def conv2d_fft(
     x = x.contiguous()
     if padding == "circular":
         # Circular convolution with kernel center aligned via filter centering
-        img_size = (H, W)
         out = _circular_conv_fft(
-            x, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), shift_filter=True
+            x, filter, s=(H, W), real_fft=real_fft, dims=(-2, -1), shift_filter=True
         )
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
-        sH, sW = H + h - 1, W + w - 1
-        img_size = (sH, sW)
         full = _circular_conv_fft(
-            x, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), shift_filter=False
+            x,
+            filter,
+            s=(H + h - 1, W + w - 1),
+            real_fft=real_fft,
+            dims=(-2, -1),
+            shift_filter=False,
         )
         out = full[:, :, h - 1 : H, w - 1 : W]
 
@@ -225,11 +221,10 @@ def conv2d_fft(
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
         pad = (pw, pw - iw, ph, ph - ih)  # (W_left, W_right, H_top, H_bottom)
         x_pad = F.pad(x, pad, mode=padding, value=0)
-        img_size = x_pad.shape[-2:]
         out = _circular_conv_fft(
             x_pad,
             filter,
-            s=img_size,
+            s=x_pad.shape[-2:],
             real_fft=real_fft,
             dims=(-2, -1),
             shift_filter=True,
@@ -284,11 +279,10 @@ def conv_transpose2d_fft(
 
     if padding == "circular":
         # Circular adjoint: multiply by conj of centered filter FFT, no roll.
-        img_size = (H, W)
         out = _circular_conv_fft(
             y,
             filter,
-            s=img_size,
+            s=(H, W),
             real_fft=real_fft,
             dims=(-2, -1),
             shift_filter=True,
@@ -296,26 +290,26 @@ def conv_transpose2d_fft(
         )
     elif padding == "valid":
         # Adjoint of full-conv + center crop
-        sH, sW = H + h - 1, W + w - 1
-        img_size = (sH, sW)
         y_full = F.pad(y, (w - 1, w - 1, h - 1, h - 1), mode="constant", value=0)
         out = _circular_conv_fft(
-            y_full, filter, s=img_size, real_fft=real_fft, dims=(-2, -1), transpose=True
+            y_full,
+            filter,
+            s=(H + h - 1, W + w - 1),
+            real_fft=real_fft,
+            dims=(-2, -1),
+            transpose=True,
         )
 
     else:
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> C* -> P*
-        Hp = H + ph + (ph - ih)
-        Wp = W + pw + (pw - iw)
-        img_size = (Hp, Wp)
         # S*: embed y into center of padded grid
         y_big = F.pad(y, (pw, pw - iw, ph, ph - ih), mode="constant", value=0)
         # C*: circular transpose conv on padded grid using centered filter
         z_big = _circular_conv_fft(
             y_big,
             filter,
-            s=img_size,
+            s=(H + 2 * ph - ih, W + 2 * pw - iw),
             real_fft=real_fft,
             dims=(-2, -1),
             shift_filter=True,
@@ -356,12 +350,8 @@ def conv3d(
     # Determine padding
     if padding.lower() != "valid":
         # Calculate padding to keep output same size as input
-        pd = d // 2
-        ph = h // 2
-        pw = w // 2
-        ih = (h - 1) % 2
-        iw = (w - 1) % 2
-        id = (d - 1) % 2
+        pd, ph, pw = d // 2, h // 2, w // 2
+        id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
         pad = (
             pw,
             pw - iw,
@@ -406,12 +396,8 @@ def conv_transpose3d(
     B, C, D, H, W = y.shape
     b, c, d, h, w = filter.shape
 
-    pd = d // 2
-    ph = h // 2
-    pw = w // 2
-    id = (d - 1) % 2
-    ih = (h - 1) % 2
-    iw = (w - 1) % 2
+    pd, ph, pw = d // 2, h // 2, w // 2
+    id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
 
     if padding != "valid" and (pd == 0 and pw == 0 and ph == 0):
         _warn_once_padding([ph, pw, pd], padding)
@@ -488,10 +474,12 @@ def conv3d_fft(
 
     elif padding == "valid":
         # Full linear convolution then crop to valid window
-        sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
-        img_size = (sD, sH, sW)
         out = _circular_conv_fft(
-            x, filter, s=img_size, real_fft=real_fft, dims=(-3, -2, -1)
+            x,
+            filter,
+            s=(D + d - 1, H + h - 1, W + w - 1),
+            real_fft=real_fft,
+            dims=(-3, -2, -1),
         )
         out = out[:, :, d - 1 : D, h - 1 : H, w - 1 : W]
 
@@ -506,11 +494,10 @@ def conv3d_fft(
             pd - id,
         )  # (W_left, W_right, H_top, H_bottom, D_front, D_back)
         x_pad = F.pad(x, pad, mode=padding, value=0)
-        img_size = x_pad.shape[-3:]
         out = _circular_conv_fft(
             x_pad,
             filter,
-            s=img_size,
+            s=x_pad.shape[-3:],
             real_fft=real_fft,
             dims=(-3, -2, -1),
             shift_filter=True,
@@ -568,11 +555,10 @@ def conv_transpose3d_fft(
         _warn_once_padding([ph, pw, pd], padding)
 
     if padding == "circular":
-        img_size = (D, H, W)
         out = _circular_conv_fft(
             y,
             filter,
-            s=img_size,
+            s=(D, H, W),
             real_fft=real_fft,
             dims=(-3, -2, -1),
             shift_filter=True,
@@ -580,8 +566,6 @@ def conv_transpose3d_fft(
         )
 
     elif padding == "valid":
-        sD, sH, sW = D + d - 1, H + h - 1, W + w - 1
-        img_size = (sD, sH, sW)
         y_full = F.pad(
             y, (w - 1, w - 1, h - 1, h - 1, d - 1, d - 1), mode="constant", value=0
         )
@@ -589,7 +573,7 @@ def conv_transpose3d_fft(
         out = _circular_conv_fft(
             y_full,
             filter,
-            s=img_size,
+            s=(D + d - 1, H + h - 1, W + w - 1),
             real_fft=real_fft,
             dims=(-3, -2, -1),
             transpose=True,
@@ -598,9 +582,9 @@ def conv_transpose3d_fft(
     else:
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> R* -> C* -> P*
-        Dp = D + pd + (pd - id)
-        Hp = H + ph + (ph - ih)
-        Wp = W + pw + (pw - iw)
+        Dp = D + 2 * pd - id
+        Hp = H + 2 * ph - ih
+        Wp = W + 2 * pw - iw
         img_size = (Dp, Hp, Wp)
 
         # S*: embed y into center of padded grid
