@@ -18,3 +18,4 @@ from .diffusion_sde import (
     PosteriorDiffusion,
 )
 from .sde_solver import SDEOutput, BaseSDESolver, EulerSolver, HeunSolver
+from .diffusion_discrete import DDIMDiffusion, PSLDDiffusionPosterior
