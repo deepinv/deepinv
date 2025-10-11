@@ -15,7 +15,6 @@ from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
 from deepinv.utils import get_data_home
-from deepinv.models.utils import get_weights_url
 from deepinv.datasets import BSDS500
 
 # %%
