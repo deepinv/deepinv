@@ -8,21 +8,21 @@ For simplicity, we show how to train the algorithm on a  small dataset. For opti
 """
 
 import deepinv as dinv
-from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import get_data_home
+from deepinv.datasets import BSDS500
 
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = Path(".")
+BASE_DIR = get_data_home()
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -47,9 +47,8 @@ operation = "super-resolution"
 # We use the Downsampling class from the physics module to generate a dataset of low resolution images.
 
 # For simplicity, we use a small dataset for training.
-# To be replaced for optimal results. For example, you can use the larger "drunet" dataset.
-train_dataset_name = "CBSD500"
-test_dataset_name = "set3c"
+# To be replaced for optimal results. For example, you can use the larger DIV2K or LSDIR datasets (also provided in the library).
+
 # Specify the  train and test transforms to be applied to the input images.
 test_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
@@ -58,8 +57,12 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
-test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
+train_base_dataset = BSDS500(
+    BASE_DIR, download=True, train=True, transform=train_transform
+)
+test_base_dataset = BSDS500(
+    BASE_DIR, download=False, train=False, transform=test_transform
+)
 
 # Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
@@ -79,9 +82,9 @@ physics = dinv.physics.Downsampling(
 )
 my_dataset_name = "demo_unfolded_sr"
 n_images_max = (
-    1000 if torch.cuda.is_available() else 10
-)  # maximal number of images used for training
-measurement_dir = DATA_DIR / train_dataset_name / operation
+    None if torch.cuda.is_available() else 10
+)  # max number of images used for training (use all if you have a GPU)
+measurement_dir = DATA_DIR / "BSDS500" / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_base_dataset,
     test_dataset=test_base_dataset,
@@ -99,9 +102,9 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
+# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to define the Unfolded architecture.
 # The chosen algorithm is here DRS (Douglas-Rachford Splitting).
-# Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
+# Note that if the prior (resp. a parameter) is initialized with a list of length max_iter,
 # then a distinct model (resp. parameter) is trained for each iteration.
 # For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
 
@@ -116,16 +119,17 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-stepsize = [1] * max_iter  # stepsize of the algorithm
-sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
-beta = 1  # relaxation parameter of the Douglas-Rachford splitting
+stepsize = [1.0] * max_iter  # stepsize of the algorithm
+sigma_denoiser = [
+    1.0
+] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
+beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
     "beta": beta,
 }
 trainable_params = [
-    "g_param",
     "stepsize",
     "beta",
 ]  # define which parameters from 'params_algo' are trainable
@@ -150,7 +154,7 @@ model = unfolded_builder(
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 5 if torch.cuda.is_available() else 2
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -184,6 +188,7 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     device=device,
+    early_stop=True,  # set to None to disable early stopping
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
@@ -214,17 +219,4 @@ dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
-)
-
-
-# %%
-# Plotting the weights of the network.
-# ------------------------------------
-#
-# We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
-#
-
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )

@@ -61,7 +61,8 @@ class ArtifactRemoval(Reconstructor):
         if type(self.backbone_net).__name__ == "UNetRes":
             for _, v in self.backbone_net.named_parameters():
                 v.requires_grad = False
-            self.backbone_net = self.backbone_net.to(device)
+
+        self.backbone_net = self.backbone_net.to(device)
 
     def backbone_inference(
         self, tensor_in: Tensor, physics: Physics, y: Tensor
