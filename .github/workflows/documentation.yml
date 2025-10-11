@@ -35,6 +35,8 @@ jobs:
         run: |
           sphinx-build -W docs/source _build
       - name: Run doctests
+        env:
+          SPHINX_DOCTEST: "1"
         run: |
           # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
           # using plot_gallery=0 to avoid building examples

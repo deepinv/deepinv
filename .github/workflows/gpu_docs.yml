@@ -59,5 +59,7 @@ jobs:
           uv run python -m sphinx docs/source _build
 
       - name: Run doctests
+        env:
+          SPHINX_DOCTEST: "1"
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
