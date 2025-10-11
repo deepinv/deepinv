@@ -133,8 +133,8 @@ print(blurs["coeff"])
 # %%
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
-n_zernike = len(
-    diffraction_generator.list_param
+n_zernike = (
+    diffraction_generator.n_zernike
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
@@ -152,7 +152,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
     fc=1 / 8,
     kb=0.25,
     stepz_pixel=2,
-    list_param=["Z5", "Z6"],
+    zernike_index=(5, 6),
     device=device,
     dtype=dtype,
 )
