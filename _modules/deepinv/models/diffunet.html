@@ -1,0 +1,1572 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.diffunet &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/diffunet';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/models/diffunet.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.diffunet</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.diffunet</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is a concatenation of DiffPIR codes available here: https://github.com/yuanzhi-zhu/DiffPIR/tree/main</span>
+<span class="c1"># This code is taken (with minor modifications) from https://github.com/yuanzhi-zhu/DiffPIR/tree/main</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_weights_url</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+
+
+<div class="viewcode-block" id="DiffUNet">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffUNet</span><span class="p">(</span><span class="n">Denoiser</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Diffusion UNet model.</span>
+
+<span class="sd">    This is the model with attention and timestep embeddings from :footcite:t:`choi2021ilvr`;</span>
+<span class="sd">    code is adapted from https://github.com/jychoi118/ilvr_adm.</span>
+
+<span class="sd">    It is possible to choose the standard model from :footcite:t:`choi2021ilvr` with 128 hidden channels per layer (trained on FFHQ)</span>
+<span class="sd">    and a larger model :footcite:t:`dhariwal2021diffusion` with 256 hidden channels per layer (trained on ImageNet128).</span>
+
+<span class="sd">    A pretrained network for (in_channels=out_channels=3)</span>
+<span class="sd">    can be downloaded via setting ``pretrained=&#39;download&#39;``.</span>
+
+<span class="sd">    The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The weights available for download are pretrained on 256x256 images,</span>
+<span class="sd">        thus generation is likely to fail for different image sizes</span>
+<span class="sd">        (see https://github.com/deepinv/deepinv/issues/602).</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        This model has 2 forward modes:</span>
+
+<span class="sd">        * ``forward_diffusion``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.</span>
+<span class="sd">        * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.</span>
+
+
+<span class="sd">    :param int in_channels: channels in the input Tensor.</span>
+<span class="sd">    :param int out_channels: channels in the output Tensor.</span>
+<span class="sd">    :param bool large_model: if True, use the large model with 256 hidden channels per layer trained on ImageNet128</span>
+<span class="sd">        (weights size: 2.1 GB).</span>
+<span class="sd">        Otherwise, use a smaller model with 128 hidden channels per layer trained on FFHQ (weights size: 357 MB).</span>
+<span class="sd">    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at</span>
+<span class="sd">        random using Pytorch&#39;s default initialization.</span>
+<span class="sd">        If ``pretrained=&#39;download&#39;``, the weights will be downloaded from an online repository</span>
+<span class="sd">        (only available for 3 input and output channels).</span>
+<span class="sd">        Finally, ``pretrained`` can also be set as a path to the user&#39;s own pretrained weights.</span>
+<span class="sd">        See :ref:`pretrained-weights &lt;pretrained-weights&gt;` for more details.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">large_model</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_fp16</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">large_model</span><span class="p">:</span>
+            <span class="n">model_channels</span> <span class="o">=</span> <span class="mi">256</span>
+            <span class="n">num_res_blocks</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">attention_resolutions</span> <span class="o">=</span> <span class="s2">&quot;8,16,32&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_channels</span> <span class="o">=</span> <span class="mi">128</span>
+            <span class="n">num_res_blocks</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">attention_resolutions</span> <span class="o">=</span> <span class="s2">&quot;16&quot;</span>
+
+        <span class="n">dropout</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="n">conv_resample</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">use_checkpoint</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">num_heads</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">num_head_channels</span> <span class="o">=</span> <span class="mi">64</span>
+        <span class="n">num_heads_upsample</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">use_scale_shift_norm</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">resblock_updown</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">use_new_attention_order</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">out_channels</span> <span class="o">=</span> <span class="mi">6</span> <span class="k">if</span> <span class="n">out_channels</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="n">out_channels</span>
+        <span class="n">channel_mult</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="n">img_size</span> <span class="o">=</span> <span class="mi">256</span>
+        <span class="n">attention_ds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">attention_resolutions</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+            <span class="n">attention_ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_size</span> <span class="o">//</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+        <span class="n">attention_resolutions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">attention_ds</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_heads_upsample</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_heads_upsample</span> <span class="o">=</span> <span class="n">num_heads</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span> <span class="o">=</span> <span class="n">in_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_channels</span> <span class="o">=</span> <span class="n">model_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_res_blocks</span> <span class="o">=</span> <span class="n">num_res_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attention_resolutions</span> <span class="o">=</span> <span class="n">attention_resolutions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channel_mult</span> <span class="o">=</span> <span class="n">channel_mult</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_resample</span> <span class="o">=</span> <span class="n">conv_resample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">num_classes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_checkpoint</span> <span class="o">=</span> <span class="n">use_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">float16</span> <span class="k">if</span> <span class="n">use_fp16</span> <span class="k">else</span> <span class="n">th</span><span class="o">.</span><span class="n">float32</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_head_channels</span> <span class="o">=</span> <span class="n">num_head_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads_upsample</span> <span class="o">=</span> <span class="n">num_heads_upsample</span>
+
+        <span class="n">time_embed_dim</span> <span class="o">=</span> <span class="n">model_channels</span> <span class="o">*</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_embed</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">linear</span><span class="p">(</span><span class="n">model_channels</span><span class="p">,</span> <span class="n">time_embed_dim</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+            <span class="n">linear</span><span class="p">(</span><span class="n">time_embed_dim</span><span class="p">,</span> <span class="n">time_embed_dim</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">time_embed_dim</span><span class="p">)</span>
+
+        <span class="n">ch</span> <span class="o">=</span> <span class="n">input_ch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">channel_mult</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">model_channels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">TimestepEmbedSequential</span><span class="p">(</span><span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">))]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_feature_size</span> <span class="o">=</span> <span class="n">ch</span>
+        <span class="n">input_block_chans</span> <span class="o">=</span> <span class="p">[</span><span class="n">ch</span><span class="p">]</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">mult</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">channel_mult</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_res_blocks</span><span class="p">):</span>
+                <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ResBlock</span><span class="p">(</span>
+                        <span class="n">ch</span><span class="p">,</span>
+                        <span class="n">time_embed_dim</span><span class="p">,</span>
+                        <span class="n">dropout</span><span class="p">,</span>
+                        <span class="n">out_channels</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mult</span> <span class="o">*</span> <span class="n">model_channels</span><span class="p">),</span>
+                        <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                        <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                        <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">ch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">mult</span> <span class="o">*</span> <span class="n">model_channels</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">attention_resolutions</span><span class="p">:</span>
+                    <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">AttentionBlock</span><span class="p">(</span>
+                            <span class="n">ch</span><span class="p">,</span>
+                            <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+                            <span class="n">num_head_channels</span><span class="o">=</span><span class="n">num_head_channels</span><span class="p">,</span>
+                            <span class="n">use_new_attention_order</span><span class="o">=</span><span class="n">use_new_attention_order</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TimestepEmbedSequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_feature_size</span> <span class="o">+=</span> <span class="n">ch</span>
+                <span class="n">input_block_chans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">level</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">channel_mult</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">out_ch</span> <span class="o">=</span> <span class="n">ch</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">TimestepEmbedSequential</span><span class="p">(</span>
+                        <span class="n">ResBlock</span><span class="p">(</span>
+                            <span class="n">ch</span><span class="p">,</span>
+                            <span class="n">time_embed_dim</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">out_channels</span><span class="o">=</span><span class="n">out_ch</span><span class="p">,</span>
+                            <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                            <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                            <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+                            <span class="n">down</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">resblock_updown</span>
+                        <span class="k">else</span> <span class="n">Downsample</span><span class="p">(</span>
+                            <span class="n">ch</span><span class="p">,</span> <span class="n">conv_resample</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">out_ch</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">ch</span> <span class="o">=</span> <span class="n">out_ch</span>
+                <span class="n">input_block_chans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+                <span class="n">ds</span> <span class="o">*=</span> <span class="mi">2</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_feature_size</span> <span class="o">+=</span> <span class="n">ch</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">middle_block</span> <span class="o">=</span> <span class="n">TimestepEmbedSequential</span><span class="p">(</span>
+            <span class="n">ResBlock</span><span class="p">(</span>
+                <span class="n">ch</span><span class="p">,</span>
+                <span class="n">time_embed_dim</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">AttentionBlock</span><span class="p">(</span>
+                <span class="n">ch</span><span class="p">,</span>
+                <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+                <span class="n">num_head_channels</span><span class="o">=</span><span class="n">num_head_channels</span><span class="p">,</span>
+                <span class="n">use_new_attention_order</span><span class="o">=</span><span class="n">use_new_attention_order</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">ResBlock</span><span class="p">(</span>
+                <span class="n">ch</span><span class="p">,</span>
+                <span class="n">time_embed_dim</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_feature_size</span> <span class="o">+=</span> <span class="n">ch</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">mult</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">channel_mult</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_res_blocks</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">ich</span> <span class="o">=</span> <span class="n">input_block_chans</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ResBlock</span><span class="p">(</span>
+                        <span class="n">ch</span> <span class="o">+</span> <span class="n">ich</span><span class="p">,</span>
+                        <span class="n">time_embed_dim</span><span class="p">,</span>
+                        <span class="n">dropout</span><span class="p">,</span>
+                        <span class="n">out_channels</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">model_channels</span> <span class="o">*</span> <span class="n">mult</span><span class="p">),</span>
+                        <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                        <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                        <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">ch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">model_channels</span> <span class="o">*</span> <span class="n">mult</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">attention_resolutions</span><span class="p">:</span>
+                    <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">AttentionBlock</span><span class="p">(</span>
+                            <span class="n">ch</span><span class="p">,</span>
+                            <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                            <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads_upsample</span><span class="p">,</span>
+                            <span class="n">num_head_channels</span><span class="o">=</span><span class="n">num_head_channels</span><span class="p">,</span>
+                            <span class="n">use_new_attention_order</span><span class="o">=</span><span class="n">use_new_attention_order</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">level</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="n">num_res_blocks</span><span class="p">:</span>
+                    <span class="n">out_ch</span> <span class="o">=</span> <span class="n">ch</span>
+                    <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">ResBlock</span><span class="p">(</span>
+                            <span class="n">ch</span><span class="p">,</span>
+                            <span class="n">time_embed_dim</span><span class="p">,</span>
+                            <span class="n">dropout</span><span class="p">,</span>
+                            <span class="n">out_channels</span><span class="o">=</span><span class="n">out_ch</span><span class="p">,</span>
+                            <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+                            <span class="n">use_checkpoint</span><span class="o">=</span><span class="n">use_checkpoint</span><span class="p">,</span>
+                            <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="n">use_scale_shift_norm</span><span class="p">,</span>
+                            <span class="n">up</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">resblock_updown</span>
+                        <span class="k">else</span> <span class="n">Upsample</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">conv_resample</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">out_ch</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">ds</span> <span class="o">//=</span> <span class="mi">2</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">output_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TimestepEmbedSequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_feature_size</span> <span class="o">+=</span> <span class="n">ch</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">normalization</span><span class="p">(</span><span class="n">ch</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+            <span class="n">zero_module</span><span class="p">(</span><span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">input_ch</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pretrained</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pretrained</span> <span class="o">==</span> <span class="s2">&quot;download&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">out_channels</span> <span class="o">==</span> <span class="mi">6</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">large_model</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diffusion_ffhq_10m.pt&quot;</span>
+                <span class="k">elif</span> <span class="n">in_channels</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">out_channels</span> <span class="o">==</span> <span class="mi">6</span> <span class="ow">and</span> <span class="n">large_model</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diffusion_openai.pt&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;no existing pretrained model matches the requested configuration&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">get_weights_url</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;diffunet&quot;</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">ckpt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span>
+                    <span class="n">url</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">name</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ckpt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pretrained</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="k">lambda</span> <span class="n">storage</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">storage</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">ckpt</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DiffUNet.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_t</span><span class="o">=</span><span class="s2">&quot;noise_level&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the model to an input batch.</span>
+
+<span class="sd">        This function takes a noisy image and either a timestep or a noise level as input. Depending on the nature of</span>
+<span class="sd">        ``t``, the model returns either a noise map (if ``type_t=&#39;timestep&#39;``) or a denoised image (if</span>
+<span class="sd">        ``type_t=&#39;noise_level&#39;``).</span>
+
+<span class="sd">        :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.</span>
+<span class="sd">        :param torch.Tensor t: a 1-D batch of timesteps or noise levels.</span>
+<span class="sd">        :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.</span>
+<span class="sd">        :param str type_t: Nature of the embedding `t`. In traditional diffusion model, and in the authors&#39; code, `t` is</span>
+<span class="sd">                       a timestep linked to a noise level; in this case, set ``type_t=&#39;timestep&#39;``. We can also choose</span>
+<span class="sd">                       ``t`` to be a noise level directly and use the model as a denoiser; in this case, set</span>
+<span class="sd">                       ``type_t=&#39;noise_level&#39;``. Default: ``&#39;timestep&#39;``.</span>
+<span class="sd">        :return: an `(N, C, ...)` Tensor of outputs. Either a noise map (if ``type_t=&#39;timestep&#39;``) or a denoised image</span>
+<span class="sd">                    (if ``type_t=&#39;noise_level&#39;``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">520</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">520</span><span class="p">:</span>
+            <span class="n">pad</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">type_t</span> <span class="o">==</span> <span class="s2">&quot;timestep&quot;</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_diffusion</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">type_t</span> <span class="o">==</span> <span class="s2">&quot;noise_level&quot;</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_denoise</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;type_t must be either &quot;timestep&quot; or &quot;noise_level&quot;&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">pad</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="p">:,</span> <span class="n">pad</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">type_t</span><span class="o">=</span><span class="n">type_t</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.patch_forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.patch_forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">patch_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">type_t</span><span class="o">=</span><span class="s2">&quot;noise_level&quot;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.</span>
+
+<span class="sd">        :param x: Input low-quality image tensor of shape (B, C, H, W).</span>
+<span class="sd">        :param patch_size: Size of the patches to split into.</span>
+<span class="sd">        :param \*args: Additional positional arguments for the model.</span>
+<span class="sd">        :param \*\*kwargs: Additional keyword arguments for the model.</span>
+
+<span class="sd">        :return: Reconstructed image tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pad_input</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">patch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="n">patch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad_input</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">)</span>
+
+        <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># Calculate number of patches needed</span>
+        <span class="n">h_patches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">H</span> <span class="o">+</span> <span class="n">patch_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">patch_size</span><span class="p">)</span>  <span class="c1"># Ceiling division</span>
+        <span class="n">w_patches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">W</span> <span class="o">+</span> <span class="n">patch_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">patch_size</span><span class="p">)</span>
+
+        <span class="c1"># Pad image to fit exactly into patches if necessary</span>
+        <span class="n">pad_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h_patches</span> <span class="o">*</span> <span class="n">patch_size</span> <span class="o">-</span> <span class="n">H</span><span class="p">)</span>
+        <span class="n">pad_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_patches</span> <span class="o">*</span> <span class="n">patch_size</span> <span class="o">-</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">x_padded</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">pad_h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pad_w</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Process patches</span>
+        <span class="n">E_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span> <span class="o">+</span> <span class="n">pad_h</span><span class="p">,</span> <span class="n">W</span> <span class="o">+</span> <span class="n">pad_w</span><span class="p">)</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_patches</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">w_patches</span><span class="p">):</span>
+                <span class="n">h_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">patch_size</span><span class="p">)</span>
+                <span class="n">w_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="n">patch_size</span><span class="p">)</span>
+                <span class="n">patch</span> <span class="o">=</span> <span class="n">x_padded</span><span class="p">[</span>
+                    <span class="o">...</span><span class="p">,</span> <span class="n">h_start</span> <span class="p">:</span> <span class="n">h_start</span> <span class="o">+</span> <span class="n">patch_size</span><span class="p">,</span> <span class="n">w_start</span> <span class="p">:</span> <span class="n">w_start</span> <span class="o">+</span> <span class="n">patch_size</span>
+                <span class="p">]</span>
+
+                <span class="c1"># Apply model to the patch</span>
+                <span class="n">E_patch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">type_t</span><span class="o">=</span><span class="n">type_t</span><span class="p">)</span>
+
+                <span class="c1"># Place processed patch in the output tensor</span>
+                <span class="n">E_padded</span><span class="p">[</span>
+                    <span class="o">...</span><span class="p">,</span>
+                    <span class="n">h_start</span> <span class="p">:</span> <span class="p">(</span><span class="n">h_start</span> <span class="o">+</span> <span class="n">patch_size</span><span class="p">),</span>
+                    <span class="n">w_start</span> <span class="p">:</span> <span class="p">(</span><span class="n">w_start</span> <span class="o">+</span> <span class="n">patch_size</span><span class="p">),</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">E_patch</span>
+
+        <span class="c1"># Crop back to original size</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">E_padded</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">H</span><span class="p">,</span> <span class="p">:</span><span class="n">W</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">E</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">pad_input</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="p">:,</span> <span class="n">pad_input</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="p">:]</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.convert_to_fp16">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.convert_to_fp16">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_to_fp16</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the torso of the model to float16.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">middle_block</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_blocks</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f16</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.convert_to_fp32">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.convert_to_fp32">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_to_fp32</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the torso of the model to float32.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">middle_block</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_blocks</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">convert_module_to_f32</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.forward_diffusion">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward_diffusion">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward_diffusion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">timesteps</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the model to an input batch.</span>
+
+<span class="sd">        This function takes a noisy image and a timestep as input (and not a noise level) and estimates the noise map</span>
+<span class="sd">        in the input image.</span>
+<span class="sd">        The image is assumed to be in range [-1, 1] and to have dimensions with width and height divisible by a</span>
+<span class="sd">        power of 2.</span>
+
+<span class="sd">        :param x: an [N x C x ...] Tensor of inputs.</span>
+<span class="sd">        :param timesteps: a 1-D batch of timesteps.</span>
+<span class="sd">        :param y: an [N] Tensor of labels, if class-conditional. Default=None.</span>
+<span class="sd">        :return: an `(N, 2*C, ...)` Tensor of outputs, where the first C</span>
+<span class="sd">            channels are the noise estimates and the remaining C are the per-pixel</span>
+<span class="sd">            variances, as in the original implementation:</span>
+<span class="sd">            https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/gaussian_diffusion.py#L263</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">),</span> <span class="s2">&quot;must specify y if and only if the model is class-conditional&quot;</span>
+
+        <span class="n">hs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_embed</span><span class="p">(</span><span class="n">timestep_embedding</span><span class="p">(</span><span class="n">timesteps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_channels</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span>
+            <span class="n">emb</span> <span class="o">=</span> <span class="n">emb</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_emb</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_blocks</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
+            <span class="n">hs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">middle_block</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_blocks</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">h</span><span class="p">,</span> <span class="n">hs</span><span class="o">.</span><span class="n">pop</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="n">h</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.get_alpha_prod">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.get_alpha_prod">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alpha_prod</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">beta_start</span><span class="o">=</span><span class="mf">0.1</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">beta_end</span><span class="o">=</span><span class="mi">20</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">num_train_timesteps</span><span class="o">=</span><span class="mi">1000</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="n">beta_start</span><span class="p">,</span> <span class="n">beta_end</span><span class="p">,</span> <span class="n">num_train_timesteps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span>
+        <span class="c1"># .to(self.device) Removing this for now, can be done outside</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span>
+        <span class="n">alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># This is \overline{\alpha}_t</span>
+
+        <span class="c1"># Useful sequences deriving from alphas_cumprod</span>
+        <span class="n">sqrt_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_1m_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">reduced_alpha_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span> <span class="n">sqrt_alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_recip_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_recipm1_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">reduced_alpha_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recipm1_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_alphas_cumprod</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.find_nearest">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.find_nearest">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the argmin of the nearest value in a tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">array</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">value</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]))</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">idx</span></div>
+
+
+<div class="viewcode-block" id="DiffUNet.forward_denoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward_denoise">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward_denoise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the denoising model to an input batch.</span>
+
+<span class="sd">        This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless</span>
+<span class="sd">        underlying image in the input image.</span>
+<span class="sd">        The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height</span>
+<span class="sd">        divisible by a power of 2.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) \epsilon`</span>
+<span class="sd">            thus an additional rescaling by :math:`\sqrt{\alpha_t}` is performed within this function, along with</span>
+<span class="sd">            a mean shift by correction by :math:`0.5 - \sqrt{\alpha_t} 0.5`.</span>
+
+<span class="sd">        :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.</span>
+<span class="sd">        :param torch.Tensor sigma: a 1-D batch of noise levels.</span>
+<span class="sd">        :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.</span>
+<span class="sd">        :return: an `(N, C, ...)` Tensor of outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span>
+            <span class="n">sigma</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">ndim</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">alpha</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">alpha</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="p">(</span>
+            <span class="n">reduced_alpha_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recipm1_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_alphas_cumprod</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_alpha_prod</span><span class="p">()</span>
+
+        <span class="n">timesteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span>
+            <span class="n">sqrt_1m_alphas_cumprod</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">sigma</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># Factor 2 because image rescaled in [-1, 1]</span>
+
+        <span class="n">timesteps</span> <span class="o">=</span> <span class="n">timesteps</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">noise_est_sample_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_diffusion</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">timesteps</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">noise_est</span> <span class="o">=</span> <span class="n">noise_est_sample_var</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">noise_est</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">sqrt_alphas_cumprod</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)[</span>
+            <span class="n">timesteps</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="n">denoised</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">denoised</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AttentionPool2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adapted from CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">spacial_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_heads_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positional_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">th</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">spacial_dim</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">embed_dim</span><span class="o">**</span><span class="mf">0.5</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_proj</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">output_dim</span> <span class="ow">or</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">QKVAttention</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">_spatial</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># NC(HW)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># NC(HW+1)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># NC(HW+1)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TimestepBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Any module where `forward()` takes timestep embeddings as a second argument.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the module to `x` given `emb` timestep embeddings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TimestepEmbedSequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">,</span> <span class="n">TimestepBlock</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A sequential module that passes timestep embeddings to the children that</span>
+<span class="sd">    support it as an extra input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">TimestepBlock</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Upsample</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An upsampling layer with an optional convolution.</span>
+
+<span class="sd">    :param channels: channels in the inputs and outputs.</span>
+<span class="sd">    :param use_conv: a bool determining if a convolution is applied.</span>
+<span class="sd">    :param dims: determines if the signal is 1D, 2D, or 3D. If 3D, then</span>
+<span class="sd">                 upsampling occurs in the inner-two dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">use_conv</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span> <span class="ow">or</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_conv</span> <span class="o">=</span> <span class="n">use_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span>
+        <span class="k">if</span> <span class="n">use_conv</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_conv</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Downsample</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A downsampling layer with an optional convolution.</span>
+
+<span class="sd">    :param channels: channels in the inputs and outputs.</span>
+<span class="sd">    :param use_conv: a bool determining if a convolution is applied.</span>
+<span class="sd">    :param dims: determines if the signal is 1D, 2D, or 3D. If 3D, then</span>
+<span class="sd">                 downsampling occurs in the inner-two dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">use_conv</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span> <span class="ow">or</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_conv</span> <span class="o">=</span> <span class="n">use_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">dims</span> <span class="o">!=</span> <span class="mi">3</span> <span class="k">else</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_conv</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span>
+                <span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">avg_pool_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ResBlock</span><span class="p">(</span><span class="n">TimestepBlock</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A residual block that can optionally change the number of channels.</span>
+
+<span class="sd">    :param channels: the number of input channels.</span>
+<span class="sd">    :param emb_channels: the number of timestep embedding channels.</span>
+<span class="sd">    :param dropout: the rate of dropout.</span>
+<span class="sd">    :param out_channels: if specified, the number of out channels.</span>
+<span class="sd">    :param use_conv: if True and out_channels is specified, use a spatial</span>
+<span class="sd">        convolution instead of a smaller 1x1 convolution to change the</span>
+<span class="sd">        channels in the skip connection.</span>
+<span class="sd">    :param dims: determines if the signal is 1D, 2D, or 3D.</span>
+<span class="sd">    :param use_checkpoint: if True, use gradient checkpointing on this module.</span>
+<span class="sd">    :param up: if True, use this block for upsampling.</span>
+<span class="sd">    :param down: if True, use this block for downsampling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">channels</span><span class="p">,</span>
+        <span class="n">emb_channels</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">use_conv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_scale_shift_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">use_checkpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">up</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emb_channels</span> <span class="o">=</span> <span class="n">emb_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span> <span class="ow">or</span> <span class="n">channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_conv</span> <span class="o">=</span> <span class="n">use_conv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_checkpoint</span> <span class="o">=</span> <span class="n">use_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_scale_shift_norm</span> <span class="o">=</span> <span class="n">use_scale_shift_norm</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">normalization</span><span class="p">(</span><span class="n">channels</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+            <span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">updown</span> <span class="o">=</span> <span class="n">up</span> <span class="ow">or</span> <span class="n">down</span>
+
+        <span class="k">if</span> <span class="n">up</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_upd</span> <span class="o">=</span> <span class="n">Upsample</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_upd</span> <span class="o">=</span> <span class="n">Upsample</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">down</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_upd</span> <span class="o">=</span> <span class="n">Downsample</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_upd</span> <span class="o">=</span> <span class="n">Downsample</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_upd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_upd</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">emb_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+            <span class="n">linear</span><span class="p">(</span>
+                <span class="n">emb_channels</span><span class="p">,</span>
+                <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="k">if</span> <span class="n">use_scale_shift_norm</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">normalization</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">),</span>
+            <span class="n">zero_module</span><span class="p">(</span>
+                <span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">==</span> <span class="n">channels</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">use_conv</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span>
+                <span class="n">dims</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the block to a Tensor, conditioned on a timestep embedding.</span>
+
+<span class="sd">        :param torch.Tensor x: an `(N, C, ...)` Tensor of features.</span>
+<span class="sd">        :param torch.Tensor emb: an (N x emb_channels) Tensor of timestep embeddings.</span>
+<span class="sd">        :return: an `(N, C, ...)` :class:`torch.Tensor` of outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">checkpoint</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_checkpoint</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">updown</span><span class="p">:</span>
+            <span class="n">in_rest</span><span class="p">,</span> <span class="n">in_conv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_layers</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">in_rest</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_upd</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_upd</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">in_conv</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_layers</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">emb_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_layers</span><span class="p">(</span><span class="n">emb</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">emb_out</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+            <span class="n">emb_out</span> <span class="o">=</span> <span class="n">emb_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scale_shift_norm</span><span class="p">:</span>
+            <span class="n">out_norm</span><span class="p">,</span> <span class="n">out_rest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">scale</span><span class="p">,</span> <span class="n">shift</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">emb_out</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">out_norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">shift</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">out_rest</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">emb_out</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_layers</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">h</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AttentionBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An attention block that allows spatial positions to attend to each other.</span>
+
+<span class="sd">    Originally ported from here, but adapted to the N-d case.</span>
+<span class="sd">    https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0706c543/diffusion_tf/models/unet.py#L66.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">channels</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_head_channels</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">use_checkpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_new_attention_order</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+        <span class="k">if</span> <span class="n">num_head_channels</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">channels</span> <span class="o">%</span> <span class="n">num_head_channels</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;q,k,v channels </span><span class="si">{</span><span class="n">channels</span><span class="si">}</span><span class="s2"> is not divisible by num_head_channels </span><span class="si">{</span><span class="n">num_head_channels</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">channels</span> <span class="o">//</span> <span class="n">num_head_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_checkpoint</span> <span class="o">=</span> <span class="n">use_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">normalization</span><span class="p">(</span><span class="n">channels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qkv</span> <span class="o">=</span> <span class="n">conv_nd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">channels</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_new_attention_order</span><span class="p">:</span>
+            <span class="c1"># split qkv before split heads</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">QKVAttention</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># split heads before split qkv</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">QKVAttentionLegacy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj_out</span> <span class="o">=</span> <span class="n">zero_module</span><span class="p">(</span><span class="n">conv_nd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,),</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">spatial</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">qkv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qkv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">qkv</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_out</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">spatial</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">count_flops_attn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A counter for the `thop` package to count the operations in an</span>
+<span class="sd">    attention operation.</span>
+<span class="sd">    Meant to be used like:</span>
+<span class="sd">        macs, params = thop.profile(</span>
+<span class="sd">            model,</span>
+<span class="sd">            inputs=(inputs, timestamps),</span>
+<span class="sd">            custom_ops={QKVAttention: QKVAttention.count_flops},</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">spatial</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">num_spatial</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">spatial</span><span class="p">))</span>
+    <span class="c1"># We perform two matmuls with the same number of ops.</span>
+    <span class="c1"># The first computes the weight matrix, the second computes</span>
+    <span class="c1"># the combination of the value vectors.</span>
+    <span class="n">matmul_ops</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_spatial</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">c</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">total_ops</span> <span class="o">+=</span> <span class="n">th</span><span class="o">.</span><span class="n">DoubleTensor</span><span class="p">([</span><span class="n">matmul_ops</span><span class="p">])</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">QKVAttentionLegacy</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A module which performs QKV attention. Matches legacy QKVAttention + input/ouput heads shaping</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">n_heads</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qkv</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply QKV attention.</span>
+
+<span class="sd">        :param qkv: an [N x (H * 3 * C) x T] tensor of Qs, Ks, and Vs.</span>
+<span class="sd">        :return: an [N x (H * C) x T] tensor after attention.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bs</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">qkv</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">width</span> <span class="o">%</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">ch</span> <span class="o">=</span> <span class="n">width</span> <span class="o">//</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">)</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">qkv</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="n">ch</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ch</span><span class="p">))</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s2">&quot;bct,bcs-&gt;bts&quot;</span><span class="p">,</span> <span class="n">q</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">k</span> <span class="o">*</span> <span class="n">scale</span>
+        <span class="p">)</span>  <span class="c1"># More stable with f16 than dividing afterwards</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bts,bcs-&gt;bct&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count_flops</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">count_flops_attn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">QKVAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A module which performs QKV attention and splits in a different order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">n_heads</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qkv</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply QKV attention.</span>
+
+<span class="sd">        :param qkv: an [N x (3 * H * C) x T] tensor of Qs, Ks, and Vs.</span>
+<span class="sd">        :return: an [N x (H * C) x T] tensor after attention.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bs</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">qkv</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">width</span> <span class="o">%</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">ch</span> <span class="o">=</span> <span class="n">width</span> <span class="o">//</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">)</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">qkv</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ch</span><span class="p">))</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s2">&quot;bct,bcs-&gt;bts&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">length</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">length</span><span class="p">),</span>
+        <span class="p">)</span>  <span class="c1"># More stable with f16 than dividing afterwards</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;bts,bcs-&gt;bct&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">length</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">count_flops</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">count_flops_attn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Various utilities for neural networks.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">th</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+
+<span class="c1"># PyTorch 1.7 has SiLU, but we support PyTorch 1.5.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SiLU</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">th</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">GroupNorm32</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">conv_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a 1D, 2D, or 3D convolution module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv3d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported dimensions: </span><span class="si">{</span><span class="n">dims</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">linear</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a linear module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">avg_pool_nd</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a 1D, 2D, or 3D average pooling module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool1d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool3d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported dimensions: </span><span class="si">{</span><span class="n">dims</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_ema</span><span class="p">(</span><span class="n">target_params</span><span class="p">,</span> <span class="n">source_params</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="mf">0.99</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update target parameters to be closer to those of source parameters using</span>
+<span class="sd">    an exponential moving average.</span>
+
+<span class="sd">    :param target_params: the target parameter sequence.</span>
+<span class="sd">    :param source_params: the source parameter sequence.</span>
+<span class="sd">    :param rate: the EMA rate (closer to 1 means slower).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">targ</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="n">zip_strict</span><span class="p">(</span><span class="n">target_params</span><span class="p">,</span> <span class="n">source_params</span><span class="p">):</span>
+        <span class="n">targ</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="n">rate</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">rate</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">zero_module</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Zero out the parameters of a module and return it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">module</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">scale_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scale the parameters of a module and return it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">module</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mean_flat</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Take the mean over all non-batch dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">))))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalization</span><span class="p">(</span><span class="n">channels</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make a standard normalization layer.</span>
+
+<span class="sd">    :param channels: number of input channels.</span>
+<span class="sd">    :return: an nn.Module for normalization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">GroupNorm32</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">channels</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">timestep_embedding</span><span class="p">(</span><span class="n">timesteps</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">max_period</span><span class="o">=</span><span class="mi">10000</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create sinusoidal timestep embeddings.</span>
+
+<span class="sd">    :param timesteps: a 1-D Tensor of N indices, one per batch element.</span>
+<span class="sd">                      These may be fractional.</span>
+<span class="sd">    :param dim: the dimension of the output.</span>
+<span class="sd">    :param max_period: controls the minimum frequency of the embeddings.</span>
+<span class="sd">    :return: an [N x dim] Tensor of positional embeddings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">half</span> <span class="o">=</span> <span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+        <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">max_period</span><span class="p">)</span> <span class="o">*</span> <span class="n">th</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">half</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">th</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">half</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">timesteps</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">timesteps</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">*</span> <span class="n">freqs</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+    <span class="n">embedding</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">th</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">th</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">args</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dim</span> <span class="o">%</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">embedding</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">embedding</span><span class="p">,</span> <span class="n">th</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">embedding</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">])],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">embedding</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">checkpoint</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">flag</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate a function without caching intermediate activations, allowing for</span>
+<span class="sd">    reduced memory at the expense of extra compute in the backward pass.</span>
+
+<span class="sd">    :param func: the function to evaluate.</span>
+<span class="sd">    :param inputs: the argument sequence to pass to `func`.</span>
+<span class="sd">    :param params: a sequence of parameters `func` depends on but does not</span>
+<span class="sd">                   explicitly take as arguments.</span>
+<span class="sd">    :param flag: if False, disable gradient checkpointing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CheckpointFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CheckpointFunction</span><span class="p">(</span><span class="n">th</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">run_function</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">run_function</span> <span class="o">=</span> <span class="n">run_function</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">[:</span><span class="n">length</span><span class="p">])</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">length</span><span class="p">:])</span>
+        <span class="k">with</span> <span class="n">th</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run_function</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_tensors</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">output_grads</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span><span class="p">]</span>
+        <span class="k">with</span> <span class="n">th</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
+            <span class="c1"># Fixes a bug where the first op in run_function modifies the</span>
+            <span class="c1"># Tensor storage in place, which is not allowed for detach()&#39;d</span>
+            <span class="c1"># Tensors.</span>
+            <span class="n">shallow_copies</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span><span class="p">]</span>
+            <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run_function</span><span class="p">(</span><span class="o">*</span><span class="n">shallow_copies</span><span class="p">)</span>
+        <span class="n">input_grads</span> <span class="o">=</span> <span class="n">th</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+            <span class="n">output_tensors</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span> <span class="o">+</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_params</span><span class="p">,</span>
+            <span class="n">output_grads</span><span class="p">,</span>
+            <span class="n">allow_unused</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">del</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensors</span>
+        <span class="k">del</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_params</span>
+        <span class="k">del</span> <span class="n">output_tensors</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="n">input_grads</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_module_to_f16</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert primitive modules to float16.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv3d</span><span class="p">)):</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">half</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">half</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_module_to_f32</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert primitive modules to float32, undoing convert_module_to_f16().</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv3d</span><span class="p">)):</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

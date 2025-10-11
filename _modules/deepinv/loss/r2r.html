@@ -1,0 +1,757 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.loss.r2r &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/loss/r2r';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/loss/r2r.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.loss.r2r</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.loss.r2r</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss.metric.metric</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">GaussianNoise</span><span class="p">,</span> <span class="n">PoissonNoise</span><span class="p">,</span> <span class="n">GammaNoise</span>
+
+
+<div class="viewcode-block" id="R2RLoss">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">R2RLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generalized Recorrupted-to-Recorrupted (GR2R) Loss</span>
+
+<span class="sd">    This self-supervised loss can be used when the noise model is</span>
+<span class="sd">    Gaussian, Poisson, Gamma or Binomial. The GR2R loss is defined as:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y_1 \sim p(y_1 \vert y, \alpha),</span>
+
+<span class="sd">    where</span>
+
+<span class="sd">    .. list-table::</span>
+<span class="sd">       :header-rows: 1</span>
+<span class="sd">       :widths: 40 60</span>
+
+<span class="sd">       * - Noise Model</span>
+<span class="sd">         - :math:`p(y_1 \vert y,\alpha)`</span>
+<span class="sd">       * - :math:`y \sim \mathcal{N}(x, I\sigma^2)`</span>
+<span class="sd">         - :math:`y_1 = y + \sqrt{\frac{\alpha}{1-\alpha}} \boldsymbol{\omega}, \quad \boldsymbol{\omega} \sim \mathcal{N}(0, I\sigma^2)`</span>
+<span class="sd">       * - :math:`z \sim \mathcal{P}(x/\gamma), \quad y = \gamma z`</span>
+<span class="sd">         - :math:`y_1 = \frac{y - \gamma \boldsymbol{\omega}}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{Bin}(z, \alpha)`</span>
+<span class="sd">       * - :math:`y \sim \mathcal{G}(\ell, \ell / x)`</span>
+<span class="sd">         - :math:`y_1 = y \circ (\mathbf{1} - \boldsymbol{\omega}) / (1 - \alpha), \quad \boldsymbol{\omega} \sim \mathrm{Beta}(\ell\alpha, \ell(1 - \alpha))`</span>
+<span class="sd">       * - :math:`z \sim \mathrm{Bin}(\ell, x), \quad y = z / \ell`</span>
+<span class="sd">         - :math:`y_1 = \frac{y - \boldsymbol{\omega} / \ell}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{HypGeo}(\ell, \ell\alpha, z)`</span>
+
+<span class="sd">    and</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y_2 = \frac{1}{\alpha} \left( y - y_1(1-\alpha) \right),</span>
+
+<span class="sd">    then, the loss is computed as:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \| AR(y_1) - y_2 \|_2^2,</span>
+
+<span class="sd">    where, :math:`R` is the trainable network, :math:`A` is the forward operator,</span>
+<span class="sd">    :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.</span>
+
+<span class="sd">    The loss was first introduced by :footcite:t:`pang2021recorrupted`</span>
+<span class="sd">    for the specific case of Gaussian noise, formalizing the Noise2Noisier loss from :footcite:t:`moran2020noisier2noise`,</span>
+<span class="sd">    such that it is statistically equivalent to the supervised loss function defined on noisy/clean image pairs.</span>
+<span class="sd">    The loss was later extended to other exponential family noise distributions by :footcite:t:`monroy2025generalized`, including Poisson,</span>
+<span class="sd">    Gamma and Binomial noise distributions.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The model should be adapted before training using the method :meth:`adapt_model` to include the additional noise at the input.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        To obtain the best test performance, the trained model should be averaged at test time</span>
+<span class="sd">        over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})`,</span>
+<span class="sd">        where :math:`N&gt;1`. This can be achieved using :meth:`adapt_model`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If the ``noise_model`` parameter is not provided, the noise model from the physics module will be used.</span>
+
+<span class="sd">    .. deprecated:: 0.2.3</span>
+
+<span class="sd">        The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model=deepinv.physics.GaussianNoise(sigma=sigma)`` parameter instead.</span>
+
+<span class="sd">    :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.</span>
+<span class="sd">    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to None. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`</span>
+<span class="sd">    :param float alpha: Scaling factor of the corruption.</span>
+<span class="sd">    :param int eval_n_samples: Number of samples used for the Monte Carlo approximation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">    &gt;&gt;&gt; sigma = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; noise_model = dinv.physics.GaussianNoise(sigma)</span>
+<span class="sd">    &gt;&gt;&gt; physics = dinv.physics.Denoising(noise_model)</span>
+<span class="sd">    &gt;&gt;&gt; model = dinv.models.MedianFilter()</span>
+<span class="sd">    &gt;&gt;&gt; loss = dinv.loss.R2RLoss(noise_model=noise_model, eval_n_samples=2)</span>
+<span class="sd">    &gt;&gt;&gt; model = loss.adapt_model(model) # important step!</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.ones((1, 1, 8, 8))</span>
+<span class="sd">    &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">    &gt;&gt;&gt; x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass</span>
+<span class="sd">    &gt;&gt;&gt; l = loss(x_net, y, physics, model)</span>
+<span class="sd">    &gt;&gt;&gt; print(l.item() &gt; 0)</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">Metric</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">noise_model</span><span class="p">:</span> <span class="n">NoiseModel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eval_n_samples</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">R2RLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;gr2r&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span>
+
+        <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;The sigma parameter is deprecated and will be removed in future versions. &quot;</span>
+                <span class="s2">&quot;Please use the noise_model parameter instead.&quot;</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+
+<div class="viewcode-block" id="R2RLoss.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the GR2R Loss.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction model.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) R2R loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_corruption</span><span class="p">()</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">),</span> <span class="n">y2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="R2RLoss.adapt_model">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.adapt_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adapt_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds noise to model input.</span>
+
+
+<span class="sd">        This method modifies a reconstruction</span>
+<span class="sd">        model :math:`R` to include the re-corruption mechanism at the input:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \hat{R}(y) = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)}),</span>
+
+<span class="sd">        where :math:`y_1^{(i)} \sim p(y_1 \vert y, \alpha)` are i.i.d samples, and :math:`N\geq 1` are the number of samples used for the Monte Carlo approximation.</span>
+<span class="sd">        During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`</span>
+<span class="sd">        for computational efficiency, whereas at test time, we use multiple samples for better performance.</span>
+
+<span class="sd">        :param torch.nn.Module model: Reconstruction model.</span>
+<span class="sd">        :param NoiseModel noise_model: Noise model of the natural exponential family.</span>
+<span class="sd">            Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`</span>
+<span class="sd">        :param float alpha: Scaling factor of the corruption.</span>
+<span class="sd">        :return: (:class:`torch.nn.Module`) Modified model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">R2RModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">model</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">R2RModel</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_gaussian_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="n">sigma</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+    <span class="n">corruptor</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">y</span> <span class="o">+</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">corruptor</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_binomial_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="n">gamma</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="n">corruptor</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">corruptor</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_beta_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">concentration1</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">*</span> <span class="n">l</span> <span class="o">*</span> <span class="n">alpha</span>
+    <span class="n">concentration0</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">*</span> <span class="n">l</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Beta</span><span class="p">(</span><span class="n">concentration1</span><span class="p">,</span> <span class="n">concentration0</span><span class="p">)</span>
+    <span class="n">corruptor</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">corruptor</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">R2RModel</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generalized Recorrupted-to-Recorrupted (GR2R) Model</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">eval_n_samples</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">R2RModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Noise model not found in physics module. Please provide noise model in the constructor.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Noise model not found in the constructor or physics module. Please provide noise model in the constructor.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">eval_n_samples</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">corruptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">eval_n_samples</span><span class="p">):</span>
+                <span class="n">y1</span> <span class="o">=</span> <span class="n">corruptor</span><span class="p">()</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="n">update_parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">corruption</span> <span class="o">=</span> <span class="n">y1</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="n">eval_n_samples</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_corruptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="p">,</span> <span class="n">GaussianNoise</span><span class="p">):</span>
+
+            <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="o">.</span><span class="n">sigma</span>
+            <span class="k">return</span> <span class="n">set_gaussian_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="p">,</span> <span class="n">PoissonNoise</span><span class="p">):</span>
+
+            <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="o">.</span><span class="n">gain</span>
+            <span class="k">return</span> <span class="n">set_binomial_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gain</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="p">,</span> <span class="n">GammaNoise</span><span class="p">):</span>
+
+            <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="o">.</span><span class="n">l</span>
+            <span class="k">return</span> <span class="n">set_beta_corruptor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Noise model </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_noise_model</span><span class="si">}</span><span class="s2"> not supported, available options are Gaussian, Poisson and Gamma.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_corruption</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">corruption</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
