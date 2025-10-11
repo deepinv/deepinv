@@ -5,6 +5,7 @@ import copy
 from math import sqrt
 import pytest
 import warnings
+import random
 
 import torch
 import numpy as np
@@ -798,10 +799,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
+    norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -1328,12 +1329,12 @@ def test_tomography(
         assert physics.adjointness_test(x).abs() < 1e-3
 
     if normalize:
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
     if normalize is None:
         # when normalize is not set by the user, it should default to True
         assert physics.normalize is True
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
@@ -2245,3 +2246,21 @@ def test_downsampling_default_filter_depreciation():
         match="deprecated",
     ):
         _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_squared_or_non_squared_norms(seed, device):
+    random.seed(seed)
+    name = random.choice(OPERATORS)
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    rng = torch.Generator(device).manual_seed(seed)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+
+    with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
+        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"
