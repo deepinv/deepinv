@@ -60,8 +60,4 @@ jobs:
 
       - name: Run doctests
         run: |
-          uv run python -m sphinx.cmd.build \
-          -M doctest docs/source docs/build \
-          -D plot_gallery=0 \
-          -D "exclude_patterns=['*multigpu.rst', '*datasets*.rst']" \
-          -v
+          uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v

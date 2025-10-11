@@ -230,6 +230,11 @@ add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Only add extra exclusions during doctest runs
+if "doctest" in sys.argv:
+    exclude_patterns.extend(["*multigpu.rst", "*datasets*.rst"])
+
 add_module_names = True  # include the module path in the function name
 
 from sphinx_gallery import gen_rst
