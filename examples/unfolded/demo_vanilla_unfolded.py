@@ -58,8 +58,12 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = BSDS500(BASE_DIR, download=True, train=True, transform=train_transform)
-test_base_dataset = BSDS500(BASE_DIR, download=False, train=False, transform=test_transform)
+train_base_dataset = BSDS500(
+    BASE_DIR, download=True, train=True, transform=train_transform
+)
+test_base_dataset = BSDS500(
+    BASE_DIR, download=False, train=False, transform=test_transform
+)
 
 # Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
@@ -113,12 +117,14 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 # Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=False).to(device))
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-stepsize = [1.] * max_iter  # stepsize of the algorithm
-sigma_denoiser = [1.] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
-beta = 1.  # relaxation parameter of the Douglas-Rachford splitting
+stepsize = [1.0] * max_iter  # stepsize of the algorithm
+sigma_denoiser = [
+    1.0
+] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
+beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -183,7 +189,7 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     device=device,
-    early_stop=True, # set to None to disable early stopping
+    early_stop=True,  # set to None to disable early stopping
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
@@ -215,4 +221,3 @@ dinv.utils.plot(
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
 )
-
