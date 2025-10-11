@@ -48,7 +48,7 @@ class Potential(nn.Module):
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
         ).view(x.shape[0], 1)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x, *args, get_energy=False, **kwargs):
         r"""
         Calculates the gradient of the potential term :math:`h` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
@@ -62,6 +62,8 @@ class Potential(nn.Module):
             grad = torch.autograd.grad(
                 h, x, torch.ones_like(h), create_graph=True, only_inputs=True
             )[0]
+        if get_energy:
+            return h, grad
         return grad
 
     def grad_conj(self, x, *args, **kwargs):
