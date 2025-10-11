@@ -3,6 +3,7 @@ from .convolution import (
     conv_transpose2d,
     conv2d_fft,
     conv_transpose2d_fft,
+    filter_fft,
     filter_fft_2d,
     conv3d,
     conv_transpose3d,
