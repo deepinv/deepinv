@@ -169,13 +169,17 @@ def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=Non
     return out.eval()
 
 
-def test_TVs_adjoint():
+@pytest.mark.parametrize("n_spatial", [2, 3])
+def test_TVs_adjoint(n_spatial):
     r"""
     This tests the adjointness of the finite difference operator used in TV and TGV regularisation.
     """
+    spatial_dims = (20,) * n_spatial
+
+    # Test TVDenoiser nabla/nabla_adjoint
     model = dinv.models.TVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -183,9 +187,10 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
+    # Test TGVDenoiser nabla/nabla_adjoint
     model = dinv.models.TGVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -193,7 +198,8 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
-    u = torch.randn((2, 3, 20, 20, 2)).type(torch.DoubleTensor)
+    # Test TGVDenoiser epsilon/epsilon_adjoint
+    u = torch.randn((2, 3, *spatial_dims, n_spatial)).type(torch.DoubleTensor)
     Au = model.epsilon(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.epsilon_adjoint(v)
