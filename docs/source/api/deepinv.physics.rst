@@ -62,6 +62,7 @@ Operators
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
+   deepinv.physics.NearFieldMIMO
 
 
 Generators
