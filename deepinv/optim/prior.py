@@ -696,14 +696,6 @@ class L12Prior(Prior):
         z = torch.linalg.vector_norm(
             x, dim=self.l2_axis, ord=2, keepdim=True
         )  # Compute the norm
-        z2 = torch.clamp(z, min=gamma)  # Compute its max w.r.t. gamma at each point
-        z2 = torch.where(
-            z > 0, 1 - gamma / z2, 1.0
-        )  # If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
-        # Oth. z3 = 1- gamma/z2
-        z2 = torch.multiply(
-            x, z2
-        )  # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)
-        # Creating a mask to avoid diving by zero
-        # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
-        return z2
+        # 1 - gamma/max(z, gamma) = relu(z - gamma) / z, adding 1e-12 to avoid division by 0
+        z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
+        return z * x
