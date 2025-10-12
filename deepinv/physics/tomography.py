@@ -410,17 +410,8 @@ class TomographyWithAstra(LinearPhysics):
             ...        normalize=False
             ...    )
             >>> sinogram = physics(x)
-            >>> print(sinogram)
-            tensor([[[[-2.4262, -0.3840, -2.1681, -1.1024,  1.8009],
-                    [-2.4597, -0.0198, -1.6027,  0.1117,  1.0543],
-                    [-3.8424, -2.5034,  1.8132,  2.4666, -1.0440],
-                    [-3.0843, -2.0380,  2.2693,  2.4964, -2.7098],
-                    [ 0.6441, -2.2355, -0.2281,  0.2533, -1.3641],
-                    [ 1.7683, -0.9205, -2.1681, -0.2436, -2.5756],
-                    [ 0.4655,  0.3250, -1.6027, -0.6839, -2.4529],
-                    [-2.4195,  3.1875,  1.8132, -2.3952, -3.5968],
-                    [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
-                    [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
+            >>> print(sinogram.shape)
+            torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 

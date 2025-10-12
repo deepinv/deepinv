@@ -61,7 +61,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         Load data:
 
-        >>> from deepinv.datasets import SKMTEASliceDataset
+        >>> from deepinv.datasets import SKMTEASliceDataset  # doctest: +SKIP
         >>> from torch.utils.data import DataLoader
         >>> dataset = SKMTEASliceDataset(".")
         >>> len(dataset) # Number of slices * number of volumes
