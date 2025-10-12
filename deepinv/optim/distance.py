@@ -113,7 +113,7 @@ class IndicatorL2Distance(Distance):
     r"""
     Indicator of :math:`\ell_2` ball with radius :math:`r`.
 
-    The indicator function of the $\ell_2$ ball with radius :math:`r`, denoted as \iota_{\mathcal{B}_2(y,r)(x)},
+    The indicator function of the :math:`\ell_2` ball with radius :math:`r`, denoted as :math:`\iota_{\mathcal{B}_2(y,r)(x)}`,
     is defined as
 
     .. math::
@@ -168,10 +168,13 @@ class IndicatorL2Distance(Distance):
         """
         radius = self.radius if radius is None else radius
         diff = x - y
-        dist = torch.linalg.vector_norm(diff, dim=tuple(range(1, diff.dim())), ord=2)
+        dist = torch.linalg.vector_norm(
+            diff, dim=tuple(range(1, diff.dim())), ord=2, keepdim=True
+        )
+        # Compute scaling factor (1 if inside ball, r / dist if outside)
+        scale = torch.clamp(radius / (dist + 1e-12), max=1.0)
 
-        factor = torch.clamp(dist, min=radius) / (dist + 1e-12)
-        return y + diff * factor.view(-1, *([1] * (diff.dim() - 1)))
+        return y + diff * scale
 
 
 class PoissonLikelihoodDistance(Distance):

@@ -273,7 +273,9 @@ class L1Prior(Prior):
         """
         lambd = ths * gamma
         if isinstance(lambd, float):
-            return torch.nn.functional.softshrink(x, lambd=lambd)  # this is faster but not batchable on lambd.
+            return torch.nn.functional.softshrink(
+                x, lambd=lambd
+            )  # this is faster but not batchable on lambd.
         else:
             return torch.sign(x) * torch.nn.functional.relu(torch.abs(x) - lambd)
 
