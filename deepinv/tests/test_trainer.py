@@ -813,8 +813,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
             p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
         ]
         grads = torch.cat(grads)
-        norm = grads.norm()
-        norm = norm.item()
+        norm = torch.linalg.vector_norm(grads, ord=2).item()
 
         # 3. Rescale the gradients so that the gradient norm is equal to 1.0 for
         # the 1st epoch, to 2.0 for the 2nd, and so on.
