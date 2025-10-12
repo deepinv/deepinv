@@ -12,7 +12,7 @@ on:
 
 permissions:
   pull-requests: read
-  issues: read
+  issues: write
   contents: read
   actions: write  # Needed to trigger other workflows
 
