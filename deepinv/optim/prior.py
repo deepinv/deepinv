@@ -271,7 +271,11 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        return torch.nn.functional.softshrink(x, lambd=ths * gamma)
+        lambd = ths * gamma
+        if isinstance(lambd, float):
+            return torch.nn.functional.softshrink(x, lambd=lambd)  # this is faster but not batchable on lambd.
+        else:
+            return torch.sign(x) * torch.nn.functional.relu(torch.abs(x) - lambd)
 
 
 class WaveletPrior(Prior):
@@ -682,7 +686,7 @@ class L12Prior(Prior):
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x
+            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{\mathrm{max}(\Vert x \Vert_2,\gamma)}) x
 
 
         where :math:`\gamma` is a stepsize.
