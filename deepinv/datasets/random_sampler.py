@@ -93,10 +93,12 @@ class RandomPatchSampler(ImageDataset):
                         f"Directory {d} is given but empty for file format {file_format}."
                     )
 
-        self.imgs = list(
-            sorted(set(imgs[0]) & set(imgs[1]))
-            if (imgs[0] and imgs[1])
-            else (imgs[0] or imgs[1])
+        self.imgs = sorted(
+            list(
+                (set(imgs[0]) & set(imgs[1]))
+                if (imgs[0] and imgs[1])
+                else (imgs[0] or imgs[1])
+            )
         )
 
         if len(self.imgs) == 0:
