@@ -74,7 +74,7 @@ class RandomPatchSampler(ImageDataset):
             for i, p in enumerate(patch_size):
                 if not isinstance(p, int):
                     raise TypeError(
-                        f"patch_size must be int or tuple of ints, got {type(patch_size)}"
+                        f"patch_size must be int or tuple of ints, got {type(p)} at index {i}"
                     )
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
