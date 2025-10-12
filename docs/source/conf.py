@@ -233,7 +233,9 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Only add extra exclusions during doctest runs
 if os.environ.get("SPHINX_DOCTEST") == "1":
-    exclude_patterns.extend(["*multigpu.rst", "user_guide/training/datasets.rst"])
+    exclude_patterns.extend(
+        ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
+    )
 
 add_module_names = True  # include the module path in the function name
 
