@@ -30,13 +30,14 @@ class LPIPS(Metric):
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
+    :param bool as_loss: if True, returns LPIPS as a loss. Default: False.
     """
 
-    def __init__(self, device="cpu", check_input_range=False, **kwargs):
+    def __init__(self, device="cpu", check_input_range=False, as_loss=False, **kwargs):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.lpips = pyiqa.create_metric(
-            "lpips", check_input_range=check_input_range, device=device
+            "lpips", check_input_range=check_input_range, device=device, as_loss=as_loss
         ).to(device)
         self.lower_better = self.lpips.lower_better
 
