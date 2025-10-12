@@ -99,7 +99,7 @@ class RandomPatchSampler(ImageDataset):
         if len(self.imgs) == 0:
             raise RuntimeError("No (shared) images available.")
 
-        self._set_shapes()
+        self.shapes = self._get_shapes()
 
     def __len__(self) -> int:
         return len(self.imgs)
@@ -144,9 +144,9 @@ class RandomPatchSampler(ImageDataset):
             v = v.permute(nd - 1, *range(nd - 1)).contiguous()
         return v.squeeze(dim=tuple(i for i, p in enumerate(self.patch_size) if p == 1))
 
-    def _set_shapes(self):
+    def _get_shapes(self):
         ndim = None
-        self.shapes = []
+        shapes = []
         n_ch = None
         for im in self.imgs:
             if self.y_dir and self.x_dir:
@@ -182,19 +182,23 @@ class RandomPatchSampler(ImageDataset):
                     self.patch_size
                 )  # self.patch_size should not change from now.
 
-            assert (
-                len(shape) == ndim
-            ), f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
-            assert all(
+            if not len(shape) == ndim:
+                raise RuntimeError(
+                    f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
+                )
+            if not all(
                 s >= p if p is not None else True
                 for s, p in zip(shape, self.patch_size)
-            )
-            if n_ch:
-                assert (
-                    shape[self.ch_ax] == n_ch
-                ), f"Not all images have the same ch shape. Current shape: {shape}. Please check your data shapes + Dataset args."
-            self.shapes.append(shape)
-        self.shapes = tuple(self.shapes)  # avoid mutable members
+            ):
+                raise RuntimeError(
+                    f"Patch size {self.patch_size} is too large for image {im} with shape {shape}"
+                )
+            if n_ch and shape[self.ch_ax] != n_ch:
+                raise RuntimeError(
+                    f"Not all images have the same number of channels. Current shape: {shape} for image {im}. Please check your data shapes + Dataset args."
+                )
+            shapes.append(shape)
+        return tuple(shapes)
 
     def _set_load(self, file_format: str):
         if file_format.endswith(".npy"):
