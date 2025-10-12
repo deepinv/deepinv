@@ -20,7 +20,10 @@ class NoiseModel(nn.Module):
     def __init__(self, noise_model: Callable = None, rng: torch.Generator = None):
         super().__init__()
         if noise_model is None:
-            noise_model = lambda x: x
+
+            def noise_model(x):
+                return x
+
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
@@ -54,7 +57,10 @@ class NoiseModel(nn.Module):
         :return: (deepinv.physics.NoiseModel) concatenated operator
 
         """
-        noise_model = lambda x: self.noise_model(other.noise_model(x))
+
+        def noise_model(x):
+            return self.noise_model(other.noise_model(x))
+
         return NoiseModel(
             noise_model=noise_model,
             rng=self.rng,

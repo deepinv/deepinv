@@ -662,7 +662,7 @@ class Trainer:
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+            logs["TotalLoss"] = meters.avg
         else:  # TODO question: what do we want to do at test time?
             loss_total = 0
 
@@ -1233,7 +1233,7 @@ class Trainer:
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
-            progress_bar.set_description(f"Test")
+            progress_bar.set_description("Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
         self.wandb_vis, self.log_train_batch = aux

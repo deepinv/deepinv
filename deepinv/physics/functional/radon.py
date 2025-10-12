@@ -3,10 +3,13 @@ from torch import nn
 import torch.nn.functional as F
 
 if torch.__version__ > "1.2.0":
-    affine_grid = lambda theta, size: F.affine_grid(theta, size, align_corners=True)
-    grid_sample = lambda input, grid, mode="bilinear": F.grid_sample(
-        input, grid, align_corners=True, mode=mode
-    )
+
+    def affine_grid(theta, size):
+        return F.affine_grid(theta, size, align_corners=True)
+
+    def grid_sample(input, grid, mode="bilinear"):
+        return F.grid_sample(input, grid, align_corners=True, mode=mode)
+
 else:
     affine_grid = F.affine_grid
     grid_sample = F.grid_sample
@@ -219,18 +222,18 @@ class Radon(nn.Module):
         if fan_beam:
             if self.fan_parameters is None:
                 self.fan_parameters = {}
-            if not "pixel_spacing" in self.fan_parameters.keys():
+            if "pixel_spacing" not in self.fan_parameters.keys():
                 assert (
-                    not in_size is None
+                    in_size is not None
                 ), "Either input size or pixel spacing have to be given"
                 self.fan_parameters["pixel_spacing"] = 0.5 / in_size
-            if not "source_radius" in self.fan_parameters.keys():
+            if "source_radius" not in self.fan_parameters.keys():
                 self.fan_parameters["source_radius"] = 57.5
-            if not "detector_radius" in self.fan_parameters.keys():
+            if "detector_radius" not in self.fan_parameters.keys():
                 self.fan_parameters["detector_radius"] = 57.5
-            if not "n_detector_pixels" in self.fan_parameters.keys():
+            if "n_detector_pixels" not in self.fan_parameters.keys():
                 self.fan_parameters["n_detector_pixels"] = 258
-            if not "detector_spacing" in self.fan_parameters.keys():
+            if "detector_spacing" not in self.fan_parameters.keys():
                 self.fan_parameters["detector_spacing"] = 0.077
         self.all_grids = None
         if in_size is not None:
@@ -381,11 +384,14 @@ class IRadon(nn.Module):
                 self.all_grids_par = torch.cat(
                     [self.all_grids[i] for i in range(len(self.theta))], 2
                 )
-        self.filter = (
-            RampFilter(dtype=self.dtype, device=self.device)
-            if use_filter
-            else lambda x: x
-        )
+        if use_filter:
+            self.filter = RampFilter(dtype=self.dtype, device=self.device)
+        else:
+
+            def identity_filter(x):
+                return x
+
+            self.filter = identity_filter
 
     def forward(self, x, filtering=True):
         r"""

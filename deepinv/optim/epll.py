@@ -215,6 +215,9 @@ class EPLL(nn.Module):
 
         # Image estimation by CG method
         rhs = Aty + beta * sigma_sq * x_tilde_flattened.view(x.shape)
-        op = lambda im: physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
+
+        def op(im):
+            return physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
+
         hat_x = conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
         return hat_x

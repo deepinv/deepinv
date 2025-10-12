@@ -130,7 +130,7 @@ class LsdirHR(ImageFolder):
         # download a split of the dataset, we check first that this split isn't already downloaded
         if download:
             raise ValueError(
-                f"""The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.\n
+                """The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.\n
                     Thus the download argument isn't working for now."""
             )
             if not os.path.isdir(self.root):

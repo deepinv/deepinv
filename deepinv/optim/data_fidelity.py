@@ -498,8 +498,12 @@ if __name__ == "__main__":
 
     # create a measurement operator dxd
     A = torch.Tensor([[2, 0], [0, 0.5]])
-    A_forward = lambda v: torch.matmul(A, v)
-    A_adjoint = lambda v: torch.matmul(A.transpose(0, 1), v)
+
+    def A_forward(v):
+        return torch.matmul(A, v)
+
+    def A_adjoint(v):
+        return torch.matmul(A.transpose(0, 1), v)
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)

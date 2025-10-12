@@ -1,4 +1,5 @@
-import shutil, os
+import shutil
+import os
 import math
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
@@ -516,9 +517,10 @@ def download_lsdir():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        mocker = lambda p: (
-            [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
-        )
+
+        def mocker(p):
+            return [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
+
         with (
             # Only patch globbing pngs
             patch.object(Path, "glob", side_effect=mocker),

@@ -353,10 +353,10 @@ adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 
 # sphinx_gallery_multi_image = "single"
 denoiser_results = {
-    f"Original": image,
-    f"Noisy": noisy_image,
-    f"DnCNN": dncnn(noisy_image, sigma),
-    f"DnCNN (adapted)": adapted_dncnn(noisy_image, sigma),
+    "Original": image,
+    "Noisy": noisy_image,
+    "DnCNN": dncnn(noisy_image, sigma),
+    "DnCNN (adapted)": adapted_dncnn(noisy_image, sigma),
 }
 show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
@@ -364,8 +364,8 @@ denoiser_results = {
     # Skipping SwinIR on CI due to high memory usage
     # f"SwinIR": swinir(noisy_image, sigma),
     # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
-    f"DRUNet": drunet(noisy_image, sigma),
-    f"SCUNet": scunet(noisy_image, sigma),
+    "DRUNet": drunet(noisy_image, sigma),
+    "SCUNet": scunet(noisy_image, sigma),
 }
 show_image_comparison(
     denoiser_results, ref=image, suptitle=rf"Noise level $\sigma={sigma:.2f}$"

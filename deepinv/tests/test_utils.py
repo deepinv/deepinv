@@ -488,7 +488,7 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             # nvidia-smi -q -d Memory | grep -A5 GPU | grep Free
             mock_subprocess_run.return_value.stdout = "\n".join(
                 [
-                    f"Free : 1 MiB" if idx == freer_gpu_index else "Free : 0 MiB"
+                    "Free : 1 MiB" if idx == freer_gpu_index else "Free : 0 MiB"
                     for idx in range(n_gpus)
                 ]
             )

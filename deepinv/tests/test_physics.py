@@ -865,14 +865,19 @@ def test_decomposable(name, device, rng):
     if isinstance(physics, dinv.physics.DecomposablePhysics):
         x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
-        proj = lambda u: physics.V(physics.V_adjoint(u))
+        def proj(u):
+            return physics.A_adjoint(physics.A(u))
+
         r = proj(x)  # project
         assert (
             torch.linalg.vector_norm(proj(r) - r) / torch.linalg.vector_norm(r) < 1e-3
         )
 
         y = physics.A(x)
-        proj = lambda u: physics.U(physics.U_adjoint(u))
+
+        def proj(u):
+            return physics.U(physics.U_adjoint(u))
+
         r = proj(y)
         assert (
             torch.linalg.vector_norm(proj(r) - r) / torch.linalg.vector_norm(r) < 1e-3
@@ -1091,7 +1096,10 @@ def test_phase_retrieval_Avjp(device):
     x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
     physics = dinv.physics.RandomPhaseRetrieval(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -1115,7 +1123,10 @@ def test_linear_physics_Avjp(device, rng):
     )
     physics = dinv.physics.CompressedSensing(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -1943,7 +1954,7 @@ def test_clone(name, device):
         with torch.no_grad():
             param.fill_(0)
             param_clone.fill_(1)
-        assert not torch.allclose(param, param_clone), f"Expected different values"
+        assert not torch.allclose(param, param_clone), "Expected different values"
 
     # Check buffers
     buffer_names = set(name for name, _ in physics.named_buffers())
@@ -1963,7 +1974,7 @@ def test_clone(name, device):
         # Check that changing one buffer does not change the other
         buffer.fill_(0)
         buffer_clone.fill_(1)
-        assert not torch.allclose(buffer, buffer_clone), f"Expected different values"
+        assert not torch.allclose(buffer, buffer_clone), "Expected different values"
 
     # Test that RNGs have been cloned successfully
     rng = getattr(physics, "rng", None)

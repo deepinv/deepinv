@@ -176,14 +176,20 @@ def set_gaussian_corruptor(y, alpha, sigma):
     mu = torch.ones_like(y) * 0.0
     sigma = torch.ones_like(y) * sigma
     sampler = torch.distributions.Normal(mu, sigma)
-    corruptor = lambda: y + sampler.sample() * (math.sqrt(alpha / (1 - alpha)))
+
+    def corruptor():
+        return y + sampler.sample() * (math.sqrt(alpha / (1 - alpha)))
+
     return corruptor
 
 
 def set_binomial_corruptor(y, alpha, gamma):
     z = y / gamma
     sampler = torch.distributions.Binomial(torch.round(z), alpha)
-    corruptor = lambda: gamma * (z - sampler.sample()) / (1 - alpha)
+
+    def corruptor():
+        return gamma * (z - sampler.sample()) / (1 - alpha)
+
     return corruptor
 
 
@@ -192,7 +198,10 @@ def set_beta_corruptor(y, alpha, l):
     concentration1 = tmp * l * alpha
     concentration0 = tmp * l * (1 - alpha)
     sampler = torch.distributions.Beta(concentration1, concentration0)
-    corruptor = lambda: y * (1 - sampler.sample()) / (1 - alpha)
+
+    def corruptor():
+        return y * (1 - sampler.sample()) / (1 - alpha)
+
     return corruptor
 
 

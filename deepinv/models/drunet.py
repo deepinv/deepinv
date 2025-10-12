@@ -329,7 +329,7 @@ def conv(
         elif t == "A":
             L.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=0))
         else:
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError("Undefined type: ".format())
     return sequential(*L)
 
 

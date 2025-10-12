@@ -492,7 +492,7 @@ class Ptychography(PhaseRetrieval):
         self.device = device
         self.img_size = img_size
         super().__init__(B, **kwargs)
-        self.name = f"Ptychography_PR"
+        self.name = "Ptychography_PR"
         self.to(device)
 
 

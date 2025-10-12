@@ -244,7 +244,7 @@ class AdversarialTrainer(Trainer):
             )
             current_log.update(loss_total.item())
 
-            logs[f"TotalLoss"] = current_log.avg
+            logs["TotalLoss"] = current_log.avg
         else:
             loss_total = 0
 

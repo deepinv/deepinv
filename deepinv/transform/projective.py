@@ -231,7 +231,8 @@ class Homography(Transform):
     def _get_params(self, x: torch.Tensor) -> dict:
         H, W = x.shape[-2:]
 
-        Reciprocal = lambda p: TransformParam(p, neg=lambda x: 1 / x)
+        def Reciprocal(p):
+            return TransformParam(p, neg=lambda x: 1 / x)
 
         return {
             "theta_x": self.rand(self.theta_max),

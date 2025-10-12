@@ -70,16 +70,28 @@ class Metric(Module):
         self.train_loss = train_loss
         self.complex_abs = complex_abs  # NOTE assumes C in dim=1
         self._metric = metric
-        normalizer = lambda x: x
+
+        def normalizer(x):
+            return x
+
         if norm_inputs is not None:
             if not isinstance(norm_inputs, str):
                 raise ValueError("norm_inputs must be str or None.")
             elif norm_inputs.lower() == "min_max":
-                normalizer = lambda x: normalize_signal(x, mode="min_max")
+
+                def normalizer(x):
+                    return normalize_signal(x, mode="min_max")
+
             elif norm_inputs.lower() == "clip":
-                normalizer = lambda x: normalize_signal(x, mode="clip")
+
+                def normalizer(x):
+                    return normalize_signal(x, mode="clip")
+
             elif norm_inputs.lower() == "l2":
-                normalizer = lambda x: x / norm(x)
+
+                def normalizer(x):
+                    return x / norm(x)
+
             elif norm_inputs.lower() == "standardize":
                 pass
             elif norm_inputs.lower() == "none":

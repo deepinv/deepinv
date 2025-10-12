@@ -1,6 +1,9 @@
 from __future__ import annotations
 from typing import Union, Callable, TYPE_CHECKING
-import os, shutil, zipfile, requests
+import os
+import shutil
+import zipfile
+import requests
 from io import BytesIO
 
 from pathlib import Path

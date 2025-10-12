@@ -428,7 +428,8 @@ def test_measplit(device, loss_name, rng):
     y = physics(x)
 
     # Dummy metric to get both outputs before metric
-    test_metric = lambda x, y: torch.stack([x, y])
+    def test_metric(x, y):
+        return x, y
 
     if loss_name == "n2n":
         loss = dinv.loss.Neighbor2Neighbor()
@@ -544,10 +545,15 @@ def test_measplit_masking(mode, img_size, split_ratio):
 
     if mode == "test_split_y":
         model = DummyModel()
-        dummy_metric = lambda y2_hat, y2: y2 * y2.mean()
+
+        def dummy_metric(y2_hat, y2):
+            return y2 * y2.mean()
+
     elif mode == "test_split_physics":
         model = DummyModel2()
-        dummy_metric = lambda y2_hat, y2: y2_hat * y2.mean()
+
+        def dummy_metric(y2_hat, y2):
+            return y2_hat * y2.mean()
 
     physics = dinv.physics.Inpainting(
         img_size,

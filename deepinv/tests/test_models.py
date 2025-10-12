@@ -1170,7 +1170,7 @@ def test_client_mocked(return_metadata):
         # Verify request payload structure
         called_args, called_kwargs = post.call_args
         assert called_args[0] == "http://example.com"
-        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+        assert called_kwargs["headers"]["Authorization"] == "Bearer test_key"
 
         sent_payload = json.loads(called_kwargs["data"])
         assert "input" in sent_payload

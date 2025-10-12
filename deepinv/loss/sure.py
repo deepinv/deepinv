@@ -183,7 +183,10 @@ class SureGaussianLoss(Loss):
         """
 
         if self.metric == "A_dagger":
-            metric = lambda x: physics.A_dagger(x)
+
+            def metric(x):
+                return physics.A_dagger(x)
+
         else:
             metric = self.metric
 

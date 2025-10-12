@@ -889,10 +889,10 @@ class DecomposablePhysics(LinearPhysics):
         super().__init__(**kwargs)
 
         assert not (
-            U is None and not (U_adjoint is None)
+            U is None and U_adjoint is not None
         ), "U must be provided if U_adjoint is provided."
         assert not (
-            V_adjoint is None and not (V is None)
+            V_adjoint is None and V is not None
         ), "V_adjoint must be provided if V is provided."
 
         # set to identity if not provided

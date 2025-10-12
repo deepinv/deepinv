@@ -110,24 +110,47 @@ def least_squares(
         overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
         if complete and (solver == "BiCGStab" or solver == "minres"):
-            H = lambda x: A(x)
+
+            def h(x):
+                return A(x)
+
+            H = h
             b = y
         else:
             if AAT is None:
-                AAT = lambda x: A(AT(x))
-            if ATA is None:
-                ATA = lambda x: AT(A(x))
 
+                def aat(x):
+                    return A(AT(x))
+
+                AAT = aat
+            if ATA is None:
+
+                def ata(x):
+                    return AT(A(x))
+
+                ATA = ata
             if gamma is not None:
                 b = AT(y) + 1 / gamma * z
-                H = lambda x: ATA(x) + 1 / gamma * x
+
+                def h(x):
+                    return ATA(x) + 1 / gamma * x
+
+                H = h
                 overcomplete = False
             else:
                 if not overcomplete:
-                    H = lambda x: AAT(x)
+
+                    def h(x):
+                        return AAT(x)
+
+                    H = h
                     b = y
                 else:
-                    H = lambda x: ATA(x)
+
+                    def h(x):
+                        return ATA(x)
+
+                    H = h
                     b = Aty
 
         if solver == "CG":
