@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
+import torch
+import torch.nn.functional as F
+
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
@@ -10,8 +13,9 @@ from deepinv.optim.distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
+
 from deepinv.optim.potential import Potential
-import torch
+from deepinv.physics.functional import dct_2d, idct_2d
 
 
 if TYPE_CHECKING:
@@ -304,6 +308,237 @@ class L2(DataFidelity):
         return physics.prox_l2(x, y, self.norm * gamma)
 
 
+class ItohFidelity(L2):
+    r"""
+    Itoh data-fidelity term for spatial unwrapping problems.
+
+    This class implements a data-fidelity term based on the :math:`\ell_2` norm, but applied to the spatial finite differences of the variable and the wrapped differences of the data.
+    This is based on the Itoh condition for phase unwrapping :footcite:p:`itoh1982analysis`.
+    It is designed to be used in conjunction with the :class:`deepinv.physics.SpatialUnwrapping` class for spatial unwrapping tasks.
+
+    The data-fidelity term is defined as:
+
+    .. math::
+
+        f(x,y) = \frac{1}{2\sigma^2} \| D x - w_{t}(Dy) \|^2
+
+    where :math:`D` denotes the spatial finite differences operator, :math:`w_t` denotes the wrapping operator, and :math:`\sigma` denotes the noise level.
+
+    :param float sigma: Standard deviation of the noise to be used as a normalisation factor.
+    :param float threshold: Threshold value :math:`t` used in the wrapping operator (default: 1.0).
+
+    |sep|
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
+        >>> from deepinv.optim.data_fidelity import ItohFidelity
+        >>> x = torch.ones(1, 1, 3, 3)
+        >>> y = x
+        >>> physics = SpatialUnwrapping(threshold=1.0, mode="round")
+        >>> fidelity = ItohFidelity(sigma=1.0)
+        >>> f = fidelity(x, y, physics)
+        >>> print(f)
+        tensor([0.])
+
+    """
+
+    def __init__(self, sigma=1.0, threshold=1.0):
+        super().__init__()
+
+        self.d = L2Distance(sigma=sigma)
+        self.norm = 1 / (sigma**2)
+        self.modulo_round = lambda x: x - threshold * torch.round(x / threshold)
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        r"""
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{Dx}{w_{t}(Dy)}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
+        """
+
+        # local import to avoid circular imports between optim and physics
+        from deepinv.physics.spatial_unwrapping import SpatialUnwrapping
+
+        if not isinstance(physics, SpatialUnwrapping):
+            raise ValueError(
+                "ItohFidelity is designed to be used with SpatialUnwrapping physics."
+            )
+
+        Dx = self.D(x)
+        WDy = self.WD(y)
+        return super().fn(Dx, WDy, physics, *args, **kwargs)
+
+    def grad(self, x, y, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{Dx}{w_{t}(Dy)} = \left. \frac{\partial D}{\partial x} \right|_x^\top \nabla_u \distance{u}{w_{t}(Dy)},
+
+        where :math:`\left. \frac{\partial D}{\partial x} \right|_x` is the Jacobian of :math:`D` at :math:`x`, and :math:`\nabla_u \distance{u}{w_{t}(Dy)}` is computed using ``grad_d`` with :math:`u = Dx`. The multiplication is computed using the :func:`D_adjoint <deepinv.optim.ItohFidelity.D_adjoint>` method of the class.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
+        WDy = self.WD(y)
+        return self.D_adjoint(self.d.grad(self.D(x), WDy, *args, **kwargs))
+
+    def grad_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the gradient :math:`\nabla_u\distance{u}{w_{t}(Dy)}`, computed in :math:`u`.
+
+        Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
+        specific distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+        """
+        WDy = self.WD(y)
+        return self.d.grad(u, WDy, *args, **kwargs)
+
+    def prox_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{w_{t}(Dy)}}(u)`, computed at :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
+        specific distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+        """
+        WDy = self.WD(y)
+        return self.d.prox(u, WDy, *args, **kwargs)
+
+    def D(self, x, **kwargs):
+        r"""
+        Apply spatial finite differences to the input tensor.
+
+        Computes the horizontal and vertical finite differences of the input tensor `x`
+        using first-order differences along the last two spatial dimensions. The result
+        is a tensor containing both the horizontal and vertical gradients stacked along
+        a new dimension.
+
+        :param torch.Tensor x: Input tensor of shape (..., H, W), where H and W are spatial dimensions.
+        :return: (:class:`torch.Tensor`) of shape (..., H, W, 2), where the last dimension contains
+            the horizontal and vertical finite differences, respectively.
+        """
+
+        Dh_x = F.pad(torch.diff(x, 1, dim=-1), (0, 1))
+        Dv_x = F.pad(torch.diff(x, 1, dim=-2), (0, 0, 0, 1))
+        out = torch.stack((Dh_x, Dv_x), dim=-1)
+        return out
+
+    def D_adjoint(self, x, **kwargs):
+        r"""
+        Applies the adjoint (transpose) of the spatial finite difference operator to the input tensor.
+
+        This function computes the adjoint operation corresponding to spatial finite differences,
+        typically used in image processing and variational optimization problems. The input `x`
+        is expected to have its last dimension of size 2, representing the horizontal and vertical
+        finite differences :math:`(D_h x, D_v x)`.
+
+        :param torch.Tensor x: Input tensor of shape (..., 2), where the last dimension contains
+            the horizontal and vertical finite differences.
+
+        :return: (:class:`torch.Tensor`) The result of applying the adjoint finite difference operator, with the
+            same shape as the input except for the last dimension (which is removed).
+        """
+
+        Dh_x, Dv_x = torch.unbind(x, dim=-1)
+        rho = -(
+            torch.diff(F.pad(Dh_x, (1, 0)), 1, dim=-1)
+            + torch.diff(F.pad(Dv_x, (0, 0, 1, 0)), 1, dim=-2)
+        )
+        return rho
+
+    def D_dagger(self, y, **kwargs):
+        # fast initialization using DCT
+        return self.prox(None, y, physics=None, gamma=None)
+
+    def WD(self, x, **kwargs):
+        r"""
+        Applies spatial finite differences to the input and wraps the result.
+
+        This method computes the spatial finite differences of the input tensor :math:`x` using the :math:`D` operator,
+        then applies modular rounding to the result. This is typically used in
+        applications where periodic boundary conditions or phase wrapping are required.
+
+        :param torch.Tensor x: Input tensor to which the spatial finite differences and wrapping are applied.
+        :return: (:class:`torch.Tensor`) The wrapped finite differences of the input tensor.
+        """
+
+        Dx = self.D(x)
+        WDx = self.modulo_round(Dx)
+        return WDx
+
+    def prox(self, x, y, physics=None, *args, gamma=1.0, **kwargs):
+        r"""
+        Proximal operator of :math:`\gamma \datafid{x}{y}`
+
+        Compute the proximal operator of the fidelity term :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
+
+        these can be computed using DCT with the close-form solution of :footcite:t:`ramirez2024phase` as follows
+
+        .. math::
+            \hat{x}_{i,j} = \texttt{DCT}^{-1}\left(
+            \frac{\texttt{DCT}(D^{\top}w_t(Dy) + \frac{\rho}{2} z)_{i,j}}
+            { \frac{\rho}{2} + 4 - (2\cos(\pi i / M) + 2\cos(\pi j / N))}
+            \right)
+
+        where :math:`D` is the finite difference operator and :math:`\texttt{DCT}` is the discrete cosine transform.
+        """
+
+        psi = self.D_adjoint(self.WD(y))
+
+        if x is not None:
+            psi = psi + (gamma / 2) * x
+
+        NX, MX = psi.shape[-1], psi.shape[-2]
+        I, J = torch.meshgrid(torch.arange(0, MX), torch.arange(0, NX), indexing="ij")
+        I, J = I.to(psi.device), J.to(psi.device)
+
+        I, J = I.unsqueeze(0).unsqueeze(0), J.unsqueeze(0).unsqueeze(0)
+
+        if x is None:
+            denom = 2 * (
+                2 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+            )
+        else:
+            denom = 2 * (
+                (gamma / 4)
+                + 2
+                - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+            )
+
+        dct_psi = dct_2d(psi, norm="ortho")
+
+        denom = denom.to(psi.device)
+        denom[..., 0, 0] = 1  # avoid division by zero
+
+        dct_phi = dct_psi / denom
+
+        phi = idct_2d(dct_phi, norm="ortho")
+
+        return phi
+
+
 class IndicatorL2(DataFidelity):
     r"""
     Data-fidelity as the indicator of :math:`\ell_2` ball with radius :math:`r`.
@@ -363,7 +598,7 @@ class IndicatorL2(DataFidelity):
         if physics.A(x).shape == x.shape and (physics.A(x) == x).all():  # Identity case
             return self.d.prox(x, y, gamma=None, radius=radius)
         else:
-            norm_AtA = physics.compute_norm(x, verbose=False)
+            norm_AtA = physics.compute_sqnorm(x, verbose=False)
             stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
             u = physics.A(x)
             for it in range(max_iter):
@@ -458,7 +693,7 @@ class L1(DataFidelity):
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
-        norm_AtA = physics.compute_norm(x)
+        norm_AtA = physics.compute_sqnorm(x)
         stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
         u = x.clone()
         for it in range(max_iter):
