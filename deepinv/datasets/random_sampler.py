@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Callable, Any
 import os
 from pathlib import Path
 
@@ -10,7 +11,7 @@ class RandomPatchSampler(ImageDataset):
     r"""
     Dataset for nD images that samples one random patch per image.
 
-    This dataset builds from one or two directories of nD images (`.npy`, `.nii(.gz)`, or `.b2nd`).
+    This dataset builds from one or two directories of nD images (must be of format ``.npy``, ``.nii(.gz)`, or ``.b2nd``, if ``loader`` is not specified).
     On each epoch, it returns a randomly sampled patch of fixed size from each volume.
 
     .. warning::
@@ -51,6 +52,7 @@ class RandomPatchSampler(ImageDataset):
         file_format: str = ".npy",
         ch_axis: int = None,
         dtype: torch.dtype = torch.float32,
+        loader: Callable[[str | Path, bool], Any] = None,
     ):
         r"""
         :param str, optional x_dir: Path to folder of ground-truth images. Required if ``y_dir`` is not given.
@@ -59,6 +61,7 @@ class RandomPatchSampler(ImageDataset):
         :param str file_format : File format to load. Other files are ignored.
         :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
         :param torch.dtype dtype: Data type to use when loading the images.
+        :param Callable loader: Custom loader function. Must accept path and the keyword ``as_memmap``, which will always be set to True. Must return an object that has shape attribute and returns a ``np.ndarray`` when sliced. If None, an internal loader is chosen based on ``file_format``.
         """
         if not (x_dir or y_dir):
             raise RuntimeError("Provide at least one of x_dir or y_dir.")
@@ -76,7 +79,7 @@ class RandomPatchSampler(ImageDataset):
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
         self.dtype = dtype
-        self._set_load(file_format)
+        self._load = self._get_load(file_format) if loader is None else loader
 
         imgs = [None, None]  # x_imgs, y_imgs
 
@@ -200,19 +203,19 @@ class RandomPatchSampler(ImageDataset):
             shapes.append(shape)
         return tuple(shapes)
 
-    def _set_load(self, file_format: str):
+    def _get_loader(self, file_format: str):
         if file_format.endswith(".npy"):
             from deepinv.utils.io_utils import load_np
 
-            self._load = load_np
+            return load_np
         elif file_format.endswith(".nii") or file_format.endswith(".nii.gz"):
             from deepinv.utils.io_utils import load_nifti
 
-            self._load = load_nifti
+            return load_nifti
         elif file_format.endswith(".b2nd"):
             from deepinv.utils.io_utils import load_blosc2
 
-            self._load = load_blosc2
+            return load_blosc2
         else:
             raise NotImplementedError(
                 f"No loader function for images with extension {file_format}"
