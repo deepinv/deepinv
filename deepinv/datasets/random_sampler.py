@@ -79,7 +79,7 @@ class RandomPatchSampler(ImageDataset):
         self.x_dir, self.y_dir = x_dir, y_dir
         self.patch_size, self.ch_ax = patch_size, ch_axis
         self.dtype = dtype
-        self._load = self._get_load(file_format) if loader is None else loader
+        self._load = self._get_loader(file_format) if loader is None else loader
 
         imgs = [None, None]  # x_imgs, y_imgs
 
