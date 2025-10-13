@@ -198,13 +198,13 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         h(\theta) = \left| \mathcal{F} \left( \exp \left( - i 2 \pi \phi_\theta \right) \right) \right|^2,
 
-    where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}` is defined as:
+    where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}`  is the phase aberration expressed in the Zernike basis:
 
     .. math::
         \phi_\theta= \sum_{k \in K} \theta_k z_k
 
-    is the phase aberration expressed in the Zernike basis, :math:`K` is set of indices of Zernike polynomials used in the decomposition (equal to `zernike_index`).
-    See :footcite:t:`lakshminarayanan2011zernike` for more details.
+    where :math:`K` is set of indices of Zernike polynomials :math:`z_k` used in the decomposition (equal to `zernike_index`).
+    See :footcite:t:`lakshminarayanan2011zernike` for more details
     (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
 
     The Zernike polynomials :math:`z_k` are indexed using the ``'noll'`` or ``'ansi'`` convention (defined by `index_convention` parameter).
@@ -212,14 +212,14 @@ class DiffractionBlurGenerator(PSFGenerator):
 
     :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
-    :param tuple[int] zernike_index: tuple of activated Zernike coefficients in the following `index_convention` convention.
+    :param tuple[int] zernike_index: activated Zernike coefficients in the following `index_convention` convention.
         Defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``, correspond to radial order `n` from 2 to 3 (included) and the spherical aberration.
         These correspond to the following aberrations: defocus, astigmatism, coma, trefoil and spherical aberration.
-    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
+    :param float fc: cutoff frequency ``(NA/emission_wavelength) * pixel_size``. Should be in ``[0, 0.25]``
         to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
     :param float max_zernike_amplitude: maximum amplitude of the Zernike coefficients, defaults to ``0.15``.
         The amplitude of each Zernike coefficient is sampled uniformly in ``[-max_zernike_amplitude/2, max_zernike_amplitude/2]``.
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil.
+    :param tuple[int] pupil_size: pixel size used to synthesize the super-resolved pupil.
         The higher the more precise, defaults to ``(256, 256)``.
         If a single ``int`` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing artifacts, defaults to ``False``.
@@ -358,8 +358,8 @@ class DiffractionBlurGenerator(PSFGenerator):
         Generate a batch of PFS with a batch of Zernike coefficients
 
         :param int batch_size: batch_size.
-        :param torch.Tensor coeff: batch_size x len(zernike_index) coefficients of the Zernike decomposition (defaults is `None`)
-        :param torch.Tensor angle: batch_size angles in degree to rotate the PSF (defaults is `None`)
+        :param torch.Tensor coeff: `batch_size x len(zernike_index)` coefficients of the Zernike decomposition (default is `None`)
+        :param torch.Tensor angle: `batch_size` angles in degree to rotate the PSF (defaults is `None`)
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
@@ -954,15 +954,15 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
     :param tuple[int] zernike_index: list of activated Zernike coefficients.
-    :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
-    :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. Must be greater than `fc`. Defaults to `0.3`.
+    :param float fc: cutoff frequency `(NA/emission_wavelength) * pixel_size`. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`.
+    :param float kb: wave number `(NI/emission_wavelength) * pixel_size` or `(NA/NI) * fc`. Must be greater than `fc`. Defaults to `0.3`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
+    :param tuple[int] pupil_size: pixel size to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
         If an `int` is given, a square pupil is considered.
     :param bool apodize: whether to apodize the PSF to reduce ringing effects. Defaults to `False`.
     :param bool random_rotate: whether to randomly rotate the PSF in the xy plane. Defaults to `False`.
-    :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
-        Defaults to 1.0.
+    :param float stepz_pixel: Ratio between the physical size of the :math:`z` direction to that in the :math:`x/y` direction of the voxels in the 3D image.
+        Defaults to `1.0`.
     :param str index_convention: convention for the Zernike indices, either ``'noll'`` (default) or ``'ansi'``.
     :param torch.Generator rng: random number generator (default to `None`).
     :param str device: device (default to ``'cpu'``).
@@ -971,10 +971,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
     .. note::
 
-        NA: numerical aperture, NI: refraction index of the immersion medium,
-        emission_wavelength: wavelength of the light,
-        pixel_size: physical size of the pixels in the xy plane
-        in the same unit as emission_wavelength
+        `NA`: numerical aperture, `NI`: refraction index of the immersion medium,
+        `emission_wavelength`: wavelength of the light,
+        `pixel_size`: physical size of the pixels in the xy plane
+        in the same unit as `emission_wavelength`
 
     |sep|
 
@@ -1134,19 +1134,19 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     r"""
     Generates the 3D point spread function of a confocal laser scanning microsope.
 
-    :param tuple psf_size: give in the order (depth, height, width)
-    :param int num_channels: number of channels. Default to 1.
-    :param tuple[int] zernike_index: tuple of activated Zernike index, defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``.
-    :param float NI: Refractive index of  the immersion medium. Defaults to 1.51 (oil),
-    :param float NA: Numerical aperture. Should be less than NI. Defaults to 1.37.
-    :param float lambda_ill: Wavelength of the illumination light (fluorescence excitation). Defaults to 489e-9.
-    :param float lambda_coll: Wavelength of the collection light (fluorescence emission). Defaults to 395e-9.
-    :param float pixelsize_XY: Physical pixel size in the lateral direction (height, width). Defaults to 50e-9.
-    :param float pixelsize_Z:  Physical pixel size in the axial direction (depth). Defaults to 100e-9.
-    :param float pinhole_radius: Radius of pinhole in Airy units. Defaults to 1.
-    :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.1.
-    :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
-            If an int is given, a square pupil is considered.
+    :param tuple psf_size: give in the order `(depth, height, width)`
+    :param int num_channels: number of channels. Default to `1`.
+    :param tuple[int] zernike_index: activated Zernike index, defaults to ``(4, 5, 6, 7, 8, 9, 10, 11)``.
+    :param float NI: Refractive index of  the immersion medium. Defaults to `1.51` (oil),
+    :param float NA: Numerical aperture. Should be less than NI. Defaults to `1.37`.
+    :param float lambda_ill: Wavelength of the illumination light (fluorescence excitation). Defaults to `489e-9`.
+    :param float lambda_coll: Wavelength of the collection light (fluorescence emission). Defaults to `395e-9`.
+    :param float pixelsize_XY: Physical pixel size in the lateral direction (height, width). Defaults to `50e-9`.
+    :param float pixelsize_Z:  Physical pixel size in the axial direction (depth). Defaults to `100e-9`.
+    :param float pinhole_radius: Radius of pinhole in Airy units. Defaults to `1`.
+    :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to `0.1`.
+    :param tuple[int] pupil_size: pixel size to synthesize the super-resolved pupil. The higher the more precise, defaults to `(512, 512)`.
+            If an `int` is given, a square pupil is considered.
     :param torch.Generator rng: random number generator (default to `None`).
     :param str device: device (default to `cpu`).
     :param type dtype: data type (default to `torch.float32`).
@@ -1261,13 +1261,13 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         for illumination and collection
 
         :param int batch_size: number of PSFs to generate.
-        :param torch.Tensor coeff_ill: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for illumination.
+        :param torch.Tensor coeff_ill: tensor of size `batch_size x len(zernike_index)` containing the Zernike coefficients for illumination.
             If `None`, random coefficients are generated.
-        :param torch.Tensor coeff_coll: tensor of size (batch_size x len(zernike_index)) containing the Zernike coefficients for collection.
+        :param torch.Tensor coeff_coll: tensor of size `batch_size x len(zernike_index)` containing the Zernike coefficients for collection.
             If `None`, random coefficients are generated.
 
         :return: dictionary with keys
-            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
+            `filter`: tensor of size `batch_size x num_channels x psf_size[0] x psf_size[1]` batch of PSFs,
             `coeff_ill`: list of sampled Zernike coefficients in this realization of illumination,
             `coeff_coll`: list of sampled Zernike coefficients in this realization of collection,
 
