@@ -8,8 +8,8 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: "PR number to test"
+      run_gpu_tests:
+        description: "whether to run or not"
         required: true
         type: number
 
@@ -19,6 +19,7 @@ concurrency: # Cancel in-progress runs when pushing a new commit on the PR
 
 jobs:
   test:
+    if: github.event.inputs.run_gpu_tests == true
     name: Test GPU
     runs-on: gpu
     env:
