@@ -59,7 +59,7 @@ class TVDenoiser(Denoiser):
 
         self.tau = tau
         self.rho = rho
-        self.sigma = 1 / self.tau / 8
+        self.sigma = 0.125 / self.tau
 
         self.x2 = x2
         self.u2 = u2
@@ -74,10 +74,10 @@ class TVDenoiser(Denoiser):
 
     def prox_sigma_g_conj(self, u, lambda2):
         return u / (
-            torch.maximum(
-                torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device, dtype=u.dtype),
-            ).unsqueeze(-1)
+            torch.clamp(
+                torch.linalg.vector_norm(u, dim=-1, ord=2, keepdim=True) / lambda2,
+                min=1.0,
+            )
         )
 
     def forward(self, y, ths=None, **kwargs):
@@ -110,7 +110,11 @@ class TVDenoiser(Denoiser):
 
         if ths is not None:
             lambd = self._handle_sigma(
-                ths, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim + 1,
+                device=y.device,
+                dtype=y.dtype,
             )
 
         for _ in range(self.n_it_max):
@@ -141,7 +145,7 @@ class TVDenoiser(Denoiser):
         Applies the finite differences operator associated with tensors of the same shape as x.
         """
         b, c, h, w = x.shape
-        u = torch.zeros((b, c, h, w, 2), device=x.device).type(x.dtype)
+        u = torch.zeros((b, c, h, w, 2), device=x.device, dtype=x.dtype)
         u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] - x[:, :, :-1]
         u[:, :, :-1, :, 0] = u[:, :, :-1, :, 0] + x[:, :, 1:]
         u[:, :, :, :-1, 1] = u[:, :, :, :-1, 1] - x[..., :-1]
@@ -154,9 +158,8 @@ class TVDenoiser(Denoiser):
         Applies the adjoint of the finite difference operator.
         """
         b, c, h, w = x.shape[:-1]
-        u = torch.zeros((b, c, h, w), device=x.device).type(
-            x.dtype
-        )  # note that we just reversed left and right sides of each line to obtain the transposed operator
+        u = torch.zeros((b, c, h, w), device=x.device, dtype=x.dtype)
+        # note that we just reversed left and right sides of each line to obtain the transposed operator
         u[:, :, :-1] = u[:, :, :-1] - x[:, :, :-1, :, 0]
         u[:, :, 1:] = u[:, :, 1:] + x[:, :, :-1, :, 0]
         u[..., :-1] = u[..., :-1] - x[..., :-1, 1]

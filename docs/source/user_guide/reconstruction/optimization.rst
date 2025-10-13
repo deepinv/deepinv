@@ -166,6 +166,8 @@ which are used by most optimization algorithms.
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
    * - :class:`deepinv.optim.ZeroFidelity`
      - :math:`\datafid{x}{y} = 0`. 
+   * - :class:`deepinv.optim.ItohFidelity`
+     - :math:`\datafid{x}{y} = \|Dx - w_t(Dy)\|_2^2` where :math:`D` is a finite difference operator and :math:`w_t` the modulo operator.
 
 
 .. _priors:

@@ -5,7 +5,14 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
+from deepinv.optim.data_fidelity import (
+    L2,
+    IndicatorL2,
+    L1,
+    AmplitudeLoss,
+    ZeroFidelity,
+    ItohFidelity,
+)
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -84,7 +91,9 @@ def test_data_fidelity_l2(device):
 
     # 5. Testing the torch autograd implementation of the gradient
     def dummy_torch_l2(x, y):
-        return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
+        return (
+            0.5 * torch.linalg.vector_norm((B @ (x - y)).flatten(), dim=-1, ord=2) ** 2
+        )
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_grad = torch_loss.d.grad(x, y)
@@ -160,7 +169,10 @@ def test_data_fidelity_indicator(device):
     x_proj = torch.Tensor([[[0.5290], [2.9932]]]).to(device)
     dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
-    assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
+    assert (
+        torch.linalg.vector_norm((A_forward(dfb_proj) - y).flatten(), dim=-1, ord=2)
+        <= radius + 1e-6
+    )
 
     # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
     assert torch.allclose(
@@ -294,6 +306,34 @@ def test_data_fidelity_amplitude_loss(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
+@pytest.mark.parametrize("mode", ["floor", "round"])
+def test_itoh_fidelity(device, mode):
+    r"""
+    Tests if the gradient computed with grad_d method of Itoh fidelity is consistent with the autograd gradient.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the two gradients is more than 1e-5
+    """
+    # essential to enable autograd
+    with torch.enable_grad():
+        x = torch.randn(
+            (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
+        )
+        physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode=mode)
+        loss = ItohFidelity(threshold=1.0)
+        y = torch.ones_like(physics(x)) * 0.1
+        _, vjp_func = torch.func.vjp(loss.D, x)
+        vjp_value = vjp_func(loss.grad_d(loss.D(x), y, physics))[0]
+        grad_value = loss.grad(x, y, physics)
+    assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
+
+    x_dagger = loss.D_dagger(y)
+    assert x_dagger.shape == x.shape
+
+    x_prox = loss.prox(x, y, physics, gamma=1.0)
+    assert x_prox.shape == x.shape
+
+
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -314,17 +354,17 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 0.1
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
         if (
             name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_sqnorm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = 1.0
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = None
 
         lamb = 0.9
@@ -689,7 +729,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 1.0
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -781,7 +821,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     def prior_g(x, *args, **kwargs):
         ths = 1.0
-        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), ord=1, dim=-1)
 
     prior = Prior(g=prior_g)  # The prior term
 

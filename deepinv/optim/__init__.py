@@ -8,6 +8,7 @@ from .data_fidelity import (
     AmplitudeLoss,
     LogPoissonLikelihood,
     ZeroFidelity,
+    ItohFidelity,
 )
 from .optimizers import BaseOptim, optim_builder, NMAPG
 from .fixed_point import FixedPoint

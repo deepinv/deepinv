@@ -28,7 +28,7 @@ class BSDS500(ImageDataset):
             self.root --- BSDS500-master --- (all files from the github repo)
 
 
-    :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
+    :param str, pathlib.Path root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param bool train: If ``True``, the standard training dataset (containing the splits "train" and "test") will be loaded. If ``False``,
