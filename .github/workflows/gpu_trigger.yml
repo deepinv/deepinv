@@ -69,7 +69,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
-          ref: ${{ github.event.pull_request.head.ref }}  # PR branch
+          ref: ${{ github.event.pull_request.head.ref }}
           inputs: '{ "run_gpu_tests": true }'
 
   post-comment:
