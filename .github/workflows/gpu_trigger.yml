@@ -84,4 +84,6 @@ jobs:
           issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
             🚀 GPU test workflows successfully triggered...
+            - Workflow Run: [GPU Tests](../../actions/workflows/test_gpu.yml)
+            - Workflow Run: [GPU Docs Check](../../actions/workflows/gpu_docs.yml)
           token: ${{ secrets.GITHUB_TOKEN }}
