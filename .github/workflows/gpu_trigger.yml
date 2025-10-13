@@ -11,7 +11,7 @@ on:
         type: string # Inputs are always strings
 
 permissions:
-  pull-requests: read
+  pull-requests: write
   issues: write
   contents: read
   actions: write  # Needed to trigger other workflows
@@ -66,20 +66,24 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
+          ref: ${{ github.event.pull_request.head.ref }}
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
+          ref: ${{ github.event.pull_request.head.ref }}
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
+  post-comment:
+    if: github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
       - name: Post confirmation comment
-        if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
-            🚀 GPU test workflows successfully triggered for PR #${{ steps.pr.outputs.pr_number }} by **@${{ github.event.comment.user.login }}**.
-            - Workflow Run: [GPU Tests](../../actions/workflows/test_gpu.yml)
-            - Workflow Run: [GPU Docs Check](../../actions/workflows/gpu_docs.yml)
+            🚀 GPU test workflows successfully triggered!
+          token: ${{ secrets.GITHUB_TOKEN }}

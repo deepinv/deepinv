@@ -5,7 +5,7 @@ on:
     - cron: "30 2 */1 * *"
   push:
     branches:
-      - main
+      - main  
   workflow_dispatch:
     inputs:
       pr_number:
@@ -18,7 +18,7 @@ concurrency: # Cancel in-progress runs when pushing a new commit on the PR
   cancel-in-progress: true
 
 jobs:
-  test:
+  gpu-docs:
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
@@ -28,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', inputs.pr_number) }}
 
       # See https://docs.astral.sh/uv/guides/integration/github
       - name: Install uv
@@ -63,3 +65,40 @@ jobs:
           SPHINX_DOCTEST: "1"
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
+          
+      - name: Upload Documentation Artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: _build/
+          
+      # Log artifact URL 
+      - name: Link to generated docs here
+        run: |
+          echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
+          
+      # Comment results back to PR
+      - name: Post result to PR
+        if: always() && inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.inputs.pr_number;
+            const result = "${{ job.status }}";
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
+      
+            const body = result === "success"
+              ? `✅ GPU docs passed
+                 🔗 [View run details](${runUrl})
+                 📦 [Download built docs](${artifactUrl})`
+              : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
+      
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body,
+            });
+
