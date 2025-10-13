@@ -66,6 +66,12 @@ jobs:
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
           
+      # Log artifact URL 
+      - name: Link to generated docs here
+        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+        run: |
+          echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
+          
       # Comment results back to PR
       - name: Post result to PR
         if: always() && inputs.pr_number != ''
@@ -74,10 +80,12 @@ jobs:
           script: |
             const pr = context.payload.inputs.pr_number;
             const result = "${{ job.status }}";
-            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
       
             const body = result === "success"
-              ? `✅ GPU docs passed\n\n🔗 [View run details](${runUrl})`
+              ? `✅ GPU docs passed
+                 🔗 [View run details](${runUrl})
+                 📦 [Download built docs](${artifactUrl})`
               : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
       
             await github.rest.issues.createComment({
@@ -85,4 +93,29 @@ jobs:
               repo: context.repo.repo,
               issue_number: pr,
               body,
+            });
+
+      - name: Set PR status check
+        if: always() && inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.inputs.pr_number;
+            const conclusion = "${{ job.status }}";
+      
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "GPU Docs",
+              head_sha: context.payload.pull_request
+                ? context.payload.pull_request.head.sha
+                : context.payload.inputs.sha,
+              status: "completed",
+              conclusion: conclusion === "success" ? "success" : "failure",
+              output: {
+                title: "GPU Docs Result",
+                summary: conclusion === "success"
+                  ? "✅ GPU docs passed"
+                  : "❌ GPU docs failed"
+              }
             });
