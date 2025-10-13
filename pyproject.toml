@@ -140,5 +140,7 @@ select = [
 
 
 [tool.ruff.lint.per-file-ignores]
-# NOTE: Rule F401 is ruff's unused imports rule.
-"__init__.py" = ["F401"]
+# Rule F401 is ruff's unused imports rule.
+# Rule E402 is ruff's module level import not at top of file rule.
+"__init__.py" = ["F401", "E402"]
+"examples/**/*.py" = ["E402"]
