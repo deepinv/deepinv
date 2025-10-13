@@ -407,7 +407,9 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter=filter.to(self.device), **kwargs)
+        self.update_parameters(
+            filter=filter.to(self.device) if filter is not None else filter, **kwargs
+        )
 
         if x.dim() == 4:
             return conv2d(x, filter=self.filter, padding=self.padding)
@@ -423,7 +425,9 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter=filter.to(self.device), **kwargs)
+        self.update_parameters(
+            filter=filter.to(self.device) if filter is not None else filter, **kwargs
+        )
 
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
