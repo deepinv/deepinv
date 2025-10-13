@@ -66,9 +66,15 @@ jobs:
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
           
+      - name: Upload Documentation Artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: _build/
+          
       # Log artifact URL 
       - name: Link to generated docs here
-        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
           
