@@ -1643,9 +1643,9 @@ def nonmonotone_accelerated_proximal_gradient(
         else:
             x[idx] = z[idx]
 
-        res[idx] = torch.norm(
-            x[idx] - x_old[idx], p=2, dim=list(range(1, len(x0.shape)))
-        ) / torch.norm(x[idx], p=2, dim=list(range(1, len(x0.shape))))
+        res[idx] = torch.linalg.vector_norm(
+            x[idx] - x_old[idx], ord=2, dim=list(range(1, len(x0.shape)))
+        ) / torch.linalg.vector_norm(x[idx], ord=2, dim=list(range(1, len(x0.shape))))
         assert not torch.any(
             torch.isnan(res)
         ), "Numerical errors! Some values became NaN!"
