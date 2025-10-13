@@ -66,14 +66,14 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ github.event.pull_request.head.ref || github.event.inputs.pr_number }}
+          ref: ${{ github.event.pull_request.head.ref }}
           inputs: '{ "run_gpu_tests": true }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
-          ref: ${{ github.event.pull_request.head.ref || github.event.inputs.pr_number }}
+          ref: ${{ github.event.pull_request.head.ref }}
           inputs: '{ "run_gpu_tests": true }'
 
   post-comment:
@@ -85,7 +85,5 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
-            🚀 GPU test workflows successfully triggered...
-            - Workflow Run: [GPU Tests](../../actions/workflows/test_gpu.yml)
-            - Workflow Run: [GPU Docs Check](../../actions/workflows/gpu_docs.yml)
+            🚀 GPU test workflows successfully triggered!
           token: ${{ secrets.GITHUB_TOKEN }}
