@@ -46,7 +46,7 @@ Fixed
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 - Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
-
+- Change deprecated `torch.norm` calls to `torch.linalg.vector_norm` (:gh:`840` by `Minh Hai Nguyen`_)
 
 
 v0.3.4

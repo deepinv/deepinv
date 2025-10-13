@@ -73,7 +73,7 @@ def test_conv3d_norm(device):
             for sim in size_im:
                 for sfil in size_filt:
                     x = torch.randn(sim)[None].to(device)
-                    x /= torch.norm(x)
+                    x /= torch.linalg.vector_norm(x)
                     h = torch.rand(sfil)[None].to(device)
                     h /= h.sum()
 
@@ -85,14 +85,14 @@ def test_conv3d_norm(device):
                         )
                         z = (
                             torch.matmul(x.conj().reshape(-1), y.reshape(-1))
-                            / torch.norm(x) ** 2
+                            / torch.linalg.vector_norm(x) ** 2
                         )
 
-                        rel_var = torch.norm(z - zold)
+                        rel_var = torch.linalg.vector_norm(z - zold)
                         if rel_var < tol:
                             break
                         zold = z
-                        x = y / torch.norm(y)
+                        x = y / torch.linalg.vector_norm(y)
 
                     assert torch.abs(zold.item() - torch.ones(1)) < 1e-2
 
@@ -172,8 +172,8 @@ def test_dct_idct(device):
     x = torch.ones(shape).to(device)
     y = dinv.physics.functional.dct_2d(x)
     xrec = dinv.physics.functional.idct_2d(y)
-    assert torch.norm(x - xrec) < 1e-5
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5
 
     y = dinv.physics.functional.dct_2d(x, norm="ortho")
     xrec = dinv.physics.functional.idct_2d(y, norm="ortho")
-    assert torch.norm(x - xrec) < 1e-5
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5

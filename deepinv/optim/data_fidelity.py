@@ -585,7 +585,9 @@ class IndicatorL2(DataFidelity):
                 u = u_ - stepsize * self.d.prox(
                     u_ / stepsize, y, radius=radius, gamma=None
                 )
-                rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
+                rel_crit = torch.linalg.vector_norm(u - u_prev) / (
+                    torch.linalg.vector_norm(u) + 1e-12
+                )
                 if rel_crit < crit_conv:
                     break
             return t
