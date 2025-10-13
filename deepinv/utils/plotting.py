@@ -481,7 +481,7 @@ def plot_curves(metrics, save_dir=None, show=True):
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
-            batch_size, n_iter = len(metric_val), len(metric_val[0])
+            batch_size, _ = len(metric_val), len(metric_val[0])
             axs[i].spines["right"].set_visible(False)
             axs[i].spines["top"].set_visible(False)
             if metric_name == "residual":

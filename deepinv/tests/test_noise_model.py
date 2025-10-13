@@ -158,8 +158,8 @@ def test_poisson_noise_params(device, rng, dtype):
         # handling negative values
         # check that an entry with negative value raises an error
         x = torch.randn(imsize, device=device, dtype=dtype)
-        with pytest.raises(Exception) as e_info:
-            y2_bis = noise_model_2(x, seed=0)  # will fail because of negative values
+        with pytest.raises(Exception):
+            _ = noise_model_2(x, seed=0)  # will fail because of negative values
 
         y_3 = noise_model_3(x, seed=0)
 

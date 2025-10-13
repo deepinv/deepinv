@@ -40,12 +40,10 @@ def test_data_fidelity_l2(device):
     assert torch.allclose(data_fidelity(x, y, physics), torch.Tensor([1.0]).to(device))
 
     # Compute the gradient of f
-    grad_dA = data_fidelity.grad(
-        x, y, physics
-    )  # print(grad_dA) gives [[[2.0000], [0.5000]]]
+    _ = data_fidelity.grad(x, y, physics)  # print(grad_dA) gives [[[2.0000], [0.5000]]]
 
     # Compute the proximity operator of f
-    prox_dA = data_fidelity.prox(
+    _ = data_fidelity.prox(
         x, y, physics, gamma=1.0
     )  # print(prox_dA) gives [[[0.6000], [3.6000]]]
 
@@ -425,7 +423,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     model = dinv.models.TGVDenoiser(n_it_max=5000, verbose=True, crit=1e-4)
 
-    x = model(y, ths)  # 3. Apply the model we want to test
+    _ = model(y, ths)  # 3. Apply the model we want to test
 
     # For debugging
     # plot = False
@@ -492,7 +490,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         custom_init=custom_init,
     )
 
-    x = pnp(y, physics)
+    _ = pnp(y, physics)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
     # plot = True
@@ -593,7 +591,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             custom_init=custom_init,
         )
 
-        x = opt_algo(y, physics)
+        _ = opt_algo(y, physics)
 
         # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
         # plot = True
@@ -974,7 +972,7 @@ def test_linear_system(device, solver, dtype):
     batch_size = 4
     dim = 32
 
-    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    mat = torch.randn((dim, dim), dtype=dtype, device=device)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
         mat = mat.adjoint() @ mat
@@ -985,7 +983,7 @@ def test_linear_system(device, solver, dtype):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+    b = torch.randn((batch_size, dim), dtype=dtype, device=device)
 
     def A(x):
         return (mat @ x.T).T

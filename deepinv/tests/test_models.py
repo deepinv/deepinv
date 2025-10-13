@@ -795,7 +795,7 @@ def test_icnn(device, rng):
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     x = torch.ones((1, 3, 128, 128), device=device)
     y = physics(x)
-    potential = model(y)
+    _ = model(y)
     grad = model.grad(y)
     assert grad.shape == x.shape
 

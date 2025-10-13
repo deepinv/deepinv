@@ -1273,21 +1273,21 @@ def test_reset_noise(device):
     physics = dinv.physics.Denoising()
     physics.noise_model = dinv.physics.GaussianNoise(0.1, rng=rng)
 
-    y1 = physics(x)
-    y2 = physics(x, sigma=0.2)
+    _ = physics(x)
+    _ = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
 
     physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
 
-    y1 = physics(x)
-    y2 = physics(x, gain=0.2)
+    _ = physics(x)
+    _ = physics(x, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
 
     physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3, rng=rng)
-    y1 = physics(x)
-    y2 = physics(x, sigma=0.2, gain=0.2)
+    _ = physics(x)
+    _ = physics(x, sigma=0.2, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
     assert physics.noise_model.sigma == 0.2
@@ -2221,7 +2221,7 @@ def test_separate_noise_models():
     assert isinstance(
         physics1.noise_model, dinv.physics.GaussianNoise
     ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
-    sigma1 = physics1.noise_model.sigma
+    _ = physics1.noise_model.sigma
     sigma2 = physics2.noise_model.sigma
     sigma1_new = sigma2 + 1
     assert (

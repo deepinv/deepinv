@@ -789,7 +789,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
 def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
@@ -863,7 +863,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
 def test_out_dir_collision_detection(
     dummy_dataset, imsize, device, dummy_model, tmpdir
 ):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
