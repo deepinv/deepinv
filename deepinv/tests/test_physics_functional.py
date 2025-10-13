@@ -172,8 +172,8 @@ def test_dct_idct(device):
     x = torch.ones(shape).to(device)
     y = dinv.physics.functional.dct_2d(x)
     xrec = dinv.physics.functional.idct_2d(y)
-    assert torch.norm(x - xrec) < 1e-5
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5
 
     y = dinv.physics.functional.dct_2d(x, norm="ortho")
     xrec = dinv.physics.functional.idct_2d(y, norm="ortho")
-    assert torch.norm(x - xrec) < 1e-5
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5
