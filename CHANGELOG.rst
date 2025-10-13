@@ -12,9 +12,12 @@ New Features
 
 Changed
 ^^^^^^^
+- Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
+- Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
+- Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 
 
 v0.3.5
