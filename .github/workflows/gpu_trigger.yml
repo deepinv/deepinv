@@ -75,7 +75,7 @@ jobs:
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
   post-comment:
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Post confirmation comment
