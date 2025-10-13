@@ -77,8 +77,8 @@ jobs:
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
       
             const body = result === "success"
-              ? `✅ GPU tests passed\n\n🔗 [View run details](${runUrl})`
-              : `❌ GPU tests failed\n\n🔗 [View run details](${runUrl})`;
+              ? `✅ GPU docs passed\n\n🔗 [View run details](${runUrl})`
+              : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
       
             await github.rest.issues.createComment({
               owner: context.repo.owner,
