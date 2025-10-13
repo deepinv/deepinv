@@ -165,9 +165,9 @@ class SplittingLoss(Loss):
         mask2 = getattr(physics, "mask", 1.0) - mask
         y2, physics2 = self.split(mask2, y, physics)
 
-        l = self.metric(physics2.A(x_net), y2)
+        metric_val = self.metric(physics2.A(x_net), y2)
 
-        return l / mask2.mean() if self.normalize_loss else l
+        return metric_val / mask2.mean() if self.normalize_loss else metric_val
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None

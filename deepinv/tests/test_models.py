@@ -218,12 +218,17 @@ def test_wavelet_adjoints():
         out = [torch.randn_like(Au[0])]
 
         if wvdim == 2:
-            for l in range(1, len(Au)):
-                out = out + [[torch.randn_like(Aul) for Aul in Au[l]]]
+            for level_index in range(1, len(Au)):
+                out = out + [[torch.randn_like(Aul) for Aul in Au[level_index]]]
 
         elif wvdim == 3:
-            for l in range(1, len(Au)):
-                out = out + [{key: torch.randn_like(Au[l][key]) for key in Au[l]}]
+            for level_index in range(1, len(Au)):
+                out = out + [
+                    {
+                        key: torch.randn_like(Au[level_index][key])
+                        for key in Au[level_index]
+                    }
+                ]
         return out
 
     for dimension in ["2d", "3d"]:

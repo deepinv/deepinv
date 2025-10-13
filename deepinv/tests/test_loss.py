@@ -206,7 +206,7 @@ def test_sure(noise_type, device):
 def choose_r2r(noise_type):
     gain = 1.0
     sigma = 0.1
-    l = 10.0
+    l_gamma = 10.0
 
     if noise_type == "Poisson":
         noise_model = dinv.physics.PoissonNoise(gain)
@@ -215,7 +215,7 @@ def choose_r2r(noise_type):
         noise_model = dinv.physics.GaussianNoise(sigma)
         loss = dinv.loss.R2RLoss(alpha=0.999)
     elif noise_type == "Gamma":
-        noise_model = dinv.physics.GammaNoise(l)
+        noise_model = dinv.physics.GammaNoise(l_gamma)
         loss = dinv.loss.R2RLoss(alpha=0.999)
     else:
         raise Exception("The R2R loss doesnt exist")
@@ -484,14 +484,14 @@ def test_measplit(device, loss_name, rng):
     f = loss.adapt_model(f)
 
     x_net = f(y, physics, update_parameters=True)
-    l = loss(x_net=x_net, y=y, physics=physics, model=f)
+    loss_value = loss(x_net=x_net, y=y, physics=physics, model=f)
 
     # Training recon + loss
     if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
-        assert l > 0
+        assert loss_value > 0
     elif "splitting" in loss_name:
         y1 = x_net
-        y2_hat, y2 = l.clamp(0, 1)  # remove normalisation
+        y2_hat, y2 = loss_value.clamp(0, 1)  # remove normalisation
         # Splitting mask 1 has more samples than mask 2
         assert y2.mean() < y1.mean() < y.mean()
         # Union of splitting masks is original mask
@@ -613,24 +613,24 @@ def test_loss_scheduler(scheduler_name):
     rng = torch.Generator().manual_seed(0)
 
     if scheduler_name == "random":
-        l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+        loss_scheduler = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
     elif scheduler_name == "interleaved":
-        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+        loss_scheduler = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
     elif scheduler_name == "random_weighted":
-        l = RandomLossScheduler(
+        loss_scheduler = RandomLossScheduler(
             [TestLoss(0), TestLoss(2)], TestLoss(1), generator=rng, weightings=[4, 1]
         )
 
     # Loss scheduler adapts all inside losses
     model = TestModel()
-    l.adapt_model(model)
+    loss_scheduler.adapt_model(model)
     assert model.a == 3
 
     # Scheduler calls all losses eventually
     loss_total = 0
     loss_log = []
     for _ in range(20):
-        loss = l(None, None, None, None, None, None)
+        loss = loss_scheduler(None, None, None, None, None, None)
         loss_total += loss
         loss_log += [loss]
     assert loss_total > 20

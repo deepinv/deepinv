@@ -313,8 +313,8 @@ class Trainer:
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
 
-        for l in self.losses:
-            self.model = l.adapt_model(self.model)
+        for loss in self.losses:
+            self.model = loss.adapt_model(self.model)
 
         if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
@@ -322,35 +322,35 @@ class Trainer:
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
         self.logs_losses_train = [
-            AverageMeter("Training loss " + l.__class__.__name__, ":.2e")
-            for l in self.losses
+            AverageMeter("Training loss " + loss.__class__.__name__, ":.2e")
+            for loss in self.losses
         ]
 
         self.logs_total_loss_eval = AverageMeter("Validation loss", ":.2e")
         self.logs_losses_eval = [
-            AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
-            for l in self.losses
+            AverageMeter("Validation loss " + loss.__class__.__name__, ":.2e")
+            for loss in self.losses
         ]
 
         # metrics
         self.logs_metrics_train = [
-            AverageMeter("Training metric " + l.__class__.__name__, ":.2e")
-            for l in self.metrics
+            AverageMeter("Training metric " + metric.__class__.__name__, ":.2e")
+            for metric in self.metrics
         ]
 
         self.logs_metrics_eval = [
-            AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
-            for l in self.metrics
+            AverageMeter("Validation metric " + metric.__class__.__name__, ":.2e")
+            for metric in self.metrics
         ]
         if self.compare_no_learning:
             self.logs_metrics_no_learning = [
-                AverageMeter("Validation metric " + l.__class__.__name__, ":.2e")
-                for l in self.metrics
+                AverageMeter("Validation metric " + metric.__class__.__name__, ":.2e")
+                for metric in self.metrics
             ]
 
         self.eval_metrics_history = {}
-        for l in self.metrics:
-            self.eval_metrics_history[l.__class__.__name__] = []
+        for loss in self.metrics:
+            self.eval_metrics_history[loss.__class__.__name__] = []
 
         # gradient clipping
         if train and self.check_grad:
@@ -643,8 +643,8 @@ class Trainer:
         if train or self.display_losses_eval:
             # Compute the losses
             loss_total = 0
-            for k, l in enumerate(self.losses):
-                loss = l(
+            for k, loss_fn in enumerate(self.losses):
+                loss = loss_fn(
                     x=x,
                     x_net=x_net,
                     y=y,
@@ -658,7 +658,7 @@ class Trainer:
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
                     meters.update(loss.detach().cpu().numpy())
-                    logs[l.__class__.__name__] = meters.avg
+                    logs[loss_fn.__class__.__name__] = meters.avg
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
@@ -697,8 +697,8 @@ class Trainer:
         """
         # Compute the metrics over the batch
         with torch.no_grad():
-            for k, l in enumerate(self.metrics):
-                metric = l(
+            for k, metric in enumerate(self.metrics):
+                metric = metric(
                     x=x,
                     x_net=x_net,
                     y=y,
@@ -710,15 +710,15 @@ class Trainer:
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
                 )
                 current_log.update(metric.detach().cpu().numpy())
-                logs[l.__class__.__name__] = current_log.avg
+                logs[metric.__class__.__name__] = current_log.avg
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
-                    self.logs_metrics_no_learning[k].update(
-                        metric.detach().cpu().numpy()
+                    res = metric(
+                        x=x, x_net=x_lin, y=y, physics=physics, model=self.model
                     )
-                    logs[f"{l.__class__.__name__} no learning"] = (
+                    self.logs_metrics_no_learning[k].update(res.detach().cpu().numpy())
+                    logs[f"{metric.__class__.__name__} no learning"] = (
                         self.logs_metrics_no_learning[k].avg
                     )
         return logs
@@ -963,17 +963,17 @@ class Trainer:
         self.logs_total_loss_train.reset()
         self.logs_total_loss_eval.reset()
 
-        for l in self.logs_losses_train:
-            l.reset()
+        for loss_log in self.logs_losses_train:
+            loss_log.reset()
 
-        for l in self.logs_losses_eval:
-            l.reset()
+        for loss_log in self.logs_losses_eval:
+            loss_log.reset()
 
-        for l in self.logs_metrics_train:
-            l.reset()
+        for metric_log in self.logs_metrics_train:
+            metric_log.reset()
 
-        for l in self.logs_metrics_eval:
-            l.reset()
+        for metric_log in self.logs_metrics_eval:
+            metric_log.reset()
 
         if hasattr(self, "check_grad_val"):
             self.check_grad_val.reset()
@@ -1242,25 +1242,25 @@ class Trainer:
             print("Test results:")
 
         out = {}
-        for k, l in enumerate(self.logs_metrics_eval):
+        for key, metric_log in enumerate(self.logs_metrics_eval):
             if compare_no_learning:
-                name = self.metrics[k].__class__.__name__ + " no learning"
-                out[name] = self.logs_metrics_no_learning[k].avg
-                out[name + "_std"] = self.logs_metrics_no_learning[k].std
+                name = self.metrics[key].__class__.__name__ + " no learning"
+                out[name] = self.logs_metrics_no_learning[key].avg
+                out[name + "_std"] = self.logs_metrics_no_learning[key].std
                 if log_raw_metrics:
-                    out[name + "_vals"] = self.logs_metrics_no_learning[k].vals
+                    out[name + "_vals"] = self.logs_metrics_no_learning[key].vals
                 if self.verbose:
                     print(
-                        f"{name}: {self.logs_metrics_no_learning[k].avg:.3f} +- {self.logs_metrics_no_learning[k].std:.3f}"
+                        f"{name}: {self.logs_metrics_no_learning[key].avg:.3f} +- {self.logs_metrics_no_learning[key].std:.3f}"
                     )
 
-            name = self.metrics[k].__class__.__name__
-            out[name] = l.avg
-            out[name + "_std"] = l.std
+            name = self.metrics[key].__class__.__name__
+            out[name] = metric_log.avg
+            out[name + "_std"] = metric_log.std
             if log_raw_metrics:
-                out[name + "_vals"] = l.vals
+                out[name + "_vals"] = metric_log.vals
             if self.verbose:
-                print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+                print(f"{name}: {metric_log.avg:.3f} +- {metric_log.std:.3f}")
 
         return out
 

@@ -91,12 +91,20 @@ class WaveletDenoiser(Denoiser):
         if self.dimension == 2:
             flat = torch.hstack(
                 [dec[0].flatten()]
-                + [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+                + [
+                    decl.flatten()
+                    for level in range(1, len(dec))
+                    for decl in dec[level]
+                ]
             )
         elif self.dimension == 3:
             flat = torch.hstack(
                 [dec[0].flatten()]
-                + [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+                + [
+                    dec[level][key].flatten()
+                    for level in range(1, len(dec))
+                    for key in dec[level]
+                ]
             )
         return flat
 
@@ -113,12 +121,18 @@ class WaveletDenoiser(Denoiser):
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
-            vec = [decl.flatten(1, -1) for l in range(1, len(dec)) for decl in dec[l]]
+            vec = [
+                decl.flatten(1, -1)
+                for level in range(1, len(dec))
+                for decl in dec[level]
+            ]
         elif dimension == 3:
             dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
             vec = [
-                dec[l][key].flatten(1, -1) for l in range(1, len(dec)) for key in dec[l]
+                dec[level][key].flatten(1, -1)
+                for level in range(1, len(dec))
+                for key in dec[level]
             ]
         return vec
 

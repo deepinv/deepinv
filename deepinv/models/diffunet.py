@@ -1046,21 +1046,21 @@ class CheckpointFunction(torch.autograd.Function):
         return (None, None) + input_grads
 
 
-def convert_module_to_f16(l):
+def convert_module_to_f16(module):
     """
     Convert primitive modules to float16.
     """
-    if isinstance(l, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
-        l.weight.data = l.weight.data.half()
-        if l.bias is not None:
-            l.bias.data = l.bias.data.half()
+    if isinstance(module, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
+        module.weight.data = module.weight.data.half()
+        if module.bias is not None:
+            module.bias.data = module.bias.data.half()
 
 
-def convert_module_to_f32(l):
+def convert_module_to_f32(module):
     """
     Convert primitive modules to float32, undoing convert_module_to_f16().
     """
-    if isinstance(l, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
-        l.weight.data = l.weight.data.float()
-        if l.bias is not None:
-            l.bias.data = l.bias.data.float()
+    if isinstance(module, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
+        module.weight.data = module.weight.data.float()
+        if module.bias is not None:
+            module.bias.data = module.bias.data.float()

@@ -759,7 +759,10 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     loss_history = trainer.loss_history
     assert all(
-        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+        [
+            abs(value - sum([loss.value for loss in losses])) < 1e-6
+            for value in loss_history
+        ]
     )
 
 

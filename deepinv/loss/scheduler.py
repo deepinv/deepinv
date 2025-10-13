@@ -56,8 +56,8 @@ class BaseLossScheduler(Loss):
             losses = losses[0]
 
         loss_total = 0.0
-        for l in losses:
-            loss_total += l.forward(
+        for loss in losses:
+            loss_total += loss.forward(
                 x_net=x_net,
                 x=x,
                 y=y,
@@ -78,8 +78,8 @@ class BaseLossScheduler(Loss):
 
         :param torch.nn.Module model: reconstruction model
         """
-        for l in self.losses:
-            for _l in l if isinstance(l, (list, tuple)) else [l]:
+        for loss in self.losses:
+            for _l in loss if isinstance(loss, (list, tuple)) else [loss]:
                 model = _l.adapt_model(model, **kwargs)
         return model
 

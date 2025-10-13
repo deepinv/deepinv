@@ -214,35 +214,51 @@ class TGVDenoiser(Denoiser):
         return TVDenoiser.nabla_adjoint(x)
 
     @staticmethod
-    def epsilon(I):  # Simplified
+    def epsilon(vector_field):  # Simplified
         r"""
         Applies the jacobian of a vector field.
         """
-        b, c, h, w, _ = I.shape
-        G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
-        G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
-        G[..., 0] = G[..., 0] + I[..., 0]
-        G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
-        G[..., 1:, 1] = G[..., 1:, 1] + I[..., 1:, 0]
-        G[..., 1:, 2] = G[..., 1:, 2] - I[..., :-1, 1]  # xdx
-        G[..., 2] = G[..., 2] + I[..., 1]
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] - I[:, :, :-1, :, 1]  # xdy
-        G[:, :, :-1, :, 3] = G[:, :, :-1, :, 3] + I[:, :, 1:, :, 1]
-        return G
+        b, c, h, w, _ = vector_field.shape
+        jacobian = torch.zeros(
+            (b, c, h, w, 4), device=vector_field.device, dtype=vector_field.dtype
+        )
+        jacobian[:, :, 1:, :, 0] = (
+            jacobian[:, :, 1:, :, 0] - vector_field[:, :, :-1, :, 0]
+        )  # xdy
+        jacobian[..., 0] = jacobian[..., 0] + vector_field[..., 0]
+        jacobian[..., 1:, 1] = jacobian[..., 1:, 1] - vector_field[..., :-1, 0]  # xdx
+        jacobian[..., 1:, 1] = jacobian[..., 1:, 1] + vector_field[..., 1:, 0]
+        jacobian[..., 1:, 2] = jacobian[..., 1:, 2] - vector_field[..., :-1, 1]  # xdx
+        jacobian[..., 2] = jacobian[..., 2] + vector_field[..., 1]
+        jacobian[:, :, :-1, :, 3] = (
+            jacobian[:, :, :-1, :, 3] - vector_field[:, :, :-1, :, 1]
+        )  # xdy
+        jacobian[:, :, :-1, :, 3] = (
+            jacobian[:, :, :-1, :, 3] + vector_field[:, :, 1:, :, 1]
+        )
+        return jacobian
 
     @staticmethod
-    def epsilon_adjoint(G):
+    def epsilon_adjoint(jacobian):
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """
-        b, c, h, w, _ = G.shape
-        I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
-        I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
-        I[..., 0] = I[..., 0] + G[..., 0]
-        I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]
-        I[..., 1:, 0] = I[..., 1:, 0] + G[..., 1:, 1]
-        I[..., :-1, 1] = I[..., :-1, 1] - G[..., 1:, 2]
-        I[..., 1] = I[..., 1] + G[..., 2]
-        I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
-        I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
-        return I
+        b, c, h, w, _ = jacobian.shape
+        vector_field = torch.zeros(
+            (b, c, h, w, 2), device=jacobian.device, dtype=jacobian.dtype
+        )
+        vector_field[:, :, :-1, :, 0] = (
+            vector_field[:, :, :-1, :, 0] - jacobian[:, :, 1:, :, 0]
+        )
+        vector_field[..., 0] = vector_field[..., 0] + jacobian[..., 0]
+        vector_field[..., :-1, 0] = vector_field[..., :-1, 0] - jacobian[..., 1:, 1]
+        vector_field[..., 1:, 0] = vector_field[..., 1:, 0] + jacobian[..., 1:, 1]
+        vector_field[..., :-1, 1] = vector_field[..., :-1, 1] - jacobian[..., 1:, 2]
+        vector_field[..., 1] = vector_field[..., 1] + jacobian[..., 2]
+        vector_field[:, :, :-1, :, 1] = (
+            vector_field[:, :, :-1, :, 1] - jacobian[:, :, :-1, :, 3]
+        )
+        vector_field[:, :, 1:, :, 1] = (
+            vector_field[:, :, 1:, :, 1] + jacobian[:, :, :-1, :, 3]
+        )
+        return vector_field

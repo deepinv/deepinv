@@ -581,26 +581,26 @@ class GammaNoise(NoiseModel):
 
     .. warning:: This noise model does not support the random number generator.
 
-    :param float, torch.Tensor l: noise level.
+    :param float, torch.Tensor noise_level: noise level.
     """
 
-    def __init__(self, l=1.0):
+    def __init__(self, noise_level=1.0):
         super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+        if isinstance(noise_level, int):
+            noise_level = float(noise_level)
+        self.register_buffer("l", self._float_to_tensor(noise_level))
 
-    def forward(self, x, l=None, seed: int = None, **kwargs):
+    def forward(self, x, noise_level=None, seed: int = None, **kwargs):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
-        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param None, float, torch.Tensor noise_level: noise level l. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
-        self.update_parameters(l=l, **kwargs)
+        self.update_parameters(noise_level=noise_level, **kwargs)
         self.to(x.device)
-        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
+        d = torch.distributions.gamma.Gamma(self.noise_level, self.noise_level / x)
         return d.sample()
 
 

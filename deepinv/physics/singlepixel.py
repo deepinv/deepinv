@@ -244,10 +244,10 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
     :return: A tensor of shape (H, W) where each element contains its diagonal traversal index.
     :rtype: torch.Tensor
     """
-    # Grid of row (I) and column (J) indices
-    I, J = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
-    S = I + J
-    flat_I = I.flatten()
+    # Grid of row (row) and column (col) indices
+    row, col = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
+    S = row + col
+    flat_I = row.flatten()
     flat_S = S.flatten()
     total = H * W
 
@@ -539,12 +539,12 @@ def get_permutation_list(n, device="cpu"):
     :rtype: torch.Tensor
     """
     rev = torch.zeros((n), dtype=int, device=device)
-    for l in range(n):
-        rev[l] = reverse(l, int(math.log2(n)))
+    for perm_index in range(n):
+        rev[perm_index] = reverse(perm_index, int(math.log2(n)))
 
     rev2 = torch.zeros_like(rev)
-    for l in range(n):
-        rev2[l] = rev[gray_decode(l)]
+    for perm_index in range(n):
+        rev2[perm_index] = rev[gray_decode(perm_index)]
 
     return rev2
 

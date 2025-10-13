@@ -172,13 +172,13 @@ class AdversarialTrainer(Trainer):
             self.losses_d = [self.losses_d]
 
         self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e")
-            for l in self.losses_d
+            AverageMeter("Training discrim loss " + loss_d.name, ":.2e")
+            for loss_d in self.losses_d
         ]
 
         self.logs_losses_eval += [
-            AverageMeter("Validation discrim loss " + l.name, ":.2e")
-            for l in self.losses_d
+            AverageMeter("Validation discrim loss " + loss_d.name, ":.2e")
+            for loss_d in self.losses_d
         ]
 
         if self.ckpt_pretrained is not None:
@@ -219,8 +219,8 @@ class AdversarialTrainer(Trainer):
         ### Train Generator
         if train or self.display_losses_eval:
             loss_total = 0
-            for k, l in enumerate(self.losses):
-                loss = l(
+            for key, loss_d in enumerate(self.losses):
+                loss = loss_d(
                     x=x,
                     x_net=x_net,
                     y=y,
@@ -233,11 +233,13 @@ class AdversarialTrainer(Trainer):
                 loss_total = loss_total + loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     current_log = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                        self.logs_losses_train[key]
+                        if train
+                        else self.logs_losses_eval[key]
                     )
                     current_log.update(loss.detach().cpu().numpy())
                     cur_loss = current_log.avg
-                    logs[l.__class__.__name__] = cur_loss
+                    logs[loss_d.__class__.__name__] = cur_loss
 
             current_log = (
                 self.logs_total_loss_train if train else self.logs_total_loss_eval
@@ -265,8 +267,8 @@ class AdversarialTrainer(Trainer):
                 self.optimizer.D.zero_grad()
 
                 loss_total_d = 0
-                for k, l in enumerate(self.losses_d):
-                    loss = l(
+                for key, loss_d in enumerate(self.losses_d):
+                    loss = loss_d(
                         x=x,
                         x_net=x_net,
                         y=y,
@@ -279,13 +281,13 @@ class AdversarialTrainer(Trainer):
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:
                         current_log = (
-                            self.logs_losses_train[k + len(self.losses)]
+                            self.logs_losses_train[key + len(self.losses)]
                             if train
-                            else self.logs_losses_eval[k + len(self.losses)]
+                            else self.logs_losses_eval[key + len(self.losses)]
                         )
                         current_log.update(loss.detach().cpu().numpy())
                         cur_loss = current_log.avg
-                        logs[l.__class__.__name__] = cur_loss
+                        logs[loss_d.__class__.__name__] = cur_loss
 
             if train:
                 loss_total_d.backward()

@@ -193,10 +193,10 @@ def set_binomial_corruptor(y, alpha, gamma):
     return corruptor
 
 
-def set_beta_corruptor(y, alpha, l):
+def set_beta_corruptor(y, alpha, noise_level):
     tmp = torch.ones_like(y)
-    concentration1 = tmp * l * alpha
-    concentration0 = tmp * l * (1 - alpha)
+    concentration1 = tmp * noise_level * alpha
+    concentration0 = tmp * noise_level * (1 - alpha)
     sampler = torch.distributions.Beta(concentration1, concentration0)
 
     def corruptor():
@@ -267,8 +267,8 @@ class R2RModel(torch.nn.Module):
 
         elif isinstance(self.curr_noise_model, GammaNoise):
 
-            l = self.curr_noise_model.l
-            return set_beta_corruptor(y, alpha, l)
+            noise_level = self.curr_noise_model.noise_level
+            return set_beta_corruptor(y, alpha, noise_level)
 
         else:
             raise ValueError(

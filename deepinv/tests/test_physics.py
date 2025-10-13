@@ -1157,7 +1157,7 @@ def choose_noise(noise_type, device="cpu"):
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
-    l = torch.ones((1), device=device)
+    one = torch.ones((1), device=device)
     p, s = 0.025, 0.025
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
@@ -1174,7 +1174,7 @@ def choose_noise(noise_type, device="cpu"):
     elif noise_type == "LogPoisson":
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     elif noise_type == "Gamma":
-        noise_model = dinv.physics.GammaNoise(l)
+        noise_model = dinv.physics.GammaNoise(one)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     else:
@@ -1906,8 +1906,8 @@ def test_adjoint_autograd(name, device):
     # Compute Df^\top(z) using autograd where f(z) = A^\top z.
     y.requires_grad_()
     z = torch.randn_like(x, device=device, dtype=dtype)
-    l = (z * A_adjoint(y)).sum()
-    l.backward()
+    loss = (z * A_adjoint(y)).sum()
+    loss.backward()
     # \delta y := \delta_y <z, A^\top y> = Az
     delta_y = y.grad
     Az = physics.A(z)
@@ -2122,8 +2122,8 @@ def test_clone(name, device):
     for param in physics.parameters():
         if not torch.is_floating_point(param):
             continue
-        l = param.flatten()[0]
-        l.backward()
+        loss = param.flatten()[0]
+        loss.backward()
         assert param.grad is not None, "Parameter gradient is None after backward."
 
     for param in physics_clone.parameters():
@@ -2144,8 +2144,8 @@ def test_clone(name, device):
     for param in physics_clone.parameters():
         if not torch.is_floating_point(param):
             continue
-        l = param.flatten()[0]
-        l.backward()
+        loss = param.flatten()[0]
+        loss.backward()
         assert param.grad is not None, "Parameter gradient is None after backward."
 
     for param in physics.parameters():
