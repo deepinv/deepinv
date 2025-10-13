@@ -3,12 +3,8 @@ name: PR Comment Trigger
 on:
   issue_comment:
     types: [created]
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: "PR number to trigger tests for"
-        required: true # Making this required for manual runs
-        type: string # Inputs are always strings
+  pull_request_target:
+    types: [opened, reopened, synchronize]
 
 permissions:
   pull-requests: write
