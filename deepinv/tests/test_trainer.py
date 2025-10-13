@@ -636,20 +636,32 @@ def test_dataloader_formats(
         if online_measurements:
             if measurements:
                 if generate_params: # x, y, params online, both y and physics ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
                 else: # x, y online, y ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
             else:
                 if generate_params: # x, params online, params ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
                 else: # x online
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
         else:
             if measurements:
                 if generate_params: # x, y, params offline
-                    assert_x_full(x); assert_y_offline(y); assert_physics_offline(physics)
+                    assert_x_full(x)
+                    assert_y_offline(y)
+                    assert_physics_offline(physics)
                 else: # x, y offline
-                    assert_x_full(x); assert_y_offline(y); assert_physics_unchanged(physics)
+                    assert_x_full(x)
+                    assert_y_offline(y)
+                    assert_physics_unchanged(physics)
             else:
                 raise ValueError("measurements are neither loaded nor generated")
     else:
@@ -658,9 +670,13 @@ def test_dataloader_formats(
         if not measurements:
             raise ValueError("some data must be returned")
         if generate_params: # y, params
-            assert_x_none(x); assert_y_offline(y); assert_physics_offline(physics)
+            assert_x_none(x)
+            assert_y_offline(y)
+            assert_physics_offline(physics)
         else: # y
-            assert_x_none(x); assert_y_offline(y); assert_physics_unchanged(physics)
+            assert_x_none(x)
+            assert_y_offline(y)
+            assert_physics_unchanged(physics)
     # fmt: off
 
     # Check that the model is trained without errors
