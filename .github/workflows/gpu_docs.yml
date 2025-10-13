@@ -8,10 +8,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      pr_number:
+      run_gpu_tests:
         description: "PR number to test"
         required: true
-        type: number
+        type: boolean
 
 concurrency: # Cancel in-progress runs when pushing a new commit on the PR
   group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
@@ -20,6 +20,7 @@ concurrency: # Cancel in-progress runs when pushing a new commit on the PR
 jobs:
   test:
     name: Check examples and docs run on GPU
+    if: github.event.inputs.run_gpu_tests == true
     runs-on: gpu
     env:
       DEEPINV_MOCK_TESTS: "True"
