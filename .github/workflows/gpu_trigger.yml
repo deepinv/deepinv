@@ -66,13 +66,15 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+          ref: refs/pull/${{ steps.pr.outputs.pr_number }}/merge
+          inputs: '{ "run_gpu_tests": true }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
-          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+          ref: refs/pull/${{ steps.pr.outputs.pr_number }}/merge
+          inputs: '{ "run_gpu_tests": true }'
 
   post-comment:
     if: github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch'
