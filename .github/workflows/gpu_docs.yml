@@ -5,9 +5,13 @@ on:
     - cron: "30 2 */1 * *"
   push:
     branches:
-      - main
-  pull_request_target:
-    types: [opened, reopened, synchronize]
+      - main  
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test"
+        required: true
+        type: number
 
 concurrency: # Cancel in-progress runs when pushing a new commit on the PR
   group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
@@ -15,6 +19,7 @@ concurrency: # Cancel in-progress runs when pushing a new commit on the PR
 
 jobs:
   test:
+    if: github.event.inputs.run_gpu_tests == true
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
