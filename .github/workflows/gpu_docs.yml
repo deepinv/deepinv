@@ -108,8 +108,9 @@ jobs:
         with:
           script: |
             const prNumber = context.payload.inputs.pr_number;
+            const conclusion = "${{ job.status }}";
       
-            // 1) Fetch PR details to get the head SHA
+            // 1) Fetch the head SHA for the PR
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -117,20 +118,23 @@ jobs:
             });
       
             const headSha = pr.head.sha;
-            const conclusion = "${{ job.status }}";
       
-            // 2) Create the check run tied to that commit
+            // 2) Build a direct link to the workflow run
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+      
+            // 3) Create the check run with a summary and link
             await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: "GPU Docs",
+              name: "GPU Docs Check",  // ✅ appears as its own check
               head_sha: headSha,
               status: "completed",
               conclusion: conclusion === "success" ? "success" : "failure",
               output: {
                 title: "GPU Docs Result",
-                summary: conclusion === "success"
-                  ? "✅ GPU docs passed"
-                  : "❌ GPU docs failed",
+                summary:
+                  conclusion === "success"
+                    ? `✅ GPU docs passed — [View run details](${runUrl})`
+                    : `❌ GPU docs failed — [View run details](${runUrl})`,
               },
             });
