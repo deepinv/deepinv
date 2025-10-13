@@ -56,14 +56,17 @@ class Set14HR(ImageFolder):
 
     _archive_urls = MappingProxyType(
         {
-            "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
+            "HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_HR.tar.gz",
+            "LR_x2.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x2.tar.gz",
+            "LR_x3.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x3.tar.gz",
+            "LR_x4.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x4.tar.gz",
         }
     )
 
     # for integrity of downloaded data
     _checksums = MappingProxyType(
         {
-            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
+            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",  # --> LR_x2.tar.gz is the LR here.
             "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
             "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
         }
@@ -76,7 +79,7 @@ class Set14HR(ImageFolder):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.img_dir = os.path.join(self.root, "Set14", "image_SRF_4")
+        self.img_dir = os.path.join(self.root, "Set14", "image_HR")
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -95,12 +98,15 @@ class Set14HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     # extract local zip file
-                    extract_zipfile(os.path.join(self.root, filename), self.root)
+                    import tarfile
 
-                    if self.check_dataset_exists():
-                        print("Dataset has been successfully downloaded.")
-                    else:
-                        raise ValueError("There is an issue with the data downloaded.")
+                    with tarfile.open(os.path.join(self.root, filename), "r:gz") as tf:
+                        tf.extractall(os.path.join(self.root, "Set14"))
+
+                if self.check_dataset_exists():
+                    print("Dataset has been successfully downloaded.")
+                else:
+                    raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
@@ -108,6 +114,7 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
+
         super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
 
     def check_dataset_exists(self) -> bool:
