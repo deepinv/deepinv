@@ -18,7 +18,7 @@ concurrency: # Cancel in-progress runs when pushing a new commit on the PR
   cancel-in-progress: true
 
 jobs:
-  test:
+  gpu-docs:
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
@@ -102,39 +102,3 @@ jobs:
               body,
             });
 
-      - name: Set PR status check
-        if: always() && inputs.pr_number != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.inputs.pr_number;
-            const conclusion = "${{ job.status }}";
-      
-            // 1) Fetch the head SHA for the PR
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
-      
-            const headSha = pr.head.sha;
-      
-            // 2) Build a direct link to the workflow run
-            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-      
-            // 3) Create the check run with a summary and link
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "GPU Docs Check",  // ✅ appears as its own check
-              head_sha: headSha,
-              status: "completed",
-              conclusion: conclusion === "success" ? "success" : "failure",
-              output: {
-                title: "GPU Docs Result",
-                summary:
-                  conclusion === "success"
-                    ? `✅ GPU docs passed — [View run details](${runUrl})`
-                    : `❌ GPU docs failed — [View run details](${runUrl})`,
-              },
-            });
