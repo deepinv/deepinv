@@ -8,10 +8,10 @@ on:
       - main  
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: "PR number to test"
+      run_gpu_tests:
+        description: "whether to run or not"
         required: true
-        type: number
+        type: boolean
 
 concurrency: # Cancel in-progress runs when pushing a new commit on the PR
   group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
