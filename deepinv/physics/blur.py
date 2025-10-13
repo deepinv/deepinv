@@ -40,6 +40,7 @@ class Downsampling(LinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Downsampling's device.
 
     |sep|
 
@@ -299,7 +300,7 @@ class Upsampling(Downsampling):
     :param tuple[int] img_size: size of the output image
     :param int factor: upsampling factor
     :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
-    :param str device: cpu or cuda
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Upsampling's device.
     """
 
     def __init__(
@@ -354,7 +355,7 @@ class Blur(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
         Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
-    :param str device: cpu or cuda.
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Blur's device.
 
 
     .. note::
@@ -456,7 +457,7 @@ class BlurFFT(DecomposablePhysics):
     :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param str device: cpu or cuda
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to BlurFFT's device.
 
     |sep|
 
@@ -564,7 +565,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
-    :param str, torch.device device: cpu or cuda
+    :param torch.device, str device: Device this physics lives on. If filter or multipliers is updated, it will be cast to SpaceVaryingBlur's device.
 
     |sep|
 
