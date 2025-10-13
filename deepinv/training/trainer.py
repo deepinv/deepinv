@@ -194,6 +194,8 @@ class Trainer:
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
+        Increasing this may speed up training.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
     :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
 
@@ -255,7 +257,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
-    freq_update_progress_bar: int = 5
+    freq_update_progress_bar: int = 1
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -410,6 +412,15 @@ class Trainer:
         if train:
             self.loss_history = []
         self.save_folder_im = None
+
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider increasing this."
+            )
 
         _ = self.load_model()
 
@@ -1236,6 +1247,9 @@ class Trainer:
                             train_ite=train_ite,
                             train=False,
                             last_batch=(j == eval_batches - 1),
+                            update_progress_bar=(
+                                i % self.freq_update_progress_bar == 0
+                            ),
                         )
 
                     for k in range(len(self.metrics)):
@@ -1331,7 +1345,13 @@ class Trainer:
             )
         ):
             progress_bar.set_description(f"Test")
-            self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
+            self.step(
+                0,
+                progress_bar,
+                train=False,
+                last_batch=(i == batches - 1),
+                update_progress_bar=(i % self.freq_update_progress_bar == 0),
+            )
 
         self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
 
