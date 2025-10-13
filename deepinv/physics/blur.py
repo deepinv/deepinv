@@ -666,7 +666,7 @@ class SpaceVaryingBlur(LinearPhysics):
         if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters.to(self.device))
         if multipliers is not None and isinstance(filters, Tensor):
-            self.register_buffer("multipliers", multipliers.to(device))
+            self.register_buffer("multipliers", multipliers.to(self.device))
         if padding is not None:
             self.padding = padding
         super().update_parameters(**kwargs)
