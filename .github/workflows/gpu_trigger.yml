@@ -81,7 +81,7 @@ jobs:
       - name: Post confirmation comment
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
             🚀 GPU test workflows successfully triggered...
           token: ${{ secrets.GITHUB_TOKEN }}
