@@ -77,14 +77,14 @@ jobs:
       - name: Trigger GPU Tests
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: test_gpu.yml
+          workflow: test_gpu_pr.yml
           ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: gpu_docs.yml
+          workflow: gpu_docs_pr.yml
           ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
