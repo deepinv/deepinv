@@ -19,7 +19,7 @@ permissions:
 jobs:
   trigger-gpu-workflows:
     # Run only on manual trigger OR when the comment is exactly the command on a PR
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '/gpu_tests') }}
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '/gpu_tests')
     runs-on: ubuntu-latest
     steps:
       - name: Get PR number
@@ -56,14 +56,14 @@ jobs:
             }
 
       - name: Add 'Rocket' reaction to comment
-        if: ${{ github.event_name == 'issue_comment' && steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests' }}
+        if: github.event_name == 'issue_comment' && steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests'
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ github.event.comment.id }}
           reactions: rocket
 
       - name: Trigger GPU Tests
-        if: ${{ github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests') }}
+        if: github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests')
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu_pr.yml
@@ -71,7 +71,7 @@ jobs:
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
-        if: ${{ github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests') }}
+        if: github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests')
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs_pr.yml
@@ -80,7 +80,7 @@ jobs:
 
       - name: Post confirmation comment
         # Always runs in this job, which only starts for manual dispatch or exact command
-        if: ${{ github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests') }}
+        if: github.event_name == 'workflow_dispatch' || (steps.check.outcome == 'success' && github.event.comment.body == '/gpu_tests')
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number || inputs.pr_number }}
