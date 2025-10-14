@@ -31,6 +31,15 @@ jobs:
             echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Validate trigger command
+        if: github.event_name == 'issue_comment'
+        run: |
+          echo "Comment body: '${{ github.event.comment.body }}'"
+          if [[ "${{ github.event.comment.body }}" != "/gpu_tests" ]]; then
+            echo "Not the GPU trigger command. Exiting." >&2
+            exit 1
+          fi
+
       - name: Verify commenter permissions
         if: github.event_name == 'issue_comment'
         id: check
