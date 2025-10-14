@@ -7,29 +7,22 @@ on:
     inputs:
       pr_number:
         description: "PR number to trigger tests for"
-        required: true # Making this required for manual runs
-        type: string # Inputs are always strings
+        required: true
+        type: string
 
 permissions:
   pull-requests: write
   issues: write
   contents: read
-  actions: write  # Needed to trigger other workflows
+  actions: write
 
 jobs:
   trigger-gpu-workflows:
-    # Run on manual trigger OR if a comment on a PR starts with "/gpu-tests"
+    # Run on manual trigger OR if there's a comment on a PR; exact command checked in step conditions
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (
-        github.event.issue.pull_request &&
-        (
-          startsWith(github.event.comment.body, '/gpu-tests') ||
-          startsWith(github.event.comment.body, '/gpu_tests')
-        )
-      )
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
-
     steps:
       - name: Get PR number
         id: pr
@@ -41,7 +34,7 @@ jobs:
           fi
 
       - name: Verify commenter permissions
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests')
         id: check
         uses: actions/github-script@v7
         with:
@@ -52,7 +45,6 @@ jobs:
               repo: context.repo.repo,
               username: commenter
             });
-            // Valid permissions include 'admin', 'maintain', 'write', 'triage', 'read', 'none'
             const authorized = ['admin', 'maintain', 'write'].includes(perm.permission);
             if (!authorized) {
               core.info(`User @${commenter} has permission '${perm.permission}', not authorized to trigger.`);
@@ -65,16 +57,15 @@ jobs:
               core.setFailed('Not authorized to trigger GPU workflows');
             }
 
-      # If the previous step failed (unauthorized), subsequent steps won't run.
-
       - name: Add 'Rocket' reaction to comment
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests')
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ github.event.comment.id }}
           reactions: rocket
 
       - name: Trigger GPU Tests
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests'))
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu_pr.yml
@@ -82,6 +73,7 @@ jobs:
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests'))
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs_pr.yml
@@ -90,7 +82,11 @@ jobs:
 
   post-comment:
     needs: trigger-gpu-workflows
-    if: (github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch') && needs.trigger-gpu-workflows.result == 'success'
+    if: >
+      needs.trigger-gpu-workflows.result == 'success' && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'issue_comment' && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests'))
+      )
     runs-on: ubuntu-latest
     steps:
       - name: Post confirmation comment
