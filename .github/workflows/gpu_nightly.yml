@@ -1,0 +1,73 @@
+name: GPU Nightly
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # daily at 02:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-nightly-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  nightly-gpu:
+    name: Run GPU tests and docs on main
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+      WORKING_DIR: "/local/jtachell"
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+          python-version: "3.11"
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Set up Python
+        run: |
+          uv python install
+          uv run python --version
+
+      - name: Install the project (tests + docs)
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
+
+      - name: Check installed packages
+        run: |
+          uv pip list
+
+      - name: Check import
+        run: |
+          uv run python -c "import deepinv"
+
+      - name: Run pytest on GPU
+        run: |
+          uv run python -m pytest -n 2 --dist=loadgroup
+
+      - name: Sphinx build
+        run: |
+          uv run python -m sphinx docs/source _build
+
+      - name: Run doctests
+        env:
+          SPHINX_DOCTEST: "1"
+        run: |
+          uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
+
+      - name: Upload Documentation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-nightly
+          path: _build/
