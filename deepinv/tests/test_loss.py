@@ -41,29 +41,8 @@ LIST_R2R = [
 ]
 
 
-def test_jacobian_spectral_values(toymatrix):
-    # Define the Jacobian regularisers we want to check
-    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
-    reg_FNE_l2 = FNEJacobianSpectralNorm(
-        max_iter=100, tol=1e-4, eval_mode=False, verbose=True
-    )
-
-    # Setup our toy example; here y = A@x
-    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
-    out = x_detached @ toymatrix
-
-    def model(x):
-        return x @ toymatrix
-
-    regl2 = reg_l2(out, x_detached)
-    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
-
-    assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
-    assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
-
-
 @pytest.mark.parametrize("reduction", ["none", "mean", "sum", "max"])
-def test_jacobian_spectral_values(toymatrix, reduction):
+def test_jacobian_spectral_values(reduction):
     ### Test reduction types on batches of images
     B, C, H, W = 5, 3, 8, 8
     toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
@@ -305,9 +284,7 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(
-    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
-):
+def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     # choose training losses
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
 

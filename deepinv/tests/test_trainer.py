@@ -479,7 +479,7 @@ def test_trainer_load_model(tmp_path):
     assert trainer.model.a == 1
 
 
-def test_trainer_test_metrics(non_blocking_plots, device, rng):
+def test_trainer_test_metrics(device, rng):
     N = 10
     dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
     trainer = dinv.Trainer(
@@ -532,7 +532,6 @@ def dummy_model(device):
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("generate_params", [True, False])
 def test_dataloader_formats(
-    non_blocking_plots,
     imsize,
     device,
     dummy_model,
@@ -686,7 +685,6 @@ def test_dataloader_formats(
 @pytest.mark.parametrize("early_stop", [True, False])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    non_blocking_plots,
     dummy_dataset,
     imsize,
     device,

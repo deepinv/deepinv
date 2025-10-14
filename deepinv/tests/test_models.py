@@ -956,7 +956,7 @@ def test_restoration_models(
     if (
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
-        and pretrained == True
+        and pretrained
         and physics is not None
     ):  # suboptimal performance in this case
         psnr_in = psnr_fn(physics.A_dagger(y), x)

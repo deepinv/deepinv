@@ -1622,13 +1622,13 @@ def test_operators_differentiability(name, device):
                 for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
-                    assert x_hat.requires_grad == True
+                    assert x_hat.requires_grad
                     assert x_hat.grad is not None
                     assert torch.all(~torch.isnan(x_hat.grad))
             else:
                 loss = torch.nn.functional.mse_loss(y_hat, y)
                 loss.backward()
-                assert x_hat.requires_grad == True
+                assert x_hat.requires_grad
                 assert x_hat.grad is not None
                 assert torch.all(~torch.isnan(x_hat.grad))
 
@@ -1653,7 +1653,7 @@ def test_operators_differentiability(name, device):
 
                         for k, v in parameters.items():
                             if v.dtype in valid_dtype:
-                                assert v.requires_grad == True
+                                assert v.requires_grad
                                 assert v.grad is not None
                                 assert torch.all(~torch.isnan(v.grad))
 
@@ -1663,7 +1663,7 @@ def test_operators_differentiability(name, device):
 
                     for k, v in parameters.items():
                         if v.dtype in valid_dtype:
-                            assert v.requires_grad == True
+                            assert v.requires_grad
                             assert v.grad is not None
                             assert torch.all(~torch.isnan(v.grad))
 
