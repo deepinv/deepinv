@@ -31,7 +31,7 @@ dependencies = [
     "torchmetrics",
     "einops",
     "requests",
-    "h5py",
+    "h5py==3.14.0",
     "natsort",
 ]
 
