@@ -9,6 +9,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+- Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
+
+v0.3.5
+------
+New Features
+^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of GammaNoise in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
@@ -17,7 +29,9 @@ New Features
 
 Changed
 ^^^^^^^
+- Add ``squared`` parameter to ``LinearPhysics.compute_norm()`` and ``compute_sqnorm()`` method (:gh:`832` by `Jérémy Scanvic`_)
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Make tqdm progress bar auto-resize (:gh:`835` by `Andrew Wang`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
@@ -31,6 +45,8 @@ Fixed
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
+- Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
+- Change deprecated `torch.norm` calls to `torch.linalg.vector_norm` (:gh:`840` by `Minh Hai Nguyen`_)
 
 
 v0.3.4

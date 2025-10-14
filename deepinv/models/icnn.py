@@ -130,9 +130,9 @@ class ICNN(nn.Module):
         z = self.final_conv2d(z)
         z_avg = torch.nn.functional.avg_pool2d(z, z.size()[2:]).view(z.size()[0], -1)
 
-        return z_avg + 0.5 * self.strong_convexity * (x**2).sum(
-            dim=[1, 2, 3]
-        ).reshape(-1, 1)
+        return z_avg + 0.5 * self.strong_convexity * torch.linalg.vector_norm(
+            x, dim=(1, 2, 3), ord=2
+        ).pow(2)
 
     @torch.enable_grad()
     def grad(self, x):

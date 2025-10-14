@@ -5,8 +5,10 @@ import copy
 from math import sqrt
 import pytest
 import warnings
+import random
 
 import torch
+
 import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
@@ -78,7 +80,12 @@ OPERATORS = [
     "ptychography_linear",
 ]
 
-NONLINEAR_OPERATORS = ["haze", "lidar"]
+NONLINEAR_OPERATORS = [
+    "haze",
+    "lidar",
+    "spatial_unwrapping_round",
+    "spatial_unwrapping_floor",
+]
 
 PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
@@ -517,6 +524,12 @@ def find_nonlinear_operator(name, device):
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
+    elif name == "spatial_unwrapping_round":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="round", device=device)
+    elif name == "spatial_unwrapping_floor":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
@@ -724,11 +737,11 @@ def test_operator_multiscale_wrapper(name, device, rng):
 
     _, img_size_orig, _, _ = find_operator(
         name,
-        device,
+        device=device,
     )  # get img_size for the operator
     physics, img_size_orig, _, dtype = find_operator(
         name,
-        device,
+        device=device,
         imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
     )  # get physics for the operator with base img size
 
@@ -737,10 +750,14 @@ def test_operator_multiscale_wrapper(name, device, rng):
         base_shape[-2] // (scale**2),
         base_shape[-1] // (scale**2),
     )
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
 
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
-        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
+        physics,
+        (*image_shape[:-2], *base_shape),
+        factors=[2, 4, 8],
+        dtype=dtype,
+        device=device,
     )  # define a multiscale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
@@ -759,7 +776,7 @@ def test_operator_cropper(name, device, rng):
         device,
     )  # get physics for the operator with base img size
 
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
@@ -798,10 +815,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
+    norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -1328,12 +1345,12 @@ def test_tomography(
         assert physics.adjointness_test(x).abs() < 1e-3
 
     if normalize:
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
     if normalize is None:
         # when normalize is not set by the user, it should default to True
         assert physics.normalize is True
-        assert abs(physics.compute_norm(x) - 1.0) < 1e-3
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
@@ -2245,3 +2262,21 @@ def test_downsampling_default_filter_depreciation():
         match="deprecated",
     ):
         _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_squared_or_non_squared_norms(seed, device):
+    random.seed(seed)
+    name = random.choice(OPERATORS)
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    rng = torch.Generator(device).manual_seed(seed)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+
+    with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
+        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"
