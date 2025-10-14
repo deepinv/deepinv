@@ -21,7 +21,13 @@ jobs:
     # Run on manual trigger OR if a comment on a PR starts with "/gpu-tests"
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.pull_request && startsWith(github.event.comment.body, '/gpu-tests'))
+      (
+        github.event.issue.pull_request &&
+        (
+          startsWith(github.event.comment.body, '/gpu-tests') ||
+          startsWith(github.event.comment.body, '/gpu_tests')
+        )
+      )
     runs-on: ubuntu-latest
 
     steps:
@@ -46,14 +52,20 @@ jobs:
               repo: context.repo.repo,
               username: commenter
             });
-            // Valid permissions are 'admin', 'write', 'read', 'none'
-            core.setOutput('permission', perm.permission);
+            // Valid permissions include 'admin', 'maintain', 'write', 'triage', 'read', 'none'
+            const authorized = ['admin', 'maintain', 'write'].includes(perm.permission);
+            if (!authorized) {
+              core.info(`User @${commenter} has permission '${perm.permission}', not authorized to trigger.`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `❌ User @${commenter} is not authorized (needs write/maintain/admin access) to trigger GPU tests.`,
+              });
+              core.setFailed('Not authorized to trigger GPU workflows');
+            }
 
-      - name: Stop if user is not a maintainer
-        if: github.event_name == 'issue_comment' && steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
-        run: |
-          echo "❌ User @${{ github.event.comment.user.login }} is not authorized (needs write/admin access to trigger workflows)."
-          exit 1
+      # If the previous step failed (unauthorized), subsequent steps won't run.
 
       - name: Add 'Rocket' reaction to comment
         if: github.event_name == 'issue_comment'
@@ -66,18 +78,19 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs.yml
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: main
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
   post-comment:
-    if: github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch'
+    needs: trigger-gpu-workflows
+    if: (github.event_name == 'issue_comment' || github.event_name == 'workflow_dispatch') && needs.trigger-gpu-workflows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Post confirmation comment

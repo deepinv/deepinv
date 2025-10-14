@@ -1,11 +1,6 @@
 name: GPU Docs
 
 on:
-  schedule:
-    - cron: "30 2 */1 * *"
-  push:
-    branches:
-      - main  
   workflow_dispatch:
     inputs:
       pr_number:
@@ -13,8 +8,13 @@ on:
         required: true
         type: number
 
-concurrency: # Cancel in-progress runs when pushing a new commit on the PR
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency: # Cancel in-progress runs when a new run is started for the same PR
+  group: ${{ github.workflow }}-pr-${{ inputs.pr_number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', inputs.pr_number) }}
+          ref: ${{ format('refs/pull/{0}/head', inputs.pr_number) }}
 
       # See https://docs.astral.sh/uv/guides/integration/github
       - name: Install uv
@@ -88,13 +88,13 @@ jobs:
             const result = "${{ job.status }}";
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
             const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
-      
+
             const body = result === "success"
               ? `✅ GPU docs passed
                  🔗 [View run details](${runUrl})
                  📦 [Download built docs](${artifactUrl})`
               : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
