@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import torch
+import numpy as np
 from deepinv.datasets.base import ImageDataset
 
 
@@ -230,4 +231,11 @@ class RandomPatchSampler(ImageDataset):
             for start, size in zip(start_coords, self.patch_size)
         )
         arr = arr[slices]
-        return torch.from_numpy(arr).to(self.dtype)
+        if isinstance(arr, torch.Tensor):
+            return arr.to(self.dtype)
+        elif isinstance(arr, np.ndarray):
+            return torch.from_numpy(arr).to(self.dtype)
+        else:
+            raise RuntimeError(
+                f"Object returned by loader must be a np.ndarray or torch.tensor after slicing, got {type(arr)}"
+            )
