@@ -100,7 +100,6 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-
         super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
