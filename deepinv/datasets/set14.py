@@ -5,7 +5,7 @@ import os
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
-    extract_zipfile,
+    extract_tarball,
 )
 from deepinv.datasets.base import ImageFolder
 
@@ -56,21 +56,11 @@ class Set14HR(ImageFolder):
 
     _archive_urls = MappingProxyType(
         {
-            "HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_HR.tar.gz",
-            "LR_x2.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x2.tar.gz",
-            "LR_x3.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x3.tar.gz",
-            "LR_x4.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_LR_x4.tar.gz",
+            "Set14_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_HR.tar.gz",
         }
     )
-
+    _checksums = MappingProxyType({"Set14_HR": "3fce01c3dfe9760194e8a22f6bc032c5"})
     # for integrity of downloaded data
-    _checksums = MappingProxyType(
-        {
-            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",  # --> LR_x2.tar.gz is the LR here.
-            "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
-            "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
-        }
-    )
 
     def __init__(
         self,
@@ -79,7 +69,7 @@ class Set14HR(ImageFolder):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.img_dir = os.path.join(self.root, "Set14", "image_HR")
+        self.img_dir = os.path.join(self.root, "Set14_HR")
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -92,16 +82,15 @@ class Set14HR(ImageFolder):
                     )
 
                 for filename, url in self._archive_urls.items():
-                    # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
-                    # extract local zip file
-                    import tarfile
+                    extract_tarball(os.path.join(self.root, filename), self.root)
+                    # import tarfile
 
-                    with tarfile.open(os.path.join(self.root, filename), "r:gz") as tf:
-                        tf.extractall(os.path.join(self.root, "Set14"))
+                    # with tarfile.open(os.path.join(self.root, filename), "r:gz") as tf:
+                    #     tf.extractall(os.path.join(self.root))
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")
@@ -115,7 +104,7 @@ class Set14HR(ImageFolder):
 
         # Initialize ImageFolder
 
-        super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
@@ -131,11 +120,10 @@ class Set14HR(ImageFolder):
                        |         -- xxx
                        -- xxx
         """
-        data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14"))
+        data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14_HR"))
         if not data_dir_exist:
             return False
         return all(
-            calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
-            == checksum
+            calculate_md5_for_folder(os.path.join(self.root, folder_name)) == checksum
             for folder_name, checksum in self._checksums.items()
         )
