@@ -1,4 +1,4 @@
-name: Test
+name: Test main
 
 on:
   schedule:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test deep inverse ${{ matrix.name }}
+    name: Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
