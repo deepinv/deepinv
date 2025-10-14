@@ -31,6 +31,24 @@ jobs:
             echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Get PR head ref and sha
+        id: pr_meta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt(process.env.PR_NUMBER || core.getInput('pr_number') || '${{ steps.pr.outputs.pr_number }}', 10);
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            core.setOutput('head_ref', pr.head.ref);
+            core.setOutput('head_sha', pr.head.sha);
+          result-encoding: string
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+
       - name: Validate trigger command
         if: ${{ github.event_name == 'issue_comment' }}
         run: |
@@ -76,7 +94,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu_pr.yml
-          ref: main
+          ref: ${{ steps.pr_meta.outputs.head_sha }}
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
       - name: Trigger GPU Docs Check
@@ -84,7 +102,7 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: gpu_docs_pr.yml
-          ref: main
+          ref: ${{ steps.pr_meta.outputs.head_sha }}
           inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
 
   # Confirmation comments are posted by the dispatched workflows upon completion
