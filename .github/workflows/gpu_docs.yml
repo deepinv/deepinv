@@ -29,8 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', inputs.pr_number) }}
-
+          ref: ${{ github.event.pull_request.head.sha
+                  || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
+                  || github.sha }}
+                  
       # See https://docs.astral.sh/uv/guides/integration/github
       - name: Install uv
         uses: astral-sh/setup-uv@v6
