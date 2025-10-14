@@ -16,7 +16,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 
 v0.3.5
 ------
@@ -47,7 +47,7 @@ Fixed
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 - Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
-
+- Change deprecated `torch.norm` calls to `torch.linalg.vector_norm` (:gh:`840` by `Minh Hai Nguyen`_)
 
 
 v0.3.4
