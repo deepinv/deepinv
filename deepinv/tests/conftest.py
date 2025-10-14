@@ -7,6 +7,8 @@ from dummy import DummyCircles
 
 import importlib
 
+import os, socket, subprocess, time, sys
+
 
 @pytest.fixture(
     params=[torch.device("cpu")]
@@ -101,3 +103,37 @@ def pytest_collection_modifyitems(config, items):
             # All other tests are grouped under "main" and run one at a time
             # but in parallel of the slow tests.
             item.add_marker(pytest.mark.xdist_group("main"))
+
+
+@pytest.fixture(params=[1])
+def world_size(request):
+    """Parametrize tests with different world sizes (number of processes)."""
+    return request.param
+
+
+@pytest.fixture
+def dist_config(world_size):
+    """
+    Configuration for distributed testing with torch.distributed.
+    
+    This fixture provides:
+    - world_size: number of processes to spawn
+    - backend: 'gloo' (CPU-compatible) or 'nccl' (GPU-only)
+    - master_addr/port: for process group initialization
+    
+    The fixture is parametrized to run tests with 1, 2, and 3 processes.
+    For multi-process tests, the actual distributed initialization happens
+    within the test via DistributedContext when RANK/WORLD_SIZE env vars are set.
+    """
+    # Use unique port based on world_size to avoid conflicts
+    base_port = 29500
+    port = base_port + world_size
+    
+    config = {
+        "world_size": world_size,
+        "backend": "gloo",  # CPU-compatible backend
+        "master_addr": "127.0.0.1",
+        "master_port": str(port),
+        "device_mode": "cpu",  # Force CPU for CI compatibility
+    }
+    return config

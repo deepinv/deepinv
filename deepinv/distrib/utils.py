@@ -170,7 +170,7 @@ def make_distrib_bundle(
         physics_list = factory_config.physics
         num_operators = len(physics_list)
         def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
-            return physics_list[idx]
+            return physics_list[idx].to(device)
 
     # Measurements factory
     if callable(factory_config.measurements):
@@ -182,7 +182,7 @@ def make_distrib_bundle(
         measurements_list = factory_config.measurements
         num_operators = len(measurements_list)
         def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
-            return measurements_list[idx]
+            return measurements_list[idx].to(device)
 
     # Data fidelity factory
     if factory_config.data_fidelity is None:

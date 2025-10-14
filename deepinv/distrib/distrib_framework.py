@@ -88,17 +88,28 @@ class DistributedContext:
         if should_init_pg:
             backend = self.backend
             if backend is None:
-                # Backend decision is per-node:
-                #   - If each node has at least as many *visible* GPUs as processes per node -> NCCL
-                #   - Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
-                if (
-                    cuda_ok
-                    and dist.is_nccl_available()
-                    and (self.local_world_size <= visible_gpus)
-                ):
+                # Backend decision considering device_mode:
+                #   - If device_mode is "cpu", always use Gloo
+                #   - If device_mode is "gpu", always use NCCL (will fail if no GPU)
+                #   - If auto (None), decide based on available resources:
+                #     * If each node has at least as many *visible* GPUs as processes per node -> NCCL
+                #     * Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
+                if self.device_mode == "cpu":
+                    backend = "gloo"
+                elif self.device_mode == "gpu":
+                    if not dist.is_nccl_available():
+                        raise RuntimeError("GPU mode requested but NCCL backend not available")
                     backend = "nccl"
                 else:
-                    backend = "gloo"
+                    # Auto mode
+                    if (
+                        cuda_ok
+                        and dist.is_nccl_available()
+                        and (self.local_world_size <= visible_gpus)
+                    ):
+                        backend = "nccl"
+                    else:
+                        backend = "gloo"
             dist.init_process_group(backend=backend)
             self.initialized_here = True
 
