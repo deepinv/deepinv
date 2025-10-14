@@ -73,10 +73,10 @@ class TVDenoiser(Denoiser):
 
     def prox_sigma_g_conj(self, u, lambda2):
         return u / (
-            torch.maximum(
-                torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device, dtype=u.dtype),
-            ).unsqueeze(-1)
+            torch.clamp(
+                torch.linalg.vector_norm(u, dim=-1, ord=2, keepdim=True) / lambda2,
+                min=1.0,
+            )
         )
 
     def forward(self, y, ths=None, **kwargs):
@@ -113,7 +113,11 @@ class TVDenoiser(Denoiser):
 
         if ths is not None:
             lambd = self._handle_sigma(
-                ths, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim + 1,
+                device=y.device,
+                dtype=y.dtype,
             )
 
         for _ in range(self.n_it_max):

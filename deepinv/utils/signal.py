@@ -1,6 +1,7 @@
 """Signal processing utilities"""
 
-from typing import Optional
+from __future__ import annotations
+
 import torch
 
 
@@ -49,7 +50,7 @@ def normalize_signal(inp, *, mode):
     return inp
 
 
-def complex_abs(data: Optional[torch.Tensor], dim=1, keepdim=True):
+def complex_abs(data: torch.Tensor | None, dim=1, keepdim=True):
     """
     Compute the absolute value of a complex valued input tensor.
 
@@ -67,4 +68,4 @@ def complex_abs(data: Optional[torch.Tensor], dim=1, keepdim=True):
         return torch.abs(data)
     else:
         assert data.size(dim) == 2
-        return (data**2).sum(dim=dim, keepdim=keepdim).sqrt()
+        return torch.linalg.vector_norm(data, dim=dim, ord=2, keepdim=keepdim)

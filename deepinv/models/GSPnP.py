@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -36,17 +37,17 @@ class GSPnP(Denoiser):
         self.detach = detach
 
     def potential(
-        self, x: Tensor, sigma: Union[float, torch.Tensor], *args, **kwargs
+        self, x: Tensor, sigma: float | torch.Tensor, *args, **kwargs
     ) -> Tensor:
         N = self.student_grad(x, sigma)
         return (
             0.5
             * self.alpha
-            * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
+            * torch.linalg.vector_norm(x - N, dim=tuple(range(1, x.dim())), ord=2) ** 2
         )
 
     def potential_grad(
-        self, x: Tensor, sigma: Union[float, torch.Tensor], *args, **kwargs
+        self, x: Tensor, sigma: float | torch.Tensor, *args, **kwargs
     ) -> Tensor:
         r"""
         Calculate :math:`\nabla g` the gradient of the regularizer :math:`g` at input :math:`x`.
@@ -68,7 +69,7 @@ class GSPnP(Denoiser):
         Dg = x - N - JN
         return self.alpha * Dg
 
-    def forward(self, x: Tensor, sigma: Union[float, torch.Tensor]) -> Tensor:
+    def forward(self, x: Tensor, sigma: float | torch.Tensor) -> Tensor:
         r"""
         Denoising with Gradient Step Denoiser
 
