@@ -18,17 +18,18 @@ class Set14HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
-                   |         |               |
-                   |         |               -- img_014_SRF_2_SRCNN.png
-                   |         |
-                   |         -- image_SRF_3 --- ...
-                   |         -- image_SRF_4 --- ...
-                   |
-                   -- Set14_SR.zip
+        self.root --- Set14_HR.tar.gz
+                |
+                --- Set14_HR --- baboon.png
+                |             |
+                |             --- butterfly.png
+                |             --- face.png
+                |             --- ...
+                |
+                --- xxx
 
-    This dataset wrapper gives access to the 14 high resolution images in the `image_SRF_4` folder.
-    Raw dataset source : https://github.com/jbhuang0604/SelfExSR
+    This dataset wrapper gives access to the 14 high resolution images in the `Set14_HR` folder.
+    Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set14
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
@@ -87,10 +88,6 @@ class Set14HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
-                    # import tarfile
-
-                    # with tarfile.open(os.path.join(self.root, filename), "r:gz") as tf:
-                    #     tf.extractall(os.path.join(self.root))
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")
@@ -111,14 +108,13 @@ class Set14HR(ImageFolder):
 
         ``self.root`` should have the following structure: ::
 
-            self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
-                       |         |               |
-                       |         |               -- img_014_SRF_2_SRCNN.png
-                       |         |
-                       |         -- image_SRF_3 --- ...
-                       |         -- image_SRF_4 --- ...
-                       |         -- xxx
-                       -- xxx
+            self.root --- Set14_HR --- baboon.png
+                    |             |
+                    |             --- butterfly.png
+                    |             --- face.png
+                    |             --- ...
+                    |
+                    --- xxx
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14_HR"))
         if not data_dir_exist:
