@@ -18,10 +18,10 @@ permissions:
 
 jobs:
   trigger-gpu-workflows:
-    # Run on manual trigger OR if there's a comment on a PR; exact command checked in step conditions
+    # Run only on manual trigger OR when the comment is exactly the command on a PR
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && (github.event.comment.body == '/gpu-tests' || github.event.comment.body == '/gpu_tests'))
     runs-on: ubuntu-latest
     steps:
       - name: Get PR number
