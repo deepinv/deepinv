@@ -102,7 +102,7 @@ class DistributedBundle:
     """
     physics: DistributedLinearPhysics
     measurements: DistributedMeasurements
-    df: DistributedDataFidelity
+    data_fidelity: DistributedDataFidelity
     signal: DistributedSignal
     prior: Optional[DistributedPrior] = None
 
@@ -111,7 +111,7 @@ class DistributedBundle:
 # Public Builders
 # ---------------------------
 
-def make_distrib_core(
+def make_distrib_bundle(
     ctx: DistributedContext,
     *,
     factory_config: FactoryConfig,
@@ -119,7 +119,6 @@ def make_distrib_core(
     reduction: str = "mean",
     prior: Optional[Prior] = None,
     tiling: Optional[TilingConfig] = None,
-    prior_kwargs: Optional[Dict[str, Any]] = None,
 ) -> DistributedBundle:
     r"""
     Create distributed components using factory configuration.
@@ -133,7 +132,6 @@ def make_distrib_core(
     :param str reduction: reduction strategy for DistributedDataFidelity. Options are `'mean'` and `'sum'`.
     :param None, Prior prior: optional prior term for distributed processing
     :param None, TilingConfig tiling: optional tiling configuration for spatial processing strategies
-    :param None, Dict[str, Any] prior_kwargs: optional extra arguments for prior configuration (unused)
 
     :returns: Bundle containing all distributed objects
     :rtype: DistributedBundle
@@ -149,7 +147,7 @@ def make_distrib_core(
         ...     measurements=measurements_list,
         ...     data_fidelity=L2()
         ... )
-        >>> bundle = make_distrib_core(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
+        >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
 
         Create with custom factory functions:
 
@@ -160,7 +158,7 @@ def make_distrib_core(
         ...     measurements=measurements_factory,
         ...     num_operators=4
         ... )
-        >>> bundle = make_distrib_core(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
+        >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
     """
     # Physics factory
     if callable(factory_config.physics):
@@ -191,9 +189,11 @@ def make_distrib_core(
         def df_factory_none(idx: int, device: torch.device, shared: Optional[dict]):
             return L2()
         df_factory = df_factory_none
-    elif callable(factory_config.data_fidelity):
+    elif callable(factory_config.data_fidelity) and not isinstance(factory_config.data_fidelity, DataFidelity):
+        # This is a proper factory function, not a data fidelity instance
         df_factory = factory_config.data_fidelity
     else:
+        # This is a data fidelity instance (like L2()) or other object - create wrapper factory
         df_instance = factory_config.data_fidelity
         def df_factory_instance(idx: int, device: torch.device, shared: Optional[dict]):
             return df_instance
@@ -201,7 +201,7 @@ def make_distrib_core(
 
     physics = DistributedLinearPhysics(ctx, num_ops=num_operators, factory=physics_factory)
     measurements = DistributedMeasurements(ctx, num_items=num_operators, factory=measurements_factory)
-    df = DistributedDataFidelity(ctx, physics, measurements, data_fidelity_factory=df_factory, reduction=reduction)
+    data_fidelity = DistributedDataFidelity(ctx, physics, measurements, data_fidelity_factory=df_factory, reduction=reduction)
 
     signal = DistributedSignal(ctx, shape=signal_shape)
     dprior = None
@@ -224,4 +224,4 @@ def make_distrib_core(
             },
         )
 
-    return DistributedBundle(physics=physics, measurements=measurements, df=df, signal=signal, prior=dprior)
+    return DistributedBundle(physics=physics, measurements=measurements, data_fidelity=data_fidelity, signal=signal, prior=dprior)

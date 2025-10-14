@@ -6,7 +6,7 @@ from .distrib_framework import (
     DistributedSignal,
     DistributedPrior,
 )
-from .utils import TilingConfig, FactoryConfig, DistributedBundle, make_distrib_core
+from .utils import TilingConfig, FactoryConfig, DistributedBundle, make_distrib_bundle
 
 __all__ = [
     "DistributedContext",
@@ -18,5 +18,5 @@ __all__ = [
     "TilingConfig",
     "FactoryConfig",
     "DistributedBundle",
-    "make_distrib_core",
+    "make_distrib_bundle",
 ]
