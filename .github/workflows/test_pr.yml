@@ -1,4 +1,4 @@
-name: Test
+name: Test PRs
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test deep inverse ${{ matrix.name }}
+    name: Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
