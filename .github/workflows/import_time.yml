@@ -1,4 +1,4 @@
-name: "⏰ Import Time Benchmark (vs main)"
+name: "⏰ Import Time vs main"
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   benchmark-comparison:
-    name: Import time vs main
+    name: benchmark
     runs-on: ubuntu-latest
     strategy:
       matrix:
