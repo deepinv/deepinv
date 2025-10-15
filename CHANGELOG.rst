@@ -15,7 +15,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 
 v0.3.5
 ------
