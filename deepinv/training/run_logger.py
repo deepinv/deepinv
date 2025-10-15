@@ -1,9 +1,10 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 import json
 import logging
 import os
@@ -34,7 +35,7 @@ class RunLogger(ABC):
     log_dir: str
 
     @abstractmethod
-    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
         """
         Start a new training run.
 
@@ -47,7 +48,7 @@ class RunLogger(ABC):
         self,
         losses: dict[str, float],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -65,7 +66,7 @@ class RunLogger(ABC):
         self,
         metrics: dict[str, float],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -83,7 +84,7 @@ class RunLogger(ABC):
         self,
         images: dict[str, torch.Tensor],
         epoch: int,
-        step: Optional[int] = None,
+        step: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -107,7 +108,7 @@ class RunLogger(ABC):
 
     @abstractmethod
     def log_checkpoint(
-        self, epoch: int, state: dict[str, Any], name: Optional[str] = None
+        self, epoch: int, state: dict[str, Any], name: str | None = None
     ) -> None:
         """
         Log training checkpoint (always save in a folder on the local machine).
@@ -136,7 +137,7 @@ class WandbRunLogger(RunLogger):
         local_checkpoint_dir: str,
         log_dir: str,
         project_name: str,
-        run_name: Optional[str] = None,
+        run_name: str | None = None,
         logging_mode: str = "online",
         resume_id: str = None,
     ) -> None:
@@ -188,7 +189,7 @@ class WandbRunLogger(RunLogger):
             }
         return wandb_setup
 
-    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
         """ """
         import wandb
 
@@ -209,7 +210,7 @@ class WandbRunLogger(RunLogger):
         self,
         losses: dict[str, Any],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -230,7 +231,7 @@ class WandbRunLogger(RunLogger):
         self,
         metrics: dict[str, Any],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -251,7 +252,7 @@ class WandbRunLogger(RunLogger):
         self,
         images: dict[str, torch.Tensor],
         epoch: int,
-        step: Optional[int] = None,
+        step: int | None = None,
         phase: str = "train",
     ) -> None:
         """
@@ -295,7 +296,7 @@ class WandbRunLogger(RunLogger):
             self.resume_id = checkpoint["resume_id"]
 
     def log_checkpoint(
-        self, epoch: int, state: dict[str, Any], name: Optional[str] = None
+        self, epoch: int, state: dict[str, Any], name: str | None = None
     ) -> None:
         """
         TODO
@@ -339,9 +340,9 @@ class LocalLogger(RunLogger):
     def __init__(
         self,
         log_dir: str = "logs",
-        project_name: Optional[str] = "default_project",
-        run_name: Optional[str] = None,
-        config: Optional[dict[str, Any]] = None,
+        project_name: str | None = "default_project",
+        run_name: str | None = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         if run_name is None:
             run_name = get_timestamp()
@@ -355,7 +356,7 @@ class LocalLogger(RunLogger):
         self.checkpoints_dir = self.log_dir / "checkpoints"
         self.loss_history = []
 
-    def init_logger(self, hyperparams: Optional[dict[str, Any]] = None) -> None:
+    def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.metrics_dir, exist_ok=True)
@@ -391,7 +392,7 @@ class LocalLogger(RunLogger):
         self,
         losses: dict[str, float],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         if phase == "train":
@@ -434,7 +435,7 @@ class LocalLogger(RunLogger):
         self,
         metrics: dict[str, float],
         step: int,
-        epoch: Optional[int] = None,
+        epoch: int | None = None,
         phase: str = "train",
     ) -> None:
         # Human readable logging
@@ -475,7 +476,7 @@ class LocalLogger(RunLogger):
         self,
         images: dict[str, torch.Tensor],
         epoch: int = 0,
-        step: Optional[int] = None,
+        step: int | None = None,
         phase: str = "train",
     ) -> None:
         dir_path = self.images_dir / phase / f"epoch_{epoch}"
@@ -497,8 +498,8 @@ class LocalLogger(RunLogger):
     def log_checkpoint(
         self,
         epoch: int,
-        state: Optional[dict[str, Any]] = None,
-        name: Optional[str] = None,
+        state: dict[str, Any] | None = None,
+        name: str | None = None,
     ):
         if state is None:
             state = {}

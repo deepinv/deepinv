@@ -1,6 +1,6 @@
+from __future__ import annotations
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
-from typing import Optional, Union
 from deepinv.training.run_logger import RunLogger, LocalLogger
 
 
@@ -13,7 +13,7 @@ def test(
     physics_generator=None,
     device="cpu",
     plot_images=False,
-    loggers: Optional[Union[RunLogger, list[RunLogger]]] = [LocalLogger("./logs")],
+    loggers: RunLogger | list[RunLogger] | None = None,
     plot_convergence_metrics=False,
     verbose=True,
     rescale_mode="clip",
@@ -57,6 +57,8 @@ def test(
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
+    if loggers is None:
+        loggers = [LocalLogger("./logs")]
     if metrics is None:
         metrics = PSNR()
     trainer = Trainer(

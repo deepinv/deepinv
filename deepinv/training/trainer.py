@@ -1,7 +1,7 @@
 # Python standard libraries
+from __future__ import annotations
 from dataclasses import dataclass, field
 from logging import getLogger
-from typing import Union, Optional
 import inspect
 import warnings
 
@@ -33,23 +33,17 @@ class Trainer:
     ## Core Components
     model: torch.nn.Module
     iterative_model_returns_different_outputs: bool = False
-    physics: Union[Physics, list[Physics]]
-    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
+    physics: Physics | list[Physics]
+    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ## Data Loading
-    train_dataloader: Union[
-        torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]
-    ] = None
-    val_dataloader: Union[
-        torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]
-    ] = None
-    test_dataloader: Union[
-        torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]
-    ] = None
+    train_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
+    val_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
+    test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
 
     ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator], None] = None
+    physics_generator: PhysicsGenerator | list[PhysicsGenerator] | None = None
     loop_random_online_physics: bool = False
 
     ## Training Control
@@ -64,10 +58,10 @@ class Trainer:
     early_stop: bool = False
 
     ## Loss & Metrics
-    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
+    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = (
         SupLoss()
     )
-    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
+    metrics: Metric | list[Metric] = field(default_factory=PSNR)
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
 
@@ -76,7 +70,7 @@ class Trainer:
     ckpt_interval: int = 1
 
     ## Logging & Monitoring
-    loggers: Optional[Union[RunLogger, list[RunLogger]]] = field(
+    loggers: RunLogger | list[RunLogger] | None = field(
         default_factory=lambda: [LocalLogger("./logs")]
     )
     log_images: bool = False
@@ -226,7 +220,7 @@ class Trainer:
             for logger in self.loggers:
                 logger.setLevel("WARNING")
 
-    def save_ckpt(self, epoch: int, name: Optional[str] = None) -> None:
+    def save_ckpt(self, epoch: int, name: str | None = None) -> None:
         r"""
         Save necessary information to resume training.
 
@@ -247,7 +241,7 @@ class Trainer:
 
     def load_ckpt(
         self,
-        ckpt_pretrained: Optional[str] = None,
+        ckpt_pretrained: str | None = None,
     ) -> None:
         """Load model from checkpoint.
 
@@ -279,7 +273,7 @@ class Trainer:
         for logger in self.loggers:
             logger.load_from_checkpoint(checkpoint)
 
-    def apply_clip_grad(self) -> Optional[float]:
+    def apply_clip_grad(self) -> float | None:
         r"""
         Perform gradient clipping.
         """
@@ -346,7 +340,7 @@ class Trainer:
 
     def get_samples_offline(
         self, iterators: list, g: int
-    ) -> tuple[Optional[torch.Tensor], torch.Tensor, Physics]:
+    ) -> tuple[torch.Tensor | None, torch.Tensor, Physics]:
         r"""
         Get the samples for the offline measurements.
 
@@ -409,7 +403,7 @@ class Trainer:
 
     def get_samples(
         self, iterators: list, g: int
-    ) -> tuple[Optional[torch.Tensor], torch.Tensor, Physics]:
+    ) -> tuple[torch.Tensor | None, torch.Tensor, Physics]:
         r"""
         Get the samples.
 
@@ -437,7 +431,7 @@ class Trainer:
         self,
         y: torch.Tensor,
         physics: Physics,
-        x: Optional[torch.Tensor] = None,
+        x: torch.Tensor | None = None,
         train: bool = True,
         **kwargs,
     ) -> torch.Tensor:
@@ -773,7 +767,7 @@ class Trainer:
         self,
         epoch: int,
         physics: Physics,
-        x: Optional[torch.Tensor],
+        x: torch.Tensor | None,
         y: torch.Tensor,
         x_net: torch.Tensor,
         train: bool = True,
@@ -998,9 +992,7 @@ class Trainer:
 
     def test(
         self,
-        test_dataloader: Optional[
-            Union[torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]]
-        ] = None,
+        test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
