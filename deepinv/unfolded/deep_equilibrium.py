@@ -11,10 +11,11 @@ class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
-    .. note::
+    .. deprecated:: 0.3.6
 
-        Since 0.3.1, instead of using this class, it is possible to set directly an optimization algorithm as a DEQ algorithm using the algorithm name e.g.
-        ``model = ProximalGradientDescent(data_fidelity, prior, ..., DEQ = True, ...)``.
+       The ``BaseDEQ`` class is deprecated and will be removed in future versions. 
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
@@ -33,7 +34,7 @@ class BaseDEQ(BaseUnfold):
 
     .. note::
 
-        For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
+        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -160,6 +161,12 @@ def DEQ_builder(
 ):
     r"""
     Helper function for building an instance of the :class:`deepinv.unfolded.BaseDEQ` class.
+
+    .. deprecated:: 0.3.6
+
+       The ``DEQ_builder`` function is deprecated and will be removed in future versions. 
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 
     .. note::
 

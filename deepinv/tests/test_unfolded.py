@@ -7,9 +7,9 @@ from deepinv.optim.data_fidelity import L2
 from deepinv import optim
 
 UNFOLDED_ALGO = [
-    "ProximalGradientDescent",
+    "PGD",
     "HQS",
-    "GradientDescent",
+    "GD",
     "ADMM",
     "FISTA",
 ]
@@ -28,7 +28,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
-    if not unfolded_algo == "GradientDescent":
+    if not unfolded_algo == "GD":
         prior = [
             PnP(
                 denoiser=dinv.models.WaveletDenoiser(
@@ -108,7 +108,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     loss.backward()
 
 
-DEQ_ALGO = ["ProximalGradientDescent", "HQS"]
+DEQ_ALGO = ["PGD", "HQS"]
 
 
 @pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)

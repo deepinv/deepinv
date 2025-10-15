@@ -12,7 +12,7 @@ import torch
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import ProximalGradientDescent
+from deepinv.optim.optimizers import PGD
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -105,7 +105,7 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 init = lambda y, physics: physics.A_adjoint(y) * SCALING
 
 # define the model
-model = ProximalGradientDescent(
+model = PGD(
     data_fidelity=data_fidelity,
     prior=prior,
     stepsize=stepsize,

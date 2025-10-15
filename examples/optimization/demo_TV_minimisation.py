@@ -15,7 +15,7 @@ import torch
 from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -152,7 +152,7 @@ max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = ProximalGradientDescent(
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     stepsize=stepsize,

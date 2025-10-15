@@ -24,15 +24,15 @@ Base Class
    deepinv.optim.BaseOptim
    deepinv.optim.BacktrackingConfig
    deepinv.optim.DEQConfig
-   deepinv.optim.GradientDescent
-   deepinv.optim.ProximalGradientDescent
+   deepinv.optim.GD
+   deepinv.optim.PGD
    deepinv.optim.FISTA
    deepinv.optim.ADMM
    deepinv.optim.DRS
    deepinv.optim.HQS
-   deepinv.optim.MirrorDescent
-   deepinv.optim.ProximalMirrorDescent
-   deepinv.optim.PrimalDualCP
+   deepinv.optim.MD
+   deepinv.optim.PMD
+   deepinv.optim.PDCP
 
 
 Potentials

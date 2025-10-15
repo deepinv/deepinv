@@ -20,11 +20,10 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> from deepinv.optim import ProximalGradientDescent
+    >>> from deepinv.optim import PGD
     >>>
     >>> # Create a trainable unfolded architecture
-    >>> model = ProximalGradientDescent(  # doctest: +IGNORE_RESULT
-    ...     iteration="PGD",
+    >>> model = PGD(  # doctest: +IGNORE_RESULT
     ...     unfold=True,
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
@@ -54,10 +53,10 @@ See also :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py`
 
     >>> import torch
     >>> import deepinv as dinv
-    >>>
+    >>> from deepinv.optim import HQS
+    >>> 
     >>> # Create a trainable unfolded architecture
-    >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
-    ...     iteration="HQS",
+    >>> model = HQS(  # doctest: +IGNORE_RESULT
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
     ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
@@ -96,18 +95,30 @@ The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and 
     class DEQConfig:
         jacobian_free: bool = False
             # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+
+        # Forward pass Anderson acceleration
+        anderson_acceleration_forward: bool = False
+            # Whether to use Anderson acceleration for solving the forward equilibrium.
+        history_size_forward: int = 5
+            # Number of past iterates used in Anderson acceleration for the forward pass.
+        beta_anderson_acc_forward: float = 1.0
+            # Momentum coefficient in Anderson acceleration for the forward pass.
+        eps_anderson_acc_forward: float = 1e-4
+            # Regularization parameter for Anderson acceleration in the forward pass.
+
+        # Backward pass Anderson acceleration
         anderson_acceleration_backward: bool = False
             # Whether to use Anderson acceleration for solving the backward equilibrium.
         history_size_backward: int = 5
-            # Number of past iterates used in Anderson acceleration.
+            # Number of past iterates used in Anderson acceleration for the backward pass.
         beta_anderson_acc_backward: float = 1.0
-            # Momentum coefficient in Anderson acceleration.
+            # Momentum coefficient in Anderson acceleration for the backward pass.
         eps_anderson_acc_backward: float = 1e-4
-            # Regularization parameter for Anderson acceleration.
+            # Regularization parameter for Anderson acceleration in the backward pass.
         max_iter_backward: int = 50
             # Maximum number of iterations in the backward equilibrium solver.
 
-By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
+By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
 
 .. _predefined-unfolded:
 

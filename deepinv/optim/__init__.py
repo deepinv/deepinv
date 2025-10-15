@@ -17,13 +17,13 @@ from .optimizers import (
     BaseOptim,
     ADMM,
     DRS,
-    GradientDescent,
-    MirrorDescent,
+    GD,
+    MD,
     HQS,
-    PrimalDualCP,
-    ProximalGradientDescent,
+    PDCP,
+    PGD,
     FISTA,
-    ProximalMirrorDescent,
+    PMD,
 )
 from .fixed_point import FixedPoint
 from .prior import (

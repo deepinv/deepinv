@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
@@ -140,7 +140,7 @@ def custom_output(X):
 
 
 # instantiate the algorithm class to solve the IP problem.
-model = ProximalGradientDescent(
+model = PGD(
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,

@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 import deepinv as dinv
-from deepinv.optim import DataFidelity,
+from deepinv.optim import DataFidelity, PDCP
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optim_iterators import GDIteration
@@ -322,14 +322,14 @@ def test_itoh_fidelity(device, mode):
 @pytest.mark.parametrize(
     "name_algo",
     [
-        "GradientDescent",
-        "ProximalGradientDescent",
+        "GD",
+        "PGD",
         "ADMM",
         "DRS",
         "HQS",
         "FISTA",
-        "MirrorDescent",
-        "ProximalMirrorDescent",
+        "MD",
+        "PMD",
     ],
 )
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -454,7 +454,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 # GD not implemented for this one
 @pytest.mark.parametrize(
     "pnp_algo",
-    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
 )
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
@@ -481,9 +481,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     # here the prior model is common for all iterations
     prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
+    stepsize_dual = 1.0 if pnp_algo == "PDCP" else None
 
-    if pnp_algo == "PrimalDualCP":
+    if pnp_algo == "PDCP":
         x_init = physics.A_adjoint(y)
         u_init = y
         init = (x_init, x_init, u_init)
@@ -549,7 +549,7 @@ def get_prior(prior_name, device="cpu"):
 
 @pytest.mark.parametrize(
     "pnp_algo",
-    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
 )
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
@@ -585,9 +585,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
 
-        stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
+        stepsize_dual = 1.0 if pnp_algo == "PDCP" else None
 
-        if pnp_algo == "PrimalDualCP":
+        if pnp_algo == "PDCP":
             x_init = physics.A_adjoint(y)
             u_init = y
             init = (x_init, x_init, u_init)
@@ -627,7 +627,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
 
 @pytest.mark.parametrize(
-    "red_algo", ["GradientDescent", "ProximalGradientDescent", "FISTA"]
+    "red_algo", ["GD", "PGD", "FISTA"]
 )
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
@@ -738,7 +738,7 @@ def test_CP_K(imsize, dummy_dataset, device):
         lambda_reg = 0.6
         max_iter = 1000
 
-        optimalgo = PrimalDualCP(
+        optimalgo = PDCP(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -824,7 +824,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     lambda_reg = 0.6
     max_iter = 1000
 
-    optimalgo = PrimalDualCP(
+    optimalgo = PDCP(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,

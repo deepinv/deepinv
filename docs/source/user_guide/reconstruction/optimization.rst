@@ -40,9 +40,6 @@ algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm 
 where :math:`\operatorname{prox}_{\lambda \regname}` is the proximity operator of the regularization term, :math:`\gamma` is the
 step size of the algorithm, and :math:`\nabla \datafidname` is the gradient of the data-fidelity term.
 
-By default, algorithms are initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
-
-
 The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the :math:`\ell_1`-regularized
 least squares problem.
 
@@ -79,7 +76,6 @@ least squares problem.
     tensor([True])
     >>> print('Estimated solution: ', x_k.flatten())
     Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])
-
 
 .. _potentials:
 
@@ -158,7 +154,6 @@ The base class is :class:`deepinv.optim.Prior` implemented as a child class from
 and therefore it comes with methods for computing operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
 priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play methods).
 
-
 .. list-table:: Priors Overview
    :header-rows: 1
 
@@ -206,33 +201,30 @@ Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOpt
 for all predefined optimization algorithms.
 
 Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, for example:
-:class:`deepinv.optim.GradientDescent`, :class:`deepinv.optim.ProximalGradientDescent`, :class:`deepinv.optim.ADMM`, etc...
+:class:`deepinv.optim.GD`, :class:`deepinv.optim.PGD`, :class:`deepinv.optim.ADMM`, etc...
 For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
 
-    >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
+    >>> model = dinv.optim.PGD(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
     >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
-By default, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
-Custom initialization can be defined via the ``init`` argument in the ``forward`` method.
-
-Some predefined optimizers are provided:
-
+Some predefined optimizers are provided: 
 .. list-table::
    :header-rows: 1
 
    * - Algorithm
      - Iteration
 
-   * - :class:`deepinv.optim.GradientDescent`
+   * - :class:`deepinv.optim.GD`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = x_k-\gamma v_{k}`
 
-   * - :class:`deepinv.optim.ProximalGradientDescent`
+   * - :class:`deepinv.optim.PGD`
      - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
+   
    * - :class:`deepinv.optim.FISTA`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
@@ -252,19 +244,63 @@ Some predefined optimizers are provided:
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)`
        | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
 
-   * - :class:`deepinv.optim.PrimalDualCP`
+   * - :class:`deepinv.optim.PDCP`
      - | :math:`u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})`
        | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
 
-   * - :class:`deepinv.optim.MirrorDescent`
+   * - :class:`deepinv.optim.MD`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
 
-   * - :class:`deepinv.optim.ProximalMirrorDescent`
+   * - :class:`deepinv.optim.PMD`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
        | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
+
+
+.. _initialization:
+    
+Initialization
+---------------------
+
+By default, in these predefined algorithms, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, 
+when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
+
+Custom initialization can be defined in two ways:
+
+1. When calling the model via the ``init`` argument in the ``forward`` method of :class:`deepinv.optim.BaseOptim`.
+   In this case, ``init`` can be either a fixed initialization or a Callable function of the form ``init(y, physics)`` that takes as input
+   the measurement :math:`y` and the physics ``physics``. The output of the function or the fixed initialization can be either:
+
+   - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+   - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+   - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
+2. When creating the model :class:`deepinv.optim.BaseOptim` via the ``custom_init`` argument.
+   In this case, it must be set as a callable function ``custom_init(y, physics)`` that takes as input
+   the measurement :math:`y` and the physics ``physics`` and returns the initialization in the same form as in case 1.
+
+
+For example, for initializing the above PGD algorithm with the pseudo-inverse of the measurement operator :math:`A^{\dagger}y`, 
+one can either use the ``init`` argument when calling the standard ``PGD`` model:
+
+.. doctest::
+
+    >>> x_hat = model(y, physics, init=physics.A_dagger(y))
+    >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+
+or one can define a custom initialization function and pass it to the ``custom_init`` argument when creating the optimization model:
+
+.. doctest::
+
+    >>> def pseudo_inverse_init(y, physics):
+    ...     return physics.A_dagger(y)
+    >>> model = dinv.optim.PGD(custom_init=pseudo_inverse_init, prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
+    >>> x_hat = model(y, physics)
+    >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+
+
 
 .. _optim-params:
 

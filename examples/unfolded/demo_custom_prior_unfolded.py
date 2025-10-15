@@ -15,7 +15,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from deepinv.utils.demo import get_data_home
 
 # %%
@@ -166,7 +166,7 @@ data_fidelity = L2()
 verbose = True
 
 # Define the unfolded trainable model.
-model = ProximalGradientDescent(
+model = PGD(
     unfold=True,
     stepsize=stepsize,
     lambda_reg=lambda_reg,

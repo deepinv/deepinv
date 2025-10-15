@@ -16,7 +16,7 @@ import deepinv as dinv
 from pathlib import Path
 import importlib
 import torch
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.utils.demo import load_torch_url
@@ -116,7 +116,7 @@ max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = ProximalGradientDescent(
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,

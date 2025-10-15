@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 
@@ -133,7 +133,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = ProximalGradientDescent(
+model = PGD(
     DEQ=True,
     trainable_params=trainable_params,
     stepsize=stepsize,

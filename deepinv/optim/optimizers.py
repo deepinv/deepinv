@@ -17,10 +17,14 @@ from dataclasses import dataclass
 class DEQConfig:
     """Configuration parameters for Deep Equilibrium models."""
     jacobian_free: bool = False # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+    anderson_acceleration_forward: bool = False # Whether to use Anderson acceleration for solving the forward equilibrium.
+    history_size_forward: int = 5 # Number of past iterates used in Anderson acceleration for the forward pass.
+    beta_anderson_acc_forward: float = 1.0 # Momentum coefficient in Anderson acceleration for the forward pass.
+    eps_anderson_acc_forward: float = 1e-4 # Regularization parameter for Anderson acceleration in the forward pass.
     anderson_acceleration_backward: bool = False # Whether to use Anderson acceleration for solving the backward equilibrium.
-    history_size_backward: int = 5 # Number of past iterates used in Anderson acceleration.
-    beta_anderson_acc_backward: float = 1.0 # Momentum coefficient in Anderson acceleration.
-    eps_anderson_acc_backward: float = 1e-4 # Regularization parameter for Anderson acceleration.
+    history_size_backward: int = 5 # Number of past iterates used in Anderson acceleration for the backward pass.
+    beta_anderson_acc_backward: float = 1.0 # Momentum coefficient in Anderson acceleration for the backward pass.
+    eps_anderson_acc_backward: float = 1e-4 # Regularization parameter for Anderson acceleration in the backward pass.
     max_iter_backward: int = 50 # Maximum number of iterations in the backward equilibrium solver.
 
 
@@ -87,8 +91,6 @@ class BaseOptim(Reconstructor):
 
     By default, the intial iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
     Custom initialization can be defined with the ``custom_init`` class argument or via ``init`` argument in the ``forward`` method.
-    In both cases, the custom intialization can be either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-    The output of the function or the fixed initialization should either be a tuple :math:`(x_0, z_0)`, a torch.Tensor :math:`x_0` (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables.
 
     The variable ``data_fidelity`` is a list of instances of :class:`deepinv.optim.DataFidelity` (or a single instance).
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
@@ -116,7 +118,7 @@ class BaseOptim(Reconstructor):
 
     .. note::
 
-        For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
+        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
         If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     .. doctest::
@@ -179,11 +181,11 @@ class BaseOptim(Reconstructor):
     :param float thres_conv: value of the threshold for claiming convergence. Default: ``1e-05``.
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
-        If the prior is not explit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
+        If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param deepinv.optim.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
         If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes:
+        The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
 
         .. code-block:: python
 
@@ -197,22 +199,29 @@ class BaseOptim(Reconstructor):
                     # Maximum number of backtracking iterations
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
-    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),
-        the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
-    :param Callable get_output: get the image output given the current dictionary update containing primal
-        and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
-    :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations.
-        Default: ``False``.
-    :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
-    :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
-    :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
+    :param Callable get_output:  Custom output of the algorithm.
+        The callable function ``get_output(X)`` takes as input the dictionary ``X`` containing the primal and auxiliary variables and returns the desired output. Default : ``X['est'][0]``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
-    :param list trainable_params: list of the algorithmic parameters among the keys of the dictionery params_algo to be made trainable. Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. 
+    :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``). 
+        Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
-        Otherwise, ``DEQ`` must be an instance of :class:`DEQConfig`, which defines the parameters for equilibrium-based implicit differentiation.
-        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes:
+        Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
+        for forward and backward equilibrium-based implicit differentiation.
+
+        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
 
         .. code-block:: python
 
@@ -220,18 +229,30 @@ class BaseOptim(Reconstructor):
             class DEQConfig:
                 jacobian_free: bool = False
                     # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+
+                # Forward pass Anderson acceleration
+                anderson_acceleration_forward: bool = False
+                    # Whether to use Anderson acceleration for solving the forward equilibrium.
+                history_size_forward: int = 5
+                    # Number of past iterates used in Anderson acceleration for the forward pass.
+                beta_anderson_acc_forward: float = 1.0
+                    # Momentum coefficient in Anderson acceleration for the forward pass.
+                eps_anderson_acc_forward: float = 1e-4
+                    # Regularization parameter for Anderson acceleration in the forward pass.
+
+                # Backward pass Anderson acceleration
                 anderson_acceleration_backward: bool = False
                     # Whether to use Anderson acceleration for solving the backward equilibrium.
                 history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration.
+                    # Number of past iterates used in Anderson acceleration for the backward pass.
                 beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration.
+                    # Momentum coefficient in Anderson acceleration for the backward pass.
                 eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration.
+                    # Regularization parameter for Anderson acceleration in the backward pass.
                 max_iter_backward: int = 50
                     # Maximum number of iterations in the backward equilibrium solver.
 
-        By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :param bool show_progress_bar: show progress bar during optimization.
@@ -463,9 +484,14 @@ class BaseOptim(Reconstructor):
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
-        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
+        :param Callable, torch.Tensor, tuple, dict init:  initialization of the algorithm.
             Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
-            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+            The output of the function or the fixed initialization can be either:
+
+            - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+            - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
@@ -730,10 +756,16 @@ class BaseOptim(Reconstructor):
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
-        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
+        :param Callable, torch.Tensor, tuple, dict init:  initialization of the algorithm. Default: ``None``.
             if ``None`` (and the class ``custom_init``argument is ``None``), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
-            Either a Callable function of the form ``init(y, physics)`` or a fixed initialization.
-            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+            ``init`` can be either a fixed initialization or a Callable function of the form ``init(y, physics)`` that takes as input
+            the measurement :math:`y` and the physics ``physics``. The output of the function or the fixed initialization can be either:
+
+            - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+            - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
+            Note that custom initialization can also be defined via the ``custom_init`` class argument.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
         :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)
@@ -770,8 +802,8 @@ def create_iterator(
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
-        If an algorithm name (string), should be either ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+        If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent). 
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
@@ -835,16 +867,15 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
-    .. note::
+    .. deprecated:: 0.3.6
 
-        Since 0.3.6, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
-        ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
+       The ``optim_builder`` is deprecated and will be removed in future versions. 
+       Instead of using this function, define an optimization algorithm using directly the algorithm name 
+       e.g. ``model = PGD(data_fidelity, prior, ...)``.
 
-    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
-        or directly an optim iterator.
-        If an algorithm name (string), should be either ``"GD"`` (gradient descent),
-        ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used, or directly an optim iterator.
+        If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent). 
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularization parameter, denoising standard deviation.
@@ -954,10 +985,16 @@ class ADMM(BaseOptim):
                     
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)` or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` and :math:`z_0` are both initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1081,10 +1118,16 @@ class DRS(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1142,9 +1185,9 @@ class DRS(BaseOptim):
         )
 
 
-class GradientDescent(BaseOptim):
+class GD(BaseOptim):
     r"""
-    Gradient Descent module for solving the problem
+    Gradient Descent (GD) module for solving the problem
 
     .. math::
         \begin{equation}
@@ -1202,17 +1245,26 @@ class GradientDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.optimizers.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
-        Otherwise, ``DEQ`` must be an instance of :class:`DEQConfig`, which defines the parameters for equilibrium-based implicit differentiation.
-        The :class:`DEQConfig` dataclass has the following attributes:
+        Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
+        for forward and backward equilibrium-based implicit differentiation.
+
+        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
 
         .. code-block:: python
 
@@ -1220,18 +1272,30 @@ class GradientDescent(BaseOptim):
             class DEQConfig:
                 jacobian_free: bool = False
                     # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+
+                # Forward pass Anderson acceleration
+                anderson_acceleration_forward: bool = False
+                    # Whether to use Anderson acceleration for solving the forward equilibrium.
+                history_size_forward: int = 5
+                    # Number of past iterates used in Anderson acceleration for the forward pass.
+                beta_anderson_acc_forward: float = 1.0
+                    # Momentum coefficient in Anderson acceleration for the forward pass.
+                eps_anderson_acc_forward: float = 1e-4
+                    # Regularization parameter for Anderson acceleration in the forward pass.
+
+                # Backward pass Anderson acceleration
                 anderson_acceleration_backward: bool = False
                     # Whether to use Anderson acceleration for solving the backward equilibrium.
                 history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration.
+                    # Number of past iterates used in Anderson acceleration for the backward pass.
                 beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration.
+                    # Momentum coefficient in Anderson acceleration for the backward pass.
                 eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration.
+                    # Regularization parameter for Anderson acceleration in the backward pass.
                 max_iter_backward: int = 50
                     # Maximum number of iterations in the backward equilibrium solver.
 
-        By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1265,7 +1329,7 @@ class GradientDescent(BaseOptim):
                 "stepsize": stepsize,
                 "g_param": g_param,
             }
-        super(GradientDescent, self).__init__(
+        super(GD, self).__init__(
             GDIteration(F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
@@ -1287,7 +1351,7 @@ class GradientDescent(BaseOptim):
 
 class HQS(BaseOptim):
     r"""
-    Half-Quadratic Splitting module for solving the problem
+    Half-Quadratic Splitting (HQS) module for solving the problem
     
     .. math::
         \begin{equation}
@@ -1348,18 +1412,27 @@ class HQS(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.optimizers.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
-        Otherwise, ``DEQ`` must be an instance of :class:`DEQConfig`, which defines the parameters for equilibrium-based implicit differentiation.
-        The :class:`DEQConfig` dataclass has the following attributes:
+        Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
+        for forward and backward equilibrium-based implicit differentiation.
+
+        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
 
         .. code-block:: python
 
@@ -1367,18 +1440,30 @@ class HQS(BaseOptim):
             class DEQConfig:
                 jacobian_free: bool = False
                     # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+
+                # Forward pass Anderson acceleration
+                anderson_acceleration_forward: bool = False
+                    # Whether to use Anderson acceleration for solving the forward equilibrium.
+                history_size_forward: int = 5
+                    # Number of past iterates used in Anderson acceleration for the forward pass.
+                beta_anderson_acc_forward: float = 1.0
+                    # Momentum coefficient in Anderson acceleration for the forward pass.
+                eps_anderson_acc_forward: float = 1e-4
+                    # Regularization parameter for Anderson acceleration in the forward pass.
+
+                # Backward pass Anderson acceleration
                 anderson_acceleration_backward: bool = False
                     # Whether to use Anderson acceleration for solving the backward equilibrium.
                 history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration.
+                    # Number of past iterates used in Anderson acceleration for the backward pass.
                 beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration.
+                    # Momentum coefficient in Anderson acceleration for the backward pass.
                 eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration.
+                    # Regularization parameter for Anderson acceleration in the backward pass.
                 max_iter_backward: int = 50
                     # Maximum number of iterations in the backward equilibrium solver.
 
-        By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the HQS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1433,9 +1518,9 @@ class HQS(BaseOptim):
         )
 
 
-class ProximalGradientDescent(BaseOptim):
+class PGD(BaseOptim):
     r"""
-    Proximal Gradient Descent module for solving the problem
+    Proximal Gradient Descent (PGD) module for solving the problem
 
     .. math::
         \begin{equation}
@@ -1493,18 +1578,27 @@ class ProximalGradientDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.optimizers.DEQConfig DEQ: configuration for a Deep Equilibrium (DEQ) unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
-        Otherwise, ``DEQ`` must be an instance of :class:`DEQConfig`, which defines the parameters for equilibrium-based implicit differentiation.
-        The :class:`DEQConfig` dataclass has the following attributes:
+        Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
+        for forward and backward equilibrium-based implicit differentiation.
+
+        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
 
         .. code-block:: python
 
@@ -1512,18 +1606,30 @@ class ProximalGradientDescent(BaseOptim):
             class DEQConfig:
                 jacobian_free: bool = False
                     # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+
+                # Forward pass Anderson acceleration
+                anderson_acceleration_forward: bool = False
+                    # Whether to use Anderson acceleration for solving the forward equilibrium.
+                history_size_forward: int = 5
+                    # Number of past iterates used in Anderson acceleration for the forward pass.
+                beta_anderson_acc_forward: float = 1.0
+                    # Momentum coefficient in Anderson acceleration for the forward pass.
+                eps_anderson_acc_forward: float = 1e-4
+                    # Regularization parameter for Anderson acceleration in the forward pass.
+
+                # Backward pass Anderson acceleration
                 anderson_acceleration_backward: bool = False
                     # Whether to use Anderson acceleration for solving the backward equilibrium.
                 history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration.
+                    # Number of past iterates used in Anderson acceleration for the backward pass.
                 beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration.
+                    # Momentum coefficient in Anderson acceleration for the backward pass.
                 eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration.
+                    # Regularization parameter for Anderson acceleration in the backward pass.
                 max_iter_backward: int = 50
                     # Maximum number of iterations in the backward equilibrium solver.
 
-        By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
@@ -1558,7 +1664,7 @@ class ProximalGradientDescent(BaseOptim):
                 "stepsize": stepsize,
                 "g_param": g_param,
             }
-        super(ProximalGradientDescent, self).__init__(
+        super(PGD, self).__init__(
             PGDIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
@@ -1637,10 +1743,16 @@ class FISTA(BaseOptim):
         
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1699,9 +1811,9 @@ class FISTA(BaseOptim):
         )
 
 
-class MirrorDescent(BaseOptim):
+class MD(BaseOptim):
     r"""
-    Mirror Descent or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    Mirror Descent (MD) or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
         \begin{equation*}
@@ -1753,10 +1865,16 @@ class MirrorDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1793,7 +1911,7 @@ class MirrorDescent(BaseOptim):
                 "stepsize": stepsize,
                 "g_param": g_param,
             }
-        super(MirrorDescent, self).__init__(
+        super(MD, self).__init__(
             MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
             prior=prior,
@@ -1812,9 +1930,9 @@ class MirrorDescent(BaseOptim):
         )
 
 
-class ProximalMirrorDescent(BaseOptim):
+class PMD(BaseOptim):
     r""" 
-    Proximal Mirror Descent or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    Proximal Mirror Descent (PMD) or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     
     .. math::
         \begin{equation*}
@@ -1867,10 +1985,16 @@ class ProximalMirrorDescent(BaseOptim):
         
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
-        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
@@ -1908,7 +2032,7 @@ class ProximalMirrorDescent(BaseOptim):
                 "stepsize": stepsize,
                 "g_param": g_param,
             }
-        super(ProximalMirrorDescent, self).__init__(
+        super(PMD, self).__init__(
             PMDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
             prior=prior,
@@ -1927,9 +2051,9 @@ class ProximalMirrorDescent(BaseOptim):
         )
 
 
-class PrimalDualCP(BaseOptim):
+class PDCP(BaseOptim):
     r"""
-    Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
+    Class for a single iteration of the `Primal-Dual Chambolle-Pock (PDCP) <https://hal.science/hal-00490826/document>`_ 
     algorithm for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
@@ -2004,11 +2128,17 @@ class PrimalDualCP(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable, tuple custom_init:  initialization of the algorithm. 
-        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
-        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0, u_0)` or a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}``.
-        If ``None`` (default value),  :math:`x_0`, :math:`z_0` are both initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
-        and with the observation `y` if the adjoint is not defined. :math:`u_0` is initalized with `y`. Default: ``None``.
+    :param Callable custom_init:  Custom initialization of the algorithm.
+        The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
+        
+        - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+        - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+        - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+        
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
+        
+        If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
@@ -2068,7 +2198,7 @@ class PrimalDualCP(BaseOptim):
                 u_init = y
                 return {"est": (x_init, x_init, u_init)}
 
-        super(PrimalDualCP, self).__init__(
+        super(PDCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,

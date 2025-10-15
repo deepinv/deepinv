@@ -22,7 +22,7 @@ from pathlib import Path
 import torch
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
-from deepinv.optim import MirrorDescent
+from deepinv.optim import MD
 from deepinv.optim.bregman import BurgEntropy
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
@@ -80,7 +80,7 @@ sigma_denoiser = 0.05  # noise level parameter of the Gaussian denoiser
 verbose = True  # Logging parameters
 
 # Define the unfolded trainable model.
-model = MirrorDescent(
+model = MD(
     prior=prior,
     data_fidelity=data_fidelity,
     stepsize=stepsize,

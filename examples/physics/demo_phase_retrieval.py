@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP, Zero
-from deepinv.optim import ProximalGradientDescent
+from deepinv.optim import PGD
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
@@ -226,7 +226,7 @@ early_stop = True
 verbose = True
 
 # Instantiate the algorithm class to solve the IP problem.
-model = ProximalGradientDescent(
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
