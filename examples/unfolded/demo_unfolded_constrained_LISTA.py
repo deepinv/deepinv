@@ -215,7 +215,6 @@ epochs = 10 if torch.cuda.is_available() else 5  # choose training epochs
 learning_rate = 1e-3
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # choose training losses
 losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
@@ -235,7 +234,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
     epochs=epochs,
 )
 

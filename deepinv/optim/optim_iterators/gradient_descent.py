@@ -1,6 +1,6 @@
+from __future__ import annotations
 from .optim_iterator import OptimIterator, fStep, gStep
 from deepinv.optim.bregman import Bregman, BregmanL2
-from typing import Optional
 
 
 class GDIteration(OptimIterator):
@@ -83,7 +83,7 @@ class MDIteration(OptimIterator):
     :param deepinv.optim.Bregman bregman_potential: Instance of the Bregman class defining the Bregman potential used to compute the mirror descent step.
     """
 
-    def __init__(self, bregman_potential: Optional[Bregman] = None, **kwargs):
+    def __init__(self, bregman_potential: Bregman | None = None, **kwargs):
         if bregman_potential is None:
             bregman_potential = BregmanL2()
         super(MDIteration, self).__init__(**kwargs)

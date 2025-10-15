@@ -8,6 +8,7 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -106,11 +107,12 @@ cost_tv_prox = prior(x_tv).item()
 # Plot the input and the output of the TV proximal operator
 imgs = [y, x_tv]
 plot(
-    imgs,
-    titles=[
-        f"Input \n TV cost: {cost_tv:.2f}",
-        f"Output \n TV cost: {cost_tv_prox:.2f}",
+    {"Input": y, "Output": x_tv},
+    subtitles=[
+        f"TV cost: {int(cost_tv)}",
+        f"TV cost: {int(cost_tv_prox)}",
     ],
+    tight=False,
 )
 
 
@@ -176,14 +178,20 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
+psnr_input = dinv.metric.PSNR()(x, y)
+psnr_lin = dinv.metric.PSNR()(x, x_lin)
+psnr_model = dinv.metric.PSNR()(x, x_model)
 
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
+imgs = [x, y, x_lin, x_model]
 plot(
-    imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    {"Ground Truth": x, "Input": y, "Linear Recon": x_lin, "Recons": x_model},
+    subtitles=[
+        "PSNR:",
+        f"{psnr_input.item():.2f} dB",
+        f"{psnr_lin.item():.2f} dB",
+        f"{psnr_model.item():.2f} dB",
+    ],
 )
 
 # plot convergence curves

@@ -113,7 +113,7 @@ class BaseOptim(Reconstructor):
         >>> data_fidelity = dinv.optim.data_fidelity.L2()
         >>>
         >>> # Define the prior
-        >>> prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+        >>> prior = dinv.optim.Prior(g = lambda x, *args: torch.linalg.vector_norm(x, ord=1, dim=tuple(range(1, x.ndim))))
         >>>
         >>> # Define the parameters of the algorithm
         >>> params_algo = {"stepsize": 0.5, "lambda": 1.0}
@@ -176,6 +176,7 @@ class BaseOptim(Reconstructor):
     :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
+    :param bool show_progress_bar: show progress bar during optimization.
     :return: a torch model that solves the optimization problem.
     """
 
@@ -210,6 +211,7 @@ class BaseOptim(Reconstructor):
         DEQ_beta_anderson_acc_backward=1.0,
         DEQ_eps_anderson_acc_backward=1e-4,
         verbose=False,
+        show_progress_bar=False,
         device=torch.device("cpu"),
         **kwargs,
     ):
@@ -218,6 +220,7 @@ class BaseOptim(Reconstructor):
         self.early_stop = early_stop
         self.crit_conv = crit_conv
         self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
         self.max_iter = max_iter
         self.backtracking = backtracking
         self.gamma_backtracking = gamma_backtracking
@@ -355,7 +358,8 @@ class BaseOptim(Reconstructor):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
-            verbose=verbose,
+            verbose=self.verbose,
+            show_progress_bar=self.show_progress_bar,
         )
 
         from deepinv.loss.metric.distortion import PSNR
@@ -527,7 +531,7 @@ class BaseOptim(Reconstructor):
             F_prev, F = X_prev["cost"], X["cost"]
             diff_F, diff_x = (
                 (F_prev - F).mean(),
-                (torch.norm(x - x_prev, p=2, dim=-1) ** 2).mean(),
+                torch.linalg.vector_norm(x - x_prev, dim=-1, ord=2).pow(2).mean(),
             )
             stepsize = self.params_algo["stepsize"][0]
             if diff_F < (self.gamma_backtracking / stepsize) * diff_x:

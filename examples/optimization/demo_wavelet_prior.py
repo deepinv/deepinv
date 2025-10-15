@@ -8,6 +8,7 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -107,13 +108,16 @@ cost_wv_prox = prior(x_wv)
 #
 
 # Plot the input and the output of the wavelet proximal operator
-imgs = [y, x_wv]
 plot(
-    imgs,
-    titles=[
-        f"Input \nWavelet cost: {cost_wv.item():.2f}",
-        f"Output \nWavelet cost: {cost_wv_prox.item():.2f}",
+    {
+        "Input": y,
+        "Output": x_wv,
+    },
+    subtitles=[
+        f"Wavelet cost:\n{int(cost_wv.item())}",
+        f"Wavelet cost:\n{int(cost_wv_prox.item())}",
     ],
+    tight=False,
 )
 
 
@@ -184,16 +188,24 @@ x_model, metrics = model(
 x_model = x_model.clamp(0, 1)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
-
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
 plot(
-    imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    {
+        "GT": x,
+        "Input": y,
+        "Linear": x_lin,
+        "Recons.": x_model,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(x, y).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_lin).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_model).item():.2f} dB",
+    ],
 )
 
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%

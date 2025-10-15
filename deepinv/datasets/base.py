@@ -1,5 +1,6 @@
+from __future__ import annotations
 from warnings import warn
-from typing import Optional, Callable, Union
+from typing import Callable
 from pathlib import Path
 import math
 from numpy import ndarray
@@ -10,6 +11,7 @@ from torchvision.datasets.folder import IMG_EXTENSIONS
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
+from natsort import natsorted
 
 
 CORE_TYPES = (
@@ -180,9 +182,9 @@ class TensorDataset(ImageDataset):
     def __init__(
         self,
         *,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        params: Optional[dict[str, Tensor]] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        params: dict[str, Tensor] | None = None,
     ):
         super().__init__()
 
@@ -326,25 +328,18 @@ class ImageFolder(ImageDataset):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        x_path: Optional[str] = None,
-        y_path: Optional[str] = None,
-        loader: Callable[[Union[str, Path]], Tensor] = None,
-        estimate_params: Optional[Callable[[Tensor, Tensor], dict]] = None,
-        transform: Optional[Union[Callable, tuple[Callable, Callable]]] = None,
+        root: str | Path,
+        x_path: str | None = None,
+        y_path: str | None = None,
+        loader: Callable[[str | Path], Tensor] = None,
+        estimate_params: Callable[[Tensor, Tensor], dict] | None = None,
+        transform: Callable | tuple[Callable, Callable] | None = None,
     ):
         super().__init__()
         self.root = Path(root)
 
         self.x_paths = None
         self.y_paths = None
-
-        try:
-            from natsort import natsorted
-        except ImportError:
-            natsorted = ImportError(
-                "natsort is not available. In order to use ImageFolder, please install the natsort package with `pip install natsort`."
-            )
 
         if x_path is not None:
             self.x_paths = natsorted(self.root.glob(x_path))

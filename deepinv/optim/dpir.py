@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 from torch import Tensor
 from deepinv.models import DRUNet
 from deepinv.models.base import Denoiser
@@ -6,10 +6,10 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim import BaseOptim
-import numpy as np
+import torch
 
 
-def get_DPIR_params(noise_level_img):
+def get_DPIR_params(noise_level_img, device="cpu"):
     r"""
     Default parameters for the DPIR Plug-and-Play algorithm.
 
@@ -19,12 +19,18 @@ def get_DPIR_params(noise_level_img):
     max_iter = 8
     s1 = 49.0 / 255.0
     s2 = noise_level_img
-    sigma_denoiser = np.logspace(np.log10(s1), np.log10(s2), max_iter).astype(
-        np.float32
+    sigma_denoiser = torch.logspace(
+        torch.log10(torch.tensor(s1, dtype=torch.float32)),
+        torch.log10(torch.tensor(s2, dtype=torch.float32)),
+        steps=max_iter,
+        dtype=torch.float32,
+        device=device,
     )
+
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
     lamb = 1 / 0.23
-    return list(sigma_denoiser), list(lamb * stepsize), max_iter
+
+    return sigma_denoiser, lamb * stepsize, max_iter
 
 
 class DPIR(BaseOptim):
@@ -50,7 +56,7 @@ class DPIR(BaseOptim):
 
     def __init__(
         self,
-        sigma: Union[float, Tensor] = 0.1,
+        sigma: float | Tensor = 0.1,
         denoiser: Denoiser = None,
         device="cuda",
     ):
@@ -61,7 +67,7 @@ class DPIR(BaseOptim):
                 else denoiser
             )
         )
-        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
+        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma, device=device)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(
             create_iterator("HQS", prior=prior, F_fn=None, g_first=False),

@@ -109,7 +109,7 @@ plot_convergence_metrics = (
 )
 
 # Algorithm parameters
-scaling = 1 / physics.compute_norm(torch.rand_like(test_imgs)).item()
+scaling = 1 / physics.compute_sqnorm(torch.rand_like(test_imgs)).item()
 stepsize = 0.99 * scaling
 lamb = 3.0  # TV regularisation parameter
 max_iter = 300

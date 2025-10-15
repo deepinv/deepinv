@@ -8,6 +8,7 @@ from .data_fidelity import (
     AmplitudeLoss,
     LogPoissonLikelihood,
     ZeroFidelity,
+    ItohFidelity,
 )
 from .optimizers import (
     optim_builder,
@@ -64,3 +65,5 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
+
+from . import utils

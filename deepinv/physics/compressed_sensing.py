@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
@@ -6,7 +7,7 @@ from torch import Tensor
 from deepinv.utils.decorators import _deprecated_alias
 
 
-def dst1(x):
+def dst1(x: Tensor) -> Tensor:
     r"""
     Orthogonal Discrete Sine Transform, Type I
     The transform is performed across the last dimension of the input signal
@@ -100,12 +101,12 @@ class CompressedSensing(LinearPhysics):
     @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
-        m,
-        img_size,
-        fast=False,
-        channelwise=False,
-        dtype=torch.float,
-        device="cpu",
+        m: int,
+        img_size: tuple[int],
+        fast: bool = False,
+        channelwise: bool = False,
+        dtype: torch.dtype = torch.float,
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
