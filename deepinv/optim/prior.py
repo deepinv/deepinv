@@ -908,6 +908,7 @@ class RidgeRegularizer(Prior):
         self.dirac = fn(self.dirac)
         return super()._apply(fn)
 
+    @torch.no_grad()
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the the regularizer at :math:`x`.
@@ -926,18 +927,15 @@ class RidgeRegularizer(Prior):
         :param int l2_axis: axis in which the l2 norm is computed.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        f = (
-            lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3))
-            + gamma * self(z).detach()
-        )
-        nabla_f = lambda z, y: z - y + gamma * self.grad(z).detach()
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
 
         def f_and_nabla(z, y):
             with torch.no_grad():
                 out_f, out_grad = self.grad(z, get_energy=True)
             return (
-                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f.detach(),
-                z - y + out_grad.detach(),
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f,
+                z - y + out_grad,
             )
 
         return nonmonotone_accelerated_proximal_gradient(
@@ -1003,7 +1001,7 @@ class LSR(Prior):
                 "The parameter pretrained_GSDRUNet must either be None or an instance of GSDRUNet!"
             )
 
-        self.model.detach = False
+        self.model.detach = True
 
         self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
         self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
@@ -1058,6 +1056,7 @@ class LSR(Prior):
             torch.exp(self.input_scaling) * x.contiguous(), self.sigma
         )
 
+    @torch.no_grad()
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
         Calculates the proximity operator of the the regularizer at :math:`x`.
@@ -1076,18 +1075,15 @@ class LSR(Prior):
         :param int l2_axis: axis in which the l2 norm is computed.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        f = (
-            lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3))
-            + gamma * self(z).detach()
-        )
-        nabla_f = lambda z, y: z - y + gamma * self.grad(z).detach()
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
 
         def f_and_nabla(z, y):
             with torch.no_grad():
                 out_f, out_grad = self.grad(z, get_energy=True)
             return (
-                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f.detach(),
-                z - y + out_grad.detach(),
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f,
+                z - y + out_grad,
             )
 
         return nonmonotone_accelerated_proximal_gradient(
