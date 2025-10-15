@@ -40,6 +40,7 @@ class Downsampling(LinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Downsampling's device.
 
     |sep|
 
@@ -61,11 +62,11 @@ class Downsampling(LinearPhysics):
 
     def __init__(
         self,
-        img_size=None,
-        filter="warn",
-        factor=2,
-        device="cpu",
-        padding="circular",
+        img_size: tuple[int, ...] = None,
+        filter: str | Tensor = "warn",
+        factor: int = 2,
+        device: torch.device | str = "cpu",
+        padding: str = "circular",
         **kwargs,
     ):
         if filter == "warn":
@@ -84,12 +85,18 @@ class Downsampling(LinearPhysics):
         self.update_parameters(filter=filter, factor=factor, **kwargs)
         self.to(device)
 
-    def A(self, x, filter=None, factor=None, **kwargs):
+    def A(
+        self,
+        x: Tensor,
+        filter: Tensor | str | list[str] = None,
+        factor: int | float | Tensor = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Applies the downsampling operator to the input image.
 
         :param torch.Tensor x: input image.
-        :param None, str, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         :param int, float, torch.Tensor factor: downsampling factor. If not `None`, use this factor and store it as current factor.
 
@@ -108,12 +115,18 @@ class Downsampling(LinearPhysics):
 
         return x
 
-    def A_adjoint(self, y, filter=None, factor=None, **kwargs):
+    def A_adjoint(
+        self,
+        y: Tensor,
+        filter: Tensor | str | list[str] = None,
+        factor: int | float | Tensor = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Adjoint operator of the downsampling operator.
 
         :param torch.Tensor y: downsampled image.
-        :param None, str, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         :param int, float, torch.Tensor factor: downsampling factor. If not `None`, use this factor and store it as current factor.
 
@@ -153,7 +166,9 @@ class Downsampling(LinearPhysics):
 
         return x
 
-    def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
+    def prox_l2(
+        self, z: Tensor, y: Tensor, gamma: float, use_fft: bool = True, **kwargs
+    ) -> Tensor:
         r"""
         If the padding is circular, it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
 
@@ -211,14 +226,14 @@ class Downsampling(LinearPhysics):
 
     def update_parameters(
         self,
-        filter: Tensor = None,
+        filter: Tensor | str | list[str] = None,
         factor: int | float | Tensor = None,
         **kwargs,
     ):
         r"""
         Updates the current filter and/or factor.
 
-        :param torch.Tensor filter: New filter to be applied to the input image.
+        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
         """
         if factor is not None and filter is None and self.filter is not None:
@@ -287,16 +302,16 @@ class Upsampling(Downsampling):
     :param tuple[int] img_size: size of the output image
     :param int factor: upsampling factor
     :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
-    :param str device: cpu or cuda
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Upsampling's device.
     """
 
     def __init__(
         self,
-        img_size,
-        filter=None,
-        factor=2,
-        padding="circular",
-        device="cpu",
+        img_size: tuple[int, ...],
+        filter: Tensor | str = None,
+        factor: int = 2,
+        padding: str = "circular",
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
 
@@ -313,13 +328,13 @@ class Upsampling(Downsampling):
             **kwargs,
         )
 
-    def A(self, x, **kwargs):
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         return super().A_adjoint(x, **kwargs)
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         return super().A(y, **kwargs)
 
-    def prox_l2(self, z, y, gamma, **kwargs):
+    def prox_l2(self, z: Tensor, y: Tensor, gamma: float, **kwargs) -> Tensor:
         return super().prox_l2(z, y, gamma, **kwargs)
 
 
@@ -342,7 +357,7 @@ class Blur(LinearPhysics):
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image. (default is ``'valid'``).
         Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
-    :param str device: cpu or cuda.
+    :param torch.device, str device: Device this physics lives on. If filter is updated, it will be cast to Blur's device.
 
 
     .. note::
@@ -386,7 +401,7 @@ class Blur(LinearPhysics):
         self.register_buffer("filter", filter)
         self.to(device)
 
-    def A(self, x, filter=None, **kwargs):
+    def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         r"""
         Applies the filter to the input image.
 
@@ -395,14 +410,16 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter=filter, **kwargs)
+        self.update_parameters(
+            filter=filter.to(self.device) if filter is not None else filter, **kwargs
+        )
 
         if x.dim() == 4:
             return conv2d(x, filter=self.filter, padding=self.padding)
         elif x.dim() == 5:
             return conv3d_fft(x, filter=self.filter, padding=self.padding)
 
-    def A_adjoint(self, y, filter=None, **kwargs):
+    def A_adjoint(self, y: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         r"""
         Adjoint operator of the blur operator.
 
@@ -411,7 +428,9 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter=filter, **kwargs)
+        self.update_parameters(
+            filter=filter.to(self.device) if filter is not None else filter, **kwargs
+        )
 
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
@@ -440,7 +459,7 @@ class BlurFFT(DecomposablePhysics):
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param str, torch.device device: device where the tensor is stored and computations are performed. Default is ``'cpu'``.
+    :param torch.device, str device: Device this physics lives on. If `filter` is updated, it will be cast to BlurFFT's device.
     :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
 
     |sep|
@@ -473,6 +492,7 @@ class BlurFFT(DecomposablePhysics):
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
+        self.device = device
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
@@ -492,19 +512,19 @@ class BlurFFT(DecomposablePhysics):
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)
 
-    def U(self, x):
+    def U(self, x: Tensor) -> Tensor:
         return fft.irfft2(
             torch.view_as_complex(x) * self.angle,
             norm="ortho",
             s=self.img_size[-2:],
         )
 
-    def U_adjoint(self, x):
+    def U_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho") * torch.conj(self.angle)
         )  # make it a true SVD (see J. Romberg notes)
 
-    def V(self, x):
+    def V(self, x: Tensor) -> Tensor:
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
     def update_parameters(self, filter: Tensor = None, **kwargs):
@@ -514,6 +534,7 @@ class BlurFFT(DecomposablePhysics):
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
         if filter is not None and isinstance(filter, Tensor):
+            filter = filter.to(self.device)
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
             mask = filter_fft(filter, self.img_size, dims=(-2, -1), real_fft=True)
@@ -548,7 +569,7 @@ class SpaceVaryingBlur(LinearPhysics):
     :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
-    :param str, torch.device device: cpu or cuda
+    :param torch.device, str device: Device this physics lives on. If filter or multipliers is updated, it will be cast to SpaceVaryingBlur's device.
 
     |sep|
 
@@ -578,10 +599,11 @@ class SpaceVaryingBlur(LinearPhysics):
         filters: Tensor = None,
         multipliers: Tensor = None,
         padding: str = "valid",
-        device="cpu",
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self.device = device
         self.update_parameters(filters, multipliers, padding, **kwargs)
         self.to(device)
 
@@ -605,20 +627,24 @@ class SpaceVaryingBlur(LinearPhysics):
         return product_convolution2d(x, self.multipliers, self.filters, self.padding)
 
     def A_adjoint(
-        self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> torch.Tensor:
+        self,
+        y: Tensor,
+        filters: Tensor = None,
+        multipliers: Tensor = None,
+        padding: str = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Applies the adjoint operator.
 
         It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
-        :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
+        :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
+        :param torch.Tensor multipliers: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
+        :param str padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
-        :param str device: cpu or cuda
         """
         self.update_parameters(
             filters=filters, multipliers=multipliers, padding=padding, **kwargs
@@ -642,15 +668,19 @@ class SpaceVaryingBlur(LinearPhysics):
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if filters is not None and isinstance(filters, Tensor):
-            self.register_buffer("filters", filters)
+            self.register_buffer("filters", filters.to(self.device))
         if multipliers is not None and isinstance(filters, Tensor):
-            self.register_buffer("multipliers", multipliers)
+            self.register_buffer("multipliers", multipliers.to(self.device))
         if padding is not None:
             self.padding = padding
         super().update_parameters(**kwargs)
 
 
-def gaussian_blur(sigma=(1, 1), angle=0, device="cpu"):
+def gaussian_blur(
+    sigma: float | tuple[float, ...] = (1, 1),
+    angle: float = 0,
+    device: torch.device | str = "cpu",
+) -> Tensor:
     r"""
     Gaussian blur filter.
 
@@ -677,7 +707,7 @@ def gaussian_blur(sigma=(1, 1), angle=0, device="cpu"):
     :param float, tuple[float] sigma: standard deviation of the gaussian filter. If sigma is a float the filter is isotropic, whereas
         if sigma is a tuple of floats (sigma_x, sigma_y) the filter is anisotropic.
     :param float angle: rotation angle of the filter in degrees (only useful for anisotropic filters)
-    :param str device: cpu or cuda
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(sigma, (int, float)):
         sigma = (sigma, sigma)
@@ -710,7 +740,9 @@ def gaussian_blur(sigma=(1, 1), angle=0, device="cpu"):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-def kaiser_window(beta, length, device="cpu"):
+def kaiser_window(
+    beta: float, length: int, device: torch.device | str = "cpu"
+) -> Tensor:
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
         raise ValueError("beta must be greater than 0")
@@ -724,9 +756,14 @@ def kaiser_window(beta, length, device="cpu"):
     return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
-def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
+def sinc_filter(
+    factor: float | Tensor = 2,
+    length: int = 11,
+    windowed: bool = True,
+    device: torch.device | str = "cpu",
+) -> Tensor:
     r"""
-    Anti-aliasing sinc filter multiplied by a Kaiser window.
+    Anti-aliasing sinc filter, optionally multiplied by a Kaiser window.
 
     The kaiser window parameter is computed as follows:
 
@@ -746,8 +783,10 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
             \end{cases}
         \end{equation*}
 
-    :param float factor: Downsampling factor.
+    :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
     :param int length: Length of the filter.
+    :param bool windowed: Whether to multiply by Kaiser window.
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
@@ -775,7 +814,7 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     return filter
 
 
-def bilinear_filter(factor=2, device="cpu"):
+def bilinear_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
     r"""
     Bilinear filter.
 
@@ -793,7 +832,7 @@ def bilinear_filter(factor=2, device="cpu"):
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
     :param int factor: downsampling factor
-    :param str device: cpu or cuda
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
@@ -804,7 +843,7 @@ def bilinear_filter(factor=2, device="cpu"):
     return w.unsqueeze(0).unsqueeze(0)
 
 
-def bicubic_filter(factor=2, device="cpu"):
+def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> Tensor:
     r"""
     Bicubic filter.
 
@@ -823,7 +862,7 @@ def bicubic_filter(factor=2, device="cpu"):
     for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
 
     :param int factor: downsampling factor
-    :param str device: cpu or cuda
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
     if isinstance(factor, torch.Tensor):
         factor = factor.cpu().item()
@@ -872,7 +911,7 @@ class DownsamplingMatlab(Downsampling):
         self.padding = padding
         self.antialiasing = antialiasing
 
-    def A(self, x, factor: int | float = None, **kwargs):
+    def A(self, x: Tensor, factor: int | float = None, **kwargs) -> Tensor:
         """Downsample forward operator
 
         :param torch.Tensor x: input image
@@ -888,7 +927,7 @@ class DownsamplingMatlab(Downsampling):
             padding_type=self.padding,
         )
 
-    def A_adjoint(self, y, factor: int | float = None, **kwargs):
+    def A_adjoint(self, y: Tensor, factor: int | float = None, **kwargs) -> Tensor:
         """Downsample adjoint operator via autograd.
 
         :param torch.Tensor y: input measurement

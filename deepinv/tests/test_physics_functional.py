@@ -166,7 +166,7 @@ def test_conv3d_norm(device, nchan_im, nchan_filt, padding):
     for sim in size_im:
         for sfil in size_filt:
             x = torch.randn(sim)[None].to(device)
-            x /= torch.norm(x)
+            x /= torch.linalg.vector_norm(x)
             h = torch.rand(sfil)[None].to(device)
             h /= h.sum()
 
@@ -176,14 +176,14 @@ def test_conv3d_norm(device, nchan_im, nchan_filt, padding):
                 y = dF.conv_transpose3d_fft(y, h, padding=padding)
                 z = (
                     torch.matmul(x.conj().reshape(-1), y.reshape(-1))
-                    / torch.norm(x) ** 2
+                    / torch.linalg.vector_norm(x) ** 2
                 )
 
-                rel_var = torch.norm(z - zold)
+                rel_var = torch.linalg.vector_norm(z - zold)
                 if rel_var < tol:
                     break
                 zold = z
-                x = y / torch.norm(y)
+                x = y / torch.linalg.vector_norm(y)
 
             assert torch.abs(zold.item() - torch.ones(1)) < 1e-2
 
@@ -261,3 +261,16 @@ def test_imresize_div2k():
     y = dinv.utils.load_example("div2k_valid_lr_bicubic_0877x4.png") * 255.0
     y2 = dinv.physics.functional.imresize_matlab(x, scale=1 / 4).round()
     assert dinv.metric.PSNR()(y2 / 255.0, y / 255.0) > 59
+
+
+def test_dct_idct(device):
+
+    shape = (1, 1, 8, 8)
+    x = torch.ones(shape).to(device)
+    y = dinv.physics.functional.dct_2d(x)
+    xrec = dinv.physics.functional.idct_2d(y)
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5
+
+    y = dinv.physics.functional.dct_2d(x, norm="ortho")
+    xrec = dinv.physics.functional.idct_2d(y, norm="ortho")
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5

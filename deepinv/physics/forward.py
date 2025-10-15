@@ -538,38 +538,101 @@ class LinearPhysics(Physics):
         """
         return stack(self, other)
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+    def compute_norm(
+        self,
+        x0: torch.Tensor,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        squared: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
-        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
+        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
-        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,
+        .. warning::
 
-        using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+            By default, for backward compatibility, this method computes the **squared** spectral norm of :math:`A`,
+            i.e., :math:`\|A^{\top}A\|_2`. This behavior is deprecated and will change in a future version.
+            Set ``squared=False`` to compute the non-squared spectral norm :math:`\|A\|_2`, or use
+            :meth:`compute_sqnorm` to explicitly compute the squared norm.
 
-        :param torch.Tensor x0: initialisation point of the algorithm
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            Use :meth:`compute_sqnorm` instead.
+            If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
+        :param dict kwargs: optional parameters for the forward operator
 
-        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
+        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
+        """
+        if squared is True:
+            warnings.warn(
+                "Using `compute_norm(squared=True)` is deprecated. "
+                "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
+                "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+        elif squared is not False:
+            raise ValueError(f"squared must be True or False, got {squared}")
+
+        # Compute squared norm using compute_sqnorm
+        sqnorm = self.compute_sqnorm(
+            x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+        )
+
+        # Return squared or non-squared norm based on parameter
+        if squared:
+            return sqnorm
+        else:
+            return sqnorm.sqrt()
+
+    def compute_sqnorm(
+        self,
+        x0: torch.Tensor,
+        *,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
+
+        This is equivalent to computing the spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`.
+
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :param dict kwargs: optional parameters for the forward operator
+
+        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
         x = torch.randn_like(x0)
-        x /= torch.norm(x)
+        x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
-            y = self.A(x, **kwargs)
-            y = self.A_adjoint(y, **kwargs)
-            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            y = self.A_adjoint_A(x, **kwargs)
+            z = torch.vdot(x.flatten(), y.flatten()) / torch.linalg.vector_norm(x) ** 2
 
-            rel_var = torch.norm(z - zold)
+            rel_var = torch.linalg.vector_norm(z - zold)
             if rel_var < tol:
                 if verbose:
                     print(
-                        f"Power iteration converged at iteration {it}, value={z.item():.2f}"
+                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
                     )
                 break
             zold = z
-            x = y / torch.norm(y)
+            x = y / torch.linalg.vector_norm(y)
         else:
             warnings.warn("Power iteration: convergence not reached")
 
@@ -579,7 +642,7 @@ class LinearPhysics(Physics):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
-        :param torch.Tensor u: initialisation point of the adjointness test method
+        :param torch.Tensor u: initialization point of the adjointness test method
 
         :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
 
