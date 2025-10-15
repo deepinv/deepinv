@@ -567,6 +567,7 @@ def dummy_model(device):
 @pytest.mark.parametrize("measurements", [True, False])
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("generate_params", [True, False])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_dataloader_formats(
     non_blocking_plots,
     imsize,
@@ -576,6 +577,7 @@ def test_dataloader_formats(
     ground_truth,
     measurements,
     online_measurements,
+    batch_size,
     rng,
     logger,
 ):
@@ -633,7 +635,7 @@ def test_dataloader_formats(
 
     model = dummy_model
     dataset = DummyDataset()
-    dataloader = DataLoader(dataset, batch_size=1)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
     physics = dinv.physics.Inpainting(img_size=imsize, mask=1.0, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
@@ -650,7 +652,7 @@ def test_dataloader_formats(
         epochs=1,
         physics=physics,
         physics_generator=generator2,
-        metrics=dinv.loss.MCLoss(),
+        metrics=dinv.metric.PSNR(),
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
@@ -850,8 +852,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplo
             p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
         ]
         grads = torch.cat(grads)
-        norm = grads.norm()
-        norm = norm.item()
+        norm = torch.linalg.vector_norm(grads, ord=2).item()
 
         # 3. Rescale the gradients so that the gradient norm is equal to 1.0 for
         # the 1st epoch, to 2.0 for the 2nd, and so on.
@@ -920,3 +921,54 @@ def test_out_dir_collision_detection(
                 )
 
                 trainer.train()
+
+
+@pytest.mark.parametrize("model_performance", [40.0])
+@pytest.mark.parametrize("learning_free_performance", [20.0])
+def test_trained_model_not_used_for_no_learning_metrics(
+    dummy_dataset,
+    imsize,
+    device,
+    dummy_model,
+    tmpdir,
+    model_performance,
+    learning_free_performance,
+):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    metric = dinv.loss.PSNR()
+    trainer = dinv.Trainer(
+        model,
+        device=device,
+        save_path=tmpdir,
+        verbose=True,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=2,
+        losses=dinv.loss.SupLoss(),
+        metrics=metric,
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        online_measurements=True,
+        check_grad=True,
+    )
+
+    with patch.object(metric, "forward") as m:
+        trained_model = model
+
+        def fake_forward(x, y, physics=None, model=None, **kwargs):
+            if model is trained_model:
+                return torch.tensor(model_performance, device=device)
+            else:
+                return torch.tensor(learning_free_performance, device=device)
+
+        m.side_effect = fake_forward
+        metrics = trainer.test(dataloader)
+
+        assert math.isclose(metrics["PSNR"], model_performance)
+        assert math.isclose(metrics["PSNR no learning"], learning_free_performance)

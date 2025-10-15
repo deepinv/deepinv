@@ -46,6 +46,7 @@ build
 deepinv.egg-info
 dist
 wandb/
+mlruns/
 kernels/
 measurements/
 degradations/

@@ -93,11 +93,13 @@ mask = physics_generator.step()["mask"]
 
 physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
+x = next(iter(DataLoader(knee_dataset))).to(device)
+
 dinv.utils.plot(
     {
-        "x": (x := next(iter(DataLoader(knee_dataset)))),
+        "x": x,
         "mask": mask,
-        "y": physics(x.to(device)).clamp(-1, 1),
+        "y": physics(x).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
@@ -277,6 +279,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
 )
 
 x, y = next(iter(DataLoader(dataset)))
+x = x.to(device)
+y = y.to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -292,8 +296,10 @@ print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 
 physics = dinv.physics.MultiCoilMRI(
     img_size=img_size,
-    mask=torch.ones(kspace_shape),
-    coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
+    mask=torch.ones(kspace_shape, device=device),
+    coil_maps=torch.ones(
+        (n_coils,) + kspace_shape, dtype=torch.complex64, device=device
+    ),
     device=device,
 )
 
@@ -334,7 +340,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
-            img_size=kspace_shape, acceleration=4, rng=rng, device=device
+            img_size=kspace_shape,
+            acceleration=4,
         ),
         seed_mask_generator=False,  # More diversity during training
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
@@ -397,6 +404,7 @@ trainer = dinv.Trainer(
     epochs=1,
     save_path=None,
     show_progress_bar=False,
+    device=device,
 )
 _ = trainer.train()
 
@@ -478,7 +486,8 @@ print(
 #
 
 physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
-    img_size=x.shape[1:], acceleration=16, rng=rng, device=device
+    img_size=x.shape[1:],
+    acceleration=16,
 )
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
@@ -489,6 +498,10 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
+
+x = x.to(device)
+y = y.to(device)
+params = {k: v.to(device) for k, v in params.items()}
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we

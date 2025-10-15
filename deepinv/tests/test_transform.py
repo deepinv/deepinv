@@ -15,6 +15,7 @@ Caveat: certain orderings of complicated arithmetic cannot be achieved with the 
 TRANSFORMS = [
     "shift",
     "rotate",
+    "rotate-bilinear",
     "scale",
     "reflect",
     "shift+scale",
@@ -105,6 +106,8 @@ def choose_transform(transform_name, device, rng):
         return dinv.transform.Shift(rng=rng)
     elif transform_name == "rotate":
         return dinv.transform.Rotate(rng=rng)
+    elif transform_name == "rotate-bilinear":
+        return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
     elif transform_name == "rotate3":
         return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":

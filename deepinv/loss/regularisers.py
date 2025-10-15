@@ -80,19 +80,6 @@ class JacobianSpectralNorm(Loss):
                     'Reduction should be "mean", "sum", "max", "none" or None.'
                 )
 
-    @staticmethod
-    def _batched_dot(x, y):
-        """
-        Computes the dot product between corresponding batch elements.
-
-        :param torch.Tensor x: tensor of shape (B, N)
-        :param torch.Tensor y: tensor of shape alike to x
-
-        Returns 1D tensor wth
-        """
-
-        return torch.einsum("bn,bn->b", x, y)
-
     def _reduce_batch(self, x, y):
         """
         Reduces the batch dimension of the input tensors x and y.
@@ -122,13 +109,9 @@ class JacobianSpectralNorm(Loss):
             f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
         )
 
-        n_dims = x.dim()
-
         u = torch.randn_like(x)
         # Normalize each batch element
-        u = u / torch.norm(u.flatten(start_dim=1, end_dim=-1), p=2, dim=-1).view(
-            -1, *[1] * (n_dims - 1)
-        )
+        u = u / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim())), keepdim=True)
 
         zold = torch.zeros_like(u)
 
@@ -148,15 +131,12 @@ class JacobianSpectralNorm(Loss):
 
             # multiply corresponding batch elements
             z = (
-                self._batched_dot(
-                    u.flatten(start_dim=1, end_dim=-1),
-                    v.flatten(start_dim=1, end_dim=-1),
-                )
-                / torch.norm(u.flatten(start_dim=1, end_dim=-1), p=2, dim=-1) ** 2
+                torch.linalg.vecdot(u.flatten(1, -1), v.flatten(1, -1), dim=-1)
+                / torch.linalg.vector_norm(u, dim=tuple(range(1, u.dim()))) ** 2
             )
 
             if it > 0:
-                rel_var = torch.norm(z - zold)
+                rel_var = torch.linalg.vector_norm(z - zold)
                 if rel_var < self.tol and self.verbose:
                     print(
                         "Power iteration converged at iteration: ",
@@ -169,8 +149,8 @@ class JacobianSpectralNorm(Loss):
                     break
             zold = z.detach().clone()
 
-            u = v / torch.norm(v.flatten(start_dim=1, end_dim=-1), p=2, dim=-1).view(
-                -1, *[1] * (n_dims - 1)
+            u = v / torch.linalg.vector_norm(
+                v, dim=tuple(range(1, v.dim())), keepdim=True
             )
 
             if self.eval:

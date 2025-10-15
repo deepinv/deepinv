@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from torch.optim import Optimizer
@@ -129,7 +129,9 @@ class AdversarialTrainer(Trainer):
         ...     losses = SupAdversarialGeneratorLoss(),
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
-        ...     verbose = False
+        ...     verbose = False,
+        ...     device = "cpu",
+        ...     optimizer_step_multi_dataset = False
         ... )
         >>>
         >>> generator = trainer.train()
@@ -152,7 +154,7 @@ class AdversarialTrainer(Trainer):
     """
 
     optimizer: AdversarialOptimizer
-    losses_d: Union[Loss, list[Loss]] = None
+    losses_d: Loss | list[Loss] = None
     D: Module = None
     step_ratio_D: int = 1
 
