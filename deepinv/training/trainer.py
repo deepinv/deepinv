@@ -1,14 +1,17 @@
+# Python standard libraries
 from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Union, Optional
 import inspect
-import os
 import warnings
 
+# Third-party libraries
 from tqdm import tqdm
 import numpy as np
 import torch
+import torch.nn as nn
 
+# DeepInv libraries
 from deepinv.datasets.base import check_dataset
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -18,6 +21,7 @@ from deepinv.training.run_logger import RunLogger, LocalLogger
 from deepinv.utils import AverageMeter
 from deepinv.utils.compat import zip_strict
 from deepinv.utils.plotting import prepare_images
+from deepinv.utils.tensorlist import TensorList
 
 
 @dataclass
@@ -45,7 +49,7 @@ class Trainer:
 
     ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
-    physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
+    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator], None] = None
     loop_random_online_physics: bool = False
 
     ## Training Control
@@ -115,11 +119,10 @@ class Trainer:
             self.test_dataloader = [self.test_dataloader]
 
         # ensure that dataset in each dataloader respects the right format
-        for loader in self.train_dataloader + self.val_dataloader:
+        for loader in (
+            self.train_dataloader + self.val_dataloader + self.test_dataloader
+        ):
             check_dataset(loader.dataset)
-
-        # useful when training on multiple dataset
-        self.G = len(self.train_dataloader)
 
         # ensure that physics is a list for format consistency
         if not isinstance(self.physics, list):
@@ -176,29 +179,29 @@ class Trainer:
 
         # metrics computed during an epoch
         self.meters_metrics_train = {
-            l.__class__.__name__: AverageMeter(
-                "Validation metric " + l.__class__.__name__, ":.2e"
+            m.__class__.__name__: AverageMeter(
+                "Training metric " + m.__class__.__name__, ":.2e"
             )
-            for l in self.metrics
+            for m in self.metrics
         }
 
         self.meters_metrics_val = {
-            l.__class__.__name__: AverageMeter(
-                "Validation metric " + l.__class__.__name__, ":.2e"
+            m.__class__.__name__: AverageMeter(
+                "Validation metric " + m.__class__.__name__, ":.2e"
             )
-            for l in self.metrics
+            for m in self.metrics
         }
         if not hasattr(self, "val_metrics_history_per_epoch"):
             self.val_metrics_history_per_epoch = {
-                l.__class__.__name__: [] for l in self.metrics
+                m.__class__.__name__: [] for m in self.metrics
             }
 
         if self.compare_no_learning:
             self.meters_metrics_no_learning = {
-                l.__class__.__name__: AverageMeter(
-                    "Validation metric " + l.__class__.__name__, ":.2e"
+                m.__class__.__name__: AverageMeter(
+                    "Validation metric " + m.__class__.__name__, ":.2e"
                 )
-                for l in self.metrics
+                for m in self.metrics
             }
 
         # Init logger specific for the Trainer
@@ -223,7 +226,7 @@ class Trainer:
             for logger in self.loggers:
                 logger.setLevel("WARNING")
 
-    def save_ckpt(self, epoch: int, name: str = None) -> None:
+    def save_ckpt(self, epoch: int, name: Optional[str] = None) -> None:
         r"""
         Save necessary information to resume training.
 
@@ -253,6 +256,10 @@ class Trainer:
         if ckpt_pretrained is not None:
             self.ckpt_pretrained = ckpt_pretrained
 
+        # Early return if no checkpoint to load
+        if self.ckpt_pretrained is None:
+            return
+
         # Load checkpoint from file
         checkpoint = torch.load(
             self.ckpt_pretrained, map_location=self.device, weights_only=False
@@ -272,7 +279,7 @@ class Trainer:
         for logger in self.loggers:
             logger.load_from_checkpoint(checkpoint)
 
-    def apply_clip_grad(self) -> float:
+    def apply_clip_grad(self) -> Optional[float]:
         r"""
         Perform gradient clipping.
         """
@@ -289,7 +296,9 @@ class Trainer:
             return torch.cat(grads).norm().item()
         return None
 
-    def get_samples_online(self, iterators, g):
+    def get_samples_online(
+        self, iterators: list, g: int
+    ) -> tuple[torch.Tensor, torch.Tensor, Physics]:
         r"""
         Get the samples for the online measurements.
 
@@ -335,7 +344,9 @@ class Trainer:
 
         return x, y, physics
 
-    def get_samples_offline(self, iterators, g):
+    def get_samples_offline(
+        self, iterators: list, g: int
+    ) -> tuple[Optional[torch.Tensor], torch.Tensor, Physics]:
         r"""
         Get the samples for the offline measurements.
 
@@ -396,7 +407,9 @@ class Trainer:
 
         return x, y, physics
 
-    def get_samples(self, iterators, g):
+    def get_samples(
+        self, iterators: list, g: int
+    ) -> tuple[Optional[torch.Tensor], torch.Tensor, Physics]:
         r"""
         Get the samples.
 
@@ -420,7 +433,14 @@ class Trainer:
 
         return x, y, physics
 
-    def model_inference(self, y, physics, x=None, train=True, **kwargs) -> torch.Tensor:
+    def model_inference(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        x: Optional[torch.Tensor] = None,
+        train: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Perform the model inference.
 
@@ -453,7 +473,13 @@ class Trainer:
         return x_net
 
     def compute_loss(
-        self, x, x_net, y, physics, train=True, epoch: int = None
+        self,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        train: bool = True,
+        epoch: int = None,
     ) -> torch.Tensor:
         r"""
         Compute the loss.
@@ -504,7 +530,13 @@ class Trainer:
         return loss_total
 
     def compute_metrics(
-        self, x, x_net, y, physics, train=True, epoch: int = None
+        self,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        train: bool = True,
+        epoch: int = None,
     ) -> None:
         r"""
         Compute the metrics.
@@ -545,7 +577,7 @@ class Trainer:
                         metric.detach().cpu().numpy()
                     )
 
-    def no_learning_inference(self, y, physics):
+    def no_learning_inference(self, y: torch.Tensor, physics: Physics) -> torch.Tensor:
         r"""
         Perform the no learning inference.
 
@@ -582,27 +614,12 @@ class Trainer:
 
         return x_nl
 
-    class _NoLearningModel(Reconstructor):
-        def __init__(self, *, trainer: Trainer):
-            super().__init__()
-            self.trainer = trainer
-
-        def forward(self, y, physics, **kwargs):
-            if kwargs:
-                warnings.warn(
-                    f"The learning-free model in Trainer expects no keyword argument, but got {list(kwargs.keys())}. "
-                    "You might be using metrics which pass extra arguments to the trained model but the learning-free model does not use them.",
-                    UserWarning,
-                    stacklevel=1,
-                )
-            return self.trainer.no_learning_inference(y, physics)
-
     def step(
         self,
         epoch: int,
         progress_bar: tqdm,
         train_ite: int = None,
-        train: bool = True,
+        phase: str = "train",
         last_batch: bool = False,
     ) -> None:
         r"""
@@ -613,28 +630,39 @@ class Trainer:
         :param int epoch: Current epoch.
         :param progress_bar: `tqdm <https://tqdm.github.io/docs/tqdm/>`_ progress bar.
         :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
-        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param str phase: Training phase ('train', 'val', 'test').
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         """
+        if phase == "train":
+            training_step = True
+        else:
+            training_step = False
+
         # Zero grad
-        if train and self.optimizer_step_multi_dataset:
+        if training_step and self.optimizer_step_multi_dataset:
             self.optimizer.zero_grad()  # Clear stored gradients
 
         loss_multi_dataset_step = 0.0
         for g in np.random.permutation(self.G):  # g is the dataloader index
 
             # Zero grad
-            if train and not self.optimizer_step_multi_dataset:
+            if training_step and not self.optimizer_step_multi_dataset:
                 self.optimizer.zero_grad()
 
             # Get either online or offline samples
             x, y, physics_cur = self.get_samples(
-                self.current_train_iterators if train else self.current_val_iterators,
+                (
+                    self.current_train_iterators
+                    if training_step
+                    else self.current_val_iterators
+                ),
                 g,
             )
 
             # Evaluate reconstruction network
-            x_net = self.model_inference(y=y, physics=physics_cur, x=x, train=train)
+            x_net = self.model_inference(
+                y=y, physics=physics_cur, x=x, train=training_step
+            )
 
             # Compute the loss for the batch
             loss_cur = self.compute_loss(
@@ -642,16 +670,16 @@ class Trainer:
                 x_net,
                 y,
                 physics_cur,
-                train=train,
+                train=training_step,
                 epoch=epoch,
             )
             loss_multi_dataset_step += loss_cur.item()
 
             # Backward + Optimizer
-            if train:
+            if training_step:
                 loss_cur.backward()
 
-            if train and not self.optimizer_step_multi_dataset:
+            if training_step and not self.optimizer_step_multi_dataset:
                 loss_logs = {}
                 loss_logs["Loss"] = loss_cur.item()
 
@@ -668,7 +696,9 @@ class Trainer:
 
             # Compute the metrics for the batch
             x_net = x_net.detach()  # detach the network output for metrics and plotting
-            self.compute_metrics(x, x_net, y, physics_cur, train=train, epoch=epoch)
+            self.compute_metrics(
+                x, x_net, y, physics_cur, train=training_step, epoch=epoch
+            )
 
             # Log images of last batch for each dataset
             if last_batch:
@@ -678,10 +708,10 @@ class Trainer:
                     x,
                     y,
                     x_net,
-                    train=train,
+                    train=training_step,
                 )
 
-        if train and self.optimizer_step_multi_dataset:
+        if training_step and self.optimizer_step_multi_dataset:
             loss_logs = {}
             loss_logs["Loss"] = loss_multi_dataset_step
 
@@ -698,11 +728,10 @@ class Trainer:
 
             # Track loss value used for an update and its gradient norm
             for logger in self.loggers:
-                logger.log_losses(loss_logs, step=train_ite, phase="train")
+                logger.log_losses(loss_logs, step=train_ite, phase=phase)
 
         # LOG EPOCH LOSSES AND METRICS
         if last_batch:
-            phase = "train" if train else "val"
 
             ## LOSSES
             epoch_loss_logs = {}
@@ -712,13 +741,17 @@ class Trainer:
                 for l in self.losses:
                     meter = (
                         self.meters_losses_train[l.__class__.__name__]
-                        if train
+                        if training_step
                         else self.meters_losses_val[l.__class__.__name__]
                     )
                     epoch_loss_logs[l.__class__.__name__] = meter.avg
 
             # add total loss over an epoch
-            meter = self.meter_total_loss_train if train else self.meter_total_loss_val
+            meter = (
+                self.meter_total_loss_train
+                if training_step
+                else self.meter_total_loss_val
+            )
             epoch_loss_logs["Total_Loss"] = meter.avg
 
             ## METRICS
@@ -726,7 +759,7 @@ class Trainer:
             for m in self.metrics:
                 meter = (
                     self.meters_metrics_train[m.__class__.__name__]
-                    if train
+                    if training_step
                     else self.meters_metrics_val[m.__class__.__name__]
                 )
                 epoch_metrics_logs[m.__class__.__name__] = meter.avg
@@ -736,7 +769,15 @@ class Trainer:
                 logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
                 logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)
 
-    def save_images(self, epoch, physics, x, y, x_net, train=True):
+    def save_images(
+        self,
+        epoch: int,
+        physics: Physics,
+        x: Optional[torch.Tensor],
+        y: torch.Tensor,
+        x_net: torch.Tensor,
+        train: bool = True,
+    ) -> None:
         r"""
         Save the reconstructions.
 
@@ -770,23 +811,23 @@ class Trainer:
         self.meter_total_loss_train.reset()
         self.meter_total_loss_val.reset()
 
-        for l in self.meters_losses_train.values():
-            l.reset()
+        for meter in self.meters_losses_train.values():
+            meter.reset()
 
-        for l in self.meters_losses_val.values():
-            l.reset()
+        for meter in self.meters_losses_val.values():
+            meter.reset()
 
     def reset_metrics(self) -> None:
         r"""
         Reset the epoch metrics.
         """
-        for l in self.meters_metrics_train.values():
-            l.reset()
+        for meter in self.meters_metrics_train.values():
+            meter.reset()
 
-        for l in self.meters_metrics_val.values():
-            l.reset()
+        for meter in self.meters_metrics_val.values():
+            meter.reset()
 
-    def save_best_model(self, epoch) -> None:
+    def save_best_model(self, epoch: int) -> None:
         r"""
         Save the best model using validation metrics.
 
@@ -808,7 +849,7 @@ class Trainer:
                 f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
 
-    def stop_criterion(self, epoch, train_ite, **kwargs) -> bool:
+    def stop_criterion(self, epoch: int, train_ite: int, **kwargs) -> bool:
         r"""
         Stop criterion for early stopping.
 
@@ -852,6 +893,9 @@ class Trainer:
         """
         self.setup_run()
 
+        # useful when training on multiple dataset
+        self.G = len(self.train_dataloader)
+
         # count the overall training parameters
         params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         self.train_logger.info(f"The model has {params} trainable parameters.")
@@ -892,7 +936,7 @@ class Trainer:
                     epoch,
                     progress_bar,
                     train_ite=train_ite,
-                    train=True,
+                    phase="train",
                     last_batch=(i == batches - 1),
                 )
                 if train_ite + 1 > self.max_batch_steps:
@@ -927,7 +971,7 @@ class Trainer:
                         epoch,
                         val_progress_bar,
                         train_ite=train_ite,
-                        train=False,
+                        phase="val",
                         last_batch=(j == val_batches - 1),
                     )
 
@@ -954,7 +998,9 @@ class Trainer:
 
     def test(
         self,
-        test_dataloader,
+        test_dataloader: Optional[
+            Union[torch.utils.data.DataLoader, list[torch.utils.data.DataLoader]]
+        ] = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
@@ -967,114 +1013,50 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :returns: dict of metrics results with means and stds.
         """
+        # Setup
+        if test_dataloader is not None:
+            self.test_dataloader = test_dataloader
         self.compare_no_learning = compare_no_learning
         self.setup_run()
 
-        self.reset_metrics()
-
-        if not isinstance(test_dataloader, list):
-            self.test_dataloader = [test_dataloader]
-        else:
-            self.test_dataloader = test_dataloader
+        # useful when testing on multiple dataset
         self.G = len(self.test_dataloader)
 
-        for loader in self.test_dataloader:
-            check_dataset(loader.dataset)
-
         self.current_val_iterators = [iter(loader) for loader in self.test_dataloader]
-
         batches = min(
             [len(loader) - loader.drop_last for loader in self.test_dataloader]
         )
 
         self.model.eval()
         for i in (
-            progress_bar := tqdm(
+            test_progress_bar := tqdm(
                 range(batches),
                 ncols=150,
                 disable=(not self.show_progress_bar),
             )
         ):
-            progress_bar.set_description(f"Test")
-            self.step(
-                0,
-                progress_bar,
-                train=False,
-                last_batch=(i == batches - 1),
-                update_progress_bar=(i % self.freq_update_progress_bar == 0),
-            )
+            test_progress_bar.set_description(f"Test")
+            self.step(0, test_progress_bar, phase="test", last_batch=(i == batches - 1))
 
         self.train_logger.info("Test results:")
-
         out = {}
-        for k, l in enumerate(self.meters_metrics_val):
+        for m in self.metrics:
             if compare_no_learning:
-                name = self.metrics[k].__class__.__name__ + " no learning"
-                out[name] = self.meters_metrics_no_learning[k].avg
-                out[name + "_std"] = self.meters_metrics_no_learning[k].std
+                name = m.__class__.__name__ + " no learning"
+                meter = self.meters_metrics_no_learning[m.__class__.__name__]
+                out[name] = meter.avg
+                out[name + "_std"] = meter.std
                 if log_raw_metrics:
-                    out[name + "_vals"] = self.meters_metrics_no_learning[k].vals
-                self.train_logger.info(
-                    f"{name}: {self.meters_metrics_no_learning[k].avg:.3f} +- {self.meters_metrics_no_learning[k].std:.3f}"
-                )
+                    out[name + "_vals"] = meter.vals
 
-            name = self.metrics[k].__class__.__name__
-            out[name] = l.avg
-            out[name + "_std"] = l.std
+                self.train_logger.info(f"{name}: {meter.avg:.3f} +- {meter.std:.3f}")
+
+            name = m.__class__.__name__
+            meter = self.meters_metrics_val[m.__class__.__name__]
+            out[name] = meter.avg
+            out[name + "_std"] = meter.std
             if log_raw_metrics:
-                out[name + "_vals"] = l.vals
-            self.train_logger.info(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+                out[name + "_vals"] = meter.vals
+            self.train_logger.info(f"{name}: {meter.avg:.3f} +- {meter.std:.3f}")
 
         return out
-
-
-def train(
-    model: torch.nn.Module,
-    physics: Physics,
-    optimizer: torch.optim.Optimizer,
-    train_dataloader: torch.utils.data.DataLoader,
-    epochs: int = 100,
-    losses: Union[Loss, list[Loss], None] = None,
-    val_dataloader: torch.utils.data.DataLoader = None,
-    *args,
-    **kwargs,
-):
-    """
-    Alias function for training a model using :class:`deepinv.Trainer` class.
-
-    This function creates a Trainer instance and returns the trained model.
-
-    .. warning::
-
-        This function is deprecated and will be removed in future versions. Please use
-        :class:`deepinv.Trainer` instead.
-
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param int epochs: Number of training epochs. Default is 100.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :return: Trained model.
-    """
-    if losses is None:
-        losses = SupLoss()
-    trainer = Trainer(
-        model=model,
-        physics=physics,
-        optimizer=optimizer,
-        epochs=epochs,
-        losses=losses,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        *args,
-        **kwargs,
-    )
-    trained_model = trainer.train()
-    return trained_model
