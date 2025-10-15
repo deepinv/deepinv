@@ -1400,21 +1400,21 @@ class GaussianMixtureModel(nn.Module):
 
 
 def nonmonotone_accelerated_proximal_gradient(
-    x0,
-    f,
-    y=None,
-    nabla_f=None,
-    f_and_nabla=None,
-    g=None,
-    prox_g=None,
-    weighting=1.0,  # minimize f + weighting*g
-    max_iter=2000,
-    L_init=1,
-    tol=1e-4,
-    rho=0.9,
-    delta=0.1,
-    eta=0.8,
-    verbose=False,
+    x0: torch.Tensor,
+    f: Callable,
+    y: torch.Tensor = None,
+    nabla_f: Callable = None,
+    f_and_nabla: Callable = None,
+    g: Callable = None,
+    prox_g: Callable = None,
+    weighting: float = 1.0,  # minimize f + weighting*g
+    max_iter: int = 2000,
+    L_init: float = 1.0,
+    tol: float = 1e-4,
+    rho: float = 0.9,
+    delta: float = 0.1,
+    eta: float = 0.8,
+    verbose: bool = False,
 ):
     r"""
     Implements the nonmonotone accelerated proximal gradient algorithm (nmAPG).
