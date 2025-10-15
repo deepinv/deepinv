@@ -1,361 +1,227 @@
-from typing import Sequence, Optional, Callable
+r"""
+Distributed Framework Factory API
+=================================
+
+This module provides simplified factory builders for the distributed framework,
+keeping users in control of their objects while removing repetitive boilerplate code.
+
+The factory API exposes configuration-driven builders that create distributed components:
+
+**Main Components:**
+
+- :class:`FactoryConfig`: Configuration for physics, measurements, and data fidelity
+- :class:`TilingConfig`: Configuration for spatial tiling strategies  
+- :class:`DistributedBundle`: Container for all distributed objects
+- :func:`make_distrib_core`: Builder function that creates all distributed components
+
+**Key Benefits:**
+
+- **Reduced Boilerplate**: No need to write factory functions manually
+- **Configuration-Driven**: Easy to modify, reuse, and share configurations  
+- **Type Safety**: Configuration objects prevent common errors
+- **Single Builder**: All distributed objects created with one function call
+
+The returned objects are native DeepInverse distributed classes, so you retain
+full control and can inspect internals, swap components, and customize behavior.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Any, Union
+
 import torch
-import torch.nn.functional as F
+import deepinv as dinv
 
-Index = tuple[slice, ...]
+from deepinv.physics import Physics
+from deepinv.optim.data_fidelity import DataFidelity, L2
+from deepinv.optim.prior import Prior, PnP
+from deepinv.loss.metric import PSNR
+
+from deepinv.distrib.distrib_framework import (
+    DistributedContext,
+    DistributedLinearPhysics,
+    DistributedDataFidelity,
+    DistributedMeasurements,
+    DistributedSignal,
+    DistributedPrior,
+)
 
 
-def tiling2d_reduce_fn(
-    out_local: torch.Tensor,
-    local_pairs: list[tuple[int, torch.Tensor]],
-    global_metadata: dict,
-) -> None:
+# ---------------------------
+# Configs & Bundles (lightweight)
+# ---------------------------
+
+@dataclass
+class TilingConfig:
+    r"""
+    Configuration for spatial tiling strategies in distributed processing.
+
+    :param int patch_size: size of patches for tiling operations
+    :param int receptive_field_radius: radius of receptive field for overlap calculations
+    :param bool overlap: whether to use overlapping patches
+    :param str strategy: tiling strategy name. Options are `'basic'` and `'smart_tiling'`.
     """
-    Default reduction function for tiling2d strategy.
+    patch_size: int = 256
+    receptive_field_radius: int = 64
+    overlap: bool = False
+    strategy: str = "smart_tiling"
 
-    This function fills the out_local tensor with the processed patches from local_pairs,
-    using the metadata to determine where each patch should be placed in the output tensor.
 
-    Parameters
-    ----------
-    out_local : torch.Tensor
-        The output tensor to fill (should be initialized to zeros).
-    local_pairs : List[Tuple[int, torch.Tensor]]
-        List of (global_index, processed_tensor) pairs from this rank.
-    global_metadata : Dict
-        Metadata from the splitting strategy containing crop_slices and target_slices.
+@dataclass  
+class FactoryConfig:
+    r"""
+    Configuration for distributed component factories.
+
+    Specifies how to create physics operators, measurements, and data fidelity terms
+    for the distributed framework. Can use either pre-created lists or factory functions.
+
+    :param Union[Sequence[Physics], Callable] physics: either a list of physics operators or a factory function
+    :param Union[Sequence[torch.Tensor], Callable] measurements: either a list of measurement tensors or a factory function
+    :param None, int num_operators: required when using factory functions instead of lists
+    :param None, Union[DataFidelity, Callable] data_fidelity: data fidelity term or factory function. If `None`, defaults to L2.
     """
-    crop_slices = global_metadata["crop_slices"]
-    target_slices = global_metadata["target_slices"]
-
-    for idx, processed_tensor in local_pairs:
-        c_sl = crop_slices[idx]
-        t_sl = target_slices[idx]
-        # Extract the valid part of the processed patch and place it in the output
-        out_local[t_sl] = processed_tensor[c_sl]
+    physics: Union[Sequence[Physics], Callable]
+    measurements: Union[Sequence[torch.Tensor], Callable]
+    num_operators: Optional[int] = None  # required if physics is a factory
+    data_fidelity: Optional[Union[DataFidelity, Callable]] = None
 
 
-def extract_and_pad_patch(
-    X: torch.Tensor, idx: int, global_slices: list[Index], global_metadata: dict
-) -> torch.Tensor:
+@dataclass
+class DistributedBundle:
+    r"""
+    Container for distributed framework components.
+
+    Holds all the distributed objects created by the factory builder, providing
+    convenient access to distributed physics, measurements, data fidelity, signal, and prior.
+
+    :param DistributedLinearPhysics physics: distributed physics operators
+    :param DistributedMeasurements measurements: distributed measurements
+    :param DistributedDataFidelity df: distributed data fidelity
+    :param DistributedSignal signal: distributed signal (always created)
+    :param None, DistributedPrior prior: optional distributed prior
     """
-    Extract and pad a single patch from the input tensor.
-
-    Parameters
-    ----------
-    X : torch.Tensor
-        Input tensor
-    idx : int
-        Global index of the patch
-    global_slices : List[Index]
-        List of slice objects for extracting patches
-    global_metadata : Dict
-        Metadata containing padding specifications
-
-    Returns
-    -------
-    torch.Tensor
-        Extracted and padded patch
-    """
-    slc = global_slices[idx]
-    piece = X[slc]
-
-    # Apply padding if specifications are available
-    pad_specs = global_metadata.get("pad_specs", [])
-    if pad_specs and idx < len(pad_specs):
-        pad_mode = global_metadata.get("pad_mode", "reflect")
-        pad_spec = pad_specs[idx]
-
-        # Validate padding specifications to avoid PyTorch errors
-        if len(pad_spec) >= 4:  # (w_left, w_right, h_top, h_bottom)
-            w_left, w_right, h_top, h_bottom = pad_spec[:4]
-
-            # Check if padding is reasonable compared to tensor dimensions
-            if len(piece.shape) >= 2:
-                h_dim, w_dim = piece.shape[-2], piece.shape[-1]
-
-                # Clamp padding to be at most the dimension size
-                w_left = min(w_left, w_dim)
-                w_right = min(w_right, w_dim)
-                h_top = min(h_top, h_dim)
-                h_bottom = min(h_bottom, h_dim)
-
-                # Use the clamped padding
-                safe_pad_spec = (w_left, w_right, h_top, h_bottom) + pad_spec[4:]
-
-                try:
-                    piece = F.pad(piece, pad=safe_pad_spec, mode=pad_mode)
-                except RuntimeError as e:
-                    raise RuntimeError(f"Padding failed for patch {idx}: {e}")
-            else:
-                # For 1D or scalar tensors, apply padding as-is if possible
-                try:
-                    piece = F.pad(piece, pad=pad_spec, mode=pad_mode)
-                except RuntimeError as e:
-                    raise RuntimeError(f"Padding failed for patch {idx}: {e}")
-
-    return piece
+    physics: DistributedLinearPhysics
+    measurements: DistributedMeasurements
+    data_fidelity: DistributedDataFidelity
+    signal: DistributedSignal
+    prior: Optional[DistributedPrior] = None
 
 
-def _normalize_hw_args(
-    signal_shape: Sequence[int],
-    patch_size: int | tuple[int, int],
-    stride: Optional[tuple[int, int]],
-    hw_dims: tuple[int, int],
+# ---------------------------
+# Public Builders
+# ---------------------------
+
+def make_distrib_bundle(
+    ctx: DistributedContext,
     *,
-    receptive_field_radius: int = 0,
-    non_overlap: bool = True,
-    end_align: Optional[bool] = None,  # only used if non_overlap=False
-) -> tuple[
-    int,
-    int,
-    int,
-    int,
-    int,  # ndim, H_dim, W_dim, H, W
-    int,
-    int,
-    int,
-    int,  # ph, pw, sh, sw
-    int,
-    int,  # H_pad, W_pad
-    int,
-    int,
-    int,
-    int,  # pad_bottom, pad_right, (pad_top=0), (pad_left=0)
-    int,
-    int,  # win_h, win_w
-]:
+    factory_config: FactoryConfig,
+    signal_shape: Tuple[int, int, int, int],
+    reduction: str = "mean",
+    prior: Optional[Prior] = None,
+    tiling: Optional[TilingConfig] = None,
+) -> DistributedBundle:
+    r"""
+    Create distributed components using factory configuration.
+
+    This builder function creates all distributed components in a single call,
+    reducing boilerplate code and ensuring consistent configuration.
+
+    :param DistributedContext ctx: distributed context manager
+    :param FactoryConfig factory_config: configuration specifying how to build physics, measurements, and data_fidelity
+    :param Tuple[int, int, int, int] signal_shape: shape (B,C,H,W) for DistributedSignal
+    :param str reduction: reduction strategy for DistributedDataFidelity. Options are `'mean'` and `'sum'`.
+    :param None, Prior prior: optional prior term for distributed processing
+    :param None, TilingConfig tiling: optional tiling configuration for spatial processing strategies
+
+    :returns: Bundle containing all distributed objects
+    :rtype: DistributedBundle
+
+    |sep|
+
+    :Examples:
+
+        Create distributed components with list-based configuration:
+
+        >>> factory_config = FactoryConfig(
+        ...     physics=physics_list,
+        ...     measurements=measurements_list,
+        ...     data_fidelity=L2()
+        ... )
+        >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
+
+        Create with custom factory functions:
+
+        >>> def physics_factory(idx, device, shared):
+        ...     return create_blur_operator(idx, device)
+        >>> factory_config = FactoryConfig(
+        ...     physics=physics_factory,
+        ...     measurements=measurements_factory,
+        ...     num_operators=4
+        ... )
+        >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
     """
-    Returns:
-        (ndim, H_dim, W_dim, H, W, ph, pw, sh, sw,
-         H_pad, W_pad, pad_bottom, pad_right, pad_top, pad_left, win_h, win_w)
-
-    Notes:
-        • H_pad/W_pad are the virtual canvas sizes used to place a uniform tile grid.
-        • We conceptually pad only on the bottom/right to reach multiples; receptive-field
-          padding is handled per-tile (returned by tiler) so pad_top/left are 0 here.
-    """
-    shape = list(signal_shape)
-    ndim = len(shape)
-    H_dim, W_dim = hw_dims
-    H = int(shape[H_dim])
-    W = int(shape[W_dim])
-
-    if isinstance(patch_size, int):
-        ph, pw = patch_size, patch_size
+    # Physics factory
+    if callable(factory_config.physics):
+        physics_factory = factory_config.physics
+        num_operators = getattr(factory_config, "num_operators", None)
+        if num_operators is None:
+            raise ValueError("When using a factory for physics, you must provide num_operators as an attribute of FactoryConfig.")
     else:
-        ph, pw = int(patch_size[0]), int(patch_size[1])
+        physics_list = factory_config.physics
+        num_operators = len(physics_list)
+        def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
+            return physics_list[idx].to(device)
 
-    if stride is None:
-        sh, sw = ph, pw
+    # Measurements factory
+    if callable(factory_config.measurements):
+        measurements_factory = factory_config.measurements
+        num_operators = getattr(factory_config, "num_operators", None)
+        if num_operators is None:
+            raise ValueError("When using a factory for measurements, you must provide num_operators as an attribute of FactoryConfig.")
     else:
-        sh, sw = int(stride[0]), int(stride[1])
+        measurements_list = factory_config.measurements
+        num_operators = len(measurements_list)
+        def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
+            return measurements_list[idx].to(device)
 
-    # Compute padded canvas for a uniform grid of tile *starts*.
-    if non_overlap:
-        # grid at 0, ph, 2ph, ..., H_pad - ph  (same for W)
-        H_pad = ((H + ph - 1) // ph) * ph
-        W_pad = ((W + pw - 1) // pw) * pw
+    # Data fidelity factory
+    if factory_config.data_fidelity is None:
+        def df_factory_none(idx: int, device: torch.device, shared: Optional[dict]):
+            return L2()
+        df_factory = df_factory_none
+    elif callable(factory_config.data_fidelity) and not isinstance(factory_config.data_fidelity, DataFidelity):
+        # This is a proper factory function, not a data fidelity instance
+        df_factory = factory_config.data_fidelity
     else:
-        # end-aligned sliding windows: last start is ceil((H-ph)/sh)*sh
-        if end_align is None:
-            end_align = True
-        if end_align:
-            last_h = max(0, ((max(H - ph, 0) + sh - 1) // sh) * sh)
-            last_w = max(0, ((max(W - pw, 0) + sw - 1) // sw) * sw)
-            H_pad = last_h + ph
-            W_pad = last_w + pw
-        else:
-            # no extra padding needed; grid stops before end
-            H_pad = H
-            W_pad = W
+        # This is a data fidelity instance (like L2()) or other object - create wrapper factory
+        df_instance = factory_config.data_fidelity
+        def df_factory_instance(idx: int, device: torch.device, shared: Optional[dict]):
+            return df_instance
+        df_factory = df_factory_instance
 
-    pad_bottom = max(0, H_pad - H)
-    pad_right = max(0, W_pad - W)
-    pad_top = 0
-    pad_left = 0
+    physics = DistributedLinearPhysics(ctx, num_ops=num_operators, factory=physics_factory)
+    measurements = DistributedMeasurements(ctx, num_items=num_operators, factory=measurements_factory)
+    data_fidelity = DistributedDataFidelity(ctx, physics, measurements, data_fidelity_factory=df_factory, reduction=reduction)
 
-    win_h = ph + 2 * receptive_field_radius
-    win_w = pw + 2 * receptive_field_radius
+    signal = DistributedSignal(ctx, shape=signal_shape)
+    dprior = None
 
-    return (
-        ndim,
-        H_dim,
-        W_dim,
-        H,
-        W,
-        ph,
-        pw,
-        sh,
-        sw,
-        H_pad,
-        W_pad,
-        pad_bottom,
-        pad_right,
-        pad_top,
-        pad_left,
-        win_h,
-        win_w,
-    )
+    # Optional prior
+    if prior is not None:
 
+        if tiling is None:
+            tiling = TilingConfig()
 
-def tiling_splitting_strategy(
-    signal_shape: Sequence[int],
-    *,
-    patch_size: int | tuple[int, int],
-    receptive_field_radius: int = 0,
-    stride: Optional[tuple[int, int]] = None,
-    hw_dims: tuple[int, int] = (-2, -1),
-    non_overlap: bool = True,
-    end_align: Optional[bool] = None,  # used when non_overlap=False
-    pad_mode: str = "reflect",  # advisory; not applied here
-) -> tuple[list[Index], dict]:
-    """
-    Uniform-batching tiler with per-tile padding.
+        dprior = DistributedPrior(
+            ctx=ctx,
+            prior=prior,
+            strategy=tiling.strategy,
+            signal_shape=signal_shape,
+            strategy_kwargs={
+                "patch_size": tiling.patch_size,
+                "receptive_field_radius": tiling.receptive_field_radius,
+                "overlap": tiling.overlap,
+            },
+        )
 
-    Produces:
-      • global_slices: list of slices into the *original* tensor (no out-of-bounds),
-      • crop_slices:   slices relative to the *padded window* that grab only the inner patch
-                       portion that overlaps the original image,
-      • target_slices: slices into the *original-shape* output where that patch should be placed,
-      • pad_specs:     per-tile padding tuple for F.pad: (w_left, w_right, h_top, h_bottom),
-                       so that after padding, each window is (ph+2rf, pw+2rf).
-
-    Usage for batching:
-      piece = X[global_slices[i]]
-      piece = torch.nn.functional.pad(piece, pad=pad_specs[i], mode=pad_mode)
-      # piece now has uniform window size across all tiles; stack and run Prior.
-    """
-    (
-        ndim,
-        H_dim,
-        W_dim,
-        H,
-        W,
-        ph,
-        pw,
-        sh,
-        sw,
-        H_pad,
-        W_pad,
-        _pad_bottom,
-        _pad_right,
-        _pad_top,
-        _pad_left,
-        win_h,
-        win_w,
-    ) = _normalize_hw_args(
-        signal_shape,
-        patch_size,
-        stride,
-        hw_dims,
-        receptive_field_radius=receptive_field_radius,
-        non_overlap=non_overlap,
-        end_align=end_align,
-    )
-    signal_shape = torch.Size(signal_shape)
-
-    # Uniform grid of patch starts over the padded canvas
-    if non_overlap:
-        h_starts = list(range(0, H_pad, ph))
-        w_starts = list(range(0, W_pad, pw))
-    else:
-        if end_align is None:
-            end_align = True
-        if end_align:
-            last_h = H_pad - ph
-            last_w = W_pad - pw
-            h_starts = list(range(0, last_h + 1, sh))
-            w_starts = list(range(0, last_w + 1, sw))
-        else:
-            h_starts = list(range(0, max(H - ph, 0) + 1, sh))
-            w_starts = list(range(0, max(W - pw, 0) + 1, sw))
-
-    global_slices: list[Index] = []
-    crop_slices: list[Index] = []
-    target_slices: list[Index] = []
-    pad_specs: list[tuple[int, int, int, int]] = []
-
-    rf = receptive_field_radius
-
-    for hs in h_starts:
-        for ws in w_starts:
-            # Inner patch in padded-canvas coords
-            p_top, p_left = hs, ws
-            p_bot, p_right = hs + ph, ws + pw
-
-            # Amount of valid patch that lies inside the *original* image
-            # (ragged last tiles get truncated)
-            patch_h = max(0, min(ph, H - p_top))
-            patch_w = max(0, min(pw, W - p_left))
-            if patch_h == 0 or patch_w == 0:
-                # This tile lies entirely in the padded extension; skip
-                continue
-
-            # Desired window in original coords (before per-tile padding)
-            w_top_desired = p_top - rf
-            w_left_desired = p_left - rf
-            w_bot_desired = p_bot + rf
-            w_right_desired = p_right + rf
-
-            # Clip window to original tensor; compute how much padding is needed to
-            # restore the uniform window size (win_h, win_w).
-            w_top = max(0, w_top_desired)
-            w_left = max(0, w_left_desired)
-            w_bot = min(H, w_bot_desired)
-            w_right = min(W, w_right_desired)
-
-            need_h_top = max(0, 0 - w_top_desired)  # == rf - p_top if p_top<rf
-            need_h_bot = max(0, w_bot_desired - H)  # == p_bot+rf - H if beyond bottom
-            need_w_left = max(0, 0 - w_left_desired)  # == rf - p_left if p_left<rf
-            need_w_right = max(
-                0, w_right_desired - W
-            )  # == p_right+rf - W if beyond right
-
-            # Slices into original tensor (no OOB)
-            win_sl = [slice(None)] * ndim
-            win_sl[H_dim] = slice(w_top, w_bot)
-            win_sl[W_dim] = slice(w_left, w_right)
-            win_sl = tuple(win_sl)
-
-            # After padding this window by the amounts above, its size will be (win_h, win_w).
-            # In that padded window, the inner patch normally sits at [rf:rf+ph, rf:rf+pw],
-            # but when the patch is truncated at the image boundary, we only take the valid subregion.
-            c_top = rf
-            c_left = rf
-            c_bot = rf + patch_h
-            c_right = rf + patch_w
-
-            crop_sl = [slice(None)] * ndim
-            crop_sl[H_dim] = slice(c_top, c_bot)
-            crop_sl[W_dim] = slice(c_left, c_right)
-            crop_sl = tuple(crop_sl)
-
-            # Target region inside the *original-shape* output tensor
-            tgt_sl = [slice(None)] * ndim
-            tgt_sl[H_dim] = slice(p_top, p_top + patch_h)
-            tgt_sl[W_dim] = slice(p_left, p_left + patch_w)
-            tgt_sl = tuple(tgt_sl)
-
-            # Pad spec for F.pad: (w_left, w_right, h_top, h_bottom)
-            pad_specs.append((need_w_left, need_w_right, need_h_top, need_h_bot))
-
-            global_slices.append(win_sl)
-            crop_slices.append(crop_sl)
-            target_slices.append(tgt_sl)
-
-    metadata: dict = {
-        "signal_shape": torch.Size(signal_shape),  # original (unpadded) output shape
-        "hw_dims": (H_dim, W_dim),
-        "crop_slices": crop_slices,
-        "target_slices": target_slices,
-        "pad_specs": pad_specs,  # per-tile padding for uniform windows
-        "window_shape": (win_h, win_w),  # uniform H×W after per-tile pad
-        "inner_patch_size": (ph, pw),
-        "grid_shape": (len(h_starts), len(w_starts)),
-        "pad_mode": pad_mode,
-        "receptive_field_radius": rf,
-        "non_overlap": non_overlap,
-        "stride": (sh, sw),
-    }
-    return global_slices, metadata
+    return DistributedBundle(physics=physics, measurements=measurements, data_fidelity=data_fidelity, signal=signal, prior=dprior)

@@ -8,7 +8,7 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim import Prior
 from deepinv.utils.tensorlist import TensorList
 
-from .strategies import DistributedSignalStrategy
+from .distribution_strategies.strategies import DistributedSignalStrategy
 
 Index = tuple[Union[slice, int], ...]
 
@@ -17,7 +17,7 @@ Index = tuple[Union[slice, int], ...]
 # Distributed Context
 # =========================
 class DistributedContext:
-    """
+    r"""
     Small, opinionated context manager for distributed runs.
 
     Handles:
@@ -25,6 +25,13 @@ class DistributedContext:
       - Backend choice: NCCL when one-GPU-per-process per node, else Gloo
       - Device selection based on LOCAL_RANK and visible GPUs
       - Sharding helpers and tiny comm helpers
+
+    :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
+    :param str sharding: sharding strategy for data distribution. Options are `'round_robin'` and `'block'`.
+    :param bool cleanup: whether to clean up the process group on exit.
+    :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
+    :param bool deterministic: whether to use deterministic cuDNN operations.
+    :param None, str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic.
     """
 
     def __init__(
@@ -36,6 +43,16 @@ class DistributedContext:
         deterministic: bool = False,
         device_mode: Optional[str] = None,
     ):
+        r"""
+        Initialize the distributed context manager.
+
+        :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
+        :param str sharding: sharding strategy for data distribution. Options are `'round_robin'` and `'block'`.
+        :param bool cleanup: whether to clean up the process group on exit.
+        :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
+        :param bool deterministic: whether to use deterministic cuDNN operations.
+        :param None, str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic.
+        """
         self.backend = backend
         self.sharding = sharding
         self.cleanup = cleanup
@@ -71,17 +88,28 @@ class DistributedContext:
         if should_init_pg:
             backend = self.backend
             if backend is None:
-                # Backend decision is per-node:
-                #   - If each node has at least as many *visible* GPUs as processes per node -> NCCL
-                #   - Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
-                if (
-                    cuda_ok
-                    and dist.is_nccl_available()
-                    and (self.local_world_size <= visible_gpus)
-                ):
+                # Backend decision considering device_mode:
+                #   - If device_mode is "cpu", always use Gloo
+                #   - If device_mode is "gpu", always use NCCL (will fail if no GPU)
+                #   - If auto (None), decide based on available resources:
+                #     * If each node has at least as many *visible* GPUs as processes per node -> NCCL
+                #     * Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
+                if self.device_mode == "cpu":
+                    backend = "gloo"
+                elif self.device_mode == "gpu":
+                    if not dist.is_nccl_available():
+                        raise RuntimeError("GPU mode requested but NCCL backend not available")
                     backend = "nccl"
                 else:
-                    backend = "gloo"
+                    # Auto mode
+                    if (
+                        cuda_ok
+                        and dist.is_nccl_available()
+                        and (self.local_world_size <= visible_gpus)
+                    ):
+                        backend = "nccl"
+                    else:
+                        backend = "gloo"
             dist.init_process_group(backend=backend)
             self.initialized_here = True
 
@@ -145,6 +173,12 @@ class DistributedContext:
     # Sharding
     # ----------------------
     def local_indices(self, num_items: int) -> list[int]:
+        r"""
+        Get local indices for this rank based on sharding strategy.
+
+        :param int num_items: total number of items to shard.
+        :return: (:class:`list[int]`) list of indices assigned to this rank.
+        """
         if self.sharding == "round_robin":
             indices = [
                 i for i in range(num_items) if (i % self.world_size) == self.rank
@@ -171,9 +205,13 @@ class DistributedContext:
     # Collectives
     # ----------------------
     def all_reduce_(self, t: torch.Tensor, op: str = "sum"):
-        """
+        r"""
         In-place all_reduce (returns `t`). Uses SUM for both cases; divides for mean.
         Works on both Gloo and NCCL for all dtypes that backend supports.
+
+        :param torch.Tensor t: tensor to reduce.
+        :param str op: reduction operation (`'sum'` or `'mean'`).
+        :return: (:class:`torch.Tensor`) the reduced tensor.
         """
         if self.is_dist:
             dist.all_reduce(t, op=dist.ReduceOp.SUM)
@@ -195,7 +233,7 @@ class DistributedContext:
 # Distributed Measurements
 # =========================
 class DistributedMeasurements:
-    """
+    r"""
     Holds only local measurement shards.
 
     You can supply either:
@@ -203,6 +241,13 @@ class DistributedMeasurements:
       - a full list of measurements (replicated across ranks); we'll select locals
 
     No collectives are used here; we assume each rank can construct its own locals.
+
+    :param DistributedContext ctx: distributed context manager.
+    :param None, int num_items: total number of measurement items. Required when using factory.
+    :param None, Callable factory: factory function that creates measurements. Should have signature `factory(index, device, shared) -> torch.Tensor`.
+    :param None, Sequence[torch.Tensor] measurements_list: list of all measurements to be distributed.
+    :param None, dict shared: shared data dictionary passed to factory function.
+    :param None, torch.dtype dtype: data type for measurements.
     """
 
     def __init__(
@@ -217,6 +262,16 @@ class DistributedMeasurements:
         shared: Optional[dict] = None,
         dtype: Optional[torch.dtype] = None,
     ):
+        r"""
+        Initialize distributed measurements.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param None, int num_items: total number of measurement items. Required when using factory.
+        :param None, Callable factory: factory function that creates measurements. Should have signature `factory(index, device, shared) -> torch.Tensor`.
+        :param None, Sequence[torch.Tensor] measurements_list: list of all measurements to be distributed.
+        :param None, dict shared: shared data dictionary passed to factory function.
+        :param None, torch.dtype dtype: data type for measurements.
+        """
         self.ctx = ctx
         self.dtype = dtype
         self.shared = shared
@@ -267,16 +322,28 @@ class DistributedMeasurements:
 # Distributed Signal
 # =========================
 class DistributedSignal:
-    """
-    A wrapper around a replicated signal tensor `x` with automatic synchronization.
+    r"""
+    A wrapper around a replicated signal tensor with automatic synchronization.
 
     The signal is automatically synchronized across all processes after initialization
     and after any update operations. Users should not call sync_ manually.
 
-    Usage:
-        signal = DistributedSignal(ctx, shape)
-        signal.update_(new_data)  # Automatically synchronized
-        signal.add_(-lr * gradient)  # Automatically synchronized
+    :param DistributedContext ctx: distributed context manager.
+    :param Sequence[int] shape: shape of the signal tensor.
+    :param None, torch.dtype dtype: data type for the signal tensor.
+    :param None, torch.Tensor init: initial tensor data. If `None`, tensor is initialized with zeros.
+    :param int sync_src: source rank for broadcasting during synchronization.
+
+    |sep|
+
+    :Examples:
+
+        Create and update a distributed signal:
+
+        >>> with DistributedContext() as ctx:
+        ...     signal = DistributedSignal(ctx, (3, 32, 32))
+        ...     signal.update_(torch.randn(3, 32, 32))  # Automatically synchronized
+        ...     signal.add_(-0.1 * gradient)  # Automatically synchronized
     """
 
     def __init__(
@@ -287,6 +354,15 @@ class DistributedSignal:
         init: Optional[torch.Tensor] = None,
         sync_src: int = 0,
     ):
+        r"""
+        Initialize the distributed signal.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param Sequence[int] shape: shape of the signal tensor.
+        :param None, torch.dtype dtype: data type for the signal tensor.
+        :param None, torch.Tensor init: initial tensor data. If `None`, tensor is initialized with zeros.
+        :param int sync_src: source rank for broadcasting during synchronization.
+        """
         self.ctx = ctx
         self.dtype = dtype or torch.float32
         self._shape = torch.Size(shape)
@@ -359,8 +435,18 @@ class DistributedSignal:
 # Distributed Physics
 # =========================
 class DistributedPhysics(Physics):
-    """
+    r"""
     Holds only local physics operators. Exposes fast local and compatible global APIs.
+
+    This class distributes physics operators across multiple processes, where each process
+    owns a subset of the operators. It provides both efficient local operations and
+    compatibility methods that gather results globally.
+
+    :param DistributedContext ctx: distributed context manager.
+    :param int num_ops: total number of physics operators.
+    :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
+    :param None, dict shared: shared data dictionary passed to factory function.
+    :param None, torch.dtype dtype: data type for operations.
     """
 
     def __init__(
@@ -373,6 +459,15 @@ class DistributedPhysics(Physics):
         dtype: Optional[torch.dtype] = None,
         **kwargs,
     ):
+        r"""
+        Initialize distributed physics operators.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param int num_ops: total number of physics operators.
+        :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
+        :param None, dict shared: shared data dictionary passed to factory function.
+        :param None, torch.dtype dtype: data type for operations.
+        """
         super().__init__(**kwargs)
         self.ctx = ctx
         self.dtype = dtype or torch.float32
@@ -423,8 +518,18 @@ class DistributedPhysics(Physics):
 
 
 class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
-    """
+    r"""
     Linear extension with local adjoint / vjp that reduce with a single all_reduce.
+
+    This class extends DistributedPhysics for linear operators, providing efficient
+    distributed implementations of adjoint and vector-Jacobian product operations.
+
+    :param DistributedContext ctx: distributed context manager.
+    :param int num_ops: total number of physics operators.
+    :param Callable factory: factory function that creates linear physics operators.
+    :param None, dict shared: shared data dictionary passed to factory function.
+    :param str reduction: reduction mode for distributed operations. Options are `'sum'` and `'mean'`.
+    :param None, torch.dtype dtype: data type for operations.
     """
 
     def __init__(
@@ -438,6 +543,16 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         dtype: Optional[torch.dtype] = None,
         **kwargs,
     ):
+        r"""
+        Initialize distributed linear physics operators.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param int num_ops: total number of physics operators.
+        :param Callable factory: factory function that creates linear physics operators.
+        :param None, dict shared: shared data dictionary passed to factory function.
+        :param str reduction: reduction mode for distributed operations. Options are `'sum'` and `'mean'`.
+        :param None, torch.dtype dtype: data type for operations.
+        """
         LinearPhysics.__init__(self, A=lambda x: x, A_adjoint=lambda y: y, **kwargs)
         self.reduction_mode = reduction
         super().__init__(ctx, num_ops, factory, shared=shared, dtype=dtype, **kwargs)
@@ -500,11 +615,20 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 # Distributed Data Fidelity
 # =========================
 class DistributedDataFidelity:
-    """
-    Truly distributed data fidelity:
-      - builds/owns only local fidelity blocks (by index)
+    r"""
+    Truly distributed data fidelity.
+
+    Builds/owns only local fidelity blocks (by index):
       - computes loss locally and all-reduces a single scalar
       - computes grad via local VJP and all-reduces a single x-shaped tensor
+
+    :param DistributedContext ctx: distributed context manager.
+    :param Union[DistributedPhysics, DistributedLinearPhysics] physics: distributed physics operators.
+    :param DistributedMeasurements measurements: distributed measurements.
+    :param None, Callable data_fidelity_factory: factory function for creating data fidelity terms. Should have signature `factory(index, device, shared) -> object`.
+    :param None, Sequence[object] data_fidelity_list: list of all data fidelity terms to be distributed.
+    :param None, dict shared: shared data dictionary passed to factory function.
+    :param str reduction: reduction mode for loss aggregation. Options are `'sum'` and `'mean'`.
     """
 
     def __init__(
@@ -520,6 +644,17 @@ class DistributedDataFidelity:
         shared: Optional[dict] = None,
         reduction: str = "sum",
     ):
+        r"""
+        Initialize distributed data fidelity.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param Union[DistributedPhysics, DistributedLinearPhysics] physics: distributed physics operators.
+        :param DistributedMeasurements measurements: distributed measurements.
+        :param None, Callable data_fidelity_factory: factory function for creating data fidelity terms. Should have signature `factory(index, device, shared) -> object`.
+        :param None, Sequence[object] data_fidelity_list: list of all data fidelity terms to be distributed.
+        :param None, dict shared: shared data dictionary passed to factory function.
+        :param str reduction: reduction mode for loss aggregation. Options are `'sum'` and `'mean'`.
+        """
         self.ctx = ctx
         self.physics = physics
         self.meas = measurements
@@ -601,19 +736,18 @@ class DistributedDataFidelity:
 
 
 class DistributedPrior:
-    """
+    r"""
     Distributed prior using pluggable signal processing strategies.
 
-    Parameters
-    ----------
-    ctx : DistributedContext
-    prior : deepinv.optim.Prior
-    strategy : Union[str, DistributedSignalStrategy]
-        Either a strategy name ('basic', 'smart_tiling') or a custom strategy instance
-    signal_shape : Sequence[int]
-        Full tensor shape of the signal to be processed (e.g. BCHW).
-    strategy_kwargs : dict
-        Extra args for the strategy (when using string strategy names).
+    This class enables distributed processing of prior terms by using signal processing
+    strategies that define how to split, process, and combine signal patches across
+    multiple processes.
+
+    :param DistributedContext ctx: distributed context manager.
+    :param deepinv.optim.Prior prior: prior term to be applied in a distributed manner.
+    :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy. Either a strategy name (`'basic'`, `'smart_tiling'`) or a custom strategy instance.
+    :param Sequence[int] signal_shape: full tensor shape of the signal to be processed (e.g. BCHW).
+    :param None, dict strategy_kwargs: extra arguments for the strategy (when using string strategy names).
     """
 
     def __init__(
@@ -626,6 +760,15 @@ class DistributedPrior:
         strategy_kwargs: Optional[dict] = None,
         **kwargs,
     ):
+        r"""
+        Initialize distributed prior.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param deepinv.optim.Prior prior: prior term to be applied in a distributed manner.
+        :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy. Either a strategy name (`'basic'`, `'smart_tiling'`) or a custom strategy instance.
+        :param Sequence[int] signal_shape: full tensor shape of the signal to be processed (e.g. BCHW).
+        :param None, dict strategy_kwargs: extra arguments for the strategy (when using string strategy names).
+        """
         self.ctx = ctx
         self.prior = prior
 
@@ -636,7 +779,7 @@ class DistributedPrior:
 
         # Create or set the strategy
         if isinstance(strategy, str):
-            from .strategies import create_strategy
+            from .distribution_strategies.strategies import create_strategy
 
             strategy_kwargs = strategy_kwargs or {}
             self.strategy = create_strategy(strategy, signal_shape, **strategy_kwargs)
