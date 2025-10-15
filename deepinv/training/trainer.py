@@ -32,8 +32,8 @@ class Trainer:
 
     ## Core Components
     model: torch.nn.Module
-    iterative_model_returns_different_outputs: bool = False
     physics: Physics | list[Physics]
+    iterative_model_returns_different_outputs: bool = False
     device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ## Data Loading
@@ -214,7 +214,7 @@ class Trainer:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
 
-        # Set verbosity level of loggers
+        # Set verbosity level of the logger
         if self.verbose:
             self.train_logger.setLevel("DEBUG")
             for logger in self.loggers:
@@ -570,7 +570,7 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = m(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    metric = m(x=x, x_net=x_lin, y=y, physics=physics)
                     self.meters_metrics_no_learning[m.__class__.__name__].update(
                         metric.detach().cpu().numpy()
                     )

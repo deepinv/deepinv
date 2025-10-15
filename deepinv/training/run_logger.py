@@ -44,6 +44,15 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
+    def setLevel(self, level: str) -> None:
+        """
+        Set the logging level.
+
+        :param str level: Logging level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
+        """
+        pass
+
+    @abstractmethod
     def log_losses(
         self,
         losses: dict[str, float],
@@ -205,6 +214,21 @@ class WandbRunLogger(RunLogger):
 
         # Start Wandb run
         self.wandb_run = wandb.init(**wandb_setup)
+
+    def setLevel(self, level: str) -> None:
+        """
+        Set the logging level.
+        """
+        # Wandb does not have a direct method to set logging level like standard loggers.
+        # However, you can control the verbosity of the output using the `wandb.settings` module.
+        import wandb
+
+        if level.upper() == "DEBUG":
+            wandb.settings().set("verbose", True)
+        elif level.upper() in ["INFO", "WARNING", "ERROR", "CRITICAL"]:
+            wandb.settings().set("verbose", False)
+        else:
+            raise ValueError(f"Unsupported logging level: {level}")
 
     def log_losses(
         self,
@@ -387,6 +411,12 @@ class LocalLogger(RunLogger):
         self.loss_history = []
 
         self.stdout_logger.info(f"Log directory initialized: {self.log_dir}")
+
+    def setLevel(self, level: str) -> None:
+        """
+        Set the logging level.
+        """
+        self.stdout_logger.setLevel(level)
 
     def log_losses(
         self,

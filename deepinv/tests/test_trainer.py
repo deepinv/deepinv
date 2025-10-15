@@ -61,7 +61,7 @@ def test_nolearning(imsize, physics, model, no_learning, device):
         physics=physics,
         compare_no_learning=True,
         no_learning_method=no_learning,
-        loggers=logger,
+        loggers=None,
         device=device,
     )
     x_hat = trainer.no_learning_inference(y, physics)
@@ -230,7 +230,7 @@ def test_get_samples(
             if online_measurements and physics_generator is not None
             else None
         ),
-        loggers=logger,
+        loggers=None,
         device=device,
     )
     iterator = iter(dataloader)
@@ -656,7 +656,7 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
-        loggers=logger,
+        loggers=None,
         device=device,
     )
     trainer._setup_data()
@@ -741,7 +741,7 @@ def test_early_stop(
         optimizer=optimizer,
         verbose=False,
         log_images=True,
-        loggers=logger,
+        loggers=None,
         device=device,
     )
     trainer.train()
@@ -792,7 +792,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, logger):
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
-        loggers=logger,
+        loggers=None,
         device=device,
     )
 
@@ -829,8 +829,8 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplo
         optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         online_measurements=True,
-        check_grad=True,
-        loggers=logger,
+        log_grad=True,
+        loggers=None,
     )
 
     call_count = 0
@@ -916,7 +916,7 @@ def test_out_dir_collision_detection(
                     optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
                     train_dataloader=dataloader,
                     online_measurements=True,
-                    check_grad=True,
+                    log_grad=True,
                     loggers=logger,
                 )
 
@@ -945,7 +945,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     trainer = dinv.Trainer(
         model,
         device=device,
-        save_path=tmpdir,
+        loggers=None,
         verbose=True,
         show_progress_bar=False,
         physics=physics,
@@ -955,7 +955,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
         optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         online_measurements=True,
-        check_grad=True,
+        log_grad=True,
     )
 
     with patch.object(metric, "forward") as m:
