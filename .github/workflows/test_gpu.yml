@@ -13,10 +13,6 @@ on:
         required: true
         type: number
 
-concurrency: # Cancel in-progress runs when pushing a new commit on the PR
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref_name }}
-  cancel-in-progress: true
-
 jobs:
   test:
     name: Test GPU
