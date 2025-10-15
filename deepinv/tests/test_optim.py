@@ -1193,7 +1193,9 @@ def test_nmapg_and_learned_priors(
     else:  # test prox on data fidelity
         physics = dinv.physics.Inpainting(test_sample[0].shape, mask=0.3, device=device)
         data_fidelity = IndicatorL2(0)
-        optim = dinv.optim.NonmonotonicAcceleratedPGD(data_fidelity, prior, 1.0, gradient_for_both=False)
+        optim = dinv.optim.NonmonotonicAcceleratedPGD(
+            data_fidelity, prior, 1.0, gradient_for_both=False
+        )
         psnr_thresh = 15
 
     y = physics(test_sample).type(test_sample.dtype).to(device)
