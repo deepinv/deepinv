@@ -301,13 +301,11 @@ prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 
 # %%
-# The problem is quite challenging and to reduce optimization time,
-# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
 
 
 def custom_init(y, physics):
     x_init = torch.clamp(physics.A_dagger(y), 0)
-    return {"est": (x_init, x_init)}
+    return x_init
 
 
 # %%
@@ -339,7 +337,12 @@ model = FISTA(
 )
 
 # reconstruction with FISTA algorithm
-x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
+# The problem is quite challenging and to reduce optimization time,
+# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
+init = torch.clamp(physics.A_dagger(y), 0), torch.clamp(
+    physics.A_dagger(y), 0
+)  # initialization of the x and z variables in FISTA
+x_model, metrics = model(y, physics, init=init, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(

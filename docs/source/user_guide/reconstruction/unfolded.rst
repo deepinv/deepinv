@@ -3,20 +3,7 @@
 Unfolded Algorithms
 ===================
 
-The :ref:`optimization module <optim>` module also allows to turn the optimization algorithms into unfolded architectures.
-Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
-where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
-The resulting fixed-point algorithms for solving these problems are of the form (see :ref:`optimization <optim>`)
-
-.. math::
-
-    \begin{aligned}
-    z_{k+1} &= \operatorname{step}_f(x_k, z_k, y, A, ...)\\
-    x_{k+1} &= \operatorname{step}_g(x_k, z_k, y, A, ...)
-    \end{aligned}
-
-where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are gradient and/or proximal steps on
-:math:`f` and :math:`g` respectively.
+The :ref:`optimization module <optim>` module also be turned into an unfolded trainable architecture.
 
 Unfolded architectures (sometimes called 'unrolled architectures') are obtained by replacing parts of these algorithms
 by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.

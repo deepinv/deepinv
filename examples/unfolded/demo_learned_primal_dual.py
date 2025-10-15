@@ -186,7 +186,7 @@ n_dual = 5  # extend the dual space
 def custom_init(y, physics):
     x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
     u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-    return {"est": (x0, x0, u0)}
+    return (x0, x0, u0)
 
 
 def custom_output(X):

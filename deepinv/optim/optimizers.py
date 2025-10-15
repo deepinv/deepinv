@@ -65,7 +65,7 @@ class BaseOptim(Reconstructor):
 
 
     where :math:`x_k` is a variable converging to the solution of the minimization problem, and
-    :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
+    :math:`z_k` is an additional "dual" variable that may be required in the computation of the fixed point operator.
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
@@ -84,6 +84,11 @@ class BaseOptim(Reconstructor):
     The variable ``params_algo`` is a dictionary containing all the relevant parameters for running the algorithm.
     If the value associated with the key is a float, the algorithm will use the same parameter across all iterations.
     If the value is list of length max_iter, the algorithm will use the corresponding parameter at each iteration.
+
+    By default, the intial iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
+    Custom initialization can be defined with the ``custom_init`` class argument or via ``init`` argument in the ``forward`` method.
+    In both cases, the custom intialization can be either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+    The output of the function or the fixed initialization should either be a tuple :math:`(x_0, z_0)`, a torch.Tensor :math:`x_0` (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables.
 
     The variable ``data_fidelity`` is a list of instances of :class:`deepinv.optim.DataFidelity` (or a single instance).
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
@@ -255,8 +260,8 @@ class BaseOptim(Reconstructor):
         unfold=False,
         DEQ: DEQConfig | None = None,
         trainable_params=None,
-        verbose=False,
         show_progress_bar=False,
+        verbose=False,
         device=torch.device("cpu"),
         **kwargs,
     ):
@@ -445,7 +450,7 @@ class BaseOptim(Reconstructor):
         )
         return cur_data_fidelity
 
-    def init_iterate_fn(self, y, physics, F_fn=None):
+    def init_iterate_fn(self, y, physics, init=None, F_fn=None):
         r"""
         Initializes the iterate of the algorithm.
         The first iterate is stored in a dictionary of the form ``X = {'est': (x_0, u_0), 'cost': F_0}`` where:
@@ -453,19 +458,34 @@ class BaseOptim(Reconstructor):
             * ``est`` is a tuple containing the first primal and auxiliary iterates.
             * ``cost`` is the value of the cost function at the first iterate.
 
-        By default, the first (primal, auxiliary) iterate of the algorithm is chosen as :math:`(A^{\top}y, A^{\top}y)`.
-        A custom initialization is possible with the custom_init argument.
+        By default, the first (primal and dual) iterate of the algorithm is chosen as :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
+        A custom initialization is possible via the ``custom_init`` class argument or via the ``init`` argument.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics: physics of the problem.
+        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
+            Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
+            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         :param F_fn: function that computes the cost function.
         :return: a dictionary containing the first iterate of the algorithm.
         """
         self.params_algo = (
             self.init_params_algo.copy()
         )  # reset parameters to initial values
-        if self.custom_init:
-            init_X = self.custom_init(y, physics)
+        init = init if init is not None else self.custom_init
+        if init is not None:
+            if callable(init):
+                init = init(y, physics)
+            if isinstance(init, torch.Tensor):
+                init_X = {"est": (init,)}
+            elif isinstance(init, tuple):
+                init_X = {"est": init}
+            elif isinstance(init, dict):
+                init_X = init
+            else:
+                raise ValueError(
+                    f"Custom initial iterate must be a torch.Tensor, a tuple, or a dict. Got {type(self.custom_init)}."
+                )
         else:
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
@@ -681,7 +701,7 @@ class BaseOptim(Reconstructor):
                         }
 
                 # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, F_fn=None):
+                def init_iterate_fn(y, physics, init=None, F_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
                 backward_FP = FixedPoint(
@@ -702,24 +722,34 @@ class BaseOptim(Reconstructor):
 
         return x
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
+    def forward(
+        self, y, physics, init=None, x_gt=None, compute_metrics=False, **kwargs
+    ):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        :param Callable, torch.Tensor, tuple init:  initialization of the algorithm.
+            if ``None`` (and the class ``custom_init``argument is ``None``), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
+            Either a Callable function of the form ``init(y, physics)`` or a fixed initialization.
+            The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)`, a torch.Tensor (if no dual variables are used) or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
         :param kwargs: optional keyword arguments for the optimization iterator (see :class:`deepinv.optim.OptimIterator`)
-        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
-                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm. Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         train_context = (
             torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
         )
         with train_context:
             X, metrics = self.fixed_point(
-                y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
+                y,
+                physics,
+                init=init,
+                x_gt=x_gt,
+                compute_metrics=compute_metrics,
+                **kwargs,
             )
         if self.DEQ:
             x = self.DEQ_additional_step(X, y, physics, **kwargs)
@@ -889,7 +919,7 @@ class ADMM(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters (stepsize, regularization parameter, etc.) of the algorithm are trainable. 
     By default (if the attribute ``unfold`` is set to ``True``) all the algorithm parameters are trainable: the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -924,7 +954,11 @@ class ADMM(BaseOptim):
                     
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` ADMM iterates. Default: ``None``.
+    :param Callable, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0)` or a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial primal and dual variables. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` and :math:`z_0` are both initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1012,7 +1046,7 @@ class DRS(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1047,8 +1081,11 @@ class DRS(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (z_0)}`` where ``z_0``is the initial DRS iterate. Default: ``None``.
-    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1131,7 +1168,7 @@ class GradientDescent(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default.
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1165,7 +1202,11 @@ class GradientDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.optimizers.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. 
@@ -1273,7 +1314,7 @@ class HQS(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1307,7 +1348,11 @@ class HQS(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1414,7 +1459,7 @@ class ProximalGradientDescent(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default.
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default.
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1448,7 +1493,11 @@ class ProximalGradientDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm.
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1553,7 +1602,7 @@ class FISTA(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
@@ -1588,7 +1637,11 @@ class FISTA(BaseOptim):
         
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0)}`` where ``x_0`` and ``z_0`` are the initial ``x`` and ``z`` iterates. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1665,7 +1718,7 @@ class MirrorDescent(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``BregmanL2()``.
@@ -1700,7 +1753,11 @@ class MirrorDescent(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
@@ -1775,7 +1832,7 @@ class ProximalMirrorDescent(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
     
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Proximal Mirror Descent. Default: ``BregmanL2()``.
@@ -1810,7 +1867,11 @@ class ProximalMirrorDescent(BaseOptim):
         
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0)}`` where ``x_0``is the initial iterate. Default: ``None``.
+    :param Callable, torch.Tensor, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a torch.Tensor :math:`x_0`, a tuple :math:`(x_0, )` or a dictionary of the form ``X = {'est': (x_0, )}`` where ``x_0`` is the initial variable. Default: ``None``.
+        If ``None`` (default value),  :math:`x_0` is  initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
@@ -1903,7 +1964,7 @@ class PrimalDualCP(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, the trainable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
-    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters learnable by default. 
+    Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
     The Proximal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
@@ -1943,7 +2004,11 @@ class PrimalDualCP(BaseOptim):
 
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
-    :param Callable custom_init: custom initialization function for the algorithm. Should take as input the measurement ``y`` and the physics ``physics``, and return a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}`` where ``x_0``, ``z_0`` and ``u_0`` are the initial ``x``, ``z`` and ``u`` iterates. Default: ``None``.
+    :param Callable, tuple custom_init:  initialization of the algorithm. 
+        Either a Callable function of the form ``custom_init(y, physics)`` or a fixed initialization.
+        The output of the function or the fixed initialization can be either a tuple :math:`(x_0, z_0, u_0)` or a dictionary of the form ``X = {'est': (x_0, z_0, u_0)}``.
+        If ``None`` (default value),  :math:`x_0`, :math:`z_0` are both initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. :math:`u_0` is initalized with `y`. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
@@ -1996,6 +2061,13 @@ class PrimalDualCP(BaseOptim):
                 "g_param",
                 "beta",
             ]
+        if custom_init is None:
+
+            def custom_init(y, physics):
+                x_init = physics.A_adjoint(y)
+                u_init = y
+                return {"est": (x_init, x_init, u_init)}
+
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -2007,7 +2079,6 @@ class PrimalDualCP(BaseOptim):
             early_stop=early_stop,
             backtracking=backtracking,
             custom_metrics=custom_metrics,
-            custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
             device=device,
