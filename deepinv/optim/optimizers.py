@@ -13,27 +13,50 @@ import torch.nn as nn
 from contextlib import nullcontext
 from dataclasses import dataclass
 
+
 @dataclass
 class DEQConfig:
     """Configuration parameters for Deep Equilibrium models."""
-    jacobian_free: bool = False # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-    anderson_acceleration_forward: bool = False # Whether to use Anderson acceleration for solving the forward equilibrium.
-    history_size_forward: int = 5 # Number of past iterates used in Anderson acceleration for the forward pass.
-    beta_anderson_acc_forward: float = 1.0 # Momentum coefficient in Anderson acceleration for the forward pass.
-    eps_anderson_acc_forward: float = 1e-4 # Regularization parameter for Anderson acceleration in the forward pass.
-    anderson_acceleration_backward: bool = False # Whether to use Anderson acceleration for solving the backward equilibrium.
-    history_size_backward: int = 5 # Number of past iterates used in Anderson acceleration for the backward pass.
-    beta_anderson_acc_backward: float = 1.0 # Momentum coefficient in Anderson acceleration for the backward pass.
-    eps_anderson_acc_backward: float = 1e-4 # Regularization parameter for Anderson acceleration in the backward pass.
-    max_iter_backward: int = 50 # Maximum number of iterations in the backward equilibrium solver.
+
+    jacobian_free: bool = (
+        False  # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+    )
+    anderson_acceleration_forward: bool = (
+        False  # Whether to use Anderson acceleration for solving the forward equilibrium.
+    )
+    history_size_forward: int = (
+        5  # Number of past iterates used in Anderson acceleration for the forward pass.
+    )
+    beta_anderson_acc_forward: float = (
+        1.0  # Momentum coefficient in Anderson acceleration for the forward pass.
+    )
+    eps_anderson_acc_forward: float = (
+        1e-4  # Regularization parameter for Anderson acceleration in the forward pass.
+    )
+    anderson_acceleration_backward: bool = (
+        False  # Whether to use Anderson acceleration for solving the backward equilibrium.
+    )
+    history_size_backward: int = (
+        5  # Number of past iterates used in Anderson acceleration for the backward pass.
+    )
+    beta_anderson_acc_backward: float = (
+        1.0  # Momentum coefficient in Anderson acceleration for the backward pass.
+    )
+    eps_anderson_acc_backward: float = (
+        1e-4  # Regularization parameter for Anderson acceleration in the backward pass.
+    )
+    max_iter_backward: int = (
+        50  # Maximum number of iterations in the backward equilibrium solver.
+    )
 
 
 @dataclass
 class BacktrackingConfig:
     """Configuration parameters for backtracking line search on the stepsize."""
-    gamma: float = 0.1     # Armijo-like parameter (controls sufficient decrease)
-    eta: float = 0.9       # Step reduction factor (e.g. multiply step by eta on failure)
-    max_iter: int = 20     # Maximum number of backtracking steps
+
+    gamma: float = 0.1  # Armijo-like parameter (controls sufficient decrease)
+    eta: float = 0.9  # Step reduction factor (e.g. multiply step by eta on failure)
+    max_iter: int = 20  # Maximum number of backtracking steps
 
 
 class BaseOptim(Reconstructor):
@@ -183,7 +206,7 @@ class BaseOptim(Reconstructor):
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
         If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
-    :param deepinv.optim.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
+    :param deepinv.optim.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
         If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
         The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
 
@@ -201,21 +224,21 @@ class BaseOptim(Reconstructor):
         By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
-        
+
         - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
         - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
         - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
-        
-        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
-        
+
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method.
+
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param Callable get_output:  Custom output of the algorithm.
         The callable function ``get_output(X)`` takes as input the dictionary ``X`` containing the primal and auxiliary variables and returns the desired output. Default : ``X['est'][0]``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
-    :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``). 
+    :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
         Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
@@ -631,9 +654,11 @@ class BaseOptim(Reconstructor):
                 self.params_algo["stepsize"] = [stepsize]
 
                 if self.verbose:
-                    print(f"Backtracking ({it+1}/{self.backtracking_config.max_iter}): "
-                        f"new stepsize = {stepsize:.6f}")
-                
+                    print(
+                        f"Backtracking ({it+1}/{self.backtracking_config.max_iter}): "
+                        f"new stepsize = {stepsize:.6f}"
+                    )
+
             return success
         else:
             return True
@@ -803,7 +828,7 @@ def create_iterator(
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent). 
+        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent).
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
@@ -869,13 +894,13 @@ def optim_builder(
 
     .. deprecated:: 0.3.6
 
-       The ``optim_builder`` is deprecated and will be removed in future versions. 
-       Instead of using this function, define an optimization algorithm using directly the algorithm name 
+       The ``optim_builder`` is deprecated and will be removed in future versions.
+       Instead of using this function, define an optimization algorithm using directly the algorithm name
        e.g. ``model = PGD(data_fidelity, prior, ...)``.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used, or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent). 
+        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent).
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularization parameter, denoising standard deviation.
@@ -1228,7 +1253,7 @@ class GD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
+    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
         If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
         The :class:`BacktrackingConfig` dataclass has the following attributes:
 
@@ -1247,18 +1272,18 @@ class GD(BaseOptim):
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
-        
+
         - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
         - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
         - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
-        
-        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
-        
+
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method.
+
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
@@ -1561,7 +1586,7 @@ class PGD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
+    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
         If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
         The :class:`BacktrackingConfig` dataclass has the following attributes:
 
@@ -1576,23 +1601,23 @@ class PGD(BaseOptim):
                 max_iter: int = 10
                     # Maximum number of backtracking iterations
 
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
-        
+
         - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
         - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
         - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
-        
-        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method. 
-        
+
+        Note that custom initialization can also be directly defined via the ``init`` argument in the ``forward`` method.
+
         If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters

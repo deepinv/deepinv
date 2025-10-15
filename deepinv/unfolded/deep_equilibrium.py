@@ -13,7 +13,7 @@ class BaseDEQ(BaseUnfold):
 
     .. deprecated:: 0.3.6
 
-       The ``BaseDEQ`` class is deprecated and will be removed in future versions. 
+       The ``BaseDEQ`` class is deprecated and will be removed in future versions.
        Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
        e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 
@@ -164,7 +164,7 @@ def DEQ_builder(
 
     .. deprecated:: 0.3.6
 
-       The ``DEQ_builder`` function is deprecated and will be removed in future versions. 
+       The ``DEQ_builder`` function is deprecated and will be removed in future versions.
        Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
        e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 

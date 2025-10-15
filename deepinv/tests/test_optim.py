@@ -626,9 +626,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         assert opt_algo.has_converged
 
 
-@pytest.mark.parametrize(
-    "red_algo", ["GD", "PGD", "FISTA"]
-)
+@pytest.mark.parametrize("red_algo", ["GD", "PGD", "FISTA"])
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead

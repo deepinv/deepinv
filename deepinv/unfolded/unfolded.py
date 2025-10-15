@@ -143,7 +143,7 @@ def unfolded_builder(
 
     .. deprecated:: 0.3.6
 
-       The ``unfolded_builder`` function is deprecated and will be removed in future versions. 
+       The ``unfolded_builder`` function is deprecated and will be removed in future versions.
        Instead of using this function, define an unfolded algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `unfold=True`,
        e.g. ``model = PGD(data_fidelity, prior, ..., unfold = True, ...)``.
 
