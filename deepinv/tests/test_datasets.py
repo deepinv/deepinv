@@ -1120,8 +1120,15 @@ def make_data(tmp_path, request):
         elif fmt == ".nii.gz":
             nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dx / f"{i}.nii.gz"))
             nib.save(nib.Nifti1Image(vol, np.eye(4)), str(dy / f"{i}.nii.gz"))
+        elif fmt == ".pt":
+            torch.save(torch.from_numpy(vol), str(dx / f"{i}.pt"))
+            torch.save(torch.from_numpy(vol), str(dy / f"{i}.pt"))
         else:
             raise ValueError(f"Unsupported fmt: {fmt}")
+    if fmt == ".pt":
+
+        def torch_loader(path, **args):
+            return torch.load(path)
 
     cases.append(
         dict(
@@ -1132,6 +1139,7 @@ def make_data(tmp_path, request):
             ch_axis=None,
             patch=(32, 32, 32),
             expected=(1, 32, 32, 32),
+            loader=torch_loader if fmt == ".pt" else None,
         )
     )
 
@@ -1197,7 +1205,9 @@ def make_data(tmp_path, request):
     yield cases
 
 
-@pytest.mark.parametrize("make_data", [".npy", ".b2nd", ".nii.gz"], indirect=True)
+@pytest.mark.parametrize(
+    "make_data", [".npy", ".b2nd", ".nii.gz", ".pt"], indirect=True
+)
 def test_RandomPatchSampler(make_data):
     # (i) formats on 3D, (ii) 2D&channels, (iii) 4D no-channels
     for c in make_data:
@@ -1207,6 +1217,7 @@ def test_RandomPatchSampler(make_data):
             patch_size=c["patch"],
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
+            loader=c.get("loader", None),
         )
         assert len(ds) == 2
         x = next(iter(ds))
@@ -1221,6 +1232,7 @@ def test_RandomPatchSampler(make_data):
             patch_size=c["patch"],
             file_format=c["fmt"],
             ch_axis=c["ch_axis"],
+            loader=c.get("loader", None),
         )
         x, y = next(iter(ds))
         assert x.shape == c["expected"]
@@ -1233,6 +1245,7 @@ def test_RandomPatchSampler(make_data):
         patch_size=c0["patch"],
         file_format=c0["fmt"],
         ch_axis=c0["ch_axis"],
+        loader=c0.get("loader", None),
     )
     assert len(ds) == 2
     x, y = next(iter(ds))
