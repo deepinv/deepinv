@@ -141,7 +141,7 @@ Click on the model name to learn more about the type of model and use `pretraine
 
 .. _pretrained-learned-reg:
 
-For the learned regularizers (:class:`(W)CRR <deepinv.optim.WCRR>` and :class:`LSR <deepinv.optim.LSR>`)
+For the learned regularizers (:class:`(W)CRR <deepinv.optim.RidgeRegularizer>` and :class:`LSR <deepinv.optim.LSR>`)
  
 Click on the model name to learn more about the type of model and use `pretrained="download"` to use the pretrained weights.
 
@@ -152,7 +152,7 @@ Click on the model name to learn more about the type of model and use `pretraine
    * - Model
      - Type
      - Weight
-   * - :class:`deepinv.optim.WCRR`
+   * - :class:`deepinv.optim.RidgeRegularizer`
      - Prior
      - The weights are trained using bilevel optimization using the code from `Hertrich et al. <https://github.com/johertrich/LearnedRegularizers>`_ :footcite:p:`hertrich2025learning` on BSDS500 for noise level `25/255`.
         We provide pretrained weights for color images (`in_channels=3`) and grayscale images (`in_channels=1`) and for the cases `weak_convexity=0.0` (CRR) and `weak_convexity=1.0` (WCRR).

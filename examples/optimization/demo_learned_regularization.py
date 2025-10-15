@@ -17,11 +17,11 @@ For the reconstructions we sovle the variational problem
         \end{equation}
 
 for a data-fidelity term :math:`\datafid{x}{y}`, forward operator :math:`A` and a learned regularizer :math:`reg` using the
-:class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NMAPG>` algorithm.
+:class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NonmonotonicAcceleratedPGD>` (nmAPG) algorithm.
 """
 
 import deepinv as dinv
-from deepinv.optim import WCRR, LSR, NMAPG
+from deepinv.optim import RidgeRegularizer, LSR, NonmonotonicAcceleratedPGD
 from deepinv.utils.demo import load_example
 from deepinv.optim import L2, IndicatorL2
 from deepinv.physics import Denoising, Tomography, Inpainting, GaussianNoise
@@ -47,17 +47,15 @@ psnr_dyn = PSNR(min_pixel=None, max_pixel=None)  # dynamic range PSNR
 #
 
 # color versions
-crr = WCRR(
-    weak_convexity=0.0, device=device
-)  # the CRR is the WCRR with weak convexity 0.0
-wcrr = WCRR(weak_convexity=1.0, device=device)
+# CRR and WCRR are the RidgeRegularizer with weak convexity 0.0 and 1.0
+crr = RidgeRegularizer(weak_convexity=0.0, device=device)
+wcrr = RidgeRegularizer(weak_convexity=1.0, device=device)
 lsr = LSR(device=device)
 
 # grayscale versions
-crr_gray = WCRR(
-    in_channels=1, weak_convexity=0.0, device=device
-)  # the CRR is the WCRR with weak convexity 0.0
-wcrr_gray = WCRR(in_channels=1, weak_convexity=1.0, device=device)
+# CRR and WCRR are the RidgeRegularizer with weak convexity 0.0 and 1.0
+crr_gray = RidgeRegularizer(in_channels=1, weak_convexity=0.0, device=device)
+wcrr_gray = RidgeRegularizer(in_channels=1, weak_convexity=1.0, device=device)
 lsr_gray = LSR(in_channels=1, device=device)
 
 # set all parameters to be not trainable
@@ -123,9 +121,9 @@ y = physics_tomography(test_img_ct)
 lmbd = 60  # regularization parameter
 
 # create models
-model_crr = NMAPG(data_fidelity_l2, crr_gray, lmbd)
-model_wcrr = NMAPG(data_fidelity_l2, wcrr_gray, lmbd)
-model_lsr = NMAPG(data_fidelity_l2, lsr_gray, lmbd)
+model_crr = NonmonotonicAcceleratedPGD(data_fidelity_l2, crr_gray, lmbd)
+model_wcrr = NonmonotonicAcceleratedPGD(data_fidelity_l2, wcrr_gray, lmbd)
+model_lsr = NonmonotonicAcceleratedPGD(data_fidelity_l2, lsr_gray, lmbd)
 
 fbp = physics_tomography.A_dagger(y)  # filtered backprojection
 
@@ -162,9 +160,15 @@ y = physics_inpainting(test_img)
 lmbd = 1  # regularization parameter
 
 # create models
-model_crr = NMAPG(data_fidelity_ind, crr, lmbd, gradient_for_both=False)
-model_wcrr = NMAPG(data_fidelity_ind, wcrr, lmbd, gradient_for_both=False)
-model_lsr = NMAPG(data_fidelity_ind, lsr, lmbd, gradient_for_both=False)
+model_crr = NonmonotonicAcceleratedPGD(
+    data_fidelity_ind, crr, lmbd, gradient_for_both=False
+)
+model_wcrr = NonmonotonicAcceleratedPGD(
+    data_fidelity_ind, wcrr, lmbd, gradient_for_both=False
+)
+model_lsr = NonmonotonicAcceleratedPGD(
+    data_fidelity_ind, lsr, lmbd, gradient_for_both=False
+)
 
 masked = physics_inpainting.A_dagger(y)  # observation
 

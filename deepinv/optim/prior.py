@@ -711,7 +711,7 @@ class L12Prior(Prior):
         return z * x
 
 
-class WCRR(Prior):
+class RidgeRegularizer(Prior):
     r"""
     (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
 
@@ -751,7 +751,7 @@ class WCRR(Prior):
         pretrained="download",
         warn_output_scaling=True,
     ):
-        super(WCRR, self).__init__()
+        super(RidgeRegularizer, self).__init__()
         nb_channels = [in_channels] + list(nb_channels)
         self.warn_output_scaling = warn_output_scaling
         self.nb_filters = nb_channels[-1]
@@ -887,10 +887,10 @@ class WCRR(Prior):
             and self.warn_output_scaling
         ):
             warnings.warn(
-                "The parameter WCRR.output_scaling is not zero even though WCRR.weak_convexity is not zero! "
-                + "This means that the weak convexity parameter of the WCRR is not WCRR.weak_convexity but exp(output_scaling)*WCRR.weak_convexity. "
-                + "If you require the WCRR to keep the weak convexity, set WCRR.output_scaling.requires_grad_(False) for all training methods and do not "
-                + "change WCRR.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the WCRR to False."
+                "The parameter RidgeRegularizer.output_scaling is not zero even though RidgeRegularizer.weak_convexity is not zero! "
+                + "This means that the weak convexity parameter of the RidgeRegularizer is not RidgeRegularizer.weak_convexity but exp(output_scaling)*RidgeRegularizer.weak_convexity. "
+                + "If you require the RidgeRegularizer to keep the weak convexity, set RidgeRegularizer.output_scaling.requires_grad_(False) for all training methods and do not "
+                + "change RidgeRegularizer.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the RidgeRegularizer to False."
             )
         reg = self.conv(x)
         reg = reg * torch.exp(self.scaling + self.input_scaling)
@@ -919,7 +919,7 @@ class WCRR(Prior):
 
 
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
-        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NMAPG>` algorithm.
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` algorithm.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
@@ -1069,7 +1069,7 @@ class LSR(Prior):
 
 
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
-        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NMAPG>` algorithm.
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` algorithm.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.

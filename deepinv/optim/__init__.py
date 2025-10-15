@@ -10,7 +10,7 @@ from .data_fidelity import (
     ZeroFidelity,
     ItohFidelity,
 )
-from .optimizers import BaseOptim, optim_builder, NMAPG
+from .optimizers import BaseOptim, optim_builder, NonmonotonicAcceleratedPGD
 from .fixed_point import FixedPoint
 from .prior import (
     Prior,
@@ -25,7 +25,7 @@ from .prior import (
     PatchNR,
     Zero,
     L12Prior,
-    WCRR,
+    RidgeRegularizer,
     LSR,
 )
 from .optim_iterators.optim_iterator import OptimIterator

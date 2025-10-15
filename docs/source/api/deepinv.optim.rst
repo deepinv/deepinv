@@ -76,7 +76,7 @@ Priors
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
-   deepinv.optim.WCRR
+   deepinv.optim.RidgeRegularizer
    deepinv.optim.LSR
 
 Predefined models
@@ -161,7 +161,7 @@ implmented in:
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.NMAPG
+   deepinv.optim.NonmonotonicAcceleratedPGD
 
 Utils
 -----
