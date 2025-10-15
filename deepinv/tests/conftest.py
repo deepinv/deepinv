@@ -105,35 +105,23 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.xdist_group("main"))
 
 
-@pytest.fixture(params=[1])
-def world_size(request):
-    """Parametrize tests with different world sizes (number of processes)."""
-    return request.param
+def _get_free_port():
+    # robust-ish: bind to port 0 and ask the OS
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
+@pytest.fixture(params=[1, 2])
+def world_size(request):
+    return request.param
 
 @pytest.fixture
 def dist_config(world_size):
-    """
-    Configuration for distributed testing with torch.distributed.
-    
-    This fixture provides:
-    - world_size: number of processes to spawn
-    - backend: 'gloo' (CPU-compatible) or 'nccl' (GPU-only)
-    - master_addr/port: for process group initialization
-    
-    The fixture is parametrized to run tests with 1, 2, and 3 processes.
-    For multi-process tests, the actual distributed initialization happens
-    within the test via DistributedContext when RANK/WORLD_SIZE env vars are set.
-    """
-    # Use unique port based on world_size to avoid conflicts
-    base_port = 29500
-    port = base_port + world_size
-    
-    config = {
+    port = _get_free_port()  # unique per-test invocation
+    return {
         "world_size": world_size,
-        "backend": "gloo",  # CPU-compatible backend
+        "backend": "gloo",
         "master_addr": "127.0.0.1",
         "master_port": str(port),
-        "device_mode": "cpu",  # Force CPU for CI compatibility
+        "device_mode": "cpu",
     }
-    return config
