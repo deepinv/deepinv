@@ -715,7 +715,7 @@ class RidgeRegularizer(Prior):
     r"""
     (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
 
-    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatination multiple convolution
+    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatenation multiple convolution
     layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
     see :footcite:t:`hertrich2025learning` for a precise description.
 
@@ -823,24 +823,24 @@ class RidgeRegularizer(Prior):
             else:
                 self.load_state_dict(torch.load(pretrained, map_location=device))
 
-    def smooth_l1(self, x):
+    def __smooth_l1(self, x):
         return torch.clip(x**2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
 
-    def grad_smooth_l1(self, x):
+    def __grad_smooth_l1(self, x):
         return torch.clip(x, -1.0, 1.0)
 
-    def get_conv_lip(self):
+    def __get_conv_lip(self):
         impulse = self.filters(self.dirac)
         for filt in reversed(self.filters):
             impulse = F.conv_transpose2d(impulse, filt.weight, padding=filt.padding)
-        return torch.fft.fft2(impulse, s=[256, 256]).abs().max()
+        return torch.fft.rfft2(impulse, s=[256, 256]).abs().max()
 
-    def conv(self, x):
-        x = x / torch.sqrt(self.get_conv_lip())
+    def __conv(self, x):
+        x = x / torch.sqrt(self.__get_conv_lip())
         return self.filters(x)
 
-    def conv_transpose(self, x):
-        x = x / torch.sqrt(self.get_conv_lip())
+    def __conv_transpose(self, x):
+        x = x / torch.sqrt(self.__get_conv_lip())
         for filt in reversed(self.filters):
             x = F.conv_transpose2d(x, filt.weight, padding=filt.padding)
         return x
@@ -853,23 +853,23 @@ class RidgeRegularizer(Prior):
         :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
         :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
-        grad = self.conv(x)
+        grad = self.__conv(x)
         grad = grad * torch.exp(self.scaling + self.input_scaling)
         if get_energy:
             reg = (
-                self.smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
-                - self.smooth_l1(grad) * self.weak_cvx
+                self.__smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
+                - self.__smooth_l1(grad) * self.weak_cvx
             )
             reg = reg * torch.exp(
                 self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
             )
             reg = reg.sum(dim=(1, 2, 3))
         grad = (
-            self.grad_smooth_l1(torch.exp(self.beta) * grad)
-            - self.grad_smooth_l1(grad) * self.weak_cvx
+            self.__grad_smooth_l1(torch.exp(self.beta) * grad)
+            - self.__grad_smooth_l1(grad) * self.weak_cvx
         )
         grad = grad * torch.exp(self.output_scaling - self.scaling - self.input_scaling)
-        grad = self.conv_transpose(grad)
+        grad = self.__conv_transpose(grad)
         if get_energy:
             return reg, grad
         return grad
@@ -892,11 +892,11 @@ class RidgeRegularizer(Prior):
                 + "If you require the RidgeRegularizer to keep the weak convexity, set RidgeRegularizer.output_scaling.requires_grad_(False) for all training methods and do not "
                 + "change RidgeRegularizer.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the RidgeRegularizer to False."
             )
-        reg = self.conv(x)
+        reg = self.__conv(x)
         reg = reg * torch.exp(self.scaling + self.input_scaling)
         reg = (
-            self.smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
-            - self.smooth_l1(reg) * self.weak_cvx
+            self.__smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
+            - self.__smooth_l1(reg) * self.weak_cvx
         )
         reg = reg * torch.exp(
             self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
@@ -963,8 +963,8 @@ class LSR(Prior):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
-    :param list of int nc: number of channels of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `[32, 64, 128, 256]`
-    :param int nb: number of residual blocks of the DRUNet, cf. :class:`deepinv.models.DRUNet`. Default: `2`.
+    :param list of int nc: number of channels of the DRUNet, cf. :class:`deepinv.models.GSDRUNet`. Default: `[32, 64, 128, 256]`
+    :param int nb: number of residual blocks of the DRUNet, cf. :class:`deepinv.models.GSDRUNet`. Default: `2`.
     :param deepinv.models.GSPnP.GSDRUNet pretrained_GSDRUNet: If already a GSDRUNet object exists, a LSR with this GSDRUNet can be created
         by passing it through this argument. `None` for initializing a new GSDRUNet. Default: `None`
     :param float alpha: scaling factor in the GSDRUNet. Default: `1.0`

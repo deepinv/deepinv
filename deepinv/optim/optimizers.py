@@ -1,12 +1,13 @@
 import sys
 import warnings
+from typing import Callable
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.prior import Zero
-from deepinv.optim.data_fidelity import ZeroFidelity
+from deepinv.optim.prior import Zero, Prior
+from deepinv.optim.data_fidelity import ZeroFidelity, DataFidelity
 from deepinv.models import Reconstructor
 from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
@@ -678,18 +679,18 @@ class NonmonotonicAcceleratedPGD(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        max_iter=2000,
-        custom_init=None,
-        L_init=1.0,
-        thres_conv=1e-4,
-        rho=0.9,
-        delta=0.1,
-        eta=0.8,
-        gradient_for_both=True,
-        verbose=False,
+        data_fidelity: DataFidelity = None,
+        prior: Prior = None,
+        lambda_reg: torch.Tensor | float = 1.0,
+        max_iter: int = 2000,
+        custom_init: Callable = None,
+        L_init: float = 1.0,
+        thres_conv: float = 1e-4,
+        rho: float = 0.9,
+        delta: float = 0.1,
+        eta: float = 0.8,
+        gradient_for_both: bool = True,
+        verbose: bool = False,
     ):
         super().__init__()
         self.data_fidelity = ZeroFidelity() if data_fidelity is None else data_fidelity
@@ -736,10 +737,13 @@ class NonmonotonicAcceleratedPGD(Reconstructor):
             prox_g = lambda x, y, gamma: self.data_fidelity.prox(
                 x, y, physics, gamma=gamma
             ).detach()
-        if self.custom_init is None:
-            x0 = physics.A_dagger(y)
+        if x_init is None:
+            if self.custom_init is None:
+                x0 = physics.A_dagger(y)
+            else:
+                x0 = self.custom_init(y, physics)
         else:
-            x0 = self.custom_init(y, physics)
+            x0 = x_init
 
         with torch.no_grad():
             (
