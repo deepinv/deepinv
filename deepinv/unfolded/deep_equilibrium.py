@@ -18,7 +18,7 @@ class BaseDEQ(BaseUnfold):
        e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
-    that can be virtually unrolled infinitely leveraging the implicit function theorem.
+    that can be virtually unrolled infinitely, leveraging the implicit function theorem.
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
     .. math::

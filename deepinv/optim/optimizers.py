@@ -125,7 +125,7 @@ class BaseOptim(Reconstructor):
     (e.g. ``stepsize`` :math:`\gamma`, regularization parameter ``lambda_reg`` :math:`\lambda`, prior parameter (``g_param``) :math:`\sigma` ...)
     but also the trainable priors (e.g. a deep denoiser) or forward models.
 
-    If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely leveraging the implicit function theorem.
+    If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely, leveraging the implicit function theorem.
     The backward pass is then performed using fixed point iterations to find solutions of the fixed-point equation
 
     .. math::
@@ -239,7 +239,7 @@ class BaseOptim(Reconstructor):
     :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
         Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
     :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
-        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
+        DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
@@ -512,7 +512,7 @@ class BaseOptim(Reconstructor):
             The output of the function or the fixed initialization can be either:
 
             - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
-            - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
         :param F_fn: function that computes the cost function.
@@ -787,7 +787,7 @@ class BaseOptim(Reconstructor):
             the measurement :math:`y` and the physics ``physics``. The output of the function or the fixed initialization can be either:
 
             - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
-            - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
             Note that custom initialization can also be defined via the ``custom_init`` class argument.
@@ -1284,7 +1284,7 @@ class GD(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
-        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
+        DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
@@ -1452,7 +1452,7 @@ class HQS(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
-        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
+        DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
@@ -1618,7 +1618,7 @@ class PGD(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
-        DEQ algorithms are virtually unrolled infinitely leveraging the implicit function theorem.
+        DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.

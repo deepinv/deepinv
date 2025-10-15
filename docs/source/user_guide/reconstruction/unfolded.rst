@@ -120,6 +120,8 @@ The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and 
 
 By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
 
+For now DEQ is only possible with Gradient Descent :class:`deepinv.optim.GD`,  Proximal Gradient Descent :class:`deepinv.optim.PGD` and Half-Quadratic-Splitting :class:`deepinv.optim.HQS` optimization algorithms.
+
 .. _predefined-unfolded:
 
 Predefined Unfolded Architectures
