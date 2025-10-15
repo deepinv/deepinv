@@ -40,6 +40,9 @@ algorithm to solve the problem is the Proximal Gradient Descent (PGD) algorithm 
 where :math:`\operatorname{prox}_{\lambda \regname}` is the proximity operator of the regularization term, :math:`\gamma` is the
 step size of the algorithm, and :math:`\nabla \datafidname` is the gradient of the data-fidelity term.
 
+By default, algorithms are initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined, and with the observation `y` if the adjoint is not defined.
+
+
 The following example illustrates the implementation of the PGD algorithm with DeepInverse to solve the :math:`\ell_1`-regularized
 least squares problem.
 
@@ -107,32 +110,6 @@ The following classes inherit from :class:`deepinv.optim.Potential`
      - :math:`g_{\sigma}(x)`
      - optional denoising level :math:`\sigma`
 
-.. _bregman:
-
-Bregman
-~~~~~~~
-Bregman potentials are defined as :math:`\phi(x)` where :math:`x\in\xset` is a variable and
-where :math:`\phi` is a convex scalar function, and are defined via the base class :class:`deepinv.optim.Bregman`.
-
-In addition to the methods inherited from :class:`deepinv.optim.Potential` (gradient
-:math:`\nabla \phi`, conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`),
-this class provides the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`,
-and is well suited for performing Mirror Descent.
-
-
-.. list-table:: Bregman potentials
-   :header-rows: 1
-
-   * - Class
-     - Bregman potential :math:`\phi(x)`
-   * - :class:`deepinv.optim.bregman.BregmanL2`
-     - :math:`\|x\|_2^2`
-   * - :class:`deepinv.optim.bregman.BurgEntropy`
-     - :math:`- \sum_i \log x_i`
-   * - :class:`deepinv.optim.bregman.NegEntropy`
-     - :math:`\sum_i x_i \log x_i`
-   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
-     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 .. _data-fidelity:
 
@@ -323,9 +300,9 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | multiplying the regularization term.
      - Should be positive.
    * - ``"g_param"``
-     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
+     - | Optional prior hyper-parameter which :math:`\regname` depends on. 
        | For priors based on denoisers,
-       | corresponds to the noise level.
+       | corresponds to the noise level :math:`\sigma` .
      - Should be positive.
    * - ``"beta"``
      - | Relaxation parameter used in
@@ -336,38 +313,62 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | Primal Dual algorithm (only required by CP).
      - Should be positive.
 
-Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
-a single float (same value for each iteration).
+Each parameter can be given as an iterable (i.e., a list) with a distinct value for each iteration or
+a single float (same parameter value for each iteration).
 
-
-.. _optim-iterators:
-
-Iterators
-~~~~~~~~~
-An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
-by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
+Moreover, backtracking can be used to automaticaly adapt the stepsize at each iteration. Backtracking consists in choosing
+the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
+More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
+the following update rule is applied at each iteration :math:`k`:
 
 .. math::
-    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...),
+    \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
-where :math:`x` is a variable converging to the solution of the minimization problem, and
-:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
+In order to use backtracking, the argument  ``backtracking`` of :class:`deepinv.optim.BaseOptim` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, 
+which defines the parameters for backtracking line-search. The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
+
+.. code-block:: python
+
+    @dataclass
+    class BacktrackingConfig:
+        gamma: float = 0.1
+            # Armijo-like parameter controlling sufficient decrease
+        eta: float = 0.9
+            # Step reduction factor
+        max_iter: int = 10
+            # Maximum number of backtracking iterations
+
+By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+
+To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
+If the prior is not explicit (e.g. a denoiser) i.e. the argument ``explicit_prior``, of the prior :class:`deepinv.optim.Prior` is ``False`` or if the argument ``has_cost`` of the class :class:`deepinv.optim.BaseOptim` is ``False``, backtracking is automatically disabled.
+
+.. _bregman:
+
+Bregman
+~~~~~~~
+Bregman potentials are defined as :math:`\phi(x)` where :math:`x\in\xset` is a variable and
+where :math:`\phi` is a convex scalar function, and are defined via the base class :class:`deepinv.optim.Bregman`.
+
+In addition to the methods inherited from :class:`deepinv.optim.Potential` (gradient
+:math:`\nabla \phi`, conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`),
+this class provides the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`,
+and is well suited for performing Mirror Descent.
 
 
-The implementation of the fixed point algorithm in ``deepinv.optim``,
-following standard optimization theory, is split in two steps:
+.. list-table:: Bregman potentials
+   :header-rows: 1
 
-.. math::
-    z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
-
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_{\regname}` are gradient and/or proximal steps
-on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
-relaxation parameters, etc...
-
-The :class:`deepinv.optim.optim_iterators.fStep` and :class:`deepinv.optim.optim_iterators.gStep` classes
-precisely implement these steps.
+   * - Class
+     - Bregman potential :math:`\phi(x)`
+   * - :class:`deepinv.optim.bregman.BregmanL2`
+     - :math:`\|x\|_2^2`
+   * - :class:`deepinv.optim.bregman.BurgEntropy`
+     - :math:`- \sum_i \log x_i`
+   * - :class:`deepinv.optim.bregman.NegEntropy`
+     - :math:`\sum_i x_i \log x_i`
+   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
+     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 
 .. _optim-utils:

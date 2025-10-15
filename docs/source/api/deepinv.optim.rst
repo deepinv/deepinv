@@ -22,6 +22,8 @@ Base Class
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.BacktrackingConfig
+   deepinv.optim.DEQConfig
    deepinv.optim.GradientDescent
    deepinv.optim.ProximalGradientDescent
    deepinv.optim.FISTA

@@ -11,6 +11,8 @@ from .data_fidelity import (
     ItohFidelity,
 )
 from .optimizers import (
+    BacktrackingConfig,
+    DEQConfig,
     optim_builder,
     BaseOptim,
     ADMM,

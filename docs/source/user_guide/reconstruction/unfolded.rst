@@ -100,7 +100,27 @@ where :math:`u` is the incoming gradient from the backward pass,
 and :math:`x^\star` is the equilibrium point of the forward pass.
 See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-For turning an optimization algorithm into a DEQ model, it suffices to set the argument ``DEQ=True`` when creating an optimization algorithm from the :ref:`optimization <optim>` module.
+For turning an optimization algorithm into a DEQ model, the ``DEQ`` argument of :class:`deepinv.optim.BaseOptim` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters for equilibrium-based implicit differentiation.
+The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
+
+.. code-block:: python
+
+    @dataclass
+    class DEQConfig:
+        jacobian_free: bool = False
+            # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+        anderson_acceleration_backward: bool = False
+            # Whether to use Anderson acceleration for solving the backward equilibrium.
+        history_size_backward: int = 5
+            # Number of past iterates used in Anderson acceleration.
+        beta_anderson_acc_backward: float = 1.0
+            # Momentum coefficient in Anderson acceleration.
+        eps_anderson_acc_backward: float = 1e-4
+            # Regularization parameter for Anderson acceleration.
+        max_iter_backward: int = 50
+            # Maximum number of iterations in the backward equilibrium solver.
+
+By default, DEQ is disabled (i.e., ``DEQ=None``), and as soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` is used by default.
 
 .. _predefined-unfolded:
 
