@@ -75,10 +75,9 @@ class Trainer:
     loggers: Optional[Union[RunLogger, list[RunLogger]]] = field(
         default_factory=lambda: [LocalLogger("./logs")]
     )
-    log_every_step: bool = False
     log_images: bool = False
     rescale_mode: str = "clip"
-    check_grad: bool = False
+    log_grad: bool = False
     show_progress_bar: bool = True
     verbose: bool = True
 
@@ -172,9 +171,10 @@ class Trainer:
             )
             for l in self.losses
         }
-        self.loss_history = []  # ???
+        if not hasattr(self, "train_loss_history"):
+            self.train_loss_history = []
 
-        # metrics computed during an epoch ???
+        # metrics computed during an epoch
         self.meters_metrics_train = {
             l.__class__.__name__: AverageMeter(
                 "Validation metric " + l.__class__.__name__, ":.2e"
@@ -188,9 +188,10 @@ class Trainer:
             )
             for l in self.metrics
         }
-        self.val_metrics_history_per_epoch = {
-            l.__class__.__name__: [] for l in self.metrics
-        }
+        if not hasattr(self, "val_metrics_history_per_epoch"):
+            self.val_metrics_history_per_epoch = {
+                l.__class__.__name__: [] for l in self.metrics
+            }
 
         if self.compare_no_learning:
             self.meters_metrics_no_learning = {
@@ -199,10 +200,6 @@ class Trainer:
                 )
                 for l in self.metrics
             }
-
-        # gradient clipping
-        if train and self.check_grad:
-            self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
         # Init logger specific for the Trainer
         self.train_logger = getLogger("train_logger")
@@ -215,11 +212,6 @@ class Trainer:
         for logger in self.loggers:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
-            if train and os.path.exists(logger.log_dir):
-                raise FileExistsError(
-                    f"Log directory {logger.log_dir} already exists and would be overwritten by the new training run."
-                )
-            logger.init_logger()
 
         # Set verbosity level of loggers
         if self.verbose:
@@ -243,7 +235,7 @@ class Trainer:
             "state_dict": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-            "loss": self.loss_history,
+            "loss": self.train_loss_history,
             "val_metrics": self.val_metrics_history_per_epoch,
         }
 
@@ -268,8 +260,10 @@ class Trainer:
 
         self.epoch_start = checkpoint["epoch"] + 1
         self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+        self.train_loss_history = checkpoint["loss"]
+        self.val_metrics_history_per_epoch = checkpoint["val_metrics"]
 
-        # TODO
+        # Optimizer and Scheduler may be None
         if self.optimizer is not None:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
         if self.scheduler is not None:
@@ -281,23 +275,18 @@ class Trainer:
     def apply_clip_grad(self) -> float:
         r"""
         Perform gradient clipping.
-
-        :return float: Gradient norm after clipping.
         """
         if self.grad_clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
 
-        if self.check_grad:
+        if self.log_grad:
             # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
             grads = [
                 param.grad.detach().flatten()
                 for param in self.model.parameters()
                 if param.grad is not None
             ]
-            norm_grads = torch.cat(grads).norm().item()
-            self.check_grad_val.update(norm_grads)
-            return norm_grads
-
+            return torch.cat(grads).norm().item()
         return None
 
     def get_samples_online(self, iterators, g):
@@ -460,7 +449,7 @@ class Trainer:
 
     def compute_loss(
         self, x, x_net, y, physics, train=True, epoch: int = None
-    ) -> tuple[torch.Tensor, dict]:
+    ) -> torch.Tensor:
         r"""
         Compute the loss.
 
@@ -473,14 +462,15 @@ class Trainer:
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: Current epoch.
         :returns torch.Tensor: The loss evaluated on the current batch.
-        :returns dict: The loss and individual losses evaluted on several batches.
         """
-        logs = {}
-
         # Compute the losses
         loss_total = 0
-        with torch.set_grad_enabled(train):  # dynamically choose whether to track gradients
-            for l in self.losses:  # global loss is computed as the sum of individual losses
+        with torch.set_grad_enabled(
+            train
+        ):  # dynamically choose whether to track gradients
+            for (
+                l
+            ) in self.losses:  # global loss is computed as the sum of individual losses
                 loss = l(
                     x=x,
                     x_net=x_net,
@@ -489,25 +479,28 @@ class Trainer:
                     model=self.model,
                     epoch=epoch,
                 )
-                loss_total += loss.mean()  # average of the current loss function evaluted on our batch of data
+                loss_total += (
+                    loss.mean()
+                )  # average of the current loss function evaluted on our batch of data
+
                 if len(self.losses) > 1:
-                    meters = (
+                    meter = (
                         self.meters_losses_train[l.__class__.__name__]
                         if train
                         else self.meters_losses_val[l.__class__.__name__]
                     )
-                    meters.update(loss.detach().cpu().numpy())  # track the current loss per img (img are from several batches)
-                    logs[l.__class__.__name__] = meters.avg  # average of the current loss evaluated on several batches
+                    meter.update(
+                        loss.detach().cpu().numpy()
+                    )  # track the current loss per img (img are from several batches)
 
-            meters = self.meter_total_loss_train if train else self.meter_total_loss_val
-            meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg  # average of total loss evalutated on several batches
+            meter = self.meter_total_loss_train if train else self.meter_total_loss_val
+            meter.update(loss_total.item())
 
-        return loss_total, logs
+        return loss_total
 
     def compute_metrics(
-        self, x, x_net, y, physics, logs, train=True, epoch: int = None
-    ) -> dict:
+        self, x, x_net, y, physics, train=True, epoch: int = None
+    ) -> None:
         r"""
         Compute the metrics.
 
@@ -518,7 +511,6 @@ class Trainer:
         :param torch.Tensor x_net: Network reconstruction.
         :param torch.Tensor y: Measurement.
         :param deepinv.physics.Physics physics: Current physics operator.
-        :param dict logs: Dictionary containing the logs for printing the training progress.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: Current epoch.
         :returns: The logs with the metrics.
@@ -532,13 +524,14 @@ class Trainer:
                     physics=physics,
                     model=self.model,
                 )
-                meters = (
+                meter = (
                     self.meters_metrics_train[m.__class__.__name__]
                     if train
                     else self.meters_metrics_val[m.__class__.__name__]
                 )
-                meters.update(metric.detach().cpu().numpy())  # track the current metric per img (img are from several batches)
-                logs[m.__class__.__name__] = meters.avg  # average of the current metric evaluated on several batches
+                meter.update(
+                    metric.detach().cpu().numpy()
+                )  # track the current metric per img (img are from several batches)
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
@@ -546,10 +539,6 @@ class Trainer:
                     self.meters_metrics_no_learning[m.__class__.__name__].update(
                         metric.detach().cpu().numpy()
                     )
-                    logs[f"{m.__class__.__name__} no learning"] = (
-                        self.meters_metrics_no_learning[m.__class__.__name__].avg
-                    )
-        return logs
 
     def no_learning_inference(self, y, physics):
         r"""
@@ -561,7 +550,6 @@ class Trainer:
         :param deepinv.physics.Physics physics: Current physics operator.
         :returns: Reconstructed image.
         """
-
         y = y.to(self.device)
         if self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
             if isinstance(physics, torch.nn.DataParallel):
@@ -591,12 +579,12 @@ class Trainer:
 
     def step(
         self,
-        epoch,
-        progress_bar,
-        train_ite=None,
-        train=True,
-        last_batch=False,
-    ):
+        epoch: int,
+        progress_bar: tqdm,
+        train_ite: int = None,
+        train: bool = True,
+        last_batch: bool = False,
+    ) -> None:
         r"""
         Train/Eval a batch.
 
@@ -607,81 +595,126 @@ class Trainer:
         :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
-        :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if self.log_every_step:
-            self.reset_metrics()  # we stop tracking losses and metrics accross epoch
-
-        if train:
+        # Zero grad
+        if train and self.optimizer_step_multi_dataset:
             self.optimizer.zero_grad()  # Clear stored gradients
 
-        # random permutation of the dataloaders
-        G_perm = np.random.permutation(self.G)
-        loss_multi_dataset_step = 0
-        for g in G_perm:  # for each dataloader
+        loss_multi_dataset_step = 0.0
+        for g in np.random.permutation(self.G):  # g is the dataloader index
+
+            # Zero grad
             if train and not self.optimizer_step_multi_dataset:
                 self.optimizer.zero_grad()
 
+            # Get either online or offline samples
             x, y, physics_cur = self.get_samples(
                 self.current_train_iterators if train else self.current_val_iterators,
                 g,
             )
 
             # Evaluate reconstruction network
-            x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
+            x_net = self.model_inference(y=y, physics=physics_cur, x=x, train=train)
 
             # Compute the loss for the batch
-            loss_cur, log_losses = self.compute_loss(
-                x, x_net,
-                y, physics_cur,
-                train=train,epoch=epoch,
+            loss_cur = self.compute_loss(
+                x,
+                x_net,
+                y,
+                physics_cur,
+                train=train,
+                epoch=epoch,
             )
-            loss_multi_dataset_step += loss_cur
+            loss_multi_dataset_step += loss_cur.item()
 
+            # Backward + Optimizer
             if train:
                 loss_cur.backward()
-                
+
             if train and not self.optimizer_step_multi_dataset:
-                # gradient clipping
-                norm = self.apply_clip_grad()
-                if norm is not None:
-                    log_losses["gradient_norm"] = self.check_grad_val.avg
+                loss_logs = {}
+                loss_logs["Loss"] = loss_cur.item()
 
-                self.optimizer.step()  # Optimizer step
-            
+                # Gradient clipping
+                grad_norm = self.apply_clip_grad()
+                if self.log_grad:
+                    loss_logs["gradient_norm"] = grad_norm
 
-            # detach the network output for metrics and plotting
-            x_net = x_net.detach()
+                # Optimizer step
+                self.optimizer.step()
 
-            # Log metrics
-            metrics = self.compute_metrics(
-                x, x_net, y, physics_cur, {}, train=train, epoch=epoch
-            )
+                # Update the progress bar
+                progress_bar.set_postfix(loss_logs)
 
-            # Update the progress bar
-            progress_bar.set_postfix(metrics)
+            # Compute the metrics for the batch
+            x_net = x_net.detach()  # detach the network output for metrics and plotting
+            self.compute_metrics(x, x_net, y, physics_cur, train=train, epoch=epoch)
+
+            # Log images of last batch for each dataset
+            if last_batch:
+                self.save_images(
+                    epoch,
+                    physics_cur,
+                    x,
+                    y,
+                    x_net,
+                    train=train,
+                )
 
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.step()  # Optimizer step
+            loss_logs = {}
+            loss_logs["Loss"] = loss_multi_dataset_step
 
-        # Log metrics and losses
-        phase = "train" if train else "val"
-        for logger in self.loggers:
-            if self.log_every_step:
-                logger.log_metrics(metrics, step=train_ite, epoch=epoch, phase=phase)
-            if train:
-                logger.log_losses(log_losses, step=train_ite, epoch=epoch, phase=phase)
-            elif last_batch:
-                logger.log_metrics(metrics, step=train_ite, epoch=epoch, phase=phase)
-        
-        self.save_images(
-            epoch,
-            physics_cur,
-            x,
-            y,
-            x_net,
-            train=train,
-        )
+            # Gradient clipping
+            grad_norm = self.apply_clip_grad()
+            if self.log_grad:
+                loss_logs["gradient_norm"] = grad_norm
+
+            # Optimizer step
+            self.optimizer.step()
+
+            # Update the progress bar
+            progress_bar.set_postfix(loss_logs)
+
+            # Track loss value used for an update and its gradient norm
+            for logger in self.loggers:
+                logger.log_losses(loss_logs, step=train_ite, phase="train")
+
+        # LOG EPOCH LOSSES AND METRICS
+        if last_batch:
+            phase = "train" if train else "val"
+
+            ## LOSSES
+            epoch_loss_logs = {}
+
+            # add individual losses over an epoch
+            if len(self.losses) > 1:
+                for l in self.losses:
+                    meter = (
+                        self.meters_losses_train[l.__class__.__name__]
+                        if train
+                        else self.meters_losses_val[l.__class__.__name__]
+                    )
+                    epoch_loss_logs[l.__class__.__name__] = meter.avg
+
+            # add total loss over an epoch
+            meter = self.meter_total_loss_train if train else self.meter_total_loss_val
+            epoch_loss_logs["Total_Loss"] = meter.avg
+
+            ## METRICS
+            epoch_metrics_logs = {}
+            for m in self.metrics:
+                meter = (
+                    self.meters_metrics_train[m.__class__.__name__]
+                    if train
+                    else self.meters_metrics_val[m.__class__.__name__]
+                )
+                epoch_metrics_logs[m.__class__.__name__] = meter.avg
+
+            ## LOG
+            for logger in self.loggers:
+                logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
+                logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)
 
     def save_images(self, epoch, physics, x, y, x_net, train=True):
         r"""
@@ -694,8 +727,6 @@ class Trainer:
         :param torch.Tensor x_net: Network reconstruction.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
-        post_str = "Training" if train else "Eval"
-
         if self.log_images:
             if self.compare_no_learning:
                 x_nl = self.no_learning_inference(y, physics)
@@ -712,31 +743,30 @@ class Trainer:
                     dict_imgs, epoch=epoch, phase="train" if train else "val"
                 )
 
-    def reset_metrics(self):
+    def reset_losses(self) -> None:
         r"""
-        Reset the metrics.
+        Reset the epoch losses.
         """
-        self.img_counter = 0
-
         self.meter_total_loss_train.reset()
         self.meter_total_loss_val.reset()
 
-        for l in self.meters_losses_train:
+        for l in self.meters_losses_train.values():
             l.reset()
 
-        for l in self.meters_losses_val:
+        for l in self.meters_losses_val.values():
             l.reset()
 
-        for l in self.meters_metrics_train:
+    def reset_metrics(self) -> None:
+        r"""
+        Reset the epoch metrics.
+        """
+        for l in self.meters_metrics_train.values():
             l.reset()
 
-        for l in self.meters_metrics_val:
+        for l in self.meters_metrics_val.values():
             l.reset()
 
-        if hasattr(self, "check_grad_val"):
-            self.check_grad_val.reset()
-
-    def save_best_model(self, epoch):
+    def save_best_model(self, epoch) -> None:
         r"""
         Save the best model using validation metrics.
 
@@ -753,13 +783,12 @@ class Trainer:
         if (lower_better and curr_metric <= best_metric) or (
             not lower_better and curr_metric >= best_metric
         ):
-
             self.save_ckpt(epoch=epoch, name="ckpt_best")
             self.train_logger.info(
                 f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
 
-    def stop_criterion(self, epoch, train_ite, **kwargs):
+    def stop_criterion(self, epoch, train_ite, **kwargs) -> bool:
         r"""
         Stop criterion for early stopping.
 
@@ -792,7 +821,7 @@ class Trainer:
 
     def train(
         self,
-    ):
+    ) -> nn.Module:
         r"""
         Train the model.
 
@@ -805,21 +834,21 @@ class Trainer:
 
         # count the overall training parameters
         params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        train_logger.info(f"The model has {params} trainable parameters.")
+        self.train_logger.info(f"The model has {params} trainable parameters.")
 
         stop_flag = False
-
         for epoch in range(self.epoch_start, self.epochs):
-            self.reset_metrics()
+            self.reset_losses()  # epoch losses
+            self.reset_metrics()  # epoch metrics
 
             ## Training
             self.current_train_iterators = [
                 iter(loader) for loader in self.train_dataloader
             ]
-
             batches = min(
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
+
             if self.loop_random_online_physics and self.physics_generator is not None:
                 for physics_generator in self.physics_generator:
                     physics_generator.reset_rng()
@@ -838,30 +867,30 @@ class Trainer:
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}/{self.epochs}")
-                last_batch = i == batches - 1
                 train_ite = (epoch * batches) + i
                 self.step(
                     epoch,
                     progress_bar,
                     train_ite=train_ite,
                     train=True,
-                    last_batch=last_batch,
+                    last_batch=(i == batches - 1),
                 )
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
-                    break
+
+            if self.scheduler:
+                self.scheduler.step()
 
             ## Validation
             if self.val_dataloader is not None or self.val_dataloader is not []:
-                self.model.eval()
                 self.current_val_iterators = [
                     iter(loader) for loader in self.val_dataloader
                 ]
-
                 val_batches = min(
                     [len(loader) - loader.drop_last for loader in self.val_dataloader]
                 )
 
+                self.model.eval()
                 for j in (
                     val_progress_bar := tqdm(
                         range(val_batches),
@@ -881,27 +910,20 @@ class Trainer:
                         train=False,
                         last_batch=(j == val_batches - 1),
                     )
-                for k in range(len(self.metrics)):
-                    metric = self.meters_metrics_val[k].avg
-                    self.val_metrics_history_per_epoch[
-                        self.metrics[k].__class__.__name__
-                    ].append(
-                        metric
-                    )  # store metrics history
 
-                self.save_best_model(epoch)
+            ## Early stopping
+            self.train_loss_history.append(self.meter_total_loss_train.avg)
+            for m in self.metrics:
+                self.val_metrics_history_per_epoch[m.__class__.__name__].append(
+                    self.meters_metrics_val[m.__class__.__name__].avg
+                )  # store in metrics history
 
-                if self.early_stop:
-                    stop_flag = self.stop_criterion(epoch, train_ite)
-
-            self.loss_history.append(self.meter_total_loss_train.avg)
-
-            if self.scheduler:
-                self.scheduler.step()
-
+            self.save_best_model(epoch)
             if (epoch % self.ckpt_interval == 0) or epoch + 1 == self.epochs:
                 self.save_ckpt(epoch=epoch)
 
+            if self.early_stop:
+                stop_flag = self.stop_criterion(epoch, train_ite)
             if stop_flag:
                 break
 
@@ -926,9 +948,7 @@ class Trainer:
         :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
-        self.setup_run(train=False)
-
-        self.log_every_step = False
+        self.setup_run()
 
         self.reset_metrics()
 
