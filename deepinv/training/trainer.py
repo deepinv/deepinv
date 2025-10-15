@@ -37,9 +37,15 @@ class Trainer:
     device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ## Data Loading
-    train_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
-    val_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
-    test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = None
+    train_dataloader: (
+        torch.utils.data.DataLoader | list[torch.utils.data.DataLoader]
+    ) = None
+    val_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = (
+        None
+    )
+    test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = (
+        None
+    )
 
     ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
@@ -58,9 +64,7 @@ class Trainer:
     early_stop: bool = False
 
     ## Loss & Metrics
-    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = (
-        SupLoss()
-    )
+    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
     metrics: Metric | list[Metric] = field(default_factory=PSNR)
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
@@ -992,7 +996,9 @@ class Trainer:
 
     def test(
         self,
-        test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None = None,
+        test_dataloader: (
+            torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None
+        ) = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
     ) -> dict:
