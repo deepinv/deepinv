@@ -922,6 +922,9 @@ class RidgeRegularizer(Prior):
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
         :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` algorithm.
 
+        .. warning::
+            The prox computation with the nmAPG is not differentiable and gradient computations are disabled. See :class:`deepinv.optim.NonmonotonicAcceleratedPGD` for details.
+
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
         :param int l2_axis: axis in which the l2 norm is computed.
@@ -1068,7 +1071,10 @@ class LSR(Prior):
 
 
         where :math:`\gamma` is a stepsize. The minimizer is computed using the
-        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` algorithm.
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` (nmAPG) algorithm.
+
+        .. warning::
+            The prox computation with the nmAPG is not differentiable and gradient computations are disabled. See :class:`deepinv.optim.NonmonotonicAcceleratedPGD` for details.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
