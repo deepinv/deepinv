@@ -1,7 +1,7 @@
 from __future__ import annotations
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
-from deepinv.training.run_logger import RunLogger, LocalLogger
+from deepinv.training.run_logger import RunLogger
 
 
 def test(
@@ -13,7 +13,7 @@ def test(
     physics_generator=None,
     device="cpu",
     plot_images=False,
-    loggers: RunLogger | list[RunLogger] | None = [LocalLogger("./logs")],
+    loggers: RunLogger | list[RunLogger] | None = None,
     verbose=True,
     rescale_mode="clip",
     show_progress_bar=True,
