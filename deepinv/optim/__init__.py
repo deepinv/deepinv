@@ -26,7 +26,7 @@ from .prior import (
     Zero,
     L12Prior,
     RidgeRegularizer,
-    LSR,
+    LeastSquaresResidual,
 )
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL

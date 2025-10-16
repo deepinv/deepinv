@@ -221,7 +221,7 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.RidgeRegularizer`
      - :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
      - Yes
-   * - :class:`deepinv.optim.LSR`
+   * - :class:`deepinv.optim.LeastSquaresResidual`
      - :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`
      - Yes
 

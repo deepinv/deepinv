@@ -21,7 +21,11 @@ for a data-fidelity term :math:`\datafid{Ax}{y}`, forward operator :math:`A` and
 """
 
 import deepinv as dinv
-from deepinv.optim import RidgeRegularizer, LSR, NonmonotonicAcceleratedPGD
+from deepinv.optim import (
+    RidgeRegularizer,
+    LeastSquaresResidual,
+    NonmonotonicAcceleratedPGD,
+)
 from deepinv.utils.demo import load_example
 from deepinv.optim import L2, IndicatorL2
 from deepinv.physics import Denoising, Tomography, Inpainting, GaussianNoise
@@ -50,13 +54,13 @@ psnr_dyn = PSNR(min_pixel=None, max_pixel=None)  # dynamic range PSNR
 # CRR and WCRR are the RidgeRegularizer with weak convexity 0.0 and 1.0
 crr = RidgeRegularizer(weak_convexity=0.0, device=device)
 wcrr = RidgeRegularizer(weak_convexity=1.0, device=device)
-lsr = LSR(device=device)
+lsr = LeastSquaresResidual(device=device)
 
 # grayscale versions
 # CRR and WCRR are the RidgeRegularizer with weak convexity 0.0 and 1.0
 crr_gray = RidgeRegularizer(in_channels=1, weak_convexity=0.0, device=device)
 wcrr_gray = RidgeRegularizer(in_channels=1, weak_convexity=1.0, device=device)
-lsr_gray = LSR(in_channels=1, device=device)
+lsr_gray = LeastSquaresResidual(in_channels=1, device=device)
 
 # set all parameters to be not trainable
 for reg in [crr, wcrr, lsr, crr_gray, wcrr_gray, lsr_gray]:

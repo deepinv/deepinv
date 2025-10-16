@@ -8,7 +8,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.GSPnP import GSDRUNet
+from deepinv.models.GSPnP import GSPnP
 from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
@@ -946,7 +946,7 @@ class RidgeRegularizer(Prior):
         )[0]
 
 
-class LSR(Prior):
+class LeastSquaresResidual(Prior):
     r"""
     Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`.
 
@@ -983,7 +983,7 @@ class LSR(Prior):
         alpha=1.0,
         sigma=0.03,
     ):
-        super(LSR, self).__init__()
+        super(LeastSquaresResidual, self).__init__()
 
         if pretrained_GSDRUNet is None:
             self.model = GSDRUNet(

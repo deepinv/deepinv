@@ -77,7 +77,7 @@ Priors
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
    deepinv.optim.RidgeRegularizer
-   deepinv.optim.LSR
+   deepinv.optim.LeastSquaresResidual
 
 Predefined models
 -----------------

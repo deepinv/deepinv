@@ -540,8 +540,10 @@ def get_prior(prior_name, device="cpu", in_channels=3):
         prior = dinv.optim.prior.RidgeRegularizer(
             weak_convexity=1.0, in_channels=in_channels, device=device
         )
-    elif prior_name == "LSR":
-        prior = dinv.optim.prior.LSR(in_channels=in_channels, device=device)
+    elif prior_name == "LeastSquaresResidual":
+        prior = dinv.optim.prior.LeastSquaresResidual(
+            in_channels=in_channels, device=device
+        )
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -1171,7 +1173,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
 
 @pytest.mark.parametrize("gray", [True, False])
 @pytest.mark.parametrize("only_gradient", [True, False])
-@pytest.mark.parametrize("prior_name", ["CRR", "WCRR", "LSR"])
+@pytest.mark.parametrize("prior_name", ["CRR", "WCRR", "LeastSquaresResidual"])
 def test_nmapg_and_learned_priors(
     imsize, dummy_dataset, prior_name, gray, only_gradient, device
 ):
