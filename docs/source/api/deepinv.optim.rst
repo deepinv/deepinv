@@ -53,6 +53,7 @@ Data Fidelity
    deepinv.optim.LogPoissonLikelihood
    deepinv.optim.AmplitudeLoss
    deepinv.optim.ZeroFidelity
+   deepinv.optim.ItohFidelity
 
 
 Priors
@@ -156,6 +157,7 @@ Utils
    :nosignatures:
 
     deepinv.optim.utils.least_squares
+    deepinv.optim.utils.least_squares_implicit_backward
     deepinv.optim.utils.lsqr
     deepinv.optim.utils.bicgstab
     deepinv.optim.utils.minres

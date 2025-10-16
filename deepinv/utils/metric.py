@@ -28,10 +28,6 @@ def cal_psnr_complex(a, b):
     )
 
 
-def complex_abs(data, dim=1, keepdim=True):
-    deprecate("This function is deprecated. Use dinv.metric.complex_abs instead.")
-
-
 def norm_psnr(a, b, complex=False):
     deprecate(
         "This function is deprecated. Use dinv.metric.PSNR(norm_inputs='min_max', complex_abs=complex) instead."

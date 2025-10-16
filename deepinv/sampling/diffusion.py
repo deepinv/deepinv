@@ -7,6 +7,7 @@ from deepinv.models import Reconstructor
 import deepinv.physics
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
+from deepinv.utils.compat import zip_strict
 
 
 class DiffusionSampler(BaseSampling):
@@ -177,7 +178,7 @@ class DDRM(Reconstructor):
             mean[case] = y_bar[case]
             std[case] = (self.sigmas[0] ** 2 - nsr[case].pow(2)).sqrt()
             x_bar = mean + std * torch.randn_like(y_bar) / np.sqrt(2.0)
-            x_bar_prev = x_bar.clone()
+            x_bar_prev = x_bar
 
             # denoise
             x = self.denoiser(physics.V(x_bar), self.sigmas[0])
@@ -208,7 +209,7 @@ class DDRM(Reconstructor):
                 )
 
                 x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
-                x_bar_prev = x_bar.clone()
+                x_bar_prev = x_bar
                 # denoise
                 x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
@@ -619,7 +620,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip(reversed(seq), reversed(seq_next), strict=True))
+        time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
 
         # Initial sample from x_T
         x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
@@ -670,7 +671,7 @@ class DPS(Reconstructor):
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))
-            xt = xt_next.clone()
+            xt = xt_next
 
         if self.save_iterates:
             return xs

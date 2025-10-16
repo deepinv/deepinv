@@ -1,5 +1,6 @@
 import torch
 import warnings
+from deepinv.utils.compat import zip_strict
 
 
 class TensorList:
@@ -136,9 +137,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi + other for xi in self.x])
         else:
-            return TensorList(
-                [xi + otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi + otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __mul__(self, other):
         r"""
@@ -149,9 +148,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList(
-                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __rmul__(self, other):
         r"""
@@ -162,9 +159,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList(
-                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __truediv__(self, other):
         r"""
@@ -175,9 +170,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi / other for xi in self.x])
         else:
-            return TensorList(
-                [xi / otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi / otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __neg__(self):
         r"""
@@ -195,9 +188,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi - other for xi in self.x])
         else:
-            return TensorList(
-                [xi - otheri for xi, otheri in zip(self.x, other, strict=True)]
-            )
+            return TensorList([xi - otheri for xi, otheri in zip_strict(self.x, other)])
 
     def conj(self):
         r"""
@@ -297,6 +288,12 @@ class TensorList:
         """
         return TensorList([torch.isnan(xi) for xi in self.x])
 
+    def numel(self):
+        """
+        Returns the total number of elements in the TensorList.
+        """
+        return sum([xi.numel() for xi in self.x])
+
 
 def randn_like(x):
     r"""
@@ -331,13 +328,14 @@ def zeros_like(x):
         return TensorList([torch.zeros_like(xi) for xi in x])
 
 
-def dirac(shape):
+def dirac(shape, device="cpu"):
     r"""
     Returns a :class:`torch.Tensor` with a Dirac delta at the center.
 
     :param tuple shape: shape of the output tensor.
+    :param str device: device of the output tensor.
     """
-    out = torch.zeros(shape)
+    out = torch.zeros(shape, device=device)
     center = tuple([s // 2 for s in shape[-2:]])
     slices = [slice(None)] * (len(shape) - 2) + list(center)
     out[slices] = 1
@@ -350,9 +348,9 @@ def dirac_like(x):
     with the same type as x, filled with zeros.
     """
     if isinstance(x, torch.Tensor):
-        return dirac(x.shape)
+        return dirac(x.shape, device=x.device)
     else:
-        return TensorList([dirac(xi.shape) for xi in x])
+        return TensorList([dirac(xi.shape, device=xi.device) for xi in x])
 
 
 def ones_like(x):

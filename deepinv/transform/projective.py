@@ -1,19 +1,14 @@
+from __future__ import annotations
 from dataclasses import dataclass
 
-from typing import Union, Iterable
+from typing import Iterable
 
 import numpy as np
 import torch
 from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
-
-try:
-    from kornia.geometry.transform import warp_perspective
-except ImportError:  # pragma: no cover
-
-    def warp_perspective(*args, **kwargs):
-        raise ImportError("The kornia package is not installed.")
+from deepinv.utils.compat import zip_strict
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -27,6 +22,10 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float ty: y rotation in degrees
     :param float tz: z rotation in degrees
     :return np.ndarray: 3D rotation matrix.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
     tx, ty, tz = np.radians((tx, ty, tz))
 
@@ -54,7 +53,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
 
 
 def apply_homography(
-    im: Union[torch.Tensor, Image.Image],
+    im: torch.Tensor | Image.Image,
     theta_x: float = 0.0,
     theta_y: float = 0.0,
     theta_z: float = 0.0,
@@ -69,7 +68,7 @@ def apply_homography(
     verbose: bool = False,
     device="cpu",
     **kwargs,
-) -> Union[torch.Tensor, Image.Image]:
+) -> torch.Tensor | Image.Image:
     r"""Perform homography (projective transformation).
 
     Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.
@@ -98,6 +97,7 @@ def apply_homography(
 
 
     """
+    from kornia.geometry.transform import warp_perspective
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
 
@@ -247,15 +247,15 @@ class Homography(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        theta_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        theta_z: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        shift_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        shift_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        skew: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
-        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
+        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
+        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        skew: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
         **params,
     ) -> torch.Tensor:
         return torch.cat(
@@ -275,7 +275,7 @@ class Homography(Transform):
                     interpolation=self.interpolation,
                     device=self.device,
                 )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
+                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip_strict(
                     theta_x,
                     theta_y,
                     theta_z,
@@ -285,7 +285,6 @@ class Homography(Transform):
                     skew,
                     stretch_x,
                     stretch_y,
-                    strict=True,
                 )
             ],
             dim=0,

@@ -52,6 +52,7 @@ Self-Supervised Learning
     deepinv.loss.R2RLoss
     deepinv.loss.ScoreLoss
     deepinv.loss.AugmentConsistencyLoss
+    deepinv.loss.ReducedResolutionLoss
     
 Specialized self-supervised losses for MRI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

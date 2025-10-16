@@ -1,9 +1,15 @@
+from __future__ import annotations
 from deepinv.utils import zeros_like
 import torch
+from torch import Tensor
+from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
-from typing import Callable
+from torch.linalg import vector_norm
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.compat import zip_strict
+import warnings
+from typing import Callable
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -12,11 +18,12 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
             X_prev = X_prev["est"][0]
         if isinstance(X, dict):
             X = X["est"][0]
-        crit_cur = (X_prev - X).norm() / (X.norm() + 1e-06)
+        crit_cur = vector_norm(X_prev - X) / (vector_norm(X) + 1e-06)
     elif crit_conv == "cost":
         F_prev = X_prev["cost"]
         F = X["cost"]
-        crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+        crit_cur = vector_norm(F_prev - F) / (vector_norm(F) + 1e-06)
+
     else:
         raise ValueError("convergence criteria not implemented")
     if crit_cur < thres_conv:
@@ -30,25 +37,37 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
 
 
 def least_squares(
-    A,
-    AT,
-    y,
-    z=0.0,
-    init=None,
-    gamma=None,
-    parallel_dim=0,
-    AAT=None,
-    ATA=None,
-    solver="CG",
-    max_iter=100,
-    tol=1e-6,
+    A: Callable,
+    AT: Callable,
+    y: Tensor,
+    z: Tensor | float | None = 0.0,
+    init: Tensor | None = None,
+    gamma: float | Tensor | None = None,
+    parallel_dim: int = 0,
+    AAT: Callable | None = None,
+    ATA: Callable | None = None,
+    solver: str = "CG",
+    max_iter: int = 100,
+    tol: float = 1e-6,
     **kwargs,
-):
+) -> Tensor:
     r"""
     Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
 
     The solvers are stopped either when :math:`\|Ax-y\| \leq \text{tol} \times \|y\|` or
     when the maximum number of iterations is reached.
+
+    The solution depends on the regularization parameter :math:`\gamma`:
+
+    - If `gamma=None` (:math:`\gamma = \infty`), it solves the unregularized least squares problem :math:`\min_x \|Ax-y\|^2`.
+        - If :math:`A` is overcomplete (rows>=columns), it computes the minimum norm solution :math:`x = A^{\top}(AA^{\top})^{-1}y`.
+        - If :math:`A` is undercomplete (columns>rows), it computes the least squares solution :math:`x = (A^{\top}A)^{-1}A^{\top}y`.
+    - If :math:`0 < \gamma < \infty`, it computes the least squares solution :math:`x = (A^{\top}A + \frac{1}{\gamma}I)^{-1}(A^{\top}y + \frac{1}{\gamma}z)`.
+
+    .. warning::
+
+        If :math:`\gamma \leq 0`, the problem can become non-convex and the solvers are not designed for that.
+        A warning is raised, but solvers continue anyway (except for LSQR, which cannot be used for negative :math:`\gamma`).
 
     Available solvers are:
 
@@ -70,8 +89,11 @@ def least_squares(
     :param Callable AT: Adjoint operator :math:`A^{\top}` as a callable function.
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
-    :param None, float gamma: (Optional) inverse regularization parameter.
-    :param str solver: solver to be used.
+    :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
+    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
+        If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
+        If None, it is set to :math:`\infty` (no regularization).
+    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
@@ -80,17 +102,48 @@ def least_squares(
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
-
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
 
-    if solver == "lsqr":  # rectangular solver
+    if gamma is None:
+        gamma = torch.tensor(0.0, device=y.device)
+        gamma_provided = False
+    else:
+        gamma_provided = True
 
-        if gamma is not None:
-            eta = 1 / gamma
+        if not isinstance(gamma, Tensor):
+            gamma = torch.tensor(gamma, device=y.device)
+
+        if torch.any(gamma <= 0):
+            warnings.warn(
+                "Regularization parameter of least squares problem (gamma) should be positive."
+                "Otherwise, the problem can become non-convex and the solvers are not designed for that."
+                "Continuing anyway..."
+            )
+
+    Aty = AT(y)
+
+    if gamma.ndim > 0:  # if batched gamma
+        if isinstance(Aty, TensorList):
+            batch_size = Aty[0].size(0)
+            ndim = Aty[0].ndim
         else:
-            eta = 0
+            batch_size = Aty.size(0)
+            ndim = Aty.ndim
 
+        if gamma.size(0) != batch_size:
+            raise ValueError(
+                "If gamma is batched, its batch size must match the one of y."
+            )
+        elif gamma.ndim == 1:  # expand gamma to ATy
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+        elif gamma.ndim != ndim:
+            raise ValueError(
+                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+            )
+
+    if solver == "lsqr":  # rectangular solver
+        eta = 1 / gamma if gamma_provided else None
         x, _ = lsqr(
             A,
             AT,
@@ -104,9 +157,8 @@ def least_squares(
         )
 
     else:
-        Aty = AT(y)
         complete = Aty.shape == y.shape
-        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
+        overcomplete = Aty.numel() < y.numel()
 
         if complete and (solver == "BiCGStab" or solver == "minres"):
             H = lambda x: A(x)
@@ -117,7 +169,7 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if gamma is not None:
+            if gamma_provided:
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
@@ -164,7 +216,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if gamma is None and not overcomplete and not complete:
+        if not gamma_provided and not overcomplete and not complete:
             x = AT(x)
     return x
 
@@ -172,7 +224,7 @@ def least_squares(
 def dot(a, b, dim):
     if isinstance(a, TensorList):
         aux = 0
-        for ai, bi in zip(a.x, b.x, strict=True):
+        for ai, bi in zip_strict(a.x, b.x):
             aux += (ai.conj() * bi).sum(
                 dim=dim, keepdim=True
             )  # performs batched dot product
@@ -210,7 +262,6 @@ def conjugate_gradient(
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
-
     if isinstance(parallel_dim, int):
         parallel_dim = [parallel_dim]
     if parallel_dim is None:
@@ -305,17 +356,31 @@ def bicgstab(
     max_iter = int(max_iter)
 
     tol = dot(b, b, dim=dim).real * (tol**2)
+    eps = torch.finfo(b.dtype).eps  # Breakdown tolerance, to avoid division by zero
     flag = False
     for i in range(max_iter):
         y = right_precon(left_precon(p))
         v = A(y)
-        alpha = rho / dot(r_hat, v, dim=dim)
+        # Safeguard: avoid division by small/zero
+        alpha_denom = dot(r_hat, v, dim=dim)
+        alpha = torch.where(
+            torch.abs(alpha_denom) > eps, rho / alpha_denom, torch.zeros_like(rho)
+        )
+
         h = x + alpha * y
         s = r - alpha * v
         z = right_precon(left_precon(s))
         t = A(z)
-        omega = dot(left_precon(t), left_precon(s), dim=dim) / dot(
-            left_precon(t), left_precon(t), dim=dim
+
+        # Safeguard: avoid division by small/zero
+        left_s = left_precon(s)
+        left_t = left_precon(t)
+        omega_num = dot(left_t, left_s, dim=dim)
+        omega_denom = dot(left_t, left_t, dim=dim)
+        omega = torch.where(
+            torch.abs(omega_denom) > eps,
+            omega_num / omega_denom,
+            torch.zeros_like(omega_num),
         )
 
         x = h + omega * z
@@ -327,7 +392,11 @@ def bicgstab(
             break
 
         rho_new = dot(r, r_hat, dim=dim)
-        beta = (rho_new / rho) * (alpha / omega)
+        # Safeguard for beta: if rho or omega small, set beta=0
+        beta_mask = (torch.abs(rho) > eps) & (torch.abs(omega) > eps)
+        beta = torch.where(
+            beta_mask, (rho_new / rho) * (alpha / omega), torch.zeros_like(rho_new)
+        )
         p = r + beta * (p - omega * v)
         rho = rho_new
 
@@ -349,6 +418,7 @@ def _sym_ortho(a, b):
     ``1/eps`` in some important places.
 
     """
+    a, b = torch.broadcast_tensors(a, b)
     if torch.any(b == 0):
         return torch.sign(a), 0, a.abs()
     elif torch.any(a == 0):
@@ -392,7 +462,7 @@ def lsqr(
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
     :param torch.Tensor b: input tensor of shape (B, ...)
-    :param float eta: damping parameter :math:`eta \geq 0`.
+    :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
@@ -447,7 +517,7 @@ def lsqr(
                 return TensorList(
                     [
                         vi * alpha.view(bi_shape)
-                        for vi, bi_shape in zip(v, b_shape, strict=True)
+                        for vi, bi_shape in zip_strict(v, b_shape)
                     ]
                 )
             else:
@@ -455,11 +525,25 @@ def lsqr(
         else:
             return v * alpha.view(Atb_shape)
 
-    if eta > 0:
-        if isinstance(eta, torch.Tensor):
-            eta_sqrt = torch.sqrt(eta)
-        else:
-            eta_sqrt = torch.tensor(eta, device=device).sqrt()
+    if eta is None:
+        eta = 0.0
+    if not isinstance(eta, Tensor):
+        eta = torch.tensor(eta, device=device)
+    if eta.ndim > 0:  # if batched eta
+        if eta.size(0) != b.size(0):
+            raise ValueError(
+                "If eta is batched, its batch size must match the one of b."
+            )
+        else:  # ensure eta has ndim as b
+            eta = eta.squeeze()
+
+    if torch.any(eta < 0):
+        raise ValueError(
+            "Damping parameter eta must be non-negative. LSQR cannot be applied to problems with negative eta."
+        )
+
+    # this should be safe as eta should be non-negative
+    eta_sqrt = torch.sqrt(eta)
 
     # ctol = 1 / conlim if conlim > 0 else 0
     anorm = 0.0
@@ -520,7 +604,7 @@ def lsqr(
             if torch.all(alpha > 0):
                 v = scalar(v, 1 / alpha, b_domain=False)
 
-        if eta > 0:
+        if torch.any(eta > 0):
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
             cs1 = rhobar / rhobar1
             sn1 = eta_sqrt / rhobar1
@@ -626,7 +710,7 @@ def minres(
         dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
-    b_norm = b.norm(2, dim=dim, keepdim=True)
+    b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)
     b_is_zero = b_norm < 1e-10
     b_norm = b_norm.masked_fill(b_is_zero, 1)
     b = b / b_norm
@@ -642,7 +726,7 @@ def minres(
     zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
-    alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
+    alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
     beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
@@ -668,7 +752,7 @@ def minres(
     scale_prev = beta_prev
 
     # Terms for checking for convergence
-    solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+    solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
@@ -721,8 +805,10 @@ def minres(
         ###########################################
 
         # Check convergence criterion
-        search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
-        solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+        search_update_norm = torch.linalg.vector_norm(
+            search_update, dim=dim, ord=2
+        ).unsqueeze(-1)
+        solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
         if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
                 print("MINRES converged at iteration", i)
@@ -766,6 +852,276 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
         if check_conv(x_prev, x, i, thres_conv=tol):
             break
     return x
+
+
+class LeastSquaresSolver(torch.autograd.Function):
+    r"""
+    Custom autograd function for the least squares solver to enable O(1) memory backward propagation using implicit differentiation.
+
+    The forward pass solves the following problem using :func:`deepinv.optim.utils.least_squares`:
+
+    .. math::
+
+        \min_x \|A_\theta x - y \|^2 + \frac{1}{\gamma} \|x - z\|^2
+
+    where :math:`A_\theta` is a linear operator :class:`deepinv.physics.LinearPhysics` parameterized by :math:`\theta`.
+
+    .. note::
+
+        This function uses a :func:`least squares <deepinv.optim.utils.least_squares>` solver under the hood, which supports various solvers such as Conjugate Gradient (CG), BiCGStab, LSQR, and MinRes (see :func:`deepinv.optim.utils.least_squares` for more details).
+
+    The backward pass computes the gradients with respect to the inputs using implicit differentiation.
+    """
+
+    # NOTE: the physics parameters are handled as side-effects (not inputs/outputs of the autograd function)
+    # we add a dummy input tensor `trigger` to trigger backward when needed (i.e. when physics parameters require grad)
+    @staticmethod
+    def forward(
+        ctx,
+        physics,
+        y: Tensor,
+        z: Tensor,
+        init: Tensor,
+        gamma: float | Tensor,
+        trigger: Tensor = None,
+        extra_kwargs: dict = None,
+    ):
+
+        kwargs = extra_kwargs if extra_kwargs is not None else {}
+
+        with torch.no_grad():
+            solution = least_squares(
+                A=physics.A,
+                AT=physics.A_adjoint,
+                y=y,
+                z=z,
+                init=init,
+                gamma=gamma,
+                AAT=physics.A_A_adjoint,
+                ATA=physics.A_adjoint_A,
+                **kwargs,
+            )
+
+        # Save tensors only
+        gamma_orig_shape = gamma.shape
+        # For broadcasting with other tensors. Note we already have checked gamma shapes
+        # in forward, so the following is just for gamma batched but not shaped.
+        if gamma.ndim == 1:
+            if isinstance(solution, TensorList):
+                ndim = solution[0].ndim
+            else:
+                ndim = solution.ndim
+
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+
+        ctx.save_for_backward(solution, y, z, gamma)
+        # Save other non-tensor contexts
+        ctx.physics = physics
+        ctx.kwargs = kwargs
+        ctx.gamma_orig_shape = gamma_orig_shape
+
+        return solution
+
+    @staticmethod
+    @once_differentiable
+    def backward(ctx, grad_output: Tensor) -> tuple[Tensor, ...]:
+        h, y, z, gamma = ctx.saved_tensors
+        physics = ctx.physics
+
+        # Solve (A^T A + I/gamma) mv = grad_output
+        with torch.no_grad():
+            mv = least_squares(
+                A=physics.A,
+                AT=physics.A_adjoint,
+                y=torch.zeros_like(y),
+                z=grad_output * gamma,
+                gamma=gamma,
+                AAT=physics.A_A_adjoint,
+                ATA=physics.A_adjoint_A,
+                **ctx.kwargs,
+            )
+
+        # Build grads aligned with inputs: (physics, y, z, gamma, solver, max_iter, tol, ..., **kwargs)
+        needs = ctx.needs_input_grad
+        grads = [None] * len(needs)
+
+        # dL/dy = A mv
+        if needs[1]:
+            grads[1] = physics.A(mv)
+
+        # dL/dz = (1/gamma) mv
+        if needs[2]:
+            grads[2] = mv / gamma
+
+        # dL/dgamma = <mv, h - z> / gamma^2
+        if needs[4]:
+            diff = h - z
+            # vdot gives correct conjugation for complex; .real keeps real scalar
+            grad_gamma = torch.sum(
+                mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
+            ).real / (gamma**2)
+
+            # If gamma was batched in the forward, we return a batched grad
+            if len(ctx.gamma_orig_shape) > 0:
+                grad_gamma = grad_gamma.view(ctx.gamma_orig_shape)
+            # gamma was a scalar in the forward, we accumulate all grads to return a scalar, similar to
+            # torch autograd behavior for broadcasted inputs
+            else:
+                grad_gamma = torch.sum(grad_gamma).view(())
+            grads[4] = grad_gamma
+
+        # Optional: implicit grads w.r.t physics parameters (side-effect accumulation)
+        params = [
+            p for p in getattr(physics, "buffers", lambda: [])() if p.requires_grad
+        ]
+        if params:
+            # pseudo-loss = - <mv, A^T (A h - y)>
+            h_det = h.detach()
+            y_det = y.detach()
+            with torch.enable_grad():
+                pseudo = -torch.vdot(
+                    mv.flatten(), physics.A_adjoint(physics.A(h_det) - y_det).flatten()
+                ).real
+            g_params = torch.autograd.grad(
+                pseudo, params, retain_graph=False, allow_unused=True
+            )
+            for p, g in zip_strict(
+                params,
+                g_params,
+            ):
+                if g is not None:
+                    if p.grad is None:
+                        p.grad = g.detach()
+                    else:
+                        p.grad = p.grad + g.detach()
+
+        return tuple(grads)
+
+
+# wrapper of the autograd function for easier use
+def least_squares_implicit_backward(
+    physics,
+    y: Tensor,
+    z: Tensor = None,
+    init: Tensor = None,
+    gamma: float | Tensor = None,
+    **kwargs,
+) -> Tensor:
+    r"""
+    Least squares solver with O(1) memory backward propagation using implicit differentiation.
+    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. 
+
+    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details. 
+    
+    Let :math:`h(z, y, \theta, \gamma)` denote the output of the least squares solver, i.e. the solution of the following problem:
+    
+    .. math::
+
+        h(z, y, \theta, \gamma) = \underset{x}{\arg\min} \; \frac{\gamma}{2}\|A_\theta x-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+    When the forward least-squares solver converges to the exact minimizer, we have the following closed-form expressions for :math:`h(z, y, \theta, \gamma)`:
+
+    .. math::
+
+        h(z, y, \theta, \gamma) = \left( A_\theta^{\top} A_\theta + \frac{1}{\gamma} I \right)^{-1} \left( A_\theta^{\top} y + \frac{1}{\gamma} z \right)
+
+    Let :math:`M` denote the inverse :math:`\left( A_\theta^T A_\theta + \frac{1}{\gamma} I \right)^{-1}`. In the forward, we need to compute the vector-Jacobian products (VJPs), which can be computed as follows:
+
+    .. math::
+
+        \left( \frac{\partial h}{\partial z} \right)^{\top} v               &= \frac{1}{\gamma} M v \\
+        \left( \frac{\partial h}{\partial y} \right)^{\top} v               &= A_\theta M v \\
+        \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
+        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
+        
+    where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
+
+    .. note::
+
+        This function only supports first-order gradients. Higher-order gradients are not supported. If you need higher-order gradients, please use :func:`deepinv.optim.utils.least_squares` instead but be aware that it requires storing all intermediate iterates, which can be memory-intensive.
+
+    .. note::
+
+        This function also supports implicit gradients with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. This is useful for learning the physics parameters in an end-to-end fashion. The gradients are accumulated in-place in the `.grad` attribute of the parameters of the physics operator. To make this work, the function takes as input the physics operator itself (not just its matmul functions) and checks if any of its parameters require gradients. If so, it triggers the backward pass accordingly.
+
+    .. warning::
+
+        Implicit gradients can be incorrect if the least squares solver does not converge sufficiently. Make sure to set the `max_iter` and `tol` parameters of the least squares solver appropriately to ensure convergence. You can monitor the convergence by setting `verbose=True` in the least squares solver via `kwargs`. If the solver does not converge, the implicit gradients can be very inaccurate and lead to divergence of the training.
+
+    .. warning::
+
+        This function does not support :class:`deepinv.utils.TensorList` inputs yet. If you use :class:`deepinv.utils.TensorList` as inputs, the function will fall back to standard least squares with full backpropagation.
+
+    .. tip::
+
+        If you do not need gradients with respect to the physics parameters, you can set `requires_grad=False` for all parameters of the physics operator to avoid the additional backward pass. This can save some computation time.
+
+    .. tip::
+
+        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations. 
+
+    :param deepinv.physics.LinearPhysics physics: physics operator :class:`deepinv.physics.LinearPhysics`.
+    :param torch.Tensor y: input tensor of shape (B, ...)
+    :param torch.Tensor z: input tensor of shape (B, ...). Default is `None`, which corresponds to a zero tensor.
+    :param None, torch.Tensor init: Optional initial guess, only used for the forward pass. Default is `None`, which corresponds to a zero initialization.
+    :param None, float, torch.Tensor gamma: regularization parameter :math:`\gamma > 0`. Default is `None`. Can be batched (shape (B, ...)) or a scalar.
+    :param kwargs: additional arguments to be passed to the least squares solver.
+
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), the solution of the least squares problem.
+    """
+
+    if z is None:
+        # To get correct shape
+        z = zeros_like(physics.A_adjoint(y))
+    if init is None:
+        init = zeros_like(z)
+
+    # NOTE: TensorList not supported by autograd function, we fall back to standard least_squares in this case for now
+    if isinstance(y, TensorList):
+        warnings.warn(
+            "Warning: least_squares_implicit_backward does not support TensorList inputs. Falling back to standard least_squares with full backpropagation."
+        )
+        return least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y,
+            z=z,
+            init=init,
+            gamma=gamma,
+            AAT=physics.A_A_adjoint,
+            ATA=physics.A_adjoint_A,
+            **kwargs,
+        )
+
+    physics_requires_grad_params = any(
+        p.requires_grad for p in getattr(physics, "buffers", lambda: [])()
+    )
+    # NOTE: backward is triggered if any of the inputs require grad
+    # When input tensors (y, z, gamma) do not require grad and we want to do backward w.r.t physics parameters, we need to trigger it manually by a dummy tensor.
+    trigger_backward = (
+        y.requires_grad
+        or z.requires_grad
+        or (isinstance(gamma, Tensor) and gamma.requires_grad)
+        or physics_requires_grad_params
+    )
+    if trigger_backward:
+        trigger = torch.ones(1, device=y.device, dtype=y.dtype).requires_grad_(
+            True
+        )  # Dummy tensor to trigger backward
+    else:
+        trigger = torch.ones(1, device=y.device, dtype=y.dtype)
+    extra_kwargs = kwargs if kwargs else None
+    dtype = y.dtype if not torch.is_complex(y) else y.real.dtype
+    if gamma is None:
+        gamma = torch.zeros((), device=y.device, dtype=dtype)
+    if isinstance(gamma, Tensor) and gamma.ndim > 0:
+        if gamma.size(0) != y.size(0):
+            raise ValueError(
+                "If gamma is batched, its batch size must match the one of y."
+            )
+    if not isinstance(gamma, Tensor):
+        gamma = torch.as_tensor(gamma, device=y.device, dtype=dtype)
+    return LeastSquaresSolver.apply(physics, y, z, init, gamma, trigger, extra_kwargs)
 
 
 class GaussianMixtureModel(nn.Module):

@@ -1,4 +1,5 @@
-from typing import Union, Callable
+from __future__ import annotations
+from typing import Callable
 from types import MappingProxyType
 from pathlib import Path
 import os
@@ -17,6 +18,7 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.utils.compat import zip_strict
 from deepinv.datasets.base import ImageDataset
 
 
@@ -85,7 +87,7 @@ class NBUDataset(ImageDataset):
 
     def __init__(
         self,
-        root_dir: Union[str, Path],
+        root_dir: str | Path,
         satellite: str = "gaofen-1",
         return_pan: bool = False,
         transform_ms: Callable = None,
@@ -124,7 +126,7 @@ class NBUDataset(ImageDataset):
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
+        self.image_paths = list(zip_strict(self.ms_paths, self.pan_paths))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 from types import ModuleType
-from typing import Optional, Callable
+from typing import Callable
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 
-from deepinv.loss.metric.functional import complex_abs, norm
-from deepinv.utils import normalize_signal
+from deepinv.loss.metric.functional import norm
+from deepinv.utils.signal import normalize_signal, complex_abs
 
 
 def import_pyiqa() -> ModuleType:
@@ -63,8 +63,8 @@ class Metric(Module):
         metric: Callable[[Tensor, Tensor], Tensor] = None,
         complex_abs: bool = False,
         train_loss: bool = False,
-        reduction: Optional[str] = None,
-        norm_inputs: Optional[str] = None,
+        reduction: str | None = None,
+        norm_inputs: str | None = None,
     ):
         super().__init__()
         self.train_loss = train_loss

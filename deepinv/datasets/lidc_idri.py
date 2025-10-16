@@ -1,8 +1,8 @@
+from __future__ import annotations
 from typing import (
     Any,
     Callable,
     NamedTuple,
-    Optional,
 )
 import os
 
@@ -10,12 +10,6 @@ import numpy as np
 from deepinv.datasets.base import ImageDataset
 
 error_import = None
-try:
-    import pandas as pd
-except ImportError:  # pragma: no cover
-    error_import = ImportError(
-        "pandas is not available. Please install the pandas package with `pip install pandas`."
-    )  # pragma: no cover
 try:
     import pydicom
     from pydicom import dcmread
@@ -73,6 +67,9 @@ class LidcIdriSliceDataset(ImageDataset):
             print(batch.shape)
 
 
+    .. note::
+
+        This class requires the ``pandas`` package to be installed. Install with ``pip install pandas``.
 
     """
 
@@ -94,9 +91,11 @@ class LidcIdriSliceDataset(ImageDataset):
     def __init__(
         self,
         root: str,
-        transform: Optional[Callable] = None,
+        transform: Callable | None = None,
         hounsfield_units: bool = False,
     ) -> None:
+        import pandas as pd
+
         if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 

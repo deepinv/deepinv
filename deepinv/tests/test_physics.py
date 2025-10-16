@@ -1,12 +1,14 @@
+from __future__ import annotations
 import os
 import shutil
 import copy
 from math import sqrt
-from typing import Optional
 import pytest
 import warnings
+import random
 
 import torch
+
 import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
@@ -14,7 +16,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
-
+from deepinv.utils.compat import zip_strict
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -62,6 +64,7 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "MultiCoilMRIBirdcage",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -77,7 +80,12 @@ OPERATORS = [
     "ptychography_linear",
 ]
 
-NONLINEAR_OPERATORS = ["haze", "lidar"]
+NONLINEAR_OPERATORS = [
+    "haze",
+    "lidar",
+    "spatial_unwrapping_round",
+    "spatial_unwrapping_floor",
+]
 
 PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
@@ -94,6 +102,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "FisherTippett",
     "SaltPepper",
 ]
 
@@ -192,6 +201,16 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "MultiCoilMRIBirdcage":
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        p = MultiCoilMRI(coil_maps=7, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (
@@ -505,6 +524,12 @@ def find_nonlinear_operator(name, device):
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
+    elif name == "spatial_unwrapping_round":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="round", device=device)
+    elif name == "spatial_unwrapping_floor":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
@@ -712,11 +737,11 @@ def test_operator_multiscale_wrapper(name, device, rng):
 
     _, img_size_orig, _, _ = find_operator(
         name,
-        device,
+        device=device,
     )  # get img_size for the operator
     physics, img_size_orig, _, dtype = find_operator(
         name,
-        device,
+        device=device,
         imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
     )  # get physics for the operator with base img size
 
@@ -725,10 +750,14 @@ def test_operator_multiscale_wrapper(name, device, rng):
         base_shape[-2] // (scale**2),
         base_shape[-1] // (scale**2),
     )
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
 
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
-        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
+        physics,
+        (*image_shape[:-2], *base_shape),
+        factors=[2, 4, 8],
+        dtype=dtype,
+        device=device,
     )  # define a multiscale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
@@ -747,7 +776,7 @@ def test_operator_cropper(name, device, rng):
         device,
     )  # get physics for the operator with base img size
 
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
@@ -786,10 +815,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
+    norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -826,7 +855,8 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device, rng):
+@pytest.mark.parametrize("implicit_backward_solver", [True, False])
+def test_pseudo_inverse(name, device, rng, implicit_backward_solver):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -837,6 +867,7 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
@@ -1155,6 +1186,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.GammaNoise(l)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l)
     else:
         raise Exception("Noise model not found")
 
@@ -1271,7 +1304,7 @@ def test_reset_noise(device):
     assert physics.noise_model.sigma == 0.2
 
 
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("normalize", [True, False, None])
 @pytest.mark.parametrize("parallel_computation", [True, False])
 @pytest.mark.parametrize("fan_beam", [True, False])
 @pytest.mark.parametrize("circle", [True, False])
@@ -1304,9 +1337,21 @@ def test_tomography(
         parallel_computation=parallel_computation,
     )
 
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    x = torch.randn(
+        imsize, device=device, generator=torch.Generator(device).manual_seed(0)
+    ).unsqueeze(0)
+
     if adjoint_via_backprop:
         assert physics.adjointness_test(x).abs() < 1e-3
+
+    if normalize:
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+
+    if normalize is None:
+        # when normalize is not set by the user, it should default to True
+        assert physics.normalize is True
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
@@ -1441,12 +1486,12 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        for s, d in zip(shift, dim, strict=True):
+        for s, d in zip_strict(shift, dim):
             x = roll_one_dim(x, s, d)
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1460,7 +1505,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1597,7 +1642,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1625,7 +1670,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics.A(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
+                    for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1712,7 +1757,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip(y1, y2, strict=True):
+                    for y11, y22 in zip_strict(y1, y2):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
@@ -2209,3 +2254,29 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
+
+
+def test_downsampling_default_filter_depreciation():
+    with pytest.warns(
+        UserWarning,
+        match="deprecated",
+    ):
+        _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_squared_or_non_squared_norms(seed, device):
+    random.seed(seed)
+    name = random.choice(OPERATORS)
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    rng = torch.Generator(device).manual_seed(seed)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+
+    with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
+        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"

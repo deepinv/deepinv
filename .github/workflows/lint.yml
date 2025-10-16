@@ -1,4 +1,4 @@
-name: Black
+name: Lint
 
 on:
   push:
@@ -21,3 +21,7 @@ jobs:
         run: |
           pip install ruff
           ruff check
+      - name: Check Python 3.9 backward compatibility
+        run: |
+          pip install vermin
+          vermin -vvv deepinv examples | grep "3.10" && exit 1 || true

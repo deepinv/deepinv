@@ -1,11 +1,11 @@
+from __future__ import annotations
 import numbers
 import os
-from typing import Optional, Sequence
+from typing import Sequence
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange
 
 from .utils import get_weights_url, test_pad
 from .base import Denoiser
@@ -62,8 +62,8 @@ class Restormer(Denoiser):
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",
         dual_pixel_task: bool = False,
-        pretrained: Optional[str] = "denoising",
-        device: Optional[torch.device] = None,
+        pretrained: str | None = "denoising",
+        device: torch.device | None = None,
     ) -> None:
         super(Restormer, self).__init__()
 
@@ -525,10 +525,14 @@ class Restormer(Denoiser):
 ##########################################################################
 ## Layer Norm
 def to_3d(x):
+    from einops import rearrange
+
     return rearrange(x, "b c h w -> b (h w) c")
 
 
 def to_4d(x, h, w):
+    from einops import rearrange
+
     return rearrange(x, "b (h w) c -> b c h w", h=h, w=w)
 
 
@@ -632,6 +636,8 @@ class Attention(nn.Module):
         self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
 
     def forward(self, x):
+        from einops import rearrange
+
         b, c, h, w = x.shape
 
         qkv = self.qkv_dwconv(self.qkv(x))
