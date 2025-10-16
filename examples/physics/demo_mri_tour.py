@@ -402,7 +402,7 @@ trainer = dinv.Trainer(
     optimizer=torch.optim.Adam(model.parameters()),
     train_dataloader=DataLoader(dataset),
     epochs=1,
-    save_path=None,
+    loggers=None,
     show_progress_bar=False,
     device=device,
 )

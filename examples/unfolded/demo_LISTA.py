@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder
 from deepinv.utils.demo import get_data_home
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -227,7 +228,7 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     device=device,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )

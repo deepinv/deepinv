@@ -197,7 +197,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 
@@ -266,7 +266,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 G = trainer.train()
@@ -357,7 +357,7 @@ trainer = dinv.training.AdversarialTrainer(
     scheduler=scheduler,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 )
 G = trainer.train()

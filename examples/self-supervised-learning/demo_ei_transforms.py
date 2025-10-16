@@ -128,7 +128,7 @@ model = dinv.Trainer(
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 ).train()
 

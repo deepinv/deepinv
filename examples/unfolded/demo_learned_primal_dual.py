@@ -18,6 +18,7 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -262,9 +263,8 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     val_dataloader=test_dataloader,
     device=device,
-    plot_convergence_metrics=plot_convergence_metrics,
     online_measurements=True,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
