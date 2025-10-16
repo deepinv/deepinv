@@ -841,11 +841,11 @@ def test_varnet(varnet_type, device):
         optimizer=torch.optim.Adam(model.parameters()),
         train_dataloader=DataLoader(DummyMRIDataset()),
         epochs=50,
-        save_path=None,
         log_images=False,
         compare_no_learning=True,
         device=device,
         optimizer_step_multi_dataset=True,
+        loggers=None,
     ).train()
 
     x_hat = model(y, physics)
