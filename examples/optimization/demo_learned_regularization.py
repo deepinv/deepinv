@@ -158,7 +158,7 @@ plot(
 # The example works again with color images.
 #
 # .. note::
-#    To improve the runtime of the example, we use here a convergence threshold (`thres_conv=1e-3`) which is smaller than the default value (`thres_conv=1e-4`)
+#    To improve the runtime of the example, we use here a convergence threshold (`thres_conv=1e-3`) which is larger than the default value (`thres_conv=1e-4`)
 #    The results can be improved by using the standard value (`thres_conv=1e-4`).
 #
 
