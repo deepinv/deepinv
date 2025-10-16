@@ -189,7 +189,7 @@ trainer = dinv.Trainer(
     verbose=verbose,
     log_images=True,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    ckp_interval=10,
+    ckpt_interval=10,
 )
 
 # Train the network

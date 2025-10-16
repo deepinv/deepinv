@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
+from deepinv.training.run_logger import LocalLogger
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -40,6 +41,13 @@ LIST_R2R = [
     "Poisson",
     "Gamma",
 ]
+
+
+@pytest.fixture
+def logger(tmp_path_factory, request):
+    # numbered=True guarantees a fresh directory even in parallel
+    base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
+    return LocalLogger(log_dir=base, project_name="test_project")
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -317,7 +325,15 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 @pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(
-    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
+    non_blocking_plots,
+    loss_name,
+    tmp_path,
+    dataset,
+    physics,
+    imsize,
+    device,
+    rng,
+    logger,
 ):
     # choose training losses
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
@@ -369,8 +385,8 @@ def test_losses(
         physics=physics,
         optimizer=optimizer,
         device=device,
-        ckp_interval=int(epochs / 2),
-        save_path=save_dir / "dinv_test",
+        ckpt_interval=int(epochs / 2),
+        loggers=logger,
         log_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_every_step=(loss_name == "sup_log_train_batch"),

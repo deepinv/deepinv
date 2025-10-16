@@ -183,7 +183,7 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    ckp_interval=10,
+    ckpt_interval=10,
 )
 
 model = trainer.train()
