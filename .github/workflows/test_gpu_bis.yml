@@ -1,0 +1,16 @@
+name: Experiment
+
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test:
+    name: Experiment
+    runs-on: gpu
+    steps:
+      - uses: actions/checkout@v3
+      - name: Experiment
+        run: |
+          hostname
