@@ -211,6 +211,7 @@ For example, we can create the same proximal gradient algorithm as the one at th
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 Some predefined optimizers are provided: 
+
 .. list-table::
    :header-rows: 1
 
