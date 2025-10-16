@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
