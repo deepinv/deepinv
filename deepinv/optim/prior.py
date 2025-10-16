@@ -957,7 +957,6 @@ class LeastSquaresResidual(Prior):
     These parameters are learned in the log scale to enforce positivity.
 
     This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
-    The specific implementation wraps the :class:`GSPnP<deepinv.models.GSPnP.GSPnP>`.
 
     :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
     :param str device: Device for the weights. Default: `"cpu"`
