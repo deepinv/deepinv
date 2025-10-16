@@ -102,7 +102,7 @@ class RandomPatchSampler(ImageDataset):
             )
         )
 
-        if len(self.imgs) == 0:
+        if len(self.imgs) == 0:  # pragma: no cover
             raise RuntimeError("No (shared) images available.")
 
         self.shapes = self._get_shapes()
