@@ -155,8 +155,11 @@ plot(
 # --------------------------------------------------------------------
 # Finally, we consider noise-free inpainting with a random mask. Here, the data fidelity term is given by the indicator function.
 # Since it is non-smooth, we apply the proximal mapping for the data-fidelity term in the nmAPG.
-# The example works again with color images. To enforce faster convergence, we choose a convergence threshold
-# which is larger than the standard value. The results can be improved by reducing `thres_conv` to `1e-4`.
+# The example works again with color images.
+#
+# .. note::
+#    To improve the runtime of the example, we use here a convergence threshold (`thres_conv=1e-3`) which is smaller than the default value (`thres_conv=1e-4`)
+#    The results can be improved by using the standard value (`thres_conv=1e-4`).
 #
 
 # create observation
