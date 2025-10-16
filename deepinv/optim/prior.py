@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Tuple
 import numpy as np
 import torch
 import torch.nn as nn
@@ -748,8 +747,8 @@ class RidgeRegularizer(Prior):
         self,
         in_channels: int = 3,
         weak_convexity: float = 0.0,
-        nb_channels: Tuple[int, ...] = (4, 8, 64),
-        filter_sizes: Tuple[int, ...] = (5, 5, 5),
+        nb_channels: tuple[int, ...] = (4, 8, 64),
+        filter_sizes: tuple[int, ...] = (5, 5, 5),
         device: str = "cpu",
         pretrained: str = "download",
         warn_output_scaling: bool = True,
