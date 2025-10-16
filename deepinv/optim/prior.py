@@ -8,7 +8,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.models.GSPnP import GSPnP
+from deepinv.models.GSPnP import GSDRUNet
 from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
