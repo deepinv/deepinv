@@ -10,6 +10,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 from deepinv.training.run_logger import LocalLogger
+import uuid
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -45,9 +46,17 @@ LIST_R2R = [
 
 @pytest.fixture
 def logger(tmp_path_factory, request):
-    # numbered=True guarantees a fresh directory even in parallel
     base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
-    return LocalLogger(log_dir=base, project_name="test_project")
+
+    def make_logger(suffix=None):
+        # For some tests two runs are getting launched in less than a second
+        # so we add a random suffix to avoid clashes
+        sid = suffix or uuid.uuid4().hex[:6]
+        run_dir = base / f"run-{sid}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return LocalLogger(log_dir=run_dir, project_name="test_project")
+
+    return make_logger
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -386,17 +395,19 @@ def test_losses(
         optimizer=optimizer,
         device=device,
         ckpt_interval=int(epochs / 2),
-        loggers=logger,
+        loggers=logger(),
         log_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
-        log_every_step=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model
     initial_test = trainer.test(test_dataloader=test_dataloader)
 
+    # ensure different loggers are used even if the runs are launched within the same second
+    trainer.loggers = logger()
     # train the network
     trainer.train()
+    trainer.loggers = logger()
     final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]

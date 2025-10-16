@@ -162,7 +162,8 @@ class AdversarialTrainer(Trainer):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup(**kwargs)
+        super()._setup_data()
+        super()._setup_logging()
 
         if self.optimizer_step_multi_dataset:
             warnings.warn(
@@ -173,27 +174,35 @@ class AdversarialTrainer(Trainer):
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
 
-        self.logs_losses_train += [
+        self.meters_losses_train += [
             AverageMeter("Training discrim loss " + l.name, ":.2e")
             for l in self.losses_d
         ]
 
-        self.logs_losses_eval += [
+        self.meters_losses_val += [
             AverageMeter("Validation discrim loss " + l.name, ":.2e")
             for l in self.losses_d
         ]
-
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.D.load_state_dict(checkpoint["state_dict_D"])
 
         if self.check_grad:
             self.check_grad_val_D = AverageMeter(
                 "Gradient norm for discriminator", ":.2e"
             )
 
+        if self.ckpt_pretrained is not None:
+            checkpoint = torch.load(self.ckpt_pretrained)
+            self.D.load_state_dict(checkpoint["state_dict_D"])
+
+    # TODO: this corresponds more to a training step than a loss computation, so it should
+    #       reimplement the trainer.step() instead
     def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, step: int = True
+        self,
+        x,
+        x_net,
+        y,
+        physics,
+        train=True,
+        epoch: int = None,
     ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
@@ -203,17 +212,10 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :param bool step: If ``True``, perform an optimization step on all datasets before optimizer step.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
-
-        if train and step:  # remove gradient
-            self.optimizer.G.zero_grad()
-
-        # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics)
 
         # Compute reconstructed measurement
         y_hat = physics.A(x_net)
@@ -235,7 +237,9 @@ class AdversarialTrainer(Trainer):
                 loss_total = loss_total + loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     current_log = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                        self.meters_losses_train[k]
+                        if train
+                        else self.meters_losses_val[k]
                     )
                     current_log.update(loss.detach().cpu().numpy())
                     cur_loss = current_log.avg
@@ -256,9 +260,6 @@ class AdversarialTrainer(Trainer):
             norm = self.check_clip_grad()  # Optional gradient clipping
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
-
-            if step:
-                self.optimizer.G.step()
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
@@ -281,9 +282,9 @@ class AdversarialTrainer(Trainer):
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:
                         current_log = (
-                            self.logs_losses_train[k + len(self.losses)]
+                            self.meters_losses_train[k + len(self.losses)]
                             if train
-                            else self.logs_losses_eval[k + len(self.losses)]
+                            else self.meters_losses_val[k + len(self.losses)]
                         )
                         current_log.update(loss.detach().cpu().numpy())
                         cur_loss = current_log.avg

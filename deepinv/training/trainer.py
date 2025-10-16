@@ -729,13 +729,13 @@ class Trainer:
             for logger in self.loggers:
                 logger.log_losses(loss_logs, step=train_ite, phase=phase)
 
-        # LOG EPOCH LOSSES AND METRICS
+        # Log epoch losses and metrics
         if last_batch:
 
-            ## LOSSES
+            ## Losses
             epoch_loss_logs = {}
 
-            # add individual losses over an epoch
+            # Add individual losses over an epoch
             if len(self.losses) > 1:
                 for l in self.losses:
                     meter = (
@@ -745,7 +745,7 @@ class Trainer:
                     )
                     epoch_loss_logs[l.__class__.__name__] = meter.avg
 
-            # add total loss over an epoch
+            # Add total loss over an epoch
             meter = (
                 self.meter_total_loss_train
                 if training_step
@@ -753,7 +753,7 @@ class Trainer:
             )
             epoch_loss_logs["Total_Loss"] = meter.avg
 
-            ## METRICS
+            ## Metrics
             epoch_metrics_logs = {}
             for m in self.metrics:
                 meter = (
@@ -763,7 +763,7 @@ class Trainer:
                 )
                 epoch_metrics_logs[m.__class__.__name__] = meter.avg
 
-            ## LOG
+            ## Logging
             for logger in self.loggers:
                 logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
                 logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)

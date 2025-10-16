@@ -18,7 +18,7 @@ import math
 import re
 import typing
 import logging
-import time
+import uuid
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -39,9 +39,17 @@ def model():
 
 @pytest.fixture
 def logger(tmp_path_factory, request):
-    # numbered=True guarantees a fresh directory even in parallel
     base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
-    return LocalLogger(log_dir=base, project_name="test_project")
+
+    def make_logger(suffix=None):
+        # For some tests two runs are getting launched in less than a second
+        # so we add a random suffix to avoid clashes
+        sid = suffix or uuid.uuid4().hex[:6]
+        run_dir = base / f"run-{sid}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return LocalLogger(log_dir=run_dir, project_name="test_project")
+
+    return make_logger
 
 
 @pytest.fixture
@@ -52,7 +60,7 @@ def physics(imsize, device):
 
 
 @pytest.mark.parametrize("no_learning", NO_LEARNING)
-def test_nolearning(imsize, physics, model, no_learning, device):
+def test_nolearning(imsize, physics, model, no_learning, device, logger):
     y = torch.ones((1,) + imsize, device=device)
     trainer = dinv.Trainer(
         model=model,
@@ -62,7 +70,7 @@ def test_nolearning(imsize, physics, model, no_learning, device):
         physics=physics,
         compare_no_learning=True,
         no_learning_method=no_learning,
-        loggers=None,
+        loggers=logger(),
         device=device,
     )
     x_hat = trainer.no_learning_inference(y, physics)
@@ -480,13 +488,15 @@ def test_trainer_save_ckpt(logger):
         physics=dinv.physics.Physics(),
         optimizer=None,
         train_dataloader=None,
-        loggers=logger,
+        loggers=logger(),
     )
     trainer.setup_run()
 
     trainer.save_ckpt(epoch=1, name="temp")
     trainer.model.a *= 3
-    saved_model = torch.load(logger.checkpoints_dir / "temp.pth.tar")["state_dict"]
+    saved_model = torch.load(trainer.loggers[0].checkpoints_dir / "temp.pth.tar")[
+        "state_dict"
+    ]
     assert saved_model["a"].item() == 1
 
 
@@ -516,7 +526,7 @@ def test_trainer_load_ckpt(tmp_path):
     assert trainer.model.a == 1
 
 
-def test_trainer_test_metrics(non_blocking_plots, device, rng):
+def test_trainer_test_metrics(non_blocking_plots, device, rng, logger):
     N = 10
     dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
     trainer = dinv.Trainer(
@@ -532,10 +542,11 @@ def test_trainer_test_metrics(non_blocking_plots, device, rng):
         device=device,
         online_measurements=True,
         log_images=True,
-        loggers=None,
+        loggers=logger(),
     )
 
     _ = trainer.train()
+    trainer.loggers = logger()
     results = trainer.test(dataloader, log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
@@ -657,7 +668,7 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
-        loggers=logger,
+        loggers=logger(),
         device=device,
     )
     trainer._setup_data()
@@ -742,7 +753,7 @@ def test_early_stop(
         optimizer=optimizer,
         verbose=False,
         log_images=True,
-        loggers=logger,
+        loggers=logger(),
         device=device,
     )
     trainer.train()
@@ -754,8 +765,7 @@ def test_early_stop(
         assert len(metrics_history) < epochs
         last = metrics_history[-1]
         best = max(metrics_history)
-        # TODO: remove this horrible temporary fix
-        time.sleep(1)  # ensure that the log folder for test / train is different
+        trainer.loggers = logger()
         metrics = trainer.test(val_dataloader)
         assert metrics["PSNR"] < best and metrics["PSNR"] == last
     else:
@@ -795,7 +805,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, logger):
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
-        loggers=logger,
+        loggers=logger(),
         device=device,
     )
 
@@ -912,6 +922,8 @@ def test_out_dir_collision_detection(
     ):
         with pytest.raises(FileExistsError, match=re.escape(timestamp)):
             # Train twice
+            # Using the same logger on purpose
+            logger = logger()
             for _ in range(2):
                 trainer = dinv.Trainer(
                     model,
@@ -954,7 +966,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     trainer = dinv.Trainer(
         model,
         device=device,
-        loggers=logger,
+        loggers=logger(),
         verbose=True,
         show_progress_bar=False,
         physics=physics,
