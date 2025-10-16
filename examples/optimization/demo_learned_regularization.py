@@ -155,29 +155,33 @@ plot(
 # --------------------------------------------------------------------
 # Finally, we consider noise-free inpainting with a random mask. Here, the data fidelity term is given by the indicator function.
 # Since it is non-smooth, we apply the proximal mapping for the data-fidelity term in the nmAPG.
-# The example works again with color images.
+# The example works again with color images. To enforce faster convergence, we choose a convergence threshold
+# which is larger than the standard value. The results can be improved by reducing `thres_conv` to `1e-4`.
 #
 
 # create observation
 y = physics_inpainting(test_img)
 
-lmbd = 1  # regularization parameter
+lmbd = 1  # regularization parameter, it does not matter in this example since the data fidelity term is scale invariant
 
 # create models
 model_crr = NonmonotonicAcceleratedPGD(
-    data_fidelity_ind, crr, lmbd, gradient_for_both=False
+    data_fidelity_ind, crr, lmbd, gradient_for_both=False, thres_conv=1e-3
 )
 model_wcrr = NonmonotonicAcceleratedPGD(
-    data_fidelity_ind, wcrr, lmbd, gradient_for_both=False
+    data_fidelity_ind, wcrr, lmbd, gradient_for_both=False, thres_conv=1e-3
 )
 model_lsr = NonmonotonicAcceleratedPGD(
-    data_fidelity_ind, lsr, lmbd, gradient_for_both=False
+    data_fidelity_ind, lsr, lmbd, gradient_for_both=False, thres_conv=1e-3
 )
 
 masked = physics_inpainting.A_dagger(y)  # observation
 
-# custom initialization (remove zeros via max pooling)
+# custom initialization (this is a lazy implementation of the nearest neighbor interpolation)
+x_init1 = torch.nn.functional.max_pool2d(masked, 3, padding=1, stride=1)
 x_init = torch.nn.functional.max_pool2d(masked, 5, padding=2, stride=1)
+x_init[x_init1 != 0.0] = x_init1[x_init1 != 0.0]
+x_init[masked != 0.0] = masked[masked != 0.0]
 
 # reconstruct
 recon_crr = model_crr(y, physics_inpainting, x_init=x_init)
@@ -186,17 +190,18 @@ recon_lsr = model_lsr(y, physics_inpainting, x_init=x_init)
 
 # compute PSNR
 psnr_masked = psnr(masked, test_img).item()
+psnr_init = psnr(x_init, test_img).item()
 psnr_crr = psnr(recon_crr, test_img).item()
 psnr_wcrr = psnr(recon_wcrr, test_img).item()
 psnr_lsr = psnr(recon_lsr, test_img).item()
 
 print(
-    f"Resulting PSNRs:\nMasked: {psnr_masked:.2f}, CRR: {psnr_crr:.2f}, WCRR: {psnr_wcrr:.2f}, LSR: {psnr_lsr:.2f}"
+    f"Resulting PSNRs:\nMasked: {psnr_masked:.2f}, x_init: {psnr_init:.2f}, CRR: {psnr_crr:.2f}, WCRR: {psnr_wcrr:.2f}, LSR: {psnr_lsr:.2f}"
 )
 
 plot(
-    [test_img, y, recon_crr, recon_wcrr, recon_lsr],
-    ["ground truth", "masked", "CRR", "WCRR", "LSR"],
+    [test_img, y, x_init, recon_crr, recon_wcrr, recon_lsr],
+    ["ground truth", "masked", "init", "CRR", "WCRR", "LSR"],
 )
 
 # %%
