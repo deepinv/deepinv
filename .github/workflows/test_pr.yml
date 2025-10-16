@@ -48,7 +48,7 @@ jobs:
       - name: Install deepinv and its dependencies for Python 3.9
         if: matrix.version_python == '3.9'
         run: |
-          pip install --python-version "39" -e .[${{ matrix.extra }}]
+          uv pip install --python-version 3.9 -e .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version
