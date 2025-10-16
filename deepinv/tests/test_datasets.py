@@ -1123,7 +1123,7 @@ def make_data(tmp_path, request):
         elif fmt == ".pt":
             torch.save(torch.from_numpy(vol), str(dx / f"{i}.pt"))
             torch.save(torch.from_numpy(vol), str(dy / f"{i}.pt"))
-        else:
+        else:  # pragma: no cover
             raise ValueError(f"Unsupported fmt: {fmt}")
     if fmt == ".pt":
 

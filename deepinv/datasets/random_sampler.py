@@ -64,16 +64,16 @@ class RandomPatchSampler(ImageDataset):
         :param torch.dtype dtype: Data type to use when loading the images.
         :param Callable loader: Custom loader function. Must accept path and the keyword ``as_memmap``, which will always be set to True. Must return an object that has shape attribute and returns a ``np.ndarray`` when sliced. If None, an internal loader is chosen based on ``file_format``.
         """
-        if not (x_dir or y_dir):
+        if not (x_dir or y_dir):  # pragma: no cover
             raise RuntimeError("Provide at least one of x_dir or y_dir.")
         if ch_axis is not None:
-            if not (ch_axis == 0 or ch_axis == -1):
+            if not (ch_axis == 0 or ch_axis == -1):  # pragma: no cover
                 raise ValueError(
                     f"Only None, 0, or -1 are supported for ch_axis. Got {ch_axis} ({type(ch_axis)})"
                 )
         if isinstance(patch_size, tuple) or isinstance(patch_size, list):
             for i, p in enumerate(patch_size):
-                if not isinstance(p, int):
+                if not isinstance(p, int):  # pragma: no cover
                     raise TypeError(
                         f"patch_size must be int or tuple of ints, got {type(p)} at index {i}"
                     )
@@ -85,11 +85,11 @@ class RandomPatchSampler(ImageDataset):
         imgs = [None, None]  # x_imgs, y_imgs
 
         for i, d in enumerate([x_dir, y_dir]):
-            if d is not None and not os.path.exists(d):
+            if d is not None and not os.path.exists(d):  # pragma: no cover
                 raise RuntimeError(f"Directory {d} does not exist.")
             if d is not None:
                 imgs[i] = [f for f in os.listdir(d) if f.endswith(file_format)]
-                if len(imgs[i]) == 0:
+                if len(imgs[i]) == 0:  # pragma: no cover
                     raise RuntimeError(
                         f"Directory {d} is given but empty for file format {file_format}."
                     )
@@ -158,7 +158,7 @@ class RandomPatchSampler(ImageDataset):
             if self.y_dir and self.x_dir:
                 s_x = self._load(os.path.join(self.x_dir, im), as_memmap=True).shape
                 s_y = self._load(os.path.join(self.y_dir, im), as_memmap=True).shape
-                if not s_x == s_y:
+                if not s_x == s_y:  # pragma: no cover
                     raise RuntimeError(
                         f"Measurement and ground-truth image shapes must match, but mismatch for {im}"
                     )
@@ -188,18 +188,18 @@ class RandomPatchSampler(ImageDataset):
                     self.patch_size
                 )  # self.patch_size should not change from now.
 
-            if not len(shape) == ndim:
+            if not len(shape) == ndim:  # pragma: no cover
                 raise RuntimeError(
                     f"Dim mismatch. Dataset has {ndim} dims, but {im} has shape {shape}"
                 )
             if not all(
                 s >= p if p is not None else True
                 for s, p in zip(shape, self.patch_size)
-            ):
+            ):  # pragma: no cover
                 raise RuntimeError(
                     f"Patch size {self.patch_size} is too large for image {im} with shape {shape}"
                 )
-            if n_ch and shape[self.ch_ax] != n_ch:
+            if n_ch and shape[self.ch_ax] != n_ch:  # pragma: no cover
                 raise RuntimeError(
                     f"Not all images have the same number of channels. Current shape: {shape} for image {im}. Please check your data shapes + Dataset args."
                 )
@@ -219,7 +219,7 @@ class RandomPatchSampler(ImageDataset):
             from deepinv.utils.io_utils import load_blosc2
 
             return load_blosc2
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 f"No loader function for images with extension {file_format}"
             )
@@ -235,7 +235,7 @@ class RandomPatchSampler(ImageDataset):
             return arr.to(self.dtype)
         elif isinstance(arr, np.ndarray):
             return torch.from_numpy(arr).to(self.dtype)
-        else:
+        else:  # pragma: no cover
             raise RuntimeError(
                 f"Object returned by loader must be a np.ndarray or torch.tensor after slicing, got {type(arr)}"
             )
