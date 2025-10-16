@@ -301,10 +301,10 @@ class BaseOptim(Reconstructor):
         get_output=lambda X: X["est"][0],
         unfold=False,
         DEQ: DEQConfig | None = None,
-        anderson_acceleration=False, # this parameter will be deprecated in future releases
-        history_size=5, # this parameter will be deprecated in future releases
-        beta_anderson_acc=1.0, # this parameter will be deprecated in future releases
-        eps_anderson_acc=1e-4, # this parameter will be deprecated in future releases
+        anderson_acceleration=False,  # this parameter will be deprecated in future releases
+        history_size=5,  # this parameter will be deprecated in future releases
+        beta_anderson_acc=1.0,  # this parameter will be deprecated in future releases
+        eps_anderson_acc=1e-4,  # this parameter will be deprecated in future releases
         trainable_params=None,
         show_progress_bar=False,
         verbose=False,
