@@ -13,8 +13,7 @@ def test(
     physics_generator=None,
     device="cpu",
     plot_images=False,
-    loggers: RunLogger | list[RunLogger] | None = None,
-    plot_convergence_metrics=False,
+    loggers: RunLogger | list[RunLogger] | None = [LocalLogger("./logs")],
     verbose=True,
     rescale_mode="clip",
     show_progress_bar=True,
@@ -46,7 +45,6 @@ def test(
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
         Images are saved in the ``save_folder/images`` directory
-    :param bool plot_convergence_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool show_progress_bar: Show progress bar.
@@ -57,8 +55,6 @@ def test(
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
-    if loggers is None:
-        loggers = [LocalLogger("./logs")]
     if metrics is None:
         metrics = PSNR()
     trainer = Trainer(
@@ -72,12 +68,12 @@ def test(
         physics_generator=physics_generator,
         device=device,
         log_images=plot_images,
-        plot_convergence_metrics=plot_convergence_metrics,
         verbose=verbose,
         rescale_mode=rescale_mode,
         compare_no_learning=compare_no_learning,
         no_learning_method=no_learning_method,
         show_progress_bar=show_progress_bar,
+        loggers=loggers,
         **kwargs,
     )
     return trainer.test(test_dataloader, compare_no_learning=compare_no_learning)
