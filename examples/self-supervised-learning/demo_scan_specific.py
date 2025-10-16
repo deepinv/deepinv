@@ -137,7 +137,7 @@ trainer = dinv.Trainer(
     optimizer=torch.optim.Adam(model.parameters(), lr=1e-6),
     train_dataloader=DataLoader(train_dataset, shuffle=True),
     eval_dataloader=DataLoader(val_dataset),
-    epochs=100,
+    epochs=0, # 100
     save_path=None,
     show_progress_bar=True,
     early_stop=True,
