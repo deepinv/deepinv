@@ -48,11 +48,7 @@ jobs:
       - name: Install deepinv and its dependencies for Python 3.9
         if: matrix.version_python == '3.9'
         run: |
-          pip install coverage==7.10.7
-          pip install h5py==3.14.0
-          pip install numpy==2.0.0 matplotlib==3.9.1 scipy==1.13.1
-          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-          pip install --ignore-requires-python -e .[${{ matrix.extra }}]
+          pip install --python-version 3.9 -e .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version
