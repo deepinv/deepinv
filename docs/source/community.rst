@@ -3,10 +3,10 @@
 Community
 =========
 
-DeepInverse contributors include researchers from multiple institutions around the world,
-such as the University of Edinburgh, EPFL, Inria, ENS Lyon, ENS Paris, Univ. Toulouse, UCL, etc.
+DeepInverse contributors include researchers and practitioners from multiple institutions and companies
+around the world, such as in the UK, France, Switzerland, USA, China etc.
 We organize hackathons and summer schools on an annual basis,
-and we welcome contributions from the community.
+and we welcome contributions from the community. :ref:`Check out how you can contribute <contributing>`!
 
 
 .. image:: figures/CIRM_hackathon.jpg
