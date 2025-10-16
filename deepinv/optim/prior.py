@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Tuple
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,8 +9,9 @@ import warnings
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
+from deepinv.models.drunet import DRUNet
 from deepinv.utils import patch_extractor
-from deepinv.models.GSPnP import GSDRUNet
+from deepinv.models.GSPnP import GSPnP
 from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
@@ -743,13 +746,13 @@ class RidgeRegularizer(Prior):
 
     def __init__(
         self,
-        in_channels=3,
-        weak_convexity=0.0,
-        nb_channels=(4, 8, 64),
-        filter_sizes=(5, 5, 5),
-        device="cpu",
-        pretrained="download",
-        warn_output_scaling=True,
+        in_channels: int = 3,
+        weak_convexity: float = 0.0,
+        nb_channels: Tuple[int, ...] = (4, 8, 64),
+        filter_sizes: Tuple[int, ...] = (5, 5, 5),
+        device: str = "cpu",
+        pretrained: str = "download",
+        warn_output_scaling: bool = True,
     ):
         super(RidgeRegularizer, self).__init__()
         nb_channels = [in_channels] + list(nb_channels)
@@ -948,14 +951,14 @@ class RidgeRegularizer(Prior):
 
 class LeastSquaresResidual(Prior):
     r"""
-    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`.
+    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for some denoising network :math:`D`.
 
     To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
     we implement :math:`\alpha\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
     These parameters are learned in the log scale to enforce positivity.
 
     This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
-    The specific implementation wraps the :class:`GSDRUNet<deepinv.models.GSPnP.GSDRUNet>`.
+    The specific implementation wraps the :class:`GSPnP<deepinv.models.GSPnP.GSPnP>`.
 
     :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
     :param str device: Device for the weights. Default: `"cpu"`
@@ -963,47 +966,35 @@ class LeastSquaresResidual(Prior):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
-    :param list of int nc: number of channels of the DRUNet, cf. :class:`deepinv.models.GSDRUNet`. Default: `[32, 64, 128, 256]`
-    :param int nb: number of residual blocks of the DRUNet, cf. :class:`deepinv.models.GSDRUNet`. Default: `2`.
-    :param deepinv.models.GSPnP.GSDRUNet pretrained_GSDRUNet: If already a GSDRUNet object exists, a LSR with this GSDRUNet can be created
-        by passing it through this argument. `None` for initializing a new GSDRUNet. Default: `None`
-    :param float alpha: scaling factor in the GSDRUNet. Default: `1.0`
+    :param torch.nn.Module denoiser: Denoising network :math:`D` which is used in the architecture. Use `None` for a DRUNet with `nb=2`, `nc=(32, 64, 128, 256)` and softmax activation. Default: `None`
     :param float sigma: Noise level applied in the DRUNet. Default: `0.03`
     """
 
     def __init__(
         self,
-        in_channels=3,
-        device="cpu",
-        pretrained="download",
-        nc=(32, 64, 128, 256),
-        nb=2,
-        pretrained_GSDRUNet=None,
-        alpha=1.0,
-        sigma=0.03,
+        in_channels: int = 3,
+        device: str = "cpu",
+        pretrained: str = "download",
+        denoiser: torch.nn.Module = None,
+        sigma: float = 0.03,
     ):
         super(LeastSquaresResidual, self).__init__()
 
-        if pretrained_GSDRUNet is None:
-            self.model = GSDRUNet(
-                alpha=alpha,
+        if denoiser is None:
+            denoiser = DRUNet(
                 in_channels=in_channels,
-                out_channels=in_channels,
-                nb=nb,
-                nc=nc,
+                out_channels=in_channels,  # we require out_channels == in_channels
+                nb=2,
+                nc=(32, 64, 128, 256),
                 act_mode="s",
                 pretrained=None,
                 device=device,
             )
-        elif isinstance(pretrained_GSDRUNet, GSDRUNet):
-            self.model = pretrained_GSDRUNet.to(device)
-            self.add_module("model", self.model)
         else:
-            raise ValueError(
-                "The parameter pretrained_GSDRUNet must either be None or an instance of GSDRUNet!"
-            )
-
+            self.add_module(
+                "model", denoiser
+            )  # add module, otherwise parameters might not be recognized...
+        self.model = GSPnP(denoiser, alpha=1.0)
         self.model.detach = True
 
         self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
