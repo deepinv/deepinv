@@ -197,7 +197,7 @@ def test_gaussian_noise_device_inference(sigma_device, rng_kind):
         rng = None
 
     noise_model = None
-    with pytest.raises(AssertionError) if rng_kind == "inconsistent" else nullcontext():
+    with pytest.raises(RuntimeError) if rng_kind == "inconsistent" else nullcontext():
         noise_model = dinv.physics.GaussianNoise(sigma=sigma, rng=rng)
 
     if noise_model is not None:

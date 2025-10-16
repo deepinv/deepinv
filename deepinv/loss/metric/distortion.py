@@ -358,7 +358,9 @@ class LpNorm(Metric):
         else:
             diff = x_net - x
 
-        return torch.norm(diff.view(diff.size(0), -1), p=self.p, dim=1).pow(self.p)
+        return torch.linalg.norm(diff.view(diff.size(0), -1), ord=self.p, dim=1).pow(
+            self.p
+        )
 
 
 class QNR(Metric):
