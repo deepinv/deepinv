@@ -18,6 +18,7 @@ import math
 import re
 import typing
 import logging
+import time
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -481,7 +482,7 @@ def test_trainer_save_ckpt(logger):
         train_dataloader=None,
         loggers=logger,
     )
-    trainer.setup_run(train=True)
+    trainer.setup_run()
 
     trainer.save_ckpt(epoch=1, name="temp")
     trainer.model.a *= 3
@@ -501,7 +502,7 @@ def test_trainer_load_ckpt(tmp_path):
         optimizer=None,
         train_dataloader=None,
     )
-    trainer.setup_run(train=True)
+    trainer.setup_run()
 
     torch.save({"state_dict": trainer.model.state_dict()}, tmp_path / "temp.pth")
     trainer.model.a *= 3
@@ -656,7 +657,7 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
-        loggers=None,
+        loggers=logger,
         device=device,
     )
     trainer._setup_data()
@@ -724,7 +725,7 @@ def test_early_stop(
     epochs = 100 if early_stop else 4
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    val_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
     optimizer = torch.optim.Adam(model.parameters(), lr=1)
     losses = dinv.loss.MCLoss()
@@ -736,12 +737,12 @@ def test_early_stop(
         physics=physics,
         max_batch_steps=max_batch_steps,
         train_dataloader=dataloader,
-        val_dataloader=eval_dataloader,
+        val_dataloader=val_dataloader,
         online_measurements=True,
         optimizer=optimizer,
         verbose=False,
         log_images=True,
-        loggers=None,
+        loggers=logger,
         device=device,
     )
     trainer.train()
@@ -753,7 +754,9 @@ def test_early_stop(
         assert len(metrics_history) < epochs
         last = metrics_history[-1]
         best = max(metrics_history)
-        metrics = trainer.test(eval_dataloader)
+        # TODO: remove this horrible temporary fix
+        time.sleep(1)  # ensure that the log folder for test / train is different
+        metrics = trainer.test(val_dataloader)
         assert metrics["PSNR"] < best and metrics["PSNR"] == last
     else:
         assert len(metrics_history) == epochs
@@ -774,7 +777,7 @@ class ConstantLoss(dinv.loss.Loss):
 def test_total_loss(dummy_dataset, imsize, device, dummy_model, logger):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    val_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     losses = [
@@ -788,19 +791,22 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, logger):
         epochs=2,
         physics=physics,
         train_dataloader=dataloader,
-        val_dataloader=eval_dataloader,
+        val_dataloader=val_dataloader,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
-        loggers=None,
+        loggers=logger,
         device=device,
     )
 
     trainer.train()
 
-    loss_history = trainer.loss_history
+    train_loss_history = trainer.train_loss_history
     assert all(
-        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+        [
+            abs(value - sum([l.value for l in losses])) < 1e-6
+            for value in train_loss_history
+        ]
     )
 
 
@@ -830,7 +836,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplo
         train_dataloader=dataloader,
         online_measurements=True,
         log_grad=True,
-        loggers=None,
+        loggers=logger,
     )
 
     call_count = 0
@@ -901,7 +907,9 @@ def test_out_dir_collision_detection(
 
     # NOTE: Due to the way it's imported in the trainer module we need to patch
     # the importing module instead of the imported module.
-    with patch.object(dinv.training.trainer, "get_timestamp", return_value=timestamp):
+    with patch.object(
+        dinv.training.run_logger, "get_timestamp", return_value=timestamp
+    ):
         with pytest.raises(FileExistsError, match=re.escape(timestamp)):
             # Train twice
             for _ in range(2):
@@ -933,6 +941,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     tmpdir,
     model_performance,
     learning_free_performance,
+    logger,
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
@@ -945,7 +954,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     trainer = dinv.Trainer(
         model,
         device=device,
-        loggers=None,
+        loggers=logger,
         verbose=True,
         show_progress_bar=False,
         physics=physics,

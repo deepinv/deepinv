@@ -92,7 +92,6 @@ class Trainer:
         # resume state from a training checkpoint
         self.epoch_start = 0
         self.load_ckpt(self.ckpt_pretrained)
-
         self._setup_data()
         self._setup_logging()
 
@@ -213,6 +212,8 @@ class Trainer:
         for logger in self.loggers:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
+            # TODO: handle the case where we resume from a checkpoint
+            logger.init_logger()
 
         # Set verbosity level of the logger
         if self.verbose:
@@ -944,7 +945,7 @@ class Trainer:
                 self.scheduler.step()
 
             ## Validation
-            if self.val_dataloader is not None or self.val_dataloader is not []:
+            if self.val_dataloader:
                 self.current_val_iterators = [
                     iter(loader) for loader in self.val_dataloader
                 ]

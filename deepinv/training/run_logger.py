@@ -381,7 +381,7 @@ class LocalLogger(RunLogger):
         self.loss_history = []
 
     def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
-        os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=False)
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.metrics_dir, exist_ok=True)
         os.makedirs(self.images_dir, exist_ok=True)
