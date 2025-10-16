@@ -155,7 +155,7 @@ plot(
 # --------------------------------------------------------------------
 # Finally, we consider noise-free inpainting with a random mask. Here, the data fidelity term is given by the indicator function.
 # Since it is non-smooth, we apply the proximal mapping for the data-fidelity term in the nmAPG.
-# The example works again with color images
+# The example works again with color images.
 #
 
 # create observation
@@ -176,10 +176,13 @@ model_lsr = NonmonotonicAcceleratedPGD(
 
 masked = physics_inpainting.A_dagger(y)  # observation
 
+# custom initialization (remove zeros via max pooling)
+x_init = torch.nn.functional.max_pool2d(masked, 5, padding=2, stride=1)
+
 # reconstruct
-recon_crr = model_crr(y, physics_inpainting)
-recon_wcrr = model_wcrr(y, physics_inpainting)
-recon_lsr = model_lsr(y, physics_inpainting)
+recon_crr = model_crr(y, physics_inpainting, x_init=x_init)
+recon_wcrr = model_wcrr(y, physics_inpainting, x_init=x_init)
+recon_lsr = model_lsr(y, physics_inpainting, x_init=x_init)
 
 # compute PSNR
 psnr_masked = psnr(masked, test_img).item()
