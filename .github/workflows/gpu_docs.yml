@@ -1,17 +1,9 @@
 name: GPU Docs
 
 on:
-  schedule:
-    - cron: "30 2 */1 * *"
-  push:
+  pull_request:
     branches:
-      - main  
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: "PR number to test"
-        required: true
-        type: number
+    - main
 
 jobs:
   gpu-docs:
@@ -28,7 +20,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha
                   || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
                   || github.sha }}
-                  
+
       # See https://docs.astral.sh/uv/guides/integration/github
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -63,19 +55,19 @@ jobs:
           SPHINX_DOCTEST: "1"
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
-          
+
       - name: Upload Documentation Artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: _build/
-          
-      # Log artifact URL 
+
+      # Log artifact URL
       - name: Link to generated docs here
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
-          
+
       # Comment results back to PR
       - name: Post result to PR
         if: always() && inputs.pr_number != ''
@@ -86,17 +78,16 @@ jobs:
             const result = "${{ job.status }}";
             const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
             const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
-      
+
             const body = result === "success"
               ? `✅ GPU docs passed
                  🔗 [View run details](${runUrl})
                  📦 [Download built docs](${artifactUrl})`
               : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
-      
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr,
               body,
             });
-
