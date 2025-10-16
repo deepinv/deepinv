@@ -16,7 +16,7 @@ For the reconstructions we sovle the variational problem
         \underset{x}{\arg\min} \quad  \datafid{Ax}{y} + \lambda \reg{x},
         \end{equation}
 
-for a data-fidelity term :math:`\datafid{x}{y}`, forward operator :math:`A` and a learned regularizer :math:`reg` using the
+for a data-fidelity term :math:`\datafid{Ax}{y}`, forward operator :math:`A` and a learned regularizer :math:`\reg` using the
 :class:`nonmonotonic accelerated proximal gradient descent <deepinv.optim.NonmonotonicAcceleratedPGD>` (nmAPG) algorithm.
 """
 

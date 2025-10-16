@@ -1435,7 +1435,7 @@ def nonmonotone_accelerated_proximal_gradient(
 
     .. math::
         \begin{equation*}
-        \min_y F(x,y_i)=f(x,y_i)+\lambda g(x,y_i),\quad i=1,...,\mathrm{batch size}
+        \min_{x_i} F(x_i,y_i)=f(x,y_i)+\lambda g(x_i,y_i),\quad i=1,...,\mathrm{batch\_size}
         \end{equation*}
 
     can be solved simultanously.
@@ -1452,17 +1452,17 @@ def nonmonotone_accelerated_proximal_gradient(
 
     :param torch.Tensor x0: Initialization :math:`x_0` of the algorithm. The first dimension is a batch dimension (with `y.shape[0]==x0.shape[0]` if `y is not None`).
     :param Callable f: Differentiable part :math:`f(x,y)` of the objective function. It takes two inputs: the argument `x` (we are minimizing over `x`)
-        and the parmeters `y` (which remains fixed over the optimization).
+        and the parmeters `y` (which remains fixed over the optimization). If `y is None`, we omit the :math:`y` argument such that `f` only takes the `x` argument.
     :param torch.Tensor y: Parameter `y` from the objective function. The first dimension is a batch dimension with `y.shape[0]==x0.shape[0]`. Can be set to `None`, in which case :math:`f`, :math:`g`, :math:`\nabla f`
         and :math:`\mathrm{prox}_g` should not take `y` as an input argument.
-    :param Callable nabla_f: gradient :math:`\nabla_x f(x,y)` of :math:`f`. `None` for computing the gradient via autodiff. Default: `None`
+    :param Callable nabla_f: gradient :math:`\nabla_x f(x,y)` of :math:`f`. `None` for computing the gradient via autodiff.  If `y is None`, we omit the :math:`y` argument such that `nabla_f` only takes the `x` argument. Default: `None`
     :param Callable f_and_nabla: A function computing both, the function value and the gradient of :math:`f`. Set to `None` to call `f` and `nabla_f` separately
         (which might be inefficient). Default: `None`
     :param Callable g: Possibly non-smooth part :math:`g(x,y)` of the objective function It takes two inputs: the argument `x` (we are minimizing over `x`)
-        and the parmeters `y` (which remains fixed over the optimization). Default: `lambda x, y: 0` (i.e. choose :math:`g(x,y)=0`).
+        and the parmeters `y` (which remains fixed over the optimization). If `y is None`, we omit the :math:`y` argument such that `g` only takes the `x` argument. Default: `lambda x, y: 0` (i.e. choose :math:`g(x,y)=0`).
     :param Callable prox_g: Proximal operator :math:`\mathrm{prox}_{\gamma g(\cdot,y)}(x)` of :math:`g`. It takes three inputs: the argument `x` (we are minimizing over `x`),
-        the parmeters `y` (which remains fixed over the optimization) and the step size :math:`gamma` of the proximal operator. `None` for using the identity.
-        Note that `prox_g` must not be `None` if `g is not None`. Default: `None`.
+        the parmeters `y` (which remains fixed over the optimization) and the step size :math:`gamma` of the proximal operator. If `y is None`, we omit the :math:`y` argument such that `prox_g`
+        only takes the `x` argument. `None` for using the identity. Note that `prox_g` must not be `None` if `g is not None`. Default: `None`.
     :param float weighting: Parameter :math:`\lambda` from the objective value. Default: `1.0`
     :param int max_iter: Maximal number of iterations. Default: `2000`
     :param float L_init: Initial guess of the (local) Lipschitz constant of :math:`\nabla_x f(x,y)`. Default: `1.0`
@@ -1471,8 +1471,8 @@ def nonmonotone_accelerated_proximal_gradient(
     :param float delta: Quadratic decay parameter for the line search. Should be :math:`>0`. Default: `0.1`
     :param float eta: Non-monotonicity parameter for the line search. Should be in :math:`[0,1)`. Default: `0.8`
     :param bool verbose: Set to `True` to print the number of iterations used in the algorithm. Default: `False`.
-    :return: Tuple out of the approximated minimizer `x` of :math:`F`, the estimated local Lipschitz constant `L`, the number `i` of used iterations and
-        a bool `converged` indicating whether the algorithm reached the convergence criterion or not.
+    :return: Tuple out of the approximated minimizer `x` of :math:`F`, the estimated local Lipschitz constant `L`, the number `i` of used iterations, a tensor of ints (length batch size)
+        indicating how often the line search was called and a tensor of bools (length batch size) `converged` indicating whether the algorithm reached the convergence criterion or not.
     """
     if y is None:
         y = x0.clone()
@@ -1486,7 +1486,7 @@ def nonmonotone_accelerated_proximal_gradient(
             g = lambda x, y: g_(x)
         if prox_g is not None:
             prox_g_ = prox_g
-            prox_g = lambda x, y, param: prox_g(x, param)
+            prox_g = lambda x, y, param: prox_g_(x, param)
     if f_and_nabla is None:
         if nabla_f is None:
 
@@ -1517,7 +1517,7 @@ def nonmonotone_accelerated_proximal_gradient(
     t_old = 0.0  # t0
     q = 1.0  # q1
     c = f(x, y) + weighting * g(x, y)  # c1
-    L = torch.full((x.shape[0],), L_init, dtype=torch.float32, device=x.device)
+    L = torch.full((x.shape[0],), L_init, dtype=x.dtype, device=x.device)
     while len(L.shape) < len(x0.shape):
         L = L.unsqueeze(-1)
     L_old = L.clone()
