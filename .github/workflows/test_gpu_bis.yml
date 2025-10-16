@@ -1,4 +1,4 @@
-name: Experiment
+name: Experimentation
 
 on:
   pull_request:
@@ -7,10 +7,10 @@ on:
 
 jobs:
   test:
-    name: Experiment
+    name: Experimentation
     runs-on: gpu
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Experiment
+      - name: Experimentation
         run: |
           hostname
