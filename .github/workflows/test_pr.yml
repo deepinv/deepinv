@@ -40,16 +40,14 @@ jobs:
           python-version: ${{ matrix.version_python }}
           cache: 'pip' # caching pip dependencies
 
-      - name: Install deepinv and its dependencies
-        if: matrix.version_python != '3.9'
-        run: |
-          pip install -e .[${{ matrix.extra }}]
-
-      - name: Install deepinv and its dependencies for Python 3.9
+      # Make sure it uses dependencies compatible with Python 3.9 (only affects the Python 3.9 job)
+      - name: Fake the minimum supported version for Python 3.9
         if: matrix.version_python == '3.9'
         run: |
-          # Fake the minimum supported version to be Python 3.9 (only affects the Python 3.9 job)
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
+
+      - name: Install deepinv and its dependencies
+        run: |
           pip install -e .[${{ matrix.extra }}]
 
       # For debugging purposes
