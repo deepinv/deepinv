@@ -181,7 +181,7 @@ class DistributedContext:
         Get local indices for this rank based on sharding strategy.
 
         :param int num_items: total number of items to shard.
-        :return: (:class:`list[int]`) list of indices assigned to this rank.
+        :return: (list) list of indices assigned to this rank.
         """
         if self.sharding == "round_robin":
             indices = [
@@ -329,7 +329,7 @@ class DistributedSignal:
     A wrapper around a replicated signal tensor with automatic synchronization.
 
     The signal is automatically synchronized across all processes after initialization
-    and after any update operations. Users should not call sync_ manually.
+    and after any update operations. Users should not call ```sync_``` manually.
 
     :param DistributedContext ctx: distributed context manager.
     :param Sequence[int] shape: shape of the signal tensor.

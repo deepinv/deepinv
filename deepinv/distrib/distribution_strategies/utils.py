@@ -217,7 +217,7 @@ def tiling_splitting_strategy(
     :param bool non_overlap: whether patches should be non-overlapping.
     :param None, bool end_align: alignment strategy for overlapping patches.
     :param str pad_mode: padding mode (advisory; not applied here).
-    :return: (:class:`tuple[list[Index], dict]`) tuple of (global_slices, metadata).
+    :return: (tuple) tuple of (global_slices, metadata).
 
     |sep|
 

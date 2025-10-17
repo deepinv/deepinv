@@ -1,6 +1,6 @@
 """
 Large-scale plug-and-play methods using distributed computing
-===============================================
+=============================================================
 
 This example demonstrates how to use the distributed framework for PnP reconstruction.
 The framework automatically distributes physics operators and priors across multiple processes.

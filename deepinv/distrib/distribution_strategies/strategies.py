@@ -49,7 +49,7 @@ class DistributedSignalStrategy(ABC):
 
         :param torch.Tensor X: the complete signal tensor.
         :param list[int] local_indices: global indices of patches assigned to this rank.
-        :return: (:class:`list[tuple[int, torch.Tensor]]`) list of (global_index, prepared_patch) pairs ready for processing.
+        :return: (list) list of (global_index, prepared_patch) pairs ready for processing.
         """
         pass
 
@@ -63,7 +63,7 @@ class DistributedSignalStrategy(ABC):
         as the input.
 
         :param list[torch.Tensor] patches: list of prepared patches.
-        :return: (:class:`list[torch.Tensor]`) batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.
+        :return: (list) batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.
         """
         pass
 
@@ -78,7 +78,7 @@ class DistributedSignalStrategy(ABC):
 
         :param list[torch.Tensor] processed_batches: results from processing batched patches.
         :param int num_patches: expected number of individual patches.
-        :return: (:class:`list[torch.Tensor]`) individual processed patches in original order.
+        :return: (list) individual processed patches in original order.
         """
         if len(processed_batches) == 0:
             return []

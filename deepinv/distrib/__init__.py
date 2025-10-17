@@ -1,5 +1,6 @@
 from .distrib_framework import (
     DistributedContext,
+    DistributedPhysics,
     DistributedLinearPhysics,
     DistributedDataFidelity,
     DistributedMeasurements,
@@ -10,6 +11,7 @@ from .utils import TilingConfig, FactoryConfig, DistributedBundle, make_distrib_
 
 __all__ = [
     "DistributedContext",
+    "DistributedPhysics",
     "DistributedLinearPhysics",
     "DistributedDataFidelity",
     "DistributedMeasurements",

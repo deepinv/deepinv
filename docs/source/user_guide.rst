@@ -148,6 +148,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :octicon:`webhook` **Adversarial Reconstruction**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
+    
+    .. grid-item-card::
+        :link: distributed
+        :link-type: ref
+
+        :octicon:`server` **Distributed Computing**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Large-scale image reconstruction using distributed computing.
 
 .. toctree::
    :maxdepth: 2
@@ -163,6 +171,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
+   user_guide/reconstruction/distributed
 
 
 Training, Testing and Utilities

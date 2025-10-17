@@ -334,6 +334,7 @@ sphinx_gallery_conf = {
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
+            "../../examples/distrib",
         ]
     ),
     "within_subsection_order": MySortKey,
