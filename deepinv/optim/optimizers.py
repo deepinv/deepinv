@@ -417,9 +417,14 @@ class BaseOptim(Reconstructor):
 
         # set trainable parameters
         if self.unfold or self.DEQ:
-            if trainable_params is not None and "lambda_reg" in trainable_params:
-                trainable_params[trainable_params.index("lambda_reg")] = "lambda"
-            if trainable_params is None:
+            if trainable_params is not None:
+                if "lambda_reg" in trainable_params:
+                    trainable_params[trainable_params.index("lambda_reg")] = "lambda"
+                if "sigma_denoiser" in trainable_params:
+                    trainable_params[
+                        trainable_params.index("sigma_denoiser")
+                    ] = "g_param"
+            else:
                 trainable_params = params_algo.keys()
             for param_key in trainable_params:
                 if param_key in self.init_params_algo.keys():
@@ -529,7 +534,11 @@ class BaseOptim(Reconstructor):
             - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
-        :param F_fn: function that computes the cost function.
+        :param Callable F_fn:  function that computes the cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
         :return: a dictionary containing the first iterate of the algorithm.
         """
         self.params_algo = (
@@ -728,7 +737,7 @@ class BaseOptim(Reconstructor):
             X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
 
-        if not self.DEQ_config.DEQ_jacobian_free:
+        if not self.DEQ_config.jacobian_free:
             # Another iteration for jacobian computation via automatic differentiation.
             x0 = x.clone().detach().requires_grad_()
             f0 = self.fixed_point.iterator(
@@ -838,7 +847,11 @@ def create_iterator(
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. default: None.
+    :param Callable F_fn: Custom user input cost function. 
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     """
@@ -919,7 +932,11 @@ def optim_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
@@ -1030,7 +1047,11 @@ class ADMM(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1162,7 +1183,11 @@ class DRS(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the DRS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1327,7 +1352,11 @@ class GD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1495,7 +1524,11 @@ class HQS(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the HQS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1661,7 +1694,11 @@ class PGD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1788,7 +1825,11 @@ class FISTA(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the FISTA parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `a`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -1909,7 +1950,11 @@ class MD(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the MD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -2030,7 +2075,11 @@ class PMD(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the PMD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
@@ -2173,7 +2222,11 @@ class PDCP(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+            Default: ``None``.
     :param dict params_algo: optionally, directly provide the PD parameters in a dictionary. This will overwrite the parameters in the arguments `K`, `K_adjoint`, `stepsize`, `lambda_reg`, `stepsize_dual`, `g_param`, `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
