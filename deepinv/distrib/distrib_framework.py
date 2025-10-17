@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from typing import Callable, Optional, Union, Sequence
 
@@ -98,7 +100,9 @@ class DistributedContext:
                     backend = "gloo"
                 elif self.device_mode == "gpu":
                     if not dist.is_nccl_available():
-                        raise RuntimeError("GPU mode requested but NCCL backend not available")
+                        raise RuntimeError(
+                            "GPU mode requested but NCCL backend not available"
+                        )
                     backend = "nccl"
                 else:
                     # Auto mode
@@ -293,7 +297,11 @@ class DistributedMeasurements:
                 self.local.append(y.to(ctx.device, dtype=y.dtype))
         elif measurements_list is not None:
             for i in self.local_idx:
-                self.local.append(measurements_list[i].to(ctx.device, dtype=measurements_list[i].dtype))
+                self.local.append(
+                    measurements_list[i].to(
+                        ctx.device, dtype=measurements_list[i].dtype
+                    )
+                )
         else:
             raise ValueError("Provide factory or measurements_list.")
 

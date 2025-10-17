@@ -5,9 +5,13 @@ This module provides abstract base classes and concrete implementations for
 distributed signal processing, including splitting, batching, and reduction operations.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence
+
 import torch
+
 from .utils import extract_and_pad_patch, tiling_splitting_strategy, tiling2d_reduce_fn
 
 Index = tuple[slice, ...]

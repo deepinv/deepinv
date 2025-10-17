@@ -10,33 +10,32 @@ The factory API exposes configuration-driven builders that create distributed co
 **Main Components:**
 
 - :class:`FactoryConfig`: Configuration for physics, measurements, and data fidelity
-- :class:`TilingConfig`: Configuration for spatial tiling strategies  
+- :class:`TilingConfig`: Configuration for spatial tiling strategies
 - :class:`DistributedBundle`: Container for all distributed objects
 - :func:`make_distrib_core`: Builder function that creates all distributed components
 
 **Key Benefits:**
 
 - **Reduced Boilerplate**: No need to write factory functions manually
-- **Configuration-Driven**: Easy to modify, reuse, and share configurations  
+- **Configuration-Driven**: Easy to modify, reuse, and share configurations
 - **Type Safety**: Configuration objects prevent common errors
 - **Single Builder**: All distributed objects created with one function call
 
 The returned objects are native DeepInverse distributed classes, so you retain
 full control and can inspect internals, swap components, and customize behavior.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Any, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
-import deepinv as dinv
 
 from deepinv.physics import Physics
 from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity, L2
-from deepinv.optim.prior import Prior, PnP
-from deepinv.loss.metric import PSNR
+from deepinv.optim.prior import Prior
 from deepinv.utils.tensorlist import TensorList
 
 from deepinv.distrib.distrib_framework import (
@@ -53,6 +52,7 @@ from deepinv.distrib.distrib_framework import (
 # Configs & Bundles (lightweight)
 # ---------------------------
 
+
 @dataclass
 class TilingConfig:
     r"""
@@ -63,13 +63,14 @@ class TilingConfig:
     :param bool overlap: whether to use overlapping patches
     :param str strategy: tiling strategy name. Options are `'basic'` and `'smart_tiling'`.
     """
+
     patch_size: int = 256
     receptive_field_size: int = 64
     overlap: bool = False
     strategy: str = "smart_tiling"
 
 
-@dataclass  
+@dataclass
 class FactoryConfig:
     r"""
     Configuration for distributed component factories.
@@ -83,6 +84,7 @@ class FactoryConfig:
     :param None, int num_operators: required when using factory functions instead of lists or StackedPhysics
     :param None, Union[DataFidelity, Callable] data_fidelity: data fidelity term or factory function. If `None`, defaults to L2.
     """
+
     physics: Union[Sequence[Physics], Callable, StackedPhysics]
     measurements: Union[Sequence[torch.Tensor], Callable, TensorList]
     num_operators: Optional[int] = None  # required if physics is a factory
@@ -103,6 +105,7 @@ class DistributedBundle:
     :param DistributedSignal signal: distributed signal (always created)
     :param None, DistributedPrior prior: optional distributed prior
     """
+
     physics: DistributedLinearPhysics
     measurements: DistributedMeasurements
     data_fidelity: DistributedDataFidelity
@@ -113,6 +116,7 @@ class DistributedBundle:
 # ---------------------------
 # Public Builders
 # ---------------------------
+
 
 def make_distrib_bundle(
     ctx: DistributedContext,
@@ -182,16 +186,21 @@ def make_distrib_bundle(
         # Extract physics_list from StackedPhysics
         physics_list_extracted = factory_config.physics.physics_list
         num_operators = len(physics_list_extracted)
+
         def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
             return physics_list_extracted[idx].to(device)
+
     elif callable(factory_config.physics):
         physics_factory = factory_config.physics
         num_operators = getattr(factory_config, "num_operators", None)
         if num_operators is None:
-            raise ValueError("When using a factory for physics, you must provide num_operators as an attribute of FactoryConfig.")
+            raise ValueError(
+                "When using a factory for physics, you must provide num_operators as an attribute of FactoryConfig."
+            )
     else:
         physics_list_extracted = factory_config.physics
         num_operators = len(physics_list_extracted)
+
         def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
             return physics_list_extracted[idx].to(device)
 
@@ -200,37 +209,62 @@ def make_distrib_bundle(
         # Extract measurements from TensorList - TensorList is indexable
         measurements_tensorlist = factory_config.measurements
         num_operators = len(measurements_tensorlist)
-        def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
+
+        def measurements_factory(
+            idx: int, device: torch.device, shared: Optional[dict]
+        ):
             return measurements_tensorlist[idx].to(device)
+
     elif callable(factory_config.measurements):
         measurements_factory = factory_config.measurements
         num_operators = getattr(factory_config, "num_operators", None)
         if num_operators is None:
-            raise ValueError("When using a factory for measurements, you must provide num_operators as an attribute of FactoryConfig.")
+            raise ValueError(
+                "When using a factory for measurements, you must provide num_operators as an attribute of FactoryConfig."
+            )
     else:
         measurements_list_extracted = factory_config.measurements
         num_operators = len(measurements_list_extracted)
-        def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
+
+        def measurements_factory(
+            idx: int, device: torch.device, shared: Optional[dict]
+        ):
             return measurements_list_extracted[idx].to(device)
 
     # Data fidelity factory
     if factory_config.data_fidelity is None:
+
         def df_factory_none(idx: int, device: torch.device, shared: Optional[dict]):
             return L2()
+
         df_factory = df_factory_none
-    elif callable(factory_config.data_fidelity) and not isinstance(factory_config.data_fidelity, DataFidelity):
+    elif callable(factory_config.data_fidelity) and not isinstance(
+        factory_config.data_fidelity, DataFidelity
+    ):
         # This is a proper factory function, not a data fidelity instance
         df_factory = factory_config.data_fidelity
     else:
         # This is a data fidelity instance (like L2()) or other object - create wrapper factory
         df_instance = factory_config.data_fidelity
+
         def df_factory_instance(idx: int, device: torch.device, shared: Optional[dict]):
             return df_instance
+
         df_factory = df_factory_instance
 
-    physics = DistributedLinearPhysics(ctx, num_ops=num_operators, factory=physics_factory, dtype=dtype)
-    measurements = DistributedMeasurements(ctx, num_items=num_operators, factory=measurements_factory)
-    data_fidelity = DistributedDataFidelity(ctx, physics, measurements, data_fidelity_factory=df_factory, reduction=reduction)
+    physics = DistributedLinearPhysics(
+        ctx, num_ops=num_operators, factory=physics_factory, dtype=dtype
+    )
+    measurements = DistributedMeasurements(
+        ctx, num_items=num_operators, factory=measurements_factory
+    )
+    data_fidelity = DistributedDataFidelity(
+        ctx,
+        physics,
+        measurements,
+        data_fidelity_factory=df_factory,
+        reduction=reduction,
+    )
 
     signal = DistributedSignal(ctx, shape=signal_shape, dtype=dtype)
     dprior = None
@@ -253,4 +287,10 @@ def make_distrib_bundle(
             },
         )
 
-    return DistributedBundle(physics=physics, measurements=measurements, data_fidelity=data_fidelity, signal=signal, prior=dprior)
+    return DistributedBundle(
+        physics=physics,
+        measurements=measurements,
+        data_fidelity=data_fidelity,
+        signal=signal,
+        prior=dprior,
+    )

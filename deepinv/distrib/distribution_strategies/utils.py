@@ -1,4 +1,7 @@
-from typing import Sequence, Optional, Callable
+from __future__ import annotations
+
+from typing import Sequence, Optional
+
 import torch
 import torch.nn.functional as F
 

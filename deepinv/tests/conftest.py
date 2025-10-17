@@ -7,7 +7,7 @@ from dummy import DummyCircles
 
 import importlib
 
-import os, socket, subprocess, time, sys
+import socket
 
 
 @pytest.fixture(
@@ -111,9 +111,11 @@ def _get_free_port():
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
 
+
 @pytest.fixture(params=[1, 2])
 def world_size(request):
     return request.param
+
 
 @pytest.fixture
 def dist_config(world_size):
