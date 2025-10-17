@@ -218,6 +218,8 @@ def test_transform_identity(
         "similarity",
         "affine",
         "pantiltrotate",
+        "VARIANTshift+scale*rotate",
+        "VARIANTshift*scale|rotate",
     ):
         # more reliable with a cpu rng here
         rng = torch.Generator().manual_seed(0)

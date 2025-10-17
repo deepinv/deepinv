@@ -737,11 +737,11 @@ def test_operator_multiscale_wrapper(name, device, rng):
 
     _, img_size_orig, _, _ = find_operator(
         name,
-        device,
+        device=device,
     )  # get img_size for the operator
     physics, img_size_orig, _, dtype = find_operator(
         name,
-        device,
+        device=device,
         imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
     )  # get physics for the operator with base img size
 
@@ -750,10 +750,14 @@ def test_operator_multiscale_wrapper(name, device, rng):
         base_shape[-2] // (scale**2),
         base_shape[-1] // (scale**2),
     )
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
 
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
-        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
+        physics,
+        (*image_shape[:-2], *base_shape),
+        factors=[2, 4, 8],
+        dtype=dtype,
+        device=device,
     )  # define a multiscale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
@@ -772,7 +776,7 @@ def test_operator_cropper(name, device, rng):
         device,
     )  # get physics for the operator with base img size
 
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 

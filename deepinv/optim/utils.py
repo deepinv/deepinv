@@ -5,6 +5,7 @@ from torch import Tensor
 from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
+from torch.linalg import vector_norm
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
@@ -24,11 +25,12 @@ def check_conv(
             X_prev = X_prev["est"][0]
         if isinstance(X, dict):
             X = X["est"][0]
-        crit_cur = (X_prev - X).norm() / (X.norm() + 1e-06)
+        crit_cur = vector_norm(X_prev - X) / (vector_norm(X) + 1e-06)
     elif crit_conv == "cost":
         F_prev = X_prev["cost"]
         F = X["cost"]
-        crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+        crit_cur = vector_norm(F_prev - F) / (vector_norm(F) + 1e-06)
+
     else:
         raise ValueError("convergence criteria not implemented")
     if crit_cur < thres_conv:
@@ -715,7 +717,7 @@ def minres(
         dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
-    b_norm = b.norm(2, dim=dim, keepdim=True)
+    b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)
     b_is_zero = b_norm < 1e-10
     b_norm = b_norm.masked_fill(b_is_zero, 1)
     b = b / b_norm
@@ -731,7 +733,7 @@ def minres(
     zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
-    alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
+    alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
     beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
@@ -757,7 +759,7 @@ def minres(
     scale_prev = beta_prev
 
     # Terms for checking for convergence
-    solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+    solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
@@ -810,8 +812,10 @@ def minres(
         ###########################################
 
         # Check convergence criterion
-        search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
-        solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+        search_update_norm = torch.linalg.vector_norm(
+            search_update, dim=dim, ord=2
+        ).unsqueeze(-1)
+        solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
         if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
                 print("MINRES converged at iteration", i)

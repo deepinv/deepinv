@@ -91,7 +91,9 @@ def test_data_fidelity_l2(device):
 
     # 5. Testing the torch autograd implementation of the gradient
     def dummy_torch_l2(x, y):
-        return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
+        return (
+            0.5 * torch.linalg.vector_norm((B @ (x - y)).flatten(), dim=-1, ord=2) ** 2
+        )
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_grad = torch_loss.d.grad(x, y)
@@ -167,7 +169,10 @@ def test_data_fidelity_indicator(device):
     x_proj = torch.Tensor([[[0.5290], [2.9932]]]).to(device)
     dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
-    assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
+    assert (
+        torch.linalg.vector_norm((A_forward(dfb_proj) - y).flatten(), dim=-1, ord=2)
+        <= radius + 1e-6
+    )
 
     # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
     assert torch.allclose(
@@ -349,7 +354,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 0.1
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -714,7 +719,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 1.0
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -806,7 +811,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     def prior_g(x, *args, **kwargs):
         ths = 1.0
-        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), ord=1, dim=-1)
 
     prior = Prior(g=prior_g)  # The prior term
 

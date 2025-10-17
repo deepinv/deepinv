@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Callable
 import torch
+import torch.nn.functional as F
 from deepinv.optim.potential import Potential
 
 
@@ -71,7 +72,11 @@ class L2Distance(Distance):
         :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
-        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
+        d = (
+            0.5
+            * torch.linalg.vector_norm(z, ord=2, dim=tuple(range(1, z.dim()))) ** 2
+            * self.norm
+        )
         return d
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
@@ -114,7 +119,7 @@ class IndicatorL2Distance(Distance):
     r"""
     Indicator of :math:`\ell_2` ball with radius :math:`r`.
 
-    The indicator function of the $\ell_2$ ball with radius :math:`r`, denoted as \iota_{\mathcal{B}_2(y,r)(x)},
+    The indicator function of the :math:`\ell_2` ball with radius :math:`r`, denoted as :math:`\iota_{\mathcal{B}_2(y,r)(x)}`,
     is defined as
 
     .. math::
@@ -146,7 +151,7 @@ class IndicatorL2Distance(Distance):
         :return: (:class:`torch.Tensor`) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
         diff = x - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
+        dist = torch.linalg.vector_norm(diff, dim=tuple(range(1, diff.dim())), ord=2)
         radius = self.radius if radius is None else radius
         loss = (dist > radius) * 1e16
         return loss
@@ -179,10 +184,13 @@ class IndicatorL2Distance(Distance):
         """
         radius = self.radius if radius is None else radius
         diff = x - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
-        return y + diff * (
-            torch.min(torch.tensor([radius]).to(x.device), dist) / (dist + 1e-12)
-        ).view(-1, 1, 1, 1)
+        dist = torch.linalg.vector_norm(
+            diff, dim=tuple(range(1, diff.dim())), ord=2, keepdim=True
+        )
+        # Compute scaling factor (1 if inside ball, r / dist if outside)
+        scale = torch.clamp(radius / (dist + 1e-12), max=1.0)
+
+        return y + diff * scale
 
 
 class PoissonLikelihoodDistance(Distance):
@@ -233,7 +241,7 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return self.gain * (torch.ones_like(x) - y / (x / self.gain + self.bkg))
+        return self.gain * (1 - y / (x / self.gain + self.bkg))
 
     def prox(
         self, x: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs
@@ -270,7 +278,7 @@ class L1Distance(Distance):
 
     def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         diff = x - y
-        return torch.norm(diff.reshape(diff.shape[0], -1), p=1, dim=-1)
+        return torch.linalg.vector_norm(diff.view(diff.size(0), -1), ord=1, dim=1)
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -311,9 +319,7 @@ class L1Distance(Distance):
         :return: (:class:`torch.Tensor`) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
-        aux = torch.sign(d) * torch.maximum(
-            d.abs() - gamma, torch.tensor([0]).to(d.device)
-        )
+        aux = F.softshrink(d, lambd=gamma)
         return aux + y
 
 
@@ -341,7 +347,7 @@ class AmplitudeLossDistance(Distance):
         :return: (:class:`torch.Tensor`) the amplitude loss of shape B where B is the batch size.
         """
         x = torch.sqrt(u) - torch.sqrt(y)
-        d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
+        d = torch.linalg.vector_norm(x, ord=2, dim=tuple(range(1, x.dim()))) ** 2
         return d
 
     def grad(
@@ -360,7 +366,7 @@ class AmplitudeLossDistance(Distance):
         :param float epsilon: small value to avoid division by zero.
         :return: (:class:`torch.Tensor`) gradient of the amplitude loss function.
         """
-        return (torch.sqrt(u + epsilon) - torch.sqrt(y)) / torch.sqrt(u + epsilon)
+        return 1 - torch.sqrt(y / (u + epsilon))
 
 
 class LogPoissonLikelihoodDistance(Distance):
