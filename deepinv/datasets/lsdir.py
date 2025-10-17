@@ -5,7 +5,6 @@ import os
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
-    download_archive,
     extract_tarball,
 )
 from deepinv.datasets.base import ImageFolder
@@ -31,15 +30,12 @@ class LsdirHR(ImageFolder):
                    -- 0085000 --- 0084001.png
                    |           |
                    |           -- 0084991.png
-                   -- shard-00.tar.gz
-                   |  ...
-                   -- shard-16.tar.gz
+                   |
                    |
                    -- val1 --- HR --- val --- 0000001.png
                    |        -- X2          |
                    |        -- X3          -- 0000250.png
                    |        -- X4
-                   -- val1.tar.gz
 
     .. warning::
         Downloading this dataset requires ``huggingface-hub``. It is gated, please request access (https://huggingface.co/ofsoundof/LSDIR) and make sure you are logged in using ``hf auth login`` (CLI) or ``from huggingface_hub import login, login()``.
@@ -177,18 +173,19 @@ class LsdirHR(ImageFolder):
         The expected structure of the dataset directory is as follows: ::
 
             self.root --- 0001000 --- 0000001.png
-                       |           |
-                       |           -- 0001000.png
-                       |  ...
-                       |
-                       -- 0085000 --- 0084001.png
-                       |           |
-                       |           -- 0084991.png
-                       |
-                       -- val1 --- HR --- val --- 0000001.png
-                       |                       |
-                       |                       -- 0000250.png
-                       -- xxx
+                    |           |
+                    |           -- 0001000.png
+                    |  ...
+                    |
+                    -- 0085000 --- 0084001.png
+                    |           |
+                    |           -- 0084991.png
+                    |
+                    |
+                    -- val1 --- HR --- val --- 0000001.png
+                    |        -- X2          |
+                    |        -- X3          -- 0000250.png
+                    |
         """
         root_dir_exist = os.path.isdir(self.root)
         if not root_dir_exist:
