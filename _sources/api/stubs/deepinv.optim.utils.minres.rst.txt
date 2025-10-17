@@ -1,0 +1,9 @@
+﻿minres
+======
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: minres
+
+.. minigallery:: deepinv.optim.utils.minres
+    :add-heading: Examples using ``minres``:

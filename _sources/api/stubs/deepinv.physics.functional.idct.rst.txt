@@ -1,0 +1,9 @@
+﻿idct
+====
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: idct
+
+.. minigallery:: deepinv.physics.functional.idct
+    :add-heading: Examples using ``idct``:

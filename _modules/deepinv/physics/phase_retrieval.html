@@ -1,0 +1,1082 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.phase_retrieval &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/phase_retrieval';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/physics/phase_retrieval.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.phase_retrieval</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.phase_retrieval</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.phase_retrieval</span><span class="w"> </span><span class="kn">import</span> <span class="n">spectral_methods</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.compressed_sensing</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompressedSensing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.forward</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.structured_random</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">compare</span><span class="p">,</span>
+    <span class="n">generate_diagonal</span><span class="p">,</span>
+    <span class="n">StructuredRandom</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">_deprecated_alias</span>
+
+
+<div class="viewcode-block" id="PhaseRetrieval">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PhaseRetrieval</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Phase Retrieval base class corresponding to the operator</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \forw{x} = |Bx|^2.</span>
+
+<span class="sd">    The linear operator :math:`B` is defined by a :class:`deepinv.physics.LinearPhysics` object.</span>
+
+<span class="sd">    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.</span>
+
+<span class="sd">    :param deepinv.physics.forward.LinearPhysics B: the linear forward operator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">B</span><span class="p">:</span> <span class="n">LinearPhysics</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Phase Retrieval&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">B</span>
+
+<div class="viewcode-block" id="PhaseRetrieval.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the forward operator to the input x.</span>
+
+<span class="sd">        Note here the operation includes the modulus operation.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">square</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PhaseRetrieval.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes an initial reconstruction for the image :math:`x` from the measurements :math:`y`.</span>
+
+<span class="sd">        We use the spectral methods defined in :class:`deepinv.optim.phase_retrieval.spectral_methods` to obtain an initial inverse.</span>
+
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) an initial reconstruction for image :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">spectral_methods</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">B_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PhaseRetrieval.B_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.B_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">B_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the linear pseudo-inverse of :math:`B`.</span>
+
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the reconstruction image :math:`x`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PhaseRetrieval.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the phase retrieval measurement operator, i.e. :math:`y = \noise{|Bx|^2}` (with noise :math:`N` and/or sensor non-linearities).</span>
+
+<span class="sd">        :param torch.Tensor,list[torch.Tensor] x: signal/image</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="PhaseRetrieval.A_vjp">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the product between a vector :math:`v` and the Jacobian of the forward operator :math:`A` at the input x, defined as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            A_{vjp}(x, v) = 2 \overline{B}^{\top} \text{diag}(Bx) v.</span>
+
+<span class="sd">        :param torch.Tensor x: signal/image.</span>
+<span class="sd">        :param torch.Tensor v: vector.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">release_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+        <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="RandomPhaseRetrieval">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.RandomPhaseRetrieval.html#deepinv.physics.RandomPhaseRetrieval">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomPhaseRetrieval</span><span class="p">(</span><span class="n">PhaseRetrieval</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Random Phase Retrieval forward operator. Creates a random :math:`m \times n` sampling matrix :math:`B` where :math:`n` is the number of elements of the signal and :math:`m` is the number of measurements.</span>
+
+<span class="sd">    This class generates a random i.i.d. Gaussian matrix</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        B_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m} \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).</span>
+
+<span class="sd">    An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.</span>
+
+<span class="sd">    :param int m: number of measurements.</span>
+<span class="sd">    :param tuple img_size: shape (C, H, W) of inputs.</span>
+<span class="sd">    :param bool channelwise: Channels are processed independently using the same random forward operator.</span>
+<span class="sd">    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.</span>
+<span class="sd">    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.</span>
+<span class="sd">    :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.</span>
+<span class="sd">    :param str device: Device to store the forward matrix.</span>
+<span class="sd">    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+<span class="sd">        If ``None``, the default Generator of PyTorch will be used.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Random phase retrieval operator with 10 measurements for a 3x3 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import RandomPhaseRetrieval</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = RandomPhaseRetrieval(m=6, img_size=(1, 3, 3), rng=torch.Generator(&#39;cpu&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[3.8405, 2.2588, 0.0146, 3.0864, 1.8075, 0.1518]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@_deprecated_alias</span><span class="p">(</span><span class="n">img_shape</span><span class="o">=</span><span class="s2">&quot;img_size&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">m</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">,</span>
+        <span class="n">channelwise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cfloat</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">unitary</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">compute_inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channelwise</span> <span class="o">=</span> <span class="n">channelwise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Make sure that the random generator is on the same device as the physic generator</span>
+            <span class="k">assert</span> <span class="n">rng</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+                <span class="n">device</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;The random generator is not on the same device as the Physics Generator. Got random generator on </span><span class="si">{</span><span class="n">rng</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2"> and the Physics Generator on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+
+        <span class="n">B</span> <span class="o">=</span> <span class="n">CompressedSensing</span><span class="p">(</span>
+            <span class="n">m</span><span class="o">=</span><span class="n">m</span><span class="p">,</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">channelwise</span><span class="o">=</span><span class="n">channelwise</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;initial_random_state&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Random Phase Retrieval&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_A_squared_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">_A</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">_A</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="StructuredRandomPhaseRetrieval">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html#deepinv.physics.StructuredRandomPhaseRetrieval">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StructuredRandomPhaseRetrieval</span><span class="p">(</span><span class="n">PhaseRetrieval</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Structured random phase retrieval model corresponding to the operator</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        A(x) = |\prod_{i=1}^N (F D_i) x|^2,</span>
+
+<span class="sd">    where :math:`F` is the Discrete Fourier Transform (DFT) matrix, and :math:`D_i` are diagonal matrices with elements of unit norm and random phases, and :math:`N` refers to the number of layers. It is also possible to replace :math:`x` with :math:`Fx` as an additional 0.5 layer.</span>
+
+<span class="sd">    For oversampling, we first pad the input signal with zeros to match the output shape and pass it to :math:`A(x)`. For undersampling, we first pass the signal in its original shape to :math:`A(x)` and trim the output signal to match the output shape.</span>
+
+<span class="sd">    The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.</span>
+
+<span class="sd">    :param tuple img_size: shape (C, H, W) of inputs.</span>
+<span class="sd">    :param tuple output_size: shape (C, H, W) of outputs.</span>
+<span class="sd">    :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math:`F` transform is included, i.e., :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`.</span>
+<span class="sd">    :param str transform: structured transform to use. Default is &#39;fft&#39;.</span>
+<span class="sd">    :param str diagonal_mode: sampling distribution for the diagonal elements. Default is &#39;uniform_phase&#39;.</span>
+<span class="sd">    :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.</span>
+<span class="sd">    :param torch.dtype dtype: Signals are processed in dtype. Default is torch.cfloat.</span>
+<span class="sd">    :param str device: Device for computation. Default is `cpu`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@_deprecated_alias</span><span class="p">(</span><span class="n">input_shape</span><span class="o">=</span><span class="s2">&quot;img_size&quot;</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="s2">&quot;output_size&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+        <span class="n">output_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+        <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="s2">&quot;fft&quot;</span><span class="p">,</span>
+        <span class="n">diagonal_mode</span><span class="o">=</span><span class="s2">&quot;uniform_phase&quot;</span><span class="p">,</span>
+        <span class="n">shared_weights</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cfloat</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">output_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output_size</span> <span class="o">=</span> <span class="n">img_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">oversampling_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">n_layers</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">==</span> <span class="mf">0.5</span> <span class="ow">or</span> <span class="n">n_layers</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;n_layers must be an integer or an integer plus 0.5&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">n_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shared_weights</span> <span class="o">=</span> <span class="n">shared_weights</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+
+        <span class="c1"># generate diagonal matrices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shared_weights</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;oversampling&quot;</span><span class="p">:</span>
+                    <span class="n">diagonal</span> <span class="o">=</span> <span class="n">generate_diagonal</span><span class="p">(</span>
+                        <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="n">diagonal_mode</span><span class="p">,</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">diagonal</span> <span class="o">=</span> <span class="n">generate_diagonal</span><span class="p">(</span>
+                        <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="n">diagonal_mode</span><span class="p">,</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diagonal</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;oversampling&quot;</span><span class="p">:</span>
+                <span class="n">diagonal</span> <span class="o">=</span> <span class="n">generate_diagonal</span><span class="p">(</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="n">diagonal_mode</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">diagonal</span> <span class="o">=</span> <span class="n">generate_diagonal</span><span class="p">(</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="n">diagonal_mode</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span> <span class="o">+</span> <span class="p">[</span><span class="n">diagonal</span><span class="p">]</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">)</span>
+
+        <span class="c1"># determine transform functions</span>
+        <span class="k">if</span> <span class="n">transform</span> <span class="o">==</span> <span class="s2">&quot;fft&quot;</span><span class="p">:</span>
+            <span class="n">transform_func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+            <span class="n">transform_func_inv</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unimplemented transform: </span><span class="si">{</span><span class="n">transform</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">B</span> <span class="o">=</span> <span class="n">StructuredRandom</span><span class="p">(</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">output_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
+            <span class="n">transform_func</span><span class="o">=</span><span class="n">transform_func</span><span class="p">,</span>
+            <span class="n">transform_func_inv</span><span class="o">=</span><span class="n">transform_func_inv</span><span class="p">,</span>
+            <span class="n">diagonals</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Structured Random Phase Retrieval&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">B_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_A_squared_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;warning: computing the mean of the squared operator for a single Fourier transform.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagonals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+
+<div class="viewcode-block" id="StructuredRandomPhaseRetrieval.get_structure">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html#deepinv.physics.StructuredRandomPhaseRetrieval.get_structure">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_structure</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns the structure of the operator as a string.</span>
+
+<span class="sd">        :param float n_layers: number of layers.</span>
+
+<span class="sd">        :return: (str) the structure of the operator, e.g., &quot;FDFD&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;FD&quot;</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;F&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">%</span> <span class="mi">1</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PtychographyLinearOperator">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PtychographyLinearOperator</span><span class="p">(</span><span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Forward linear operator for phase retrieval in ptychography.</span>
+
+<span class="sd">    Models multiple applications of the shifted probe and Fourier transform on an input image.</span>
+
+<span class="sd">    This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.</span>
+<span class="sd">    The probe function is applied element by element to the input image.</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],</span>
+<span class="sd">        B_l = F \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},</span>
+
+<span class="sd">    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is associated with the probe :math:`p` and :math:`T_l` is a 2D shift.</span>
+
+<span class="sd">    :param tuple img_size: Shape of the input image (height, width).</span>
+<span class="sd">    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.</span>
+<span class="sd">    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.</span>
+<span class="sd">    :param torch.device, str device: Device &quot;cpu&quot; or &quot;gpu&quot;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">,</span>
+        <span class="n">probe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+
+        <span class="k">if</span> <span class="n">shifts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_img</span> <span class="o">=</span> <span class="mi">25</span>
+            <span class="n">shifts</span> <span class="o">=</span> <span class="n">generate_shifts</span><span class="p">(</span><span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="n">n_img</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_img</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_img</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shifts</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;shifts&quot;</span><span class="p">,</span> <span class="n">shifts</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">probe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">probe</span> <span class="o">=</span> <span class="n">build_probe</span><span class="p">(</span>
+                <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;disk&quot;</span><span class="p">,</span> <span class="n">probe_radius</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;init_probe&quot;</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">probe</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_overlap_img</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shifts</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span><span class="p">)</span> <span class="k">for</span> <span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shifts</span><span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;probe&quot;</span><span class="p">,</span> <span class="n">probe</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PtychographyLinearOperator.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the forward operator to the input image ``x`` by shifting the probe,</span>
+<span class="sd">        multiplying element-wise, and performing a 2D Fourier transform.</span>
+
+<span class="sd">        :param torch.Tensor x: Input image tensor.</span>
+<span class="sd">        :return: Concatenated Fourier transformed tensors after applying shifted probes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">op_fft2</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">op_fft2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probe</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtychographyLinearOperator.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies the adjoint operator to ``y``.</span>
+
+<span class="sd">        :param torch.Tensor y: Transformed image data tensor of size (batch_size, n_img, height, width).</span>
+<span class="sd">        :return: Reconstructed image tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">op_ifft2</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;ortho&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probe</span> <span class="o">*</span> <span class="n">op_ifft2</span><span class="p">(</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PtychographyLinearOperator.shift">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.shift">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span><span class="p">,</span> <span class="n">pad_zeros</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies a shift to the tensor ``x`` by ``x_shift`` and ``y_shift``.</span>
+
+<span class="sd">        :param torch.Tensor x: Input tensor.</span>
+<span class="sd">        :param int x_shift: Shift in x-direction.</span>
+<span class="sd">        :param int y_shift: Shift in y-direction.</span>
+<span class="sd">        :param bool pad_zeros: If True, pads shifted regions with zeros.</span>
+<span class="sd">        :return: Shifted tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">pad_zeros</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x_shift</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">x_shift</span><span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="n">x_shift</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">x_shift</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">y_shift</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:,</span> <span class="n">y_shift</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="n">y_shift</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span><span class="n">y_shift</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="PtychographyLinearOperator.get_overlap_img">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.get_overlap_img">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_overlap_img</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shifts</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the overlapping image intensities from probe shifts, used for normalization.</span>
+
+<span class="sd">        :param torch.Tensor shifts: Tensor of probe shifts.</span>
+<span class="sd">        :return: Tensor representing the overlap image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">overlap_img</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_probe</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span> <span class="ow">in</span> <span class="n">shifts</span><span class="p">:</span>
+            <span class="n">overlap_img</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_probe</span><span class="p">,</span> <span class="n">x_shift</span><span class="p">,</span> <span class="n">y_shift</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">overlap_img</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Ptychography">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.Ptychography.html#deepinv.physics.Ptychography">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ptychography</span><span class="p">(</span><span class="n">PhaseRetrieval</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ptychography forward operator.</span>
+
+<span class="sd">    Corresponding to the operator</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">         \forw{x} = \left| Bx \right|^2</span>
+
+<span class="sd">    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.</span>
+
+<span class="sd">    :param tuple img_size: Shape of the input image.</span>
+<span class="sd">    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.</span>
+<span class="sd">        If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.</span>
+<span class="sd">    :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.</span>
+<span class="sd">        If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.</span>
+<span class="sd">    :param torch.device, str device: Device &quot;cpu&quot; or &quot;gpu&quot;.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">    &gt;&gt;&gt; from deepinv.physics import Ptychography</span>
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; img_size = (1, 64, 64)  # input image</span>
+<span class="sd">    &gt;&gt;&gt; physics = Ptychography(img_size=img_size)</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.randn(img_size, dtype=torch.cfloat)</span>
+<span class="sd">    &gt;&gt;&gt; y = physics(x)  # Apply the Ptychography forward operator</span>
+<span class="sd">    &gt;&gt;&gt; print(y.shape) # 25 probe positions by default</span>
+<span class="sd">    torch.Size([1, 25, 64, 64])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@_deprecated_alias</span><span class="p">(</span><span class="n">in_shape</span><span class="o">=</span><span class="s2">&quot;img_size&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">probe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">shifts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">PtychographyLinearOperator</span><span class="p">(</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">probe</span><span class="o">=</span><span class="n">probe</span><span class="p">,</span>
+            <span class="n">shifts</span><span class="o">=</span><span class="n">shifts</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probe</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">probe</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shifts</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">shifts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Ptychography_PR&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="build_probe">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.phase_retrieval.build_probe.html#deepinv.physics.build_probe">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_probe</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;disk&quot;</span><span class="p">,</span> <span class="n">probe_radius</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a probe based on the specified type and radius.</span>
+
+<span class="sd">    :param tuple img_size: Shape of the input image.</span>
+<span class="sd">    :param str type: Type of probe shape, e.g., &quot;disk&quot;.</span>
+<span class="sd">    :param int probe_radius: Radius of the probe shape.</span>
+<span class="sd">    :param torch.device device: Device &quot;cpu&quot; or &quot;gpu&quot;.</span>
+<span class="sd">    :return: Tensor representing the constructed probe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;disk&quot;</span> <span class="ow">or</span> <span class="nb">type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+        <span class="n">probe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">probe</span><span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">img_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="n">img_size</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">img_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">&lt;</span> <span class="n">probe_radius</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Probe type </span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s2"> not implemented&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">probe</span></div>
+
+
+
+<div class="viewcode-block" id="generate_shifts">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.phase_retrieval.generate_shifts.html#deepinv.physics.generate_shifts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_shifts</span><span class="p">(</span>
+    <span class="n">img_size</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">n_img</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">fov</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates the array of probe shifts across the image.</span>
+<span class="sd">    Based on probe radius and field of view.</span>
+
+<span class="sd">    :param img_size: Size of the image.</span>
+<span class="sd">    :param int n_img: Number of shifts (must be a perfect square).</span>
+<span class="sd">    :param int fov: Field of view for shift computation.</span>
+<span class="sd">    :return: Array of (x, y) shifts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">fov</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fov</span> <span class="o">=</span> <span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">start_shift</span> <span class="o">=</span> <span class="o">-</span><span class="n">fov</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">end_shift</span> <span class="o">=</span> <span class="n">fov</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="k">if</span> <span class="n">n_img</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_img</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n_img needs to be a perfect square&quot;</span><span class="p">)</span>
+
+    <span class="n">side_n_img</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_img</span><span class="p">))</span>
+    <span class="n">shifts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start_shift</span><span class="p">,</span> <span class="n">end_shift</span><span class="p">,</span> <span class="n">side_n_img</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">y_shifts</span><span class="p">,</span> <span class="n">x_shifts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="n">shifts</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">x_shifts</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_img</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">y_shifts</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_img</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
