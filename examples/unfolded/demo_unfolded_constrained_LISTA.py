@@ -157,9 +157,9 @@ prior = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [
+g_param = [
     0.01 * torch.ones(1, level, 3)
-] * max_iter  # thresholding parameters \sigma
+] * max_iter  # thresholding parameters of the wavelet denoiser
 
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
@@ -170,7 +170,7 @@ trainable_params = ["g_param", "stepsize", "stepsize_dual"]
 # Define the unfolded trainable model. # See the documentation of the Primal Dual CP algorithm :class:`deepinv.optim.PDCP` for more details.
 model = PDCP(
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    g_param=g_param,
     stepsize_dual=stepsize_dual,
     K=physics.A,
     K_adjoint=physics.A_adjoint,

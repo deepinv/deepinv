@@ -114,7 +114,7 @@ data_fidelity = L2()
 stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 trainable_params = [
-    "g_param",
+    "sigma_denoiser",
     "stepsize",
 ]  # define which parameters from 'params_algo' are trainable
 
@@ -156,7 +156,7 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 model = HQS(
     unfold=True,
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -203,7 +203,7 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 model = HQS(
     unfold=True,
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,

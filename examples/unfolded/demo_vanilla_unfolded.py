@@ -127,7 +127,7 @@ beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
 trainable_params = [
     "stepsize",
     "beta",
-    "g_param",
+    "sigma_denoiser",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Logging parameters
@@ -136,7 +136,7 @@ verbose = True
 # Define the unfolded trainable model.
 model = DRS(
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
     beta=beta,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
