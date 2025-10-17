@@ -1096,6 +1096,11 @@ def test_SKMTEASliceDataset(download_SKMTEA, device):
 @pytest.fixture
 def make_data(tmp_path, request):
     """Minimal synthetic datasets for 3D (.npy/.b2nd/.nii.gz), 2D+channels (C,H,W & H,W,C), and >3D no-channels (H,W,D,T)."""
+    pytest.importorskip(
+        "nibabel",
+        reason="This test requires nibabel. It should be "
+        "installed with `pip install nibabel`",
+    )
     import nibabel as nib
     import blosc2
 
