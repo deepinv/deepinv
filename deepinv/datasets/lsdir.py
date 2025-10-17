@@ -9,6 +9,7 @@ from deepinv.datasets.utils import (
     extract_tarball,
 )
 from deepinv.datasets.base import ImageFolder
+import shutil
 
 
 class LsdirHR(ImageFolder):
@@ -41,8 +42,7 @@ class LsdirHR(ImageFolder):
                    -- val1.tar.gz
 
     .. warning::
-        The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.
-        Thus the download argument isn't working for now.
+        Downloading this dataset requires ``huggingface-hub``. It is gated, please request access (https://huggingface.co/ofsoundof/LSDIR) and make sure you are logged in using ``hf auth login`` (CLI) or ``from huggingface_hub import login, login()``.
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
@@ -67,32 +67,28 @@ class LsdirHR(ImageFolder):
 
     _archive_urls = MappingProxyType(
         {
-            "train": MappingProxyType(
-                {
-                    "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
-                    "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
-                    "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
-                    "shard-03.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-03.tar.gz",
-                    "shard-04.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-04.tar.gz",
-                    "shard-05.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-05.tar.gz",
-                    "shard-06.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-06.tar.gz",
-                    "shard-07.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-07.tar.gz",
-                    "shard-08.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-08.tar.gz",
-                    "shard-09.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-09.tar.gz",
-                    "shard-10.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-10.tar.gz",
-                    "shard-11.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-11.tar.gz",
-                    "shard-12.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-12.tar.gz",
-                    "shard-13.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-13.tar.gz",
-                    "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
-                    "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
-                    "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
-                }
-            ),
-            "val": MappingProxyType(
-                {
-                    "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
-                }
-            ),
+            "train": [
+                "shard-00.tar.gz",
+                "shard-01.tar.gz",
+                "shard-02.tar.gz",
+                "shard-03.tar.gz",
+                "shard-04.tar.gz",
+                "shard-05.tar.gz",
+                "shard-06.tar.gz",
+                "shard-07.tar.gz",
+                "shard-08.tar.gz",
+                "shard-09.tar.gz",
+                "shard-10.tar.gz",
+                "shard-11.tar.gz",
+                "shard-12.tar.gz",
+                "shard-13.tar.gz",
+                "shard-14.tar.gz",
+                "shard-15.tar.gz",
+                "shard-16.tar.gz",
+            ],
+            "val": [
+                "val1.tar.gz",
+            ],
         }
     )
 
@@ -129,10 +125,12 @@ class LsdirHR(ImageFolder):
 
         # download a split of the dataset, we check first that this split isn't already downloaded
         if download:
-            raise ValueError(
-                f"""The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.\n
-                    Thus the download argument isn't working for now."""
-            )
+            try:
+                from huggingface_hub import hf_hub_download
+            except:
+                raise RuntimeError(
+                    "To download LsdirHR, please install huggingface-hub, request access to https://huggingface.co/ofsoundof/LSDIR (this should be instant), and authenticate yourself. For more info, see the LsdirHR's documentation."
+                )
             if not os.path.isdir(self.root):
                 os.makedirs(self.root)
             # if a folder image exists, we stop the download
@@ -141,14 +139,23 @@ class LsdirHR(ImageFolder):
                     f"The {self.mode} folders already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dirs}`."
                 )
 
-            for filename, url in self._archive_urls[self.mode].items():
-                # download tar file from the Internet and save it locally
-                download_archive(
-                    url=url,
-                    save_path=os.path.join(self.root, filename),
+            for filename in self._archive_urls[self.mode]:
+                # download tar file from HuggingFace and save it locally
+                hf_hub_download(
+                    repo_id="ofsoundof/LSDIR",
+                    filename=filename,
+                    local_dir=os.path.join(self.root),
+                    cache_dir=os.path.join(self.root, ".cache/huggingface"),
+                    local_dir_use_symlinks=False,
                 )
+                # Since LSDIR is relatively large, we want to avoid taking too much redundant disk space.
+                shutil.rmtree(os.path.join(self.root, ".cache/huggingface"))
+
                 # extract local tar file
                 extract_tarball(os.path.join(self.root, filename), self.root)
+                os.remove(
+                    os.path.join(self.root, filename)
+                )  # Since LSDIR is relatively large, we want to avoid taking too much redundant disk space.
 
             if self.verify_split_dataset_integrity():
                 print("Dataset has been successfully downloaded.")
@@ -159,7 +166,10 @@ class LsdirHR(ImageFolder):
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
         # Initialize ImageFolder
-        super().__init__(self.root, x_path="**/*.png", transform=transform)
+        if mode == "val":
+            super().__init__(self.root, x_path="val1/HR/val/*.png", transform=transform)
+        else:  # surely is train because of earlier check
+            super().__init__(self.root, x_path="**/*.png", transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
