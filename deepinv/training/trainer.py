@@ -14,6 +14,7 @@ from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
@@ -193,6 +194,8 @@ class Trainer:
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
+        Increasing this may speed up training.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
     :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
 
@@ -254,6 +257,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
+    freq_update_progress_bar: int = 1
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -409,6 +413,15 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider increasing this."
+            )
+
         _ = self.load_model()
 
     def load_model(
@@ -453,7 +466,7 @@ class Trainer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.log_metrics_mlops(self, logs=logs, step=step, train=train)
+        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
     def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
         r"""
@@ -568,7 +581,7 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
+        if not isinstance(data, (tuple, list)) or len(data) < 2:
             raise ValueError(
                 "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
@@ -586,13 +599,18 @@ class Trainer:
                 "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
             )
 
-        if type(x) is list or type(x) is tuple:
-            x = [s.to(self.device) for s in x]
+        batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
+        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
+
+        if batch_size_x != batch_size_y:  # pragma: no cover
+            raise ValueError(
+                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+            )
+
+        if torch.isnan(x).all() and x.ndim <= 1:
+            x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
             x = x.to(self.device)
-
-        if x.numel() == 1 and torch.isnan(x):
-            x = None  # unsupervised case
 
         y = y.to(self.device)
         physics = self.physics[g]
@@ -830,6 +848,7 @@ class Trainer:
         train_ite=None,
         train=True,
         last_batch=False,
+        update_progress_bar=False,
     ):
         r"""
         Train/Eval a batch.
@@ -880,7 +899,8 @@ class Trainer:
                 )
 
             # Update the progress bar
-            progress_bar.set_postfix(logs)
+            if update_progress_bar:  # implicit syncing with gpu, slow
+                progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
@@ -1167,7 +1187,7 @@ class Trainer:
             for i in (
                 progress_bar := tqdm(
                     range(batches),
-                    ncols=150,
+                    dynamic_ncols=True,
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
@@ -1180,6 +1200,7 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
+                    update_progress_bar=(i % self.freq_update_progress_bar == 0),
                 )
 
                 perform_eval = self.eval_dataloader and (
@@ -1212,7 +1233,7 @@ class Trainer:
                     for j in (
                         eval_progress_bar := tqdm(
                             range(eval_batches),
-                            ncols=150,
+                            dynamic_ncols=True,
                             disable=(not self.verbose or not self.show_progress_bar),
                             colour="green",
                         )
@@ -1226,6 +1247,9 @@ class Trainer:
                             train_ite=train_ite,
                             train=False,
                             last_batch=(j == eval_batches - 1),
+                            update_progress_bar=(
+                                i % self.freq_update_progress_bar == 0
+                            ),
                         )
 
                     for k in range(len(self.metrics)):
@@ -1316,12 +1340,18 @@ class Trainer:
         for i in (
             progress_bar := tqdm(
                 range(batches),
-                ncols=150,
+                dynamic_ncols=True,
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
             progress_bar.set_description(f"Test")
-            self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
+            self.step(
+                0,
+                progress_bar,
+                train=False,
+                last_batch=(i == batches - 1),
+                update_progress_bar=(i % self.freq_update_progress_bar == 0),
+            )
 
         self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
 

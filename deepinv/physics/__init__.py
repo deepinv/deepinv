@@ -34,6 +34,7 @@ from .noise import (
     SaltPepperNoise,
     ZeroNoise,
     FisherTippettNoise,
+    RicianNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
@@ -52,6 +53,8 @@ from .phase_retrieval import (
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
+
+from .spatial_unwrapping import SpatialUnwrapping
 
 from . import generator
 from . import functional

@@ -5,6 +5,7 @@ from torch import Tensor
 from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
+from torch.linalg import vector_norm
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
@@ -17,11 +18,12 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
             X_prev = X_prev["est"][0]
         if isinstance(X, dict):
             X = X["est"][0]
-        crit_cur = (X_prev - X).norm() / (X.norm() + 1e-06)
+        crit_cur = vector_norm(X_prev - X) / (vector_norm(X) + 1e-06)
     elif crit_conv == "cost":
         F_prev = X_prev["cost"]
         F = X["cost"]
-        crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+        crit_cur = vector_norm(F_prev - F) / (vector_norm(F) + 1e-06)
+
     else:
         raise ValueError("convergence criteria not implemented")
     if crit_cur < thres_conv:
@@ -88,7 +90,9 @@ def least_squares(
     :param torch.Tensor y: input tensor of shape (B, ...)
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
-    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar. If None, it is set to :math:`\infty` (no regularization).
+    :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
+        If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
+        If None, it is set to :math:`\infty` (no regularization).
     :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
@@ -116,20 +120,27 @@ def least_squares(
                 "Otherwise, the problem can become non-convex and the solvers are not designed for that."
                 "Continuing anyway..."
             )
+
+    Aty = AT(y)
+
     if gamma.ndim > 0:  # if batched gamma
-        if isinstance(y, TensorList):
-            batch_size = y[0].size(0)
-            ndim = y[0].ndim
+        if isinstance(Aty, TensorList):
+            batch_size = Aty[0].size(0)
+            ndim = Aty[0].ndim
         else:
-            batch_size = y.size(0)
-            ndim = y.ndim
+            batch_size = Aty.size(0)
+            ndim = Aty.ndim
 
         if gamma.size(0) != batch_size:
             raise ValueError(
                 "If gamma is batched, its batch size must match the one of y."
             )
-        else:  # ensure gamma has ndim as y
+        elif gamma.ndim == 1:  # expand gamma to ATy
             gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+        elif gamma.ndim != ndim:
+            raise ValueError(
+                f"gamma should either be 0D, 1D, or match same number of dimensions as ATy, but got ndims {gamma.ndim} and {ndim}"
+            )
 
     if solver == "lsqr":  # rectangular solver
         eta = 1 / gamma if gamma_provided else None
@@ -146,7 +157,6 @@ def least_squares(
         )
 
     else:
-        Aty = AT(y)
         complete = Aty.shape == y.shape
         overcomplete = Aty.numel() < y.numel()
 
@@ -700,7 +710,7 @@ def minres(
         dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
-    b_norm = b.norm(2, dim=dim, keepdim=True)
+    b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)
     b_is_zero = b_norm < 1e-10
     b_norm = b_norm.masked_fill(b_is_zero, 1)
     b = b / b_norm
@@ -716,7 +726,7 @@ def minres(
     zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
-    alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
+    alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
     beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
@@ -742,7 +752,7 @@ def minres(
     scale_prev = beta_prev
 
     # Terms for checking for convergence
-    solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+    solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
@@ -795,8 +805,10 @@ def minres(
         ###########################################
 
         # Check convergence criterion
-        search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
-        solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+        search_update_norm = torch.linalg.vector_norm(
+            search_update, dim=dim, ord=2
+        ).unsqueeze(-1)
+        solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
         if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
                 print("MINRES converged at iteration", i)
@@ -892,11 +904,16 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         # Save tensors only
         gamma_orig_shape = gamma.shape
-        # For broadcasting with other tensors
-        if gamma.ndim > 0:
-            gamma = gamma.view(
-                -1, *[1] * (y.ndim - 1)
-            )  # reshape for broadcasting if needed
+        # For broadcasting with other tensors. Note we already have checked gamma shapes
+        # in forward, so the following is just for gamma batched but not shaped.
+        if gamma.ndim == 1:
+            if isinstance(solution, TensorList):
+                ndim = solution[0].ndim
+            else:
+                ndim = solution.ndim
+
+            gamma = gamma.view([gamma.size(0)] + [1] * (ndim - 1))
+
         ctx.save_for_backward(solution, y, z, gamma)
         # Save other non-tensor contexts
         ctx.physics = physics

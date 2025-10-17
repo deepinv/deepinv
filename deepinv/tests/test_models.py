@@ -53,6 +53,7 @@ LINEAR_OPERATORS = [
     "deblur_valid",
     "super_resolution_circular",
     "MRI",
+    "MultiCoilMRI",
     "pansharpen_circular",
 ]  # this is a reduced list of linear operators for testing restoration models.
 
@@ -168,13 +169,17 @@ def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=Non
     return out.eval()
 
 
-def test_TVs_adjoint():
+@pytest.mark.parametrize("n_spatial", [2, 3])
+def test_TVs_adjoint(n_spatial):
     r"""
     This tests the adjointness of the finite difference operator used in TV and TGV regularisation.
     """
+    spatial_dims = (20,) * n_spatial
+
+    # Test TVDenoiser nabla/nabla_adjoint
     model = dinv.models.TVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -182,9 +187,10 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
+    # Test TGVDenoiser nabla/nabla_adjoint
     model = dinv.models.TGVDenoiser(n_it_max=10)
 
-    u = torch.randn((4, 3, 20, 20)).type(torch.DoubleTensor)
+    u = torch.randn((4, 3, *spatial_dims)).type(torch.DoubleTensor)
     Au = model.nabla(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.nabla_adjoint(v)
@@ -192,7 +198,8 @@ def test_TVs_adjoint():
 
     assert torch.allclose(e, torch.tensor([0.0], dtype=torch.float64))
 
-    u = torch.randn((2, 3, 20, 20, 2)).type(torch.DoubleTensor)
+    # Test TGVDenoiser epsilon/epsilon_adjoint
+    u = torch.randn((2, 3, *spatial_dims, n_spatial)).type(torch.DoubleTensor)
     Au = model.epsilon(u)
     v = torch.randn(*Au.shape).type(Au.dtype)
     Atv = model.epsilon_adjoint(v)
@@ -916,13 +923,13 @@ def test_restoration_models(
     device, pretrained, model_name, physics_name, channels, rng, whsize
 ):
 
-    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+    if channels == 1 and physics_name in ["demosaicing", "MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
 
     if channels == 2 and physics_name == "demosaicing":
         pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
 
-    if channels == 3 and physics_name == "MRI":
+    if channels == 3 and physics_name in ["MRI", "MultiCoilMRI"]:
         pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
 
     if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
@@ -989,6 +996,13 @@ def test_restoration_models(
         assert torch.all(psnr_out > psnr_in)
     else:
         pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
+
+    if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
+        # Test backward pass
+        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        l.backward()
+    else:
+        pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
 
 
 def test_pannet():

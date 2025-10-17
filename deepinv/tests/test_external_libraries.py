@@ -12,17 +12,14 @@ class TestTomographyWithAstra:
     def dummy_projection(cls, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
 
+    @pytest.mark.parametrize("normalize", [True, False, None])
     @pytest.mark.parametrize(
-        "is_2d,geometry_type,normalize",
+        "is_2d,geometry_type",
         [
-            (True, "parallel", False),
-            (True, "parallel", True),
-            (True, "fanbeam", False),
-            (True, "fanbeam", True),
-            (False, "parallel", False),
-            (False, "parallel", True),
-            (False, "conebeam", False),
-            (False, "conebeam", True),
+            (True, "parallel"),
+            (True, "fanbeam"),
+            (False, "parallel"),
+            (False, "conebeam"),
         ],
     )
     def test_tomography_with_astra_logic(self, is_2d, geometry_type, normalize):
@@ -117,6 +114,10 @@ class TestTomographyWithAstra:
                 loss.backward()
                 assert pred.grad is not None
 
+                if normalize is None:
+                    # when normalize is not set by the user, it should default to True
+                    assert physics.normalize is True
+
         else:
             ## --- Test adjointness ---
             Ax = physics.A(x)
@@ -141,3 +142,12 @@ class TestTomographyWithAstra:
             loss = torch.linalg.norm(physics.A(pred) - Ax)
             loss.backward()
             assert pred.grad is not None
+
+            threshold = 1e-3 if geometry_type != "conebeam" else 5e-2
+            if normalize:
+                assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold
+
+            if normalize is None:
+                # when normalize is not set by the user, it should default to True
+                assert physics.normalize is True
+                assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold

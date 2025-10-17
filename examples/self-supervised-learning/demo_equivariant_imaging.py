@@ -110,7 +110,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL()
+model = MoDL().to(device)
 
 
 # %%

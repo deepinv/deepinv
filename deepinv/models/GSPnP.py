@@ -43,7 +43,7 @@ class GSPnP(Denoiser):
         return (
             0.5
             * self.alpha
-            * torch.norm((x - N).view(x.shape[0], -1), p=2, dim=-1) ** 2
+            * torch.linalg.vector_norm(x - N, dim=tuple(range(1, x.dim())), ord=2) ** 2
         )
 
     def potential_grad(
