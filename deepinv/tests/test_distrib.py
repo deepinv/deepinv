@@ -393,7 +393,6 @@ def _test_measurements_initialization_with_list(rank, world_size, args):
             ctx,
             num_items=len(measurements),
             measurements_list=measurements,
-            dtype=torch.float32,
         )
 
         assert len(dmeas) == 5
@@ -414,7 +413,7 @@ def _test_measurements_initialization_with_factory(rank, world_size, args):
             return torch.randn(1, 3, 32, 32, device=device)
 
         dmeas = DistributedMeasurements(
-            ctx, num_items=5, factory=meas_factory, dtype=torch.float32
+            ctx, num_items=5, factory=meas_factory
         )
 
         assert len(dmeas) == 5
@@ -705,19 +704,19 @@ class TestDistributionStrategies:
         """Test SmartTilingStrategy initialization."""
         signal_shape = (1, 3, 128, 128)
         strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_radius=16
+            signal_shape, patch_size=64, receptive_field_size=16
         )
 
         assert strategy.signal_shape == torch.Size(signal_shape)
         assert strategy.patch_size == 64
-        assert strategy.receptive_field_radius == 16
+        assert strategy.receptive_field_size == 16
         assert strategy.get_num_patches() > 0
 
     def test_smart_tiling_strategy_get_local_patches(self):
         """Test SmartTilingStrategy patch extraction with padding."""
         signal_shape = (1, 3, 128, 128)
         strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_radius=16
+            signal_shape, patch_size=64, receptive_field_size=16
         )
 
         X = torch.randn(*signal_shape)
@@ -733,7 +732,7 @@ class TestDistributionStrategies:
         """Test SmartTilingStrategy batching."""
         signal_shape = (1, 3, 128, 128)
         strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_radius=16
+            signal_shape, patch_size=64, receptive_field_size=16
         )
 
         X = torch.randn(*signal_shape)
@@ -754,7 +753,7 @@ class TestDistributionStrategies:
         signal_shape = (1, 3, 32, 32)
         # Patch size larger than image
         strategy = SmartTilingStrategy(
-            signal_shape, patch_size=128, receptive_field_radius=16
+            signal_shape, patch_size=128, receptive_field_size=16
         )
 
         # Should handle gracefully and create at least one patch
@@ -877,7 +876,7 @@ def _test_factory_make_distrib_bundle_with_prior(rank, world_size, args):
                 return x * 0.9
 
         prior = SimplePrior()
-        tiling_config = TilingConfig(patch_size=32, receptive_field_radius=8)
+        tiling_config = TilingConfig(patch_size=32, receptive_field_size=8)
 
         bundle = make_distrib_bundle(
             ctx,
@@ -943,7 +942,7 @@ def _test_pnp_equivalence(rank, world_size, args):
         factory_config = FactoryConfig(
             physics=physics_list, measurements=measurements, data_fidelity=L2()
         )
-        tiling_config = TilingConfig(patch_size=32, receptive_field_radius=8)
+        tiling_config = TilingConfig(patch_size=32, receptive_field_size=8)
 
         bundle = make_distrib_bundle(
             ctx,
