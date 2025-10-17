@@ -54,12 +54,12 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from deepinv.optim import HQS
 
 device = (
     dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
@@ -113,10 +113,6 @@ max_iter = 5  # number of unfolded layers
 data_fidelity = L2()
 stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-}
 trainable_params = [
     "g_param",
     "stepsize",
@@ -157,9 +153,10 @@ def peak_memory():
 # Define the unfolded trainable model.
 torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
-model = unfolded_builder(
-    iteration="HQS",
-    params_algo=params_algo.copy(),
+model = HQS(
+    unfold=True,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -203,9 +200,10 @@ physics.implicit_backward_solver = True
 # Define the unfolded trainable model.
 torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
 prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
-model = unfolded_builder(
-    iteration="HQS",
-    params_algo=params_algo.copy(),
+model = HQS(
+    unfold=True,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,

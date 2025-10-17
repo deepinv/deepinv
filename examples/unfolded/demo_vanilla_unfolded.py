@@ -13,7 +13,7 @@ from deepinv.models.utils import get_weights_url
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import DRS
 from torchvision import transforms
 from deepinv.utils import get_data_home
 from deepinv.datasets import BSDS500
@@ -103,7 +103,6 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to define the Unfolded architecture.
 # The chosen algorithm is here DRS (Douglas-Rachford Splitting).
 # Note that if the prior (resp. a parameter) is initialized with a list of length max_iter,
 # then a distinct model (resp. parameter) is trained for each iteration.
@@ -125,27 +124,25 @@ sigma_denoiser = [
     1.0
 ] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
 beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "beta": beta,
-}
 trainable_params = [
     "stepsize",
     "beta",
+    "g_param",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Logging parameters
 verbose = True
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="DRS",
-    params_algo=params_algo.copy(),
+model = DRS(
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    beta=beta,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    unfold=True,
 )
 
 # %%

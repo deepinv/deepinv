@@ -140,7 +140,6 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = False  # use backtraking to automatically adjust the stepsize
 max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
@@ -154,7 +153,6 @@ model = ADMM(
     max_iter=max_iter,
     crit_conv=crit_conv,
     thres_conv=thres_conv,
-    backtracking=backtracking,
     verbose=verbose,
 )
 

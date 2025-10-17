@@ -207,7 +207,7 @@ class BaseOptim(Reconstructor):
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
         If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
-    :param deepinv.optim.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
         If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
         The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
 
@@ -239,7 +239,7 @@ class BaseOptim(Reconstructor):
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
     :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
         Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
+    :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
@@ -294,14 +294,14 @@ class BaseOptim(Reconstructor):
         thres_conv=1e-5,
         early_stop=False,
         has_cost=False,
-        backtracking: BacktrackingConfig | None = None,
+        backtracking: BacktrackingConfig | None | bool = None,
         gamma_backtracking=0.1,  # this parameter will be deprecated in future releases
         eta_backtracking=0.9,  # this parameter will be deprecated in future releases
         custom_metrics=None,
         custom_init=None,
         get_output=lambda X: X["est"][0],
         unfold=False,
-        DEQ: DEQConfig | None = None,
+        DEQ: DEQConfig | None | bool = None,
         anderson_acceleration=False,  # this parameter will be deprecated in future releases
         history_size=5,  # this parameter will be deprecated in future releases
         beta_anderson_acc=1.0,  # this parameter will be deprecated in future releases
@@ -319,8 +319,12 @@ class BaseOptim(Reconstructor):
         self.verbose = verbose
         self.show_progress_bar = show_progress_bar
         self.max_iter = max_iter
-        self.backtracking = backtracking is not None
-        self.backtracking_config = backtracking or BacktrackingConfig()
+        if isinstance(backtracking, bool):
+            self.backtracking = backtracking
+            self.backtracking_config = BacktrackingConfig() if backtracking else None
+        else:
+            self.backtracking = backtracking is not None
+            self.backtracking_config = backtracking or BacktrackingConfig()
         self.gamma_backtracking = gamma_backtracking
         self.eta_backtracking = eta_backtracking
         self.has_converged = False
@@ -330,8 +334,12 @@ class BaseOptim(Reconstructor):
         self.get_output = get_output
         self.has_cost = has_cost
         self.unfold = unfold
-        self.DEQ = DEQ is not None
-        self.DEQ_config = DEQ or DEQConfig()
+        if isinstance(DEQ, bool):
+            self.DEQ = DEQ
+            self.DEQ_config = DEQConfig() if DEQ else None
+        else:
+            self.DEQ = DEQ is not None
+            self.DEQ_config = DEQConfig or DEQConfig()
         self.device = device
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
@@ -393,13 +401,13 @@ class BaseOptim(Reconstructor):
             and len(params_algo["stepsize"]) > 1
             and self.backtracking
         ):
-            self.backtracking = False
+            self.backtracking = None
             warnings.warn(
                 "Backtracking impossible when stepsize is predefined as a list. Setting backtracking to False."
             )
         # If no cost function, backtracking is impossible.
         if not self.has_cost and self.backtracking:
-            self.backtracking = False
+            self.backtracking = None
             warnings.warn(
                 "Backtracking impossible when no cost function is given. Setting backtracking to False."
             )
@@ -440,7 +448,7 @@ class BaseOptim(Reconstructor):
             update_params_fn=self.update_params_fn,
             update_data_fidelity_fn=self.update_data_fidelity_fn,
             update_prior_fn=self.update_prior_fn,
-            check_iteration_fn=self.check_iteration_fn,
+            backtraking_check_fn=self.backtraking_check_fn,
             check_conv_fn=self.check_conv_fn,
             init_metrics_fn=self.init_metrics_fn,
             init_iterate_fn=self.init_iterate_fn,
@@ -451,6 +459,7 @@ class BaseOptim(Reconstructor):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
+            max_iter_backtracking=self.backtracking_config.max_iter,
             verbose=self.verbose,
             show_progress_bar=self.show_progress_bar,
         )
@@ -629,9 +638,9 @@ class BaseOptim(Reconstructor):
                         )
         return metrics
 
-    def check_iteration_fn(self, X_prev, X):
+    def backtraking_check_fn(self, X_prev, X):
         r"""
-        Performs stepsize backtracking line-search.
+        Performs stepsize backtracking if the sufficient decrease condition is not verified.
 
         :param dict X_prev: dictionary containing the primal and dual previous iterates.
         :param dict X: dictionary containing the current primal and dual iterates.
@@ -647,24 +656,16 @@ class BaseOptim(Reconstructor):
                 torch.linalg.vector_norm(x - x_prev, dim=-1, ord=2).pow(2).mean(),
             )
             stepsize = self.params_algo["stepsize"][0]
-            success = False
-            stepsize = self.params_algo["stepsize"][0]
-            for it in range(self.backtracking_config.max_iter):
-                # Check Armijo-like condition
-                if diff_F < (self.backtracking_config.gamma / stepsize) * diff_x:
-                    success = True
-                    break
-                # Reduce step size
-                stepsize *= self.backtracking_config.eta
-                self.params_algo["stepsize"] = [stepsize]
-
+            if diff_F < (self.backtracking_config.gamma / stepsize) * diff_x:
+                backtraking_check = False
+                self.params_algo["stepsize"] = [self.backtracking_config.eta * stepsize]
                 if self.verbose:
                     print(
-                        f"Backtracking ({it+1}/{self.backtracking_config.max_iter}): "
-                        f"new stepsize = {stepsize:.6f}"
+                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
                     )
-
-            return success
+            else:
+                backtraking_check = True
+            return backtraking_check
         else:
             return True
 
@@ -2230,6 +2231,7 @@ class PDCP(BaseOptim):
 
         super(PDCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
+            custom_init=custom_init,
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,

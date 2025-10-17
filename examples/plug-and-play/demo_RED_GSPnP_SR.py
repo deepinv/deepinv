@@ -95,7 +95,6 @@ crit_conv = "cost"  # Convergence is reached when the difference of cost functio
 # smaller than thres_conv
 thres_conv = 1e-5
 backtracking = True
-use_bicubic_init = False  # Use bicubic interpolation to initialize the algorithm
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP

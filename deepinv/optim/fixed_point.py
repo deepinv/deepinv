@@ -55,7 +55,7 @@ class FixedPoint(nn.Module):
     :param Callable update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
     :param Callable init_iterate_fn: function that returns the initial iterate. Default: ``None``.
     :param Callable init_metrics_fn: function that returns the initial metrics. Default: ``None``.
-    :param Callable check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
+    :param Callable backtraking_check_fn: function that performs a sufficent decrease check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
     :param Callable check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
     :param int max_iter: maximum number of iterations. Default: ``50``.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
@@ -63,6 +63,9 @@ class FixedPoint(nn.Module):
     :param int history_size: size of the history used for the Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
+    :param int max_iter_backtracking: maximum number of consecutive failed backtracking checks before stopping the algorithm. Default: ``20``.
+    :param bool verbose: if True, various convergence information are printed during the iterations. Default: ``False``.
+    :param bool show_progress_bar: if True, a progress bar is displayed during the iterations. Default: ``False``.
     """
 
     def __init__(
@@ -74,7 +77,7 @@ class FixedPoint(nn.Module):
         init_iterate_fn=None,
         init_metrics_fn=None,
         update_metrics_fn=None,
-        check_iteration_fn=None,
+        backtraking_check_fn=None,
         check_conv_fn=None,
         max_iter=50,
         early_stop=True,
@@ -82,8 +85,9 @@ class FixedPoint(nn.Module):
         history_size=5,
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
+        max_iter_backtracking=20,
         verbose=False,
-        show_progress_bar=False,
+        show_progress_bar=True,
     ):
         super().__init__()
         self.iterator = iterator
@@ -96,11 +100,12 @@ class FixedPoint(nn.Module):
         self.init_metrics_fn = init_metrics_fn
         self.update_metrics_fn = update_metrics_fn
         self.check_conv_fn = check_conv_fn
-        self.check_iteration_fn = check_iteration_fn
+        self.backtraking_check_fn = backtraking_check_fn
         self.anderson_acceleration = anderson_acceleration
         self.history_size = history_size
         self.beta_anderson_acc = beta_anderson_acc
         self.eps_anderson_acc = eps_anderson_acc
+        self.max_iter_backtracking = max_iter_backtracking
         self.verbose = verbose
         self.show_progress_bar = show_progress_bar
 
@@ -236,39 +241,51 @@ class FixedPoint(nn.Module):
             if self.init_metrics_fn and compute_metrics
             else None
         )
-        self.check_iteration = True
+
+        self.backtraking_check = True
+        failed_backtracking_count = 0
+
         if self.anderson_acceleration:
             self.x_hist, self.T_hist, self.H, self.q = self.init_anderson_acceleration(
                 X
             )
-        it = 0
 
         for it in tqdm(
             range(self.max_iter),
             disable=(not self.verbose or not self.show_progress_bar),
         ):
             X_prev = X
-            X = self.single_iteration(
-                X,
-                it,
-                *args,
-                **kwargs,
-            )
+            X = self.single_iteration(X, it, *args, **kwargs)
 
-            if self.check_iteration:
+            if self.backtraking_check:
+                # Successful iteration → reset the failure counter
+                failed_backtracking_count = 0
                 metrics = (
                     self.update_metrics_fn(metrics, X_prev, X, x_gt=x_gt)
                     if self.update_metrics_fn and compute_metrics
                     else None
                 )
+
+                # Convergence check
                 if (
                     self.early_stop
-                    and (self.check_conv_fn is not None)
+                    and self.check_conv_fn is not None
                     and it > 1
                     and self.check_conv_fn(it, X_prev, X)
                 ):
                     break
-                it += 1
+
+            else:
+                # Failed backtracking iteration
+                failed_backtracking_count += 1
+                # Stop if too many consecutive failures
+                if failed_backtracking_count >= self.max_iter_backtracking:
+                    if self.verbose:
+                        print(
+                            f"[Stopping] Reached maximum number of failed backtracking checks "
+                            f"({self.max_iter_backtracking})."
+                        )
+                    break
 
         return X, metrics
 
@@ -296,7 +313,7 @@ class FixedPoint(nn.Module):
                 cur_params,
                 *args,
             )
-        self.check_iteration = (
-            self.check_iteration_fn(X_prev, X) if self.check_iteration_fn else True
+        self.backtraking_check = (
+            self.backtraking_check_fn(X_prev, X) if self.backtraking_check_fn else True
         )
-        return X if self.check_iteration else X_prev
+        return X if self.backtraking_check else X_prev

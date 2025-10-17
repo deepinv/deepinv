@@ -139,7 +139,7 @@ def g(x, *args, **kwargs):
 prior = Prior(g=g)
 
 # %%
-# We use :func:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
+# We use :func:`deepinv.optim.PGD` with `unfold=True` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,

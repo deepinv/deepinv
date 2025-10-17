@@ -155,7 +155,6 @@ lambda_reg = 0.1  # wavelet regularisation parameter
 stepsize = 1.0  # stepsize for the PGD algorithm
 max_iter = 300
 early_stop = True
-backtracking = False
 
 # Instantiate the algorithm class to solve the problem.
 model = DRS(
@@ -166,7 +165,6 @@ model = DRS(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    backtracking=backtracking,
 )
 
 # %%
