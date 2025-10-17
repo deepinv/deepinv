@@ -1101,6 +1101,11 @@ def make_data(tmp_path, request):
         reason="This test requires nibabel. It should be "
         "installed with `pip install nibabel`",
     )
+    pytest.importorskip(
+        "blosc2",
+        reason="This test requires blosc2. It should be "
+        "installed with `pip install blosc2`",
+    )
     import nibabel as nib
     import blosc2
 
