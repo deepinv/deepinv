@@ -136,7 +136,7 @@ class RunLogger(ABC):
         pass
 
 
-class WandbRunLogger(RunLogger):
+class WandbLogger(RunLogger):
     """
     TODO
     """
