@@ -232,7 +232,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
     :param Sequence[int] signal_shape: shape of the complete signal tensor.
     :param int patch_size: size of each patch (assuming square patches).
-    :param int receptive_field_radius: padding radius around each patch.
+    :param int receptive_field_size: padding radius around each patch.
     :param None, int stride: stride between patches (default: patch_size for non-overlapping).
     :param bool non_overlap: whether patches should be non-overlapping.
     :param str pad_mode: padding mode for edge patches.
@@ -242,7 +242,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         self,
         signal_shape: Sequence[int],
         patch_size: int = 256,
-        receptive_field_radius: int = 32,
+        receptive_field_size: int = 32,
         stride: Optional[int] = None,
         non_overlap: bool = True,
         pad_mode: str = "reflect",
@@ -260,7 +260,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         """
         super().__init__(signal_shape)
         self.patch_size = patch_size
-        self.receptive_field_radius = receptive_field_radius
+        self.receptive_field_size = receptive_field_size
         self.stride = stride or patch_size
         self.non_overlap = non_overlap
         self.pad_mode = pad_mode
@@ -283,7 +283,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             min_dim = min(H, W)
 
             # Reduce patch size to fit the image with some margin for receptive field
-            safe_patch_size = min_dim - 2 * self.receptive_field_radius
+            safe_patch_size = min_dim - 2 * self.receptive_field_size
 
             if safe_patch_size <= 0:
                 # If even this doesn't work, use the whole image as a single patch
@@ -301,7 +301,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                     )
 
                 self.patch_size = safe_patch_size
-                self.receptive_field_radius = safe_receptive_field
+                self.receptive_field_size = safe_receptive_field
             else:
                 if self.signal_shape[0] == 1:  # Only warn once per batch
                     print(
@@ -313,7 +313,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
         kwargs = {
             "patch_size": self.patch_size,
-            "receptive_field_radius": self.receptive_field_radius,
+            "receptive_field_size": self.receptive_field_size,
             "stride": (self.stride, self.stride) if not self.non_overlap else None,
             "hw_dims": self.hw_dims,
             "non_overlap": self.non_overlap,

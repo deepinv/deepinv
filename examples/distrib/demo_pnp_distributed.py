@@ -1,5 +1,5 @@
 """
-Distributed Plug-and-Play (PnP) Reconstruction
+Large-scale plug-and-play methods using distributed computing
 ===============================================
 
 This example demonstrates how to use the distributed framework for PnP reconstruction.
@@ -10,10 +10,10 @@ The framework automatically distributes physics operators and priors across mult
 .. code-block:: bash
 
     # Single process
-    python examples/distrib/example_pnp_distributed.py
+    python examples/distrib/demo_pnp_distributed.py
 
     # Multi-process with torchrun
-    torchrun --nproc_per_node=2 examples/distrib/example_pnp_distributed.py
+    python -m torch.distributed.run --nproc_per_node=2 examples/distrib/demo_pnp_distributed.py
 
 **Key Steps:**
 
@@ -26,7 +26,7 @@ The framework automatically distributes physics operators and priors across mult
 """
 
 import torch
-from deepinv.physics import GaussianNoise
+from deepinv.physics import GaussianNoise, stack
 from deepinv.physics.blur import Blur, gaussian_blur
 from deepinv.utils.demo import load_example
 from deepinv.optim.data_fidelity import L2
@@ -50,12 +50,12 @@ from deepinv.distrib import (
 
 def create_physics_and_measurements(device, img_size=(256, 256)):
     """
-    Create physics operators and measurements using example images.
+    Create stacked physics operators and measurements using example images.
     
     :param device: Device to create operators on
     :param tuple img_size: Size of the image (H, W)
     
-    :returns: Tuple of (physics_list, measurements_list, clean_image)
+    :returns: Tuple of (stacked_physics, measurements, clean_image)
     """
     # Load example image
     clean_image = load_example(
@@ -72,9 +72,8 @@ def create_physics_and_measurements(device, img_size=(256, 256)):
     # Noise levels for each operator
     noise_levels = [0.03, 0.05, 0.04]
     
-    # Create physics operators and measurements
+    # Create physics operators
     physics_list = []
-    measurements_list = []
     
     for kernel, noise_level in zip(kernels, noise_levels):
         # Create blur operator with circular padding
@@ -85,12 +84,14 @@ def create_physics_and_measurements(device, img_size=(256, 256)):
         blur_op = blur_op.to(device)
         
         physics_list.append(blur_op)
-        
-        # Generate measurement (blur + noise)
-        measurement = blur_op(clean_image)
-        measurements_list.append(measurement)
     
-    return physics_list, measurements_list, clean_image
+    # Stack physics operators into a single operator
+    stacked_physics = stack(*physics_list)
+    
+    # Generate measurements (returns a TensorList)
+    measurements = stacked_physics(clean_image)
+    
+    return stacked_physics, measurements, clean_image
 
 
 def main():
@@ -105,7 +106,7 @@ def main():
     denoiser_sigma = 0.05
     img_size = (512, 512)
     patch_size = 128
-    receptive_field_radius = 32
+    receptive_field_size = 32
     
     # ============================================================================
     # DISTRIBUTED CONTEXT
@@ -122,16 +123,17 @@ def main():
             print(f"   Device: {ctx.device}")
         
         # ============================================================================
-        # STEP 1: Create physics operators and measurements
+        # STEP 1: Create stacked physics operators and measurements
         # ============================================================================
         
-        physics_list, measurements_list, clean_image = create_physics_and_measurements(
+        stacked_physics, measurements, clean_image = create_physics_and_measurements(
             ctx.device, img_size=img_size
         )
         
         if ctx.rank == 0:
-            print(f"\n✅ Created {len(physics_list)} physics operators")
+            print(f"\n✅ Created stacked physics with {len(stacked_physics)} operators")
             print(f"   Image shape: {clean_image.shape}")
+            print(f"   Measurements type: {type(measurements).__name__}")
         
         # ============================================================================
         # STEP 2: Load denoiser model and create PnP prior
@@ -145,23 +147,24 @@ def main():
         # STEP 3: Configure distributed components
         # ============================================================================
         
-        # Factory configuration: physics, measurements, and data fidelity
+        # Factory configuration: stacked physics, measurements, and data fidelity
+        # The framework automatically extracts individual operators from StackedPhysics
         factory_config = FactoryConfig(
-            physics=physics_list,
-            measurements=measurements_list,
+            physics=stacked_physics,
+            measurements=measurements,
             data_fidelity=L2(),
         )
         
         # Tiling configuration: how to split the image for distributed processing
         tiling_config = TilingConfig(
             patch_size=patch_size,
-            receptive_field_radius=receptive_field_radius,
+            receptive_field_size=receptive_field_size,
         )
         
         if ctx.rank == 0:
             print(f"\n🔧 Configured distributed components")
             print(f"   Patch size: {patch_size}x{patch_size}")
-            print(f"   Receptive field radius: {receptive_field_radius}")
+            print(f"   Receptive field radius: {receptive_field_size}")
         
         # ============================================================================
         # STEP 4: Build distributed bundle
@@ -238,7 +241,7 @@ def main():
             reconstruction = distributed_signal.data
             
             plot(
-                [clean_image, measurements_list[0], reconstruction],
+                [clean_image, measurements[0], reconstruction],
                 titles=["Ground Truth", "Measurement", "Reconstruction"],
                 save_fn="distributed_pnp_result.png",
                 figsize=(12, 4),

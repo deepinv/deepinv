@@ -33,9 +33,11 @@ import torch
 import deepinv as dinv
 
 from deepinv.physics import Physics
+from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity, L2
 from deepinv.optim.prior import Prior, PnP
 from deepinv.loss.metric import PSNR
+from deepinv.utils.tensorlist import TensorList
 
 from deepinv.distrib.distrib_framework import (
     DistributedContext,
@@ -57,12 +59,12 @@ class TilingConfig:
     Configuration for spatial tiling strategies in distributed processing.
 
     :param int patch_size: size of patches for tiling operations
-    :param int receptive_field_radius: radius of receptive field for overlap calculations
+    :param int receptive_field_size: size of receptive field for overlap calculations
     :param bool overlap: whether to use overlapping patches
     :param str strategy: tiling strategy name. Options are `'basic'` and `'smart_tiling'`.
     """
     patch_size: int = 256
-    receptive_field_radius: int = 64
+    receptive_field_size: int = 64
     overlap: bool = False
     strategy: str = "smart_tiling"
 
@@ -73,15 +75,16 @@ class FactoryConfig:
     Configuration for distributed component factories.
 
     Specifies how to create physics operators, measurements, and data fidelity terms
-    for the distributed framework. Can use either pre-created lists or factory functions.
+    for the distributed framework. Can use either pre-created lists, factory functions,
+    or StackedPhysics instances.
 
-    :param Union[Sequence[Physics], Callable] physics: either a list of physics operators or a factory function
-    :param Union[Sequence[torch.Tensor], Callable] measurements: either a list of measurement tensors or a factory function
-    :param None, int num_operators: required when using factory functions instead of lists
+    :param Union[Sequence[Physics], Callable, StackedPhysics] physics: either a list of physics operators, a factory function, or a StackedPhysics instance
+    :param Union[Sequence[torch.Tensor], Callable, TensorList] measurements: either a list of measurement tensors, a factory function, or a TensorList of measurements
+    :param None, int num_operators: required when using factory functions instead of lists or StackedPhysics
     :param None, Union[DataFidelity, Callable] data_fidelity: data fidelity term or factory function. If `None`, defaults to L2.
     """
-    physics: Union[Sequence[Physics], Callable]
-    measurements: Union[Sequence[torch.Tensor], Callable]
+    physics: Union[Sequence[Physics], Callable, StackedPhysics]
+    measurements: Union[Sequence[torch.Tensor], Callable, TensorList]
     num_operators: Optional[int] = None  # required if physics is a factory
     data_fidelity: Optional[Union[DataFidelity, Callable]] = None
 
@@ -116,6 +119,7 @@ def make_distrib_bundle(
     *,
     factory_config: FactoryConfig,
     signal_shape: Tuple[int, int, int, int],
+    dtype: Optional[torch.dtype] = torch.float32,
     reduction: str = "mean",
     prior: Optional[Prior] = None,
     tiling: Optional[TilingConfig] = None,
@@ -129,6 +133,7 @@ def make_distrib_bundle(
     :param DistributedContext ctx: distributed context manager
     :param FactoryConfig factory_config: configuration specifying how to build physics, measurements, and data_fidelity
     :param Tuple[int, int, int, int] signal_shape: shape (B,C,H,W) for DistributedSignal
+    :param None, torch.dtype dtype: data type for all distributed components. Default is `torch.float32`.
     :param str reduction: reduction strategy for DistributedDataFidelity. Options are `'mean'` and `'sum'`.
     :param None, Prior prior: optional prior term for distributed processing
     :param None, TilingConfig tiling: optional tiling configuration for spatial processing strategies
@@ -149,6 +154,18 @@ def make_distrib_bundle(
         ... )
         >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
 
+        Create with StackedPhysics:
+
+        >>> from deepinv.physics import stack
+        >>> stacked_physics = stack(*physics_list)
+        >>> measurements = stacked_physics(x)  # TensorList
+        >>> factory_config = FactoryConfig(
+        ...     physics=stacked_physics,
+        ...     measurements=measurements,
+        ...     data_fidelity=L2()
+        ... )
+        >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
+
         Create with custom factory functions:
 
         >>> def physics_factory(idx, device, shared):
@@ -161,28 +178,40 @@ def make_distrib_bundle(
         >>> bundle = make_distrib_bundle(ctx, factory_config=factory_config, signal_shape=(1,3,256,256))
     """
     # Physics factory
-    if callable(factory_config.physics):
+    if isinstance(factory_config.physics, (StackedPhysics, StackedLinearPhysics)):
+        # Extract physics_list from StackedPhysics
+        physics_list_extracted = factory_config.physics.physics_list
+        num_operators = len(physics_list_extracted)
+        def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
+            return physics_list_extracted[idx].to(device)
+    elif callable(factory_config.physics):
         physics_factory = factory_config.physics
         num_operators = getattr(factory_config, "num_operators", None)
         if num_operators is None:
             raise ValueError("When using a factory for physics, you must provide num_operators as an attribute of FactoryConfig.")
     else:
-        physics_list = factory_config.physics
-        num_operators = len(physics_list)
+        physics_list_extracted = factory_config.physics
+        num_operators = len(physics_list_extracted)
         def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
-            return physics_list[idx].to(device)
+            return physics_list_extracted[idx].to(device)
 
     # Measurements factory
-    if callable(factory_config.measurements):
+    if isinstance(factory_config.measurements, TensorList):
+        # Extract measurements from TensorList - TensorList is indexable
+        measurements_tensorlist = factory_config.measurements
+        num_operators = len(measurements_tensorlist)
+        def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
+            return measurements_tensorlist[idx].to(device)
+    elif callable(factory_config.measurements):
         measurements_factory = factory_config.measurements
         num_operators = getattr(factory_config, "num_operators", None)
         if num_operators is None:
             raise ValueError("When using a factory for measurements, you must provide num_operators as an attribute of FactoryConfig.")
     else:
-        measurements_list = factory_config.measurements
-        num_operators = len(measurements_list)
+        measurements_list_extracted = factory_config.measurements
+        num_operators = len(measurements_list_extracted)
         def measurements_factory(idx: int, device: torch.device, shared: Optional[dict]):
-            return measurements_list[idx].to(device)
+            return measurements_list_extracted[idx].to(device)
 
     # Data fidelity factory
     if factory_config.data_fidelity is None:
@@ -199,11 +228,11 @@ def make_distrib_bundle(
             return df_instance
         df_factory = df_factory_instance
 
-    physics = DistributedLinearPhysics(ctx, num_ops=num_operators, factory=physics_factory)
+    physics = DistributedLinearPhysics(ctx, num_ops=num_operators, factory=physics_factory, dtype=dtype)
     measurements = DistributedMeasurements(ctx, num_items=num_operators, factory=measurements_factory)
     data_fidelity = DistributedDataFidelity(ctx, physics, measurements, data_fidelity_factory=df_factory, reduction=reduction)
 
-    signal = DistributedSignal(ctx, shape=signal_shape)
+    signal = DistributedSignal(ctx, shape=signal_shape, dtype=dtype)
     dprior = None
 
     # Optional prior
@@ -219,7 +248,7 @@ def make_distrib_bundle(
             signal_shape=signal_shape,
             strategy_kwargs={
                 "patch_size": tiling.patch_size,
-                "receptive_field_radius": tiling.receptive_field_radius,
+                "receptive_field_size": tiling.receptive_field_size,
                 "overlap": tiling.overlap,
             },
         )

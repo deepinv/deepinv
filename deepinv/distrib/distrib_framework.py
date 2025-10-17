@@ -247,7 +247,6 @@ class DistributedMeasurements:
     :param None, Callable factory: factory function that creates measurements. Should have signature `factory(index, device, shared) -> torch.Tensor`.
     :param None, Sequence[torch.Tensor] measurements_list: list of all measurements to be distributed.
     :param None, dict shared: shared data dictionary passed to factory function.
-    :param None, torch.dtype dtype: data type for measurements.
     """
 
     def __init__(
@@ -260,7 +259,6 @@ class DistributedMeasurements:
         ] = None,
         measurements_list: Optional[Sequence[torch.Tensor]] = None,
         shared: Optional[dict] = None,
-        dtype: Optional[torch.dtype] = None,
     ):
         r"""
         Initialize distributed measurements.
@@ -273,7 +271,6 @@ class DistributedMeasurements:
         :param None, torch.dtype dtype: data type for measurements.
         """
         self.ctx = ctx
-        self.dtype = dtype
         self.shared = shared
 
         if (factory is None and measurements_list is None) or (
@@ -293,12 +290,10 @@ class DistributedMeasurements:
         if factory is not None:
             for i in self.local_idx:
                 y = factory(i, ctx.device, shared)
-                if self.dtype is None:
-                    self.dtype = y.dtype
-                self.local.append(y.to(ctx.device, dtype=self.dtype))
+                self.local.append(y.to(ctx.device, dtype=y.dtype))
         elif measurements_list is not None:
             for i in self.local_idx:
-                self.local.append(measurements_list[i].to(ctx.device, dtype=self.dtype))
+                self.local.append(measurements_list[i].to(ctx.device, dtype=measurements_list[i].dtype))
         else:
             raise ValueError("Provide factory or measurements_list.")
 
@@ -371,7 +366,8 @@ class DistributedSignal:
         if init is None:
             self._data = torch.zeros(self._shape, device=ctx.device, dtype=self.dtype)
         else:
-            self._data = init.to(ctx.device, dtype=self.dtype)
+            self.dtype = init.dtype
+            self._data = init.to(ctx.device, dtype=init.dtype)
 
         # Auto-sync after initialization
         self._sync()
