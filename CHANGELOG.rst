@@ -18,6 +18,7 @@ Fixed
 ^^^^^
 - Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 - Set14HR dataset now downloads from a different source (and has slightly different folderstructure), since old link broke. (:gh:`845` by `Vicky De Ridder`_)
+- LsdirHR dataset now downloads from a different source (since old link broke) and correctly contains the specific folder images, instead of everything in root (:gh:`866` by `Vicky De Ridder`_)
 
 v0.3.5
 ------
