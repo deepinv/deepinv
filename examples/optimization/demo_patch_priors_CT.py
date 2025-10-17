@@ -134,7 +134,7 @@ if retrain:
                 - jac_inv.view(invs.shape[0])
             )
             current_log = (
-                self.logs_total_loss_train if train else self.logs_total_loss_eval
+                self.meter_total_loss_train if train else self.meter_total_loss_val
             )
             current_log.update(loss_total.item())
             logs[f"TotalLoss"] = current_log.avg

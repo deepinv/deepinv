@@ -225,7 +225,7 @@ trainer = dinv.Trainer(
     metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
     online_measurements=True,
     device=device,
-    save_path=None,
+    loggers=None,
     verbose=True,
     show_progress_bar=False,
 )
@@ -238,7 +238,7 @@ model = trainer.train()
 # ==============
 #
 
-trainer.plot_images = True
+trainer.log_images = True
 trainer.test(test_dataloader)
 
 # %%

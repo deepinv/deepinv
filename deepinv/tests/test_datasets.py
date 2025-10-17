@@ -123,10 +123,10 @@ def check_dataset_format(
                     optimizer=None,
                     train_dataloader=dataloader,
                     online_measurements=True,
-                    save_path=None,
+                    loggers=None,
                     compare_no_learning=False,
                     metrics=[],
-                ).setup_train(train=True)
+                ).setup_run()
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
@@ -137,6 +137,7 @@ def check_dataset_format(
                     online_measurements=True,
                     compare_no_learning=False,
                     metrics=[],
+                    loggers=None,
                 )
 
             except ValueError as e:

@@ -17,6 +17,7 @@ from deepinv.physics.generator import (
     DiffractionBlurGenerator,
 )
 from deepinv.datasets.base import ImageDataset
+from deepinv.training import LocalLogger
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -279,13 +280,13 @@ def test_optim_algo(name_algo, imsize, device):
     trainer = dinv.Trainer(
         model=model_unfolded,
         train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
+        val_dataloader=test_dataloader,
         epochs=epochs,
         losses=losses,
         physics=physics,
         optimizer=optimizer,
         device=device,
-        save_path=str(CKPT_DIR),
+        loggers=[LocalLogger(log_dir=str(CKPT_DIR))],
         verbose=True,
         online_measurements=True,
     )
