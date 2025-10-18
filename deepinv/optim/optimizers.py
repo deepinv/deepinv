@@ -60,6 +60,29 @@ class BacktrackingConfig:
     max_iter: int = 20  # Maximum number of backtracking steps
 
 
+def objective_function(x, data_fidelity, prior, cur_params, y, physics):
+    r"""
+    Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    and :math:`\regname` is a regularizer.
+
+    :param torch.Tensor x: Current iterate.
+    :param deepinv.optim.DataFidelity data_fidelity: Instance of the DataFidelity class defining the current data-fidelity.
+    :param deepinv.optim.prior prior: Instance of the Prior class defining the current prior.
+    :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+    :param torch.Tensor y: Obervation.
+    :param deepinv.physics physics: Instance of the physics modeling the observation.
+    """
+    if prior is not None and prior.explicit_prior:
+        return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
+            x, cur_params["g_param"]
+        )
+    else:
+        warnings.warn(
+            "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."
+        )
+        return data_fidelity(x, y, physics)
+
+
 class BaseOptim(Reconstructor):
     r"""
     Class for optimization algorithms, consists in iterating a fixed-point operator.
@@ -537,7 +560,7 @@ class BaseOptim(Reconstructor):
             - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
-        :param Callable F_fn:  function that computes the cost function. See :func:`deepinv.optim.objective_function` for more details.
+        :param Callable F_fn:  function that computes the cost function. See :func:`objective_function` for more details.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -935,7 +958,7 @@ def optim_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1051,7 +1074,7 @@ class ADMM(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1194,7 +1217,7 @@ class DRS(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1368,7 +1391,7 @@ class GD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1545,7 +1568,7 @@ class HQS(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1720,7 +1743,7 @@ class PGD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1856,7 +1879,7 @@ class FISTA(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -1986,7 +2009,7 @@ class MD(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -2116,7 +2139,7 @@ class PMD(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
@@ -2267,7 +2290,7 @@ class PDCP(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
+    :param Callable F_fn: Custom user input cost function. See :func:`objective_function` for more details.  
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
