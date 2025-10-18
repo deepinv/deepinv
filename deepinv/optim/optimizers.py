@@ -424,9 +424,9 @@ class BaseOptim(Reconstructor):
                 if "lambda_reg" in trainable_params:
                     trainable_params[trainable_params.index("lambda_reg")] = "lambda"
                 if "sigma_denoiser" in trainable_params:
-                    trainable_params[
-                        trainable_params.index("sigma_denoiser")
-                    ] = "g_param"
+                    trainable_params[trainable_params.index("sigma_denoiser")] = (
+                        "g_param"
+                    )
             else:
                 trainable_params = params_algo.keys()
             for param_key in trainable_params:
@@ -537,9 +537,9 @@ class BaseOptim(Reconstructor):
             - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
-        :param Callable F_fn:  function that computes the cost function. See :func:`deepinv.optim.objective_function` for more details.  
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+        :param Callable F_fn:  function that computes the cost function. See :func:`deepinv.optim.objective_function` for more details.
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
         :return: a dictionary containing the first iterate of the algorithm.
@@ -776,12 +776,12 @@ class BaseOptim(Reconstructor):
                 backward_FP = FixedPoint(
                     backward_iterator(),
                     init_iterate_fn=init_iterate_fn,
-                    max_iter=self.DEQ_config.DEQ_max_iter_backward,
+                    max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration=self.DEQ_config.DEQ_anderson_acceleration_backward,
-                    history_size=self.DEQ_config.DEQ_history_size_backward,
-                    beta_anderson_acc=self.DEQ_config.DEQ_beta_anderson_acc_backward,
-                    eps_anderson_acc=self.DEQ_config.DEQ_eps_anderson_acc_backward,
+                    anderson_acceleration=self.DEQ_config.anderson_acceleration_backward,
+                    history_size=self.DEQ_config.history_size_backward,
+                    beta_anderson_acc=self.DEQ_config.beta_anderson_acc_backward,
+                    eps_anderson_acc=self.DEQ_config.eps_anderson_acc_backward,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
@@ -850,9 +850,9 @@ def create_iterator(
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. 
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+    :param Callable F_fn: Custom user input cost function.
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
@@ -935,9 +935,9 @@ def optim_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
@@ -1087,7 +1087,7 @@ class ADMM(BaseOptim):
 
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
-            
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1226,8 +1226,8 @@ class DRS(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):  
-         if g_param is None and sigma_denoiser is not None:
+    ):
+        if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
         if params_algo is None:
@@ -1368,9 +1368,9 @@ class GD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
@@ -1399,7 +1399,7 @@ class GD(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):  
+    ):
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
@@ -1577,7 +1577,7 @@ class HQS(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):  
+    ):
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
@@ -1720,9 +1720,9 @@ class PGD(BaseOptim):
                     # Maximum number of iterations in the backward equilibrium solver.
 
         By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
-    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.  
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
+    :param Callable F_fn: Custom user input cost function. See :func:`deepinv.optim.objective_function` for more details.
+            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
