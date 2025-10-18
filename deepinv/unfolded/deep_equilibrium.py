@@ -11,8 +11,14 @@ class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
+    .. deprecated:: 0.3.6
+
+       The ``BaseDEQ`` class is deprecated and will be removed in future versions.
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
+
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
-    that can be virtually unrolled infinitely leveraging the implicit function theorem.
+    that can be virtually unrolled infinitely, leveraging the implicit function theorem.
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
     .. math::
@@ -155,6 +161,12 @@ def DEQ_builder(
 ):
     r"""
     Helper function for building an instance of the :class:`deepinv.unfolded.BaseDEQ` class.
+
+    .. deprecated:: 0.3.6
+
+       The ``DEQ_builder`` function is deprecated and will be removed in future versions.
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
 
     .. note::
 
