@@ -338,7 +338,7 @@ def dirac(shape, device="cpu"):
     out = torch.zeros(shape, device=device)
     center = tuple([s // 2 for s in shape[-2:]])
     slices = [slice(None)] * (len(shape) - 2) + list(center)
-    out[slices] = 1
+    out[tuple(slices)] = 1
     return out
 
 

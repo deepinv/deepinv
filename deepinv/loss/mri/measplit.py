@@ -433,7 +433,7 @@ class Phase2PhaseLoss(SplittingLoss):
 
         def remove_zeros(arr, mask):
             reducer = (
-                (mask != 0)[:, [0]]
+                (mask != 0)[:, (0,)]
                 .view(mask.shape[0], 1, mask.shape[2], -1)
                 .any(dim=3, keepdim=True)
                 .unsqueeze(-1)
