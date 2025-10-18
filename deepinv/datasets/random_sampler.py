@@ -48,7 +48,7 @@ class RandomPatchSampler(ImageDataset):
     - Patch coordinates are drawn with Python’s ``random`` module.
 
     - To ensure deterministic behavior across workers, set the DataLoader's
-    ``worker_init_fn`` or ``generator`` according to the PyTorch reproducibility guidelines.
+      ``worker_init_fn`` or ``generator`` according to the PyTorch reproducibility guidelines.
 
     **Notes:**
 
