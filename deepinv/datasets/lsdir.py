@@ -120,7 +120,7 @@ class LsdirHR(ImageFolder):
             )
 
         # download a split of the dataset, we check first that this split isn't already downloaded
-        if download:
+        if download:  # pragma: no cover
             try:
                 from huggingface_hub import hf_hub_download
             except:
@@ -158,7 +158,9 @@ class LsdirHR(ImageFolder):
             else:
                 raise ValueError("There is an issue with the data downloaded.")
 
-        if not all(os.path.isdir(d) and os.listdir(d) for d in self.img_dirs):
+        if not all(
+            os.path.isdir(d) and os.listdir(d) for d in self.img_dirs
+        ):  # pragma: no cover
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
         # Initialize ImageFolder
