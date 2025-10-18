@@ -328,7 +328,7 @@ Alternatively, the parameters can be defined via the dictionary ``params_algo``.
      - | Regularization parameter :math:`\lambda`
        | multiplying the regularization term.
      - Should be positive.
-   * - ``"g_param"``
+   * - ``"g_param"`` or ``"sigma_denoiser"``
      - | Optional prior hyper-parameter which :math:`\regname` depends on. 
        | For priors based on denoisers,
        | corresponds to the noise level :math:`\sigma` .

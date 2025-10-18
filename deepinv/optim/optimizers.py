@@ -123,7 +123,7 @@ class BaseOptim(Reconstructor):
     Setting ``unfold`` to ``True`` enables to turn this iterative optimization algorithm into an unfolded algorithm, i.e. an algorithm
     that can be trained end-to-end, with learnable parameters. These learnable parameters encompass the trainable parameters of the algorithm which
     can be chosen with the ``trainable_params`` argument
-    (e.g. ``stepsize`` :math:`\gamma`, regularization parameter ``lambda_reg`` :math:`\lambda`, prior parameter (``g_param``) :math:`\sigma` ...)
+    (e.g. ``stepsize`` :math:`\gamma`, regularization parameter ``lambda_reg`` :math:`\lambda`, prior parameter (``g_param`` or ``sigma_denoiser``) :math:`\sigma` ...)
     but also the trainable priors (e.g. a deep denoiser) or forward models.
 
     If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely, leveraging the implicit function theorem.
@@ -370,7 +370,10 @@ class BaseOptim(Reconstructor):
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
-            params_algo["g_param"] = None
+            if "sigma_denoiser" in params_algo.keys():
+                params_algo["g_param"] = params_algo.pop("sigma_denoiser")
+            else:
+                params_algo["g_param"] = None
 
         # Correct the 'lambda_reg' key to 'lambda' in params_algo if it exists.
         if "lambda_reg" in params_algo.keys():
@@ -417,9 +420,14 @@ class BaseOptim(Reconstructor):
 
         # set trainable parameters
         if self.unfold or self.DEQ:
-            if trainable_params is not None and "lambda_reg" in trainable_params:
-                trainable_params[trainable_params.index("lambda_reg")] = "lambda"
-            if trainable_params is None:
+            if trainable_params is not None:
+                if "lambda_reg" in trainable_params:
+                    trainable_params[trainable_params.index("lambda_reg")] = "lambda"
+                if "sigma_denoiser" in trainable_params:
+                    trainable_params[
+                        trainable_params.index("sigma_denoiser")
+                    ] = "g_param"
+            else:
                 trainable_params = params_algo.keys()
             for param_key in trainable_params:
                 if param_key in self.init_params_algo.keys():
@@ -994,6 +1002,7 @@ class ADMM(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float beta: ADMM relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1043,6 +1052,7 @@ class ADMM(BaseOptim):
         stepsize=1.0,
         beta=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1058,6 +1068,10 @@ class ADMM(BaseOptim):
         device=torch.device("cpu"),
         **kwargs,
     ):
+
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+            
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1065,6 +1079,7 @@ class ADMM(BaseOptim):
                 "g_param": g_param,
                 "beta": beta,
             }
+
         super(ADMM, self).__init__(
             ADMMIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1127,6 +1142,7 @@ class DRS(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float beta: DRS relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1175,6 +1191,7 @@ class DRS(BaseOptim):
         stepsize=1.0,
         beta=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1189,7 +1206,10 @@ class DRS(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):
+    ):  
+         if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1254,6 +1274,7 @@ class GD(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
         :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1339,6 +1360,7 @@ class GD(BaseOptim):
         lambda_reg=1.0,
         stepsize=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1353,7 +1375,10 @@ class GD(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):
+    ):  
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1421,6 +1446,7 @@ class HQS(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1507,6 +1533,7 @@ class HQS(BaseOptim):
         lambda_reg=1.0,
         stepsize=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1522,7 +1549,10 @@ class HQS(BaseOptim):
         params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
-    ):
+    ):  
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1587,6 +1617,7 @@ class PGD(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1673,6 +1704,7 @@ class PGD(BaseOptim):
         lambda_reg=1.0,
         stepsize=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1689,6 +1721,9 @@ class PGD(BaseOptim):
         device=torch.device("cpu"),
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1752,6 +1787,7 @@ class FISTA(BaseOptim):
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param int a: parameter of the FISTA algorithm, should be strictly greater than 2. Default: ``3``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1801,6 +1837,7 @@ class FISTA(BaseOptim):
         stepsize=1.0,
         a=3,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1816,6 +1853,9 @@ class FISTA(BaseOptim):
         params_algo=None,
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1874,6 +1914,7 @@ class MD(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -1922,6 +1963,7 @@ class MD(BaseOptim):
         lambda_reg=1.0,
         stepsize=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -1936,6 +1978,9 @@ class MD(BaseOptim):
         device=torch.device("cpu"),
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -1994,6 +2039,7 @@ class PMD(BaseOptim):
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -2043,6 +2089,7 @@ class PMD(BaseOptim):
         lambda_reg=1.0,
         stepsize=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -2057,6 +2104,8 @@ class PMD(BaseOptim):
         device=torch.device("cpu"),
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,
@@ -2137,6 +2186,7 @@ class PDCP(BaseOptim):
     :param float stepsize_dual: stepsize parameter :math:`\sigma`. Default: ``1.0``.
     :param float beta: PD relaxation parameter :math:`\beta`. Default: ``1.0``.
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -2189,6 +2239,7 @@ class PDCP(BaseOptim):
         stepsize_dual=1.0,
         beta=1.0,
         g_param=None,
+        sigma_denoiser=None,
         max_iter=100,
         crit_conv="residual",
         thres_conv=1e-5,
@@ -2204,6 +2255,8 @@ class PDCP(BaseOptim):
         device=torch.device("cpu"),
         **kwargs,
     ):
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
         if params_algo is None:
             params_algo = {
                 "lambda": lambda_reg,

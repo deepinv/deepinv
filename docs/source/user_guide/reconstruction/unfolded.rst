@@ -14,7 +14,7 @@ Moreover, among all the parameters of the algorithm (e.g. step size, regularizat
 In the following example, we create an unfolded architecture of 5 proximal gradient steps
 using a DnCNN plug-and-play prior a standard L2 data-fidelity term. The network can be trained end-to-end, and
 evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.). 
-Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, and the prior parameter ``g_param`` of the plug-and-play prior are learnable.
+Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, and the denoiser parameter ``sigma_denoiser`` of the plug-and-play denoising prior are learnable.
 
 .. doctest::
 
@@ -28,10 +28,10 @@ Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, an
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
     ...     stepsize=1.0,
-    ...     g_param=0.1,
+    ...     sigma_denoiser=0.1,
     ...     lambda_reg=1,
     ...     max_iter=5,
-    ...     trainable_params=["stepsize", "g_param", "lambda_reg"]
+    ...     trainable_params=["stepsize", "sigma_denoiser", "lambda_reg"]
     ... )
     >>> # Forward pass
     >>> x = torch.randn(1, 3, 16, 16)
@@ -57,10 +57,12 @@ See also :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py`
     >>> 
     >>> # Create a trainable unfolded architecture
     >>> model = HQS(  # doctest: +IGNORE_RESULT
+    ...     unfold=True,
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
-    ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
-    ...     trainable_params=["stepsize", "g_param"]
+    ...     stepsize=1.0,
+    ...     sigma_denoiser=1.0,
+    ...     trainable_params=["stepsize", "sigma_denoiser"]
     ... )
     >>> # Forward pass
     >>> x = torch.randn(1, 3, 16, 16)
