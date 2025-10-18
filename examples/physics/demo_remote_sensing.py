@@ -118,7 +118,7 @@ physics = dinv.physics.HyperSpectralUnmixing(
 )
 abundance = physics.A_adjoint(x)  # 1,2,256,256
 dinv.utils.plot(
-    [x[:, :3], abundance[:, [0]], abundance[:, [1]]],
+    [x[:, :3], abundance[:, (0,)], abundance[:, (1,)]],
     titles=["Mixed image", "Yellow abudance", "Blue abundance"],
 )
 

@@ -583,7 +583,7 @@ class TomographyWithAstra(LinearPhysics):
             )
 
             source_object_distance = torch.linalg.norm(
-                vecs[:, [0, 1, 2]], axis=1, keepdims=False
+                vecs[:, 0:3], axis=1, keepdims=False
             )
 
             v_range = torch.arange(V, dtype=torch.float64) - (V - 1) / 2
@@ -592,11 +592,11 @@ class TomographyWithAstra(LinearPhysics):
             v_grid, u_grid = torch.meshgrid(v_range, u_range, indexing="ij")
             weights = torch.ones((V, N), dtype=torch.float, device=sinogram.device)
             for i in range(A):
-                source_position = vecs[i, [0, 1, 2]]
-                detector_center_position = vecs[i, [3, 4, 5]]
+                source_position = vecs[i, 0:3]
+                detector_center_position = vecs[i, 3:6]
 
-                u_basis = vecs[i, [6, 7, 8]]
-                v_basis = vecs[i, [9, 10, 11]]
+                u_basis = vecs[i, 6:9]
+                v_basis = vecs[i, 9:12]
 
                 detector_pixel_positions = (
                     u_grid[..., None] * u_basis
