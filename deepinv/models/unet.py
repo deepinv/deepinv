@@ -91,7 +91,7 @@ class UNet(Denoiser):
         super(UNet, self).__init__()
         self.name = "unet"
 
-        if residual and in_channels != out_channels:
+        if residual and in_channels != out_channels:  # pragma: no cover
             raise UserWarning(
                 "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
             )
@@ -110,7 +110,7 @@ class UNet(Denoiser):
         self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
 
         biasfree = batch_norm == "biasfree"
-        if biasfree and dim == 3:
+        if biasfree and dim == 3:  # pragma: no cover
             raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
         def conv_block(ch_in, ch_out):

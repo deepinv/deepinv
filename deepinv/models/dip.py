@@ -46,7 +46,7 @@ class ConvDecoder(nn.Module):
     ):
         super(ConvDecoder, self).__init__()
 
-        if len(img_size) != len(in_size) + 1:
+        if len(img_size) != len(in_size) + 1:  # pragma: no cover
             raise ValueError(
                 f"in_size must be one element smaller than img_size (which contains channels as well); got {img_size} and {in_size}"
             )
