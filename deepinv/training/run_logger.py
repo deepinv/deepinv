@@ -12,6 +12,7 @@ import platform
 
 from torchvision.utils import save_image
 import torch
+import wandb
 
 
 def get_timestamp() -> str:
@@ -200,7 +201,6 @@ class WandbLogger(RunLogger):
 
     def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
         """ """
-        import wandb
 
         # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
         wandb_setup = self.get_wandb_setup(
@@ -221,7 +221,6 @@ class WandbLogger(RunLogger):
         """
         # Wandb does not have a direct method to set logging level like standard loggers.
         # However, you can control the verbosity of the output using the `wandb.settings` module.
-        import wandb
 
         if level.upper() == "DEBUG":
             wandb.settings().set("verbose", True)
