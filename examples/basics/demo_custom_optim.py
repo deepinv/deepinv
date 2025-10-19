@@ -27,6 +27,7 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 
 import deepinv as dinv
 import torch
+from deepinv.optim import PGD
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
@@ -225,20 +226,17 @@ prior = dinv.optim.PnP(denoiser=denoiser)  # prior with prox via denoising step
 def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
     """
     Custom initialization function for the optimization algorithm.
-    The function should return a dictionary with the key "est" containing a tuple
-    with the initial guess (the TV solution in this case)
-    and the dual variables (None in this case).
+    The function should return the initial guess (the TV solution in this case).
     """
-    primal = tv_algo(y, physics)
-    dual = None  #  No dual variables in this case
-    return {"est": (primal, dual)}
+    return tv_algo(y, physics)
 
 
-model = dinv.optim.optim_builder(
+model = PGD(
     iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
-    params_algo={"stepsize": stepsize, "g_param": 0.05},
+    stepsize=stepsize,
+    g_param=0.05,
     max_iter=max_iter,
     custom_init=custom_init,
 )

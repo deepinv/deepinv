@@ -12,7 +12,7 @@ import torch
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim.optimizers import PGD
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -51,17 +51,17 @@ operation = "tomography"
 
 
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
-angles = 100
+angles = 50
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.Tomography(
     img_width=img_size,
     angles=angles,
-    circle=False,
+    normalize=True,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-scaling = torch.pi / (2 * angles)  # approximate operator norm of A^T A
+SCALING = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -79,8 +79,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-params_algo = {"stepsize": 0.01 * scaling, "g_param": noise_level_img}
-max_iter = 100
+stepsize = 15 * SCALING
+sigma_denoiser = 0.01
+max_iter = 200
 early_stop = True
 
 # Select the data fidelity term
@@ -101,17 +102,18 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 
 # instantiate the algorithm class to solve the IP problem.
 # initialize with the rescaled adjoint such that the initialization lives already at the correct scale
-model = optim_builder(
-    iteration="PGD",
-    prior=prior,
+init = lambda y, physics: physics.A_adjoint(y) * SCALING
+
+# define the model
+model = PGD(
     data_fidelity=data_fidelity,
+    prior=prior,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
-    custom_init=lambda y, physics: {
-        "est": (physics.A_adjoint(y) * scaling, physics.A_adjoint(y) * scaling)
-    },
+    custom_init=init,
 )
 
 # Set the model to evaluation mode. We do not require training here.
@@ -127,7 +129,7 @@ model.eval()
 
 y = physics(x)
 x_lin = (
-    physics.A_adjoint(y) * scaling
+    physics.A_adjoint(y) * SCALING
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
