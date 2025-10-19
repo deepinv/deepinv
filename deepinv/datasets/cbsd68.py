@@ -22,7 +22,8 @@ class CBSD68(ImageDataset):
     This dataset wraps the huggingface version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
 
-    ..note::
+    .. note::
+
         Using the CBSD68 dataset requires the `datasets` library. It can be installed via `pip install datasets`.
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
