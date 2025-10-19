@@ -278,7 +278,7 @@ class Trainer:
         for logger in self.loggers:
             logger.load_from_checkpoint(checkpoint)
 
-    def apply_clip_grad(self) -> float | None:
+    def apply_grad_clip(self) -> float | None:
         r"""
         Perform gradient clipping.
         """
@@ -683,7 +683,7 @@ class Trainer:
                 loss_logs["Loss"] = loss_cur.item()
 
                 # Gradient clipping
-                grad_norm = self.apply_clip_grad()
+                grad_norm = self.apply_grad_clip()
                 if self.log_grad:
                     loss_logs["gradient_norm"] = grad_norm
 
@@ -715,7 +715,7 @@ class Trainer:
             loss_logs["Loss"] = loss_multi_dataset_step
 
             # Gradient clipping
-            grad_norm = self.apply_clip_grad()
+            grad_norm = self.apply_grad_clip()
             if self.log_grad:
                 loss_logs["gradient_norm"] = grad_norm
 
