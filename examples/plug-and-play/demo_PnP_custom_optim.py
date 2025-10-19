@@ -1,9 +1,9 @@
 """
-PnP with custom optimization algorithm (Condat-Vu Primal-Dual)
+PnP with custom optimization algorithm (here Primal-Dual Condat-Vu)
 ====================================================================================================
 
 This example shows how to define your own optimization algorithm.
-For example, here, we implement the Condat-Vu Primal-Dual algorithm,
+For example, here, we implement the Primal-Dual Condat-Vu (CV) algorithm,
 and apply it for Single Pixel Camera reconstruction.
 """
 
@@ -13,7 +13,7 @@ import torch
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim.optimizers import BaseOptim
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
@@ -117,7 +117,9 @@ class fStepCV(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.d.prox_conjugate(u, y, gamma=cur_params["sigma"])
+        return cur_data_fidelity.d.prox_conjugate(
+            u, y, gamma=cur_params["stepsize_dual"]
+        )
 
 
 class gStepCV(gStep):
@@ -141,6 +143,45 @@ class gStepCV(gStep):
             v,
             cur_params["g_param"],
             gamma=cur_params["lambda"] * cur_params["stepsize"],
+        )
+
+
+# %%
+# Define the Conva-Vu model as a subclass of :class:`deepinv.optim.BaseOptim`,
+# in the model of other optimizer of the library, see for example :class:`deepinv.optim.ADMM`.
+# ----------------------------------------------------------------------------------------
+
+
+class CV(BaseOptim):
+    r"""
+    Primal-Dual Condat-Vu (CV) optimization algorithm.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        stepsize_dual=1.0,
+        beta=1.0,
+        g_param=None,
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "stepsize_dual": stepsize_dual,
+            "g_param": g_param,
+            "beta": beta,
+        }
+
+        super(CV, self).__init__(
+            CVIteration(),
+            params_algo=params_algo,
+            data_fidelity=data_fidelity,
+            prior=prior,
+            **kwargs,
         )
 
 
@@ -213,7 +254,9 @@ num_workers = 4 if torch.cuda.is_available() else 0
 #
 
 # Set up the PnP algorithm parameters :
-params_algo = {"stepsize": 0.99, "g_param": 0.01, "sigma": 0.99}
+stepsize = 0.99  # primal stepsize
+stepsize_dual = 0.99  # dual stepsize
+g_param = 0.01  # denoiser parameter (noise level)
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
@@ -230,14 +273,14 @@ denoiser = DnCNN(
 prior = PnP(denoiser=denoiser)
 
 # instantiate the algorithm class to solve the IP problem.
-iteration = CVIteration(F_fn=None, has_cost=False)
-model = optim_builder(
-    iteration=iteration,
+model = CV(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    stepsize_dual=stepsize_dual,
+    g_param=g_param,
     early_stop=early_stop,
     max_iter=max_iter,
-    params_algo=params_algo,
     verbose=True,
 )
 

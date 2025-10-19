@@ -106,7 +106,6 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # load specific parameters for DPIR
 sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img, device=device)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
 early_stop = False  # Do not stop algorithm with convergence criteria
 
 # Select the data fidelity term

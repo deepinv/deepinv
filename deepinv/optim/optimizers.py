@@ -913,38 +913,37 @@ def optim_builder(
     **kwargs,
 ):
     r"""
-    Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
+     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
-    .. deprecated:: 0.3.6
+    .. note::
 
-       The ``optim_builder`` is deprecated and will be removed in future versions.
-       Instead of using this function, define an optimization algorithm using directly the algorithm name
-       e.g. ``model = PGD(data_fidelity, prior, ...)``.
+         Since 0.3.6, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
+         ``model = PGD(data_fidelity, prior, ...)``.
 
-    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used, or directly an optim iterator.
-        If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent).
-    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
-    :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularization parameter, denoising standard deviation.
-                            Each value of the dictionary can be either Iterable (distinct value for each iteration) or
-                            a single float (same value for each iteration). See :any:`optim-params` for more details.
-                            Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
-    :param list, deepinv.optim.DataFidelity: data-fidelity term.
-                            Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :class:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
-    :param list, deepinv.optim.Prior prior: regularization prior.
-                            Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function.
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
-            the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
-            the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
-            Default: ``None``.
-    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
-    :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
-    :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
+     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used, or directly an optim iterator.
+         If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
+         ``"HQS"`` (half-quadratic splitting), ``"PDCP"`` (Primal-Dual Chambolle-Pock),  ``"DRS"`` (Douglas Rachford), ``"MD"`` (Mirror Descent) or ``"PMD"`` (Proximal Mirror Descent).
+     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
+     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
+                             e.g. the stepsize, regularization parameter, denoising standard deviation.
+                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
+                             a single float (same value for each iteration). See :any:`optim-params` for more details.
+                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
+     :param list, deepinv.optim.DataFidelity: data-fidelity term.
+                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
+                             :class:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
+     :param list, deepinv.optim.Prior prior: regularization prior.
+                             Either a single instance (same prior for each iteration) or a list of instances of
+                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
+     :param Callable F_fn: Custom user input cost function.
+             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
+             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
+             Default: ``None``.
+     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
+     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
+     :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
+     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
     if isinstance(params_algo, MappingProxyType):
@@ -2177,12 +2176,13 @@ class PMD(BaseOptim):
 
 
 class PDCP(BaseOptim):
-    r"""
-    Class for a single iteration of the `Primal-Dual Chambolle-Pock (PDCP) <https://hal.science/hal-00490826/document>`_ 
+    r""" Primal Dual Chambolle-Pock optimization module.
+    
+    Implementation of the `Primal-Dual Chambolle-Pock (PDCP) <https://hal.science/hal-00490826/document>`_ 
     algorithm for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
-    If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
+    If the attribute ``g_first`` is set to ``False`` (by default), a single iteration is given by
     
     .. math::
         \begin{equation*}
@@ -2216,7 +2216,7 @@ class PDCP(BaseOptim):
     Note also that by default, if the prior has trainable parameters (e.g. a neural network denoiser), these parameters are learnable by default. 
     If the model is used for inference only, use the ``with torch.no_grad():`` context when calling the model in order to avoid unnecessary gradient computations.
 
-    The Proximal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
+    The Primal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
 
     :param Callable K: linear operator :math:`K` in the primal problem. Default: identity function.
     :param Callable K_adjoint: adjoint linear operator :math:`K^\top` in the primal problem. Default: identity function.

@@ -39,14 +39,14 @@ def tensorlist():
 @pytest.fixture
 def model():
     physics = deepinv.physics.Denoising()
-    model = deepinv.optim.optimizers.optim_builder(
-        iteration="PGD",
+    model = deepinv.optim.PGD(
         prior=deepinv.optim.prior.TVPrior(n_it_max=20),
         data_fidelity=deepinv.optim.data_fidelity.L2(),
+        stepsize=1.0,
+        lambda_reg=1e-2,
         early_stop=True,
         max_iter=10,
         verbose=False,
-        params_algo={"stepsize": 1.0, "lambda": 1e-2},
     )
     x = torch.randn(1, 1, 64, 64, generator=torch.Generator().manual_seed(0))
     # NOTE: It is needed for attribute params_algo to be initialized.

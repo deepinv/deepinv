@@ -130,7 +130,7 @@ jacobian_free = False  # does not perform Jacobian inversion.
 trainable_params = [
     "stepsize",
     "sigma_denoiser",
-]  # define which parameters from 'params_algo' are trainable. Here the stepsize and noise level of the denoiser are trained.
+]  # define which parameters are trainable. Here the stepsize and noise level of the denoiser are trained.
 
 # Define the unfolded trainable model.
 model = PGD(

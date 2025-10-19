@@ -116,7 +116,7 @@ sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 trainable_params = [
     "sigma_denoiser",
     "stepsize",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 
 # %%

@@ -128,7 +128,7 @@ trainable_params = [
     "stepsize",
     "beta",
     "sigma_denoiser",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 # Logging parameters
 verbose = True
@@ -228,18 +228,3 @@ dinv.utils.plot(
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
 )
-
-
-# %%
-# Plotting the weights of the network.
-# ------------------------------------
-#
-# We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
-#
-if torch.cuda.is_available():
-    dinv.utils.plotting.plot_parameters(
-        model,
-        init_params=params_algo,
-        save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
-    )

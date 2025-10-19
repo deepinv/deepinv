@@ -230,11 +230,12 @@ def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
     return tv_algo(y, physics)
 
 
-model = dinv.optim.optim_builder(
+model = PGD(
     iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
-    params_algo={"stepsize": stepsize, "g_param": 0.05},
+    stepsize=stepsize,
+    g_param=0.05,
     max_iter=max_iter,
     custom_init=custom_init,
 )

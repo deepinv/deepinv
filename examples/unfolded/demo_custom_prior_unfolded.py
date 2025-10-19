@@ -157,7 +157,7 @@ stepsize = [
 trainable_params = [
     "stepsize",
     "lambda_reg",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 # Select the data fidelity term
 data_fidelity = L2()

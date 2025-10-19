@@ -173,15 +173,15 @@ fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 # DCT-based inversion
 x_est = fidelity.D_dagger(wrapped_phase)
 
-
-params_algo = {"stepsize": stepsize, "lambda": lam, "g_param": 1.0}
-model = dinv.optim.optim_builder(
+model = ADMM(
     iteration="ADMM",
     prior=prior,
     data_fidelity=fidelity,
     max_iter=10,
     verbose=False,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    lambda_reg=lam,
+    g_param=1.0,
 )
 x_model = model(wrapped_phase, physics)
 
