@@ -27,6 +27,7 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 
 import deepinv as dinv
 import torch
+from deepinv.optim import PGD
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 

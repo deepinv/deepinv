@@ -221,7 +221,7 @@ def test_optim_algo(name_algo, imsize, device):
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
     sigma_denoiser = [0.01 * torch.ones(1, level)] * max_iter
-    # define which parameters from 'params_algo' are trainable
+    # define which parameters are trainable
     trainable_params = ["g_param", "stepsize"]
 
     stepsize_dual = 1.0  # for Primal-Dual CP.
@@ -232,7 +232,6 @@ def test_optim_algo(name_algo, imsize, device):
         stepsize_dual=stepsize_dual,
         g_param=sigma_denoiser,
         lambda_reg=lamb,
-        params_algo=params_algo,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,

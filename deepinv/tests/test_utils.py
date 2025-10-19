@@ -49,7 +49,6 @@ def model():
         verbose=False,
     )
     x = torch.randn(1, 1, 64, 64, generator=torch.Generator().manual_seed(0))
-    # NOTE: It is needed for attribute params_algo to be initialized.
     _ = model(x, physics=physics)
     yield model
 

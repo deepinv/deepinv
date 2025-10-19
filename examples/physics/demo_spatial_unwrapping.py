@@ -23,7 +23,7 @@ import torch
 import deepinv as dinv
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-
+from deepinv.optim import ADMM
 from deepinv.utils.demo import load_example
 
 
