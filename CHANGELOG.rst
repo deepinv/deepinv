@@ -18,6 +18,7 @@ Fixed
 ^^^^^
 - Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 - Set14HR dataset now downloads from a different source (and has slightly different folderstructure), since old link broke. (:gh:`845` by `Vicky De Ridder`_)
+- Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 
 v0.3.5
 ------
