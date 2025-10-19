@@ -235,7 +235,7 @@ def test_optim_algo(name_algo, imsize, device):
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        prior=prior
+        prior=prior,
     )
 
     for idx, (name, param) in enumerate(model_unfolded.named_parameters()):
