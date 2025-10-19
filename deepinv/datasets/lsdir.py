@@ -192,7 +192,7 @@ class LsdirHR(ImageFolder):
                     |
         """
         root_dir_exist = os.path.isdir(self.root)
-        if not root_dir_exist:
+        if not root_dir_exist:  # pragma: no cover
             return False
 
         md5_folders = hashlib.md5()
