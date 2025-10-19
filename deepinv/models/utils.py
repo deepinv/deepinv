@@ -4,6 +4,7 @@ import numpy as np
 from torch.nn.functional import silu
 from torch import Tensor
 from torch.nn import Linear, GroupNorm
+from itertools import chain
 
 
 def tensor2array(img):
@@ -32,12 +33,12 @@ def test_pad(model, L, modulo=16):
 
     Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
     """
-    h, w = L.size()[-2:]
-    padding_bottom = int(np.ceil(h / modulo) * modulo - h)
-    padding_right = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
+    spatials = L.size()[2:]
+    padding = tuple(int(np.ceil(s / modulo) * modulo - s) for s in spatials)
+    padding = tuple(chain.from_iterable((0, v) for v in padding))
+    L = {2: nn.ReplicationPad2d, 3: nn.ReplicationPad3d}[len(spatials)](padding)(L)
     E = model(L)
-    E = E[..., :h, :w]
+    E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
 
 
@@ -111,6 +112,18 @@ def batchnorm_nd(dim: int) -> nn.Module:
 
 def conv_transpose_nd(dim: int) -> nn.Module:
     return {2: nn.ConvTranspose2d, 3: nn.ConvTranspose3d}[dim]
+
+
+def maxpool_nd(dim: int) -> nn.Module:
+    return {2: nn.MaxPool2d, 3: nn.MaxPool3d}[dim]
+
+
+def avgpool_nd(dim: int) -> nn.Module:
+    return {2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
+
+
+def instancenorm_nd(dim: int) -> nn.Module:
+    return {2: nn.InstanceNorm2d, 3: nn.InstanceNorm3d}[dim]
 
 
 # Basic blocks for defining the architecture of the models

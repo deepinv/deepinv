@@ -1,7 +1,18 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
 import torch
-from .utils import get_weights_url, test_onesplit, test_pad
+from .utils import (
+    get_weights_url,
+    test_onesplit,
+    test_pad,
+    fix_dim,
+    conv_nd,
+    conv_transpose_nd,
+    batchnorm_nd,
+    instancenorm_nd,
+    maxpool_nd,
+    avgpool_nd,
+)
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
 
@@ -35,25 +46,30 @@ class DRUNet(Denoiser):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str device: gpu or cpu.
+    :param torch.device, str device: Device to put the model on.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        nc=(64, 128, 256, 512),
-        nb=4,
-        act_mode="R",
-        downsample_mode="strideconv",
-        upsample_mode="convtranspose",
-        pretrained="download",
-        device=None,
+        in_channels: int = 3,
+        out_channels: int = 3,
+        nc: tuple[int, int, int, int] = (64, 128, 256, 512),
+        nb: int = 4,
+        act_mode: str = "R",
+        downsample_mode: str = "strideconv",
+        upsample_mode: str = "convtranspose",
+        pretrained: str | None = "download",
+        device: torch.device | str = None,
+        dim: str | int = 2,
     ):
         super(DRUNet, self).__init__()
+
+        dim = fix_dim(dim)
+
         in_channels = in_channels + 1  # accounts for the input noise channel
-        self.m_head = conv(in_channels, nc[0], bias=False, mode="C")
+        self.m_head = conv(in_channels, nc[0], bias=False, mode="C", dim=dim)
 
         # downsample
         if downsample_mode == "avgpool":
@@ -62,36 +78,36 @@ class DRUNet(Denoiser):
             downsample_block = downsample_maxpool
         elif downsample_mode == "strideconv":
             downsample_block = downsample_strideconv
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "downsample mode [{:s}] is not found".format(downsample_mode)
             )
 
         self.m_down1 = sequential(
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[0], nc[1], bias=False, mode="2"),
+            downsample_block(nc[0], nc[1], bias=False, mode="2", dim=dim),
         )
         self.m_down2 = sequential(
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[1], nc[2], bias=False, mode="2"),
+            downsample_block(nc[1], nc[2], bias=False, mode="2", dim=dim),
         )
         self.m_down3 = sequential(
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
-            downsample_block(nc[2], nc[3], bias=False, mode="2"),
+            downsample_block(nc[2], nc[3], bias=False, mode="2", dim=dim),
         )
 
         self.m_body = sequential(
             *[
-                ResBlock(nc[3], nc[3], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[3], nc[3], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ]
         )
@@ -103,36 +119,40 @@ class DRUNet(Denoiser):
             upsample_block = upsample_pixelshuffle
         elif upsample_mode == "convtranspose":
             upsample_block = upsample_convtranspose
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "upsample mode [{:s}] is not found".format(upsample_mode)
             )
 
         self.m_up3 = sequential(
-            upsample_block(nc[3], nc[2], bias=False, mode="2"),
+            upsample_block(nc[3], nc[2], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
         self.m_up2 = sequential(
-            upsample_block(nc[2], nc[1], bias=False, mode="2"),
+            upsample_block(nc[2], nc[1], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
         self.m_up1 = sequential(
-            upsample_block(nc[1], nc[0], bias=False, mode="2"),
+            upsample_block(nc[1], nc[0], bias=False, mode="2", dim=dim),
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C", dim=dim)
                 for _ in range(nb)
             ],
         )
 
-        self.m_tail = conv(nc[0], out_channels, bias=False, mode="C")
+        self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
             if pretrained == "download":
+                if dim == 3:  # pragma: no cover
+                    raise ValueError(
+                        "No 3D weights for DRUNet are available for download. Please set pretrained to None"
+                    )
                 if in_channels == 4:
                     name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
@@ -166,7 +186,7 @@ class DRUNet(Denoiser):
         x = self.m_tail(x + x1)
         return x
 
-    def forward(self, x, sigma):
+    def forward(self, x: torch.Tensor, sigma: torch.Tensor | float) -> torch.Tensor:
         r"""
         Run the denoiser on image with noise level :math:`\sigma`.
 
@@ -180,24 +200,23 @@ class DRUNet(Denoiser):
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 noise_level_map = torch.ones(
-                    (x.size(0), 1, x.size(2), x.size(3)), device=x.device
+                    (x.size(0), 1, *x.shape[2:]), device=x.device
                 ) * sigma[None, None, None, None].to(x.device)
         else:
             noise_level_map = (
-                torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
-                * sigma
+                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
-        if (
-            x.size(2) % 8 == 0
-            and x.size(3) % 8 == 0
-            and x.size(2) > 31
-            and x.size(3) > 31
-        ):
+        shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
+        if shape_is_safe:
             x = self.forward_unet(x)
         elif self.training or (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
+            if self.dim == 3:  # pragma: no cover
+                raise NotImplementedError(
+                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
+                )
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x
 
@@ -226,7 +245,7 @@ def sequential(*args):
         nn.Sequential
     """
     if len(args) == 1:
-        if isinstance(args[0], OrderedDict):
+        if isinstance(args[0], OrderedDict):  # pragma: no cover
             raise NotImplementedError("sequential does not support OrderedDict input.")
         return args[0]  # No sequential is needed.
     modules = []
@@ -271,12 +290,13 @@ def conv(
     bias=True,
     mode="CBR",
     negative_slope=0.2,
+    dim=2,
 ):
     L = []
     for t in mode:
         if t == "C":
             L.append(
-                nn.Conv2d(
+                conv_nd(dim)(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=kernel_size,
@@ -287,7 +307,7 @@ def conv(
             )
         elif t == "T":
             L.append(
-                nn.ConvTranspose2d(
+                conv_transpose_nd(dim)(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=kernel_size,
@@ -297,9 +317,11 @@ def conv(
                 )
             )
         elif t == "B":
-            L.append(nn.BatchNorm2d(out_channels, momentum=0.9, eps=1e-04, affine=True))
+            L.append(
+                batchnorm_nd(dim)(out_channels, momentum=0.9, eps=1e-04, affine=True)
+            )
         elif t == "I":
-            L.append(nn.InstanceNorm2d(out_channels, affine=True))
+            L.append(instancenorm_nd(dim)(out_channels, affine=True))
         elif t == "R":
             L.append(nn.ReLU(inplace=True))
         elif t == "r":
@@ -312,12 +334,12 @@ def conv(
             L.append(nn.ELU(inplace=False))
         elif t == "s":
             L.append(nn.Softplus())
-        elif t == "2":
-            L.append(nn.PixelShuffle(upscale_factor=2))
-        elif t == "3":
-            L.append(nn.PixelShuffle(upscale_factor=3))
-        elif t == "4":
-            L.append(nn.PixelShuffle(upscale_factor=4))
+        elif t.isdigit():
+            if dim == 3:  # pragma: no cover
+                raise ValueError(
+                    "PixelShuffle is not implemented for 3D models. Please use upconv or convtranspose"
+                )
+            L.append(nn.PixelShuffle(upscale_factor=int(t)))
         elif t == "U":
             L.append(nn.Upsample(scale_factor=2, mode="nearest"))
         elif t == "u":
@@ -325,10 +347,10 @@ def conv(
         elif t == "v":
             L.append(nn.Upsample(scale_factor=4, mode="nearest"))
         elif t == "M":
-            L.append(nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=0))
+            L.append(maxpool_nd(dim)(kernel_size=kernel_size, stride=stride, padding=0))
         elif t == "A":
-            L.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=0))
-        else:
+            L.append(avgpool_nd(dim)(kernel_size=kernel_size, stride=stride, padding=0))
+        else:  # pragma: no cover
             raise NotImplementedError("Undefined type: ".format(t))
     return sequential(*L)
 
@@ -347,6 +369,7 @@ class ResBlock(nn.Module):
         bias=True,
         mode="CRC",
         negative_slope=0.2,
+        dim=2,
     ):
         super(ResBlock, self).__init__()
 
@@ -363,9 +386,10 @@ class ResBlock(nn.Module):
             bias,
             mode,
             negative_slope,
+            dim,
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         res = self.res(x)
         return x + res
 
@@ -394,6 +418,7 @@ def upsample_pixelshuffle(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -409,6 +434,7 @@ def upsample_pixelshuffle(
         bias,
         mode="C" + mode,
         negative_slope=negative_slope,
+        dim=dim,
     )
     return up1
 
@@ -425,6 +451,7 @@ def upsample_upconv(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -447,6 +474,7 @@ def upsample_upconv(
         bias,
         mode=mode,
         negative_slope=negative_slope,
+        dim=dim,
     )
     return up1
 
@@ -463,6 +491,7 @@ def upsample_convtranspose(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -481,6 +510,7 @@ def upsample_convtranspose(
         bias,
         mode,
         negative_slope,
+        dim,
     )
     return up1
 
@@ -509,6 +539,7 @@ def downsample_strideconv(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -527,6 +558,7 @@ def downsample_strideconv(
         bias,
         mode,
         negative_slope,
+        dim,
     )
     return down1
 
@@ -543,6 +575,7 @@ def downsample_maxpool(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -556,6 +589,7 @@ def downsample_maxpool(
         stride=stride_pool,
         mode=mode[0],
         negative_slope=negative_slope,
+        dim=dim,
     )
     pool_tail = conv(
         in_channels,
@@ -566,6 +600,7 @@ def downsample_maxpool(
         bias,
         mode=mode[1:],
         negative_slope=negative_slope,
+        dim=dim,
     )
     return sequential(pool, pool_tail)
 
@@ -582,6 +617,7 @@ def downsample_avgpool(
     bias=True,
     mode="2R",
     negative_slope=0.2,
+    dim=2,
 ):
     assert len(mode) < 4 and mode[0] in [
         "2",
@@ -595,6 +631,7 @@ def downsample_avgpool(
         stride=stride_pool,
         mode=mode[0],
         negative_slope=negative_slope,
+        dim=dim,
     )
     pool_tail = conv(
         in_channels,
@@ -605,6 +642,7 @@ def downsample_avgpool(
         bias,
         mode=mode[1:],
         negative_slope=negative_slope,
+        dim=dim,
     )
     return sequential(pool, pool_tail)
 
