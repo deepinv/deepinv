@@ -1,7 +1,7 @@
+from __future__ import annotations
 import torch.nn as nn
 import torch
 from .utils import get_weights_url, conv_nd, fix_dim
-import math
 from .base import Denoiser
 
 

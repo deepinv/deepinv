@@ -1,5 +1,5 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
-
+from __future__ import annotations
 import torch
 from .utils import (
     get_weights_url,
