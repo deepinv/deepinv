@@ -171,6 +171,8 @@ class DRUNet(Denoiser):
         else:
             self.apply(weights_init_drunet)
 
+        self.dim = dim
+
         if device is not None:
             self.to(device)
 
