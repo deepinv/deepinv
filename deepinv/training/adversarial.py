@@ -16,7 +16,6 @@ from torch.nn import Module
 from deepinv.training.trainer import Trainer
 from deepinv.loss import Loss
 from deepinv.utils import AverageMeter
-import numpy as np
 
 
 class AdversarialOptimizer:
