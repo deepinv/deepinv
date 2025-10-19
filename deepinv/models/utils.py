@@ -36,7 +36,7 @@ def test_pad(model, L, modulo=16):
     """
     spatials = L.size()[2:]
     padding = tuple(int(np.ceil(s / modulo) * modulo - s) for s in spatials)
-    padding = tuple(chain.from_iterable((0, v) for v in padding))
+    padding = tuple(chain.from_iterable((0, v) for v in reversed(padding)))
     L = {2: nn.ReplicationPad2d, 3: nn.ReplicationPad3d}[len(spatials)](padding)(L)
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
