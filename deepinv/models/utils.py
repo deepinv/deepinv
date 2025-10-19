@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import numpy as np
 from torch.nn.functional import silu
 from torch import Tensor
@@ -76,6 +77,40 @@ def test_onesplit(model, L, refield=32, sf=1):
         ..., (-h + h // 2) * sf :, (-w + w // 2) * sf :
     ]
     return E
+
+
+# Code to build 2D or 3D variants of network components, based on the 'dim' keyword
+
+
+def fix_dim(dim: str | int) -> int:
+    if isinstance(dim, str):
+        if len(dim) == 1:
+            dim_int = int(dim)
+        elif len(dim) == 2:
+            dim_int = int(dim[0])  # this silently allows other formats than f"{dim}d"..
+        else:  # pragma: no cover
+            raise ValueError(f"dim must be int, or '3', '2d', '3D', etc., got {dim}")
+    elif isinstance(dim, int):
+        dim_int = dim
+    else:  # pragma: no cover
+        raise ValueError(f"dim must be of type str or int, got {dim} ({type(dim)})")
+    if dim_int not in [2, 3]:  # pragma: no cover
+        raise ValueError(
+            f"Only 2D or 3D architectures are supported, got dim={dim_int}"
+        )
+    return dim_int
+
+
+def conv_nd(dim: int) -> nn.Module:
+    return {2: nn.Conv2d, 3: nn.Conv3d}[dim]
+
+
+def batchnorm_nd(dim: int) -> nn.Module:
+    return {2: nn.BatchNorm2d, 3: nn.BatchNorm3d}[dim]
+
+
+def conv_transpose_nd(dim: int) -> nn.Module:
+    return {2: nn.ConvTranspose2d, 3: nn.ConvTranspose3d}[dim]
 
 
 # Basic blocks for defining the architecture of the models

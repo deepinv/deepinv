@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from .utils import get_weights_url
+from .utils import get_weights_url, conv_nd, fix_dim
 import math
 from .base import Denoiser
 
@@ -28,6 +28,7 @@ class DnCNN(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param torch.device, str device: Device to put the model on.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
     def __init__(
@@ -43,7 +44,9 @@ class DnCNN(Denoiser):
     ):
         super(DnCNN, self).__init__()
 
-        conv = {"2": nn.Conv2d, "3": nn.Conv3d}[str(dim)]
+        dim = fix_dim(dim)
+
+        conv = conv_nd(dim)
 
         self.depth = depth
 
@@ -67,7 +70,7 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if dim == "3":  # pragma: no cover
+                if dim == 3:  # pragma: no cover
                     raise RuntimeError(
                         "No pretrained weights are available for download for 3D DnCNN."
                     )
