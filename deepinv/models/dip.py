@@ -168,7 +168,7 @@ class DeepImagePrior(Reconstructor):
 
         self.loss = MCLoss()
 
-    def forward(self, y: torch.Tensor, physics: Physics, **kwargs):
+    def forward(self, y: torch.Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.

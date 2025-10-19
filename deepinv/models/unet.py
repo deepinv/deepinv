@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from .drunet import test_pad
 from .base import Denoiser
-from .utils import fix_dim, conv_nd, batchnorm_nd
+from .utils import fix_dim, conv_nd, batchnorm_nd, maxpool_nd
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
@@ -107,7 +107,7 @@ class UNet(Denoiser):
         self.residual = residual
         self.cat = cat
         self.compact = scales
-        self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
 
         biasfree = batch_norm == "biasfree"
         if biasfree and dim == 3:
