@@ -1,5 +1,4 @@
 import torch.nn as nn
-import warnings
 from deepinv.optim.utils import objective_function
 
 

@@ -13,7 +13,6 @@ from deepinv.optim.bregman import BregmanL2
 import torch.nn as nn
 from contextlib import nullcontext
 from dataclasses import dataclass
-from deepinv.optim.utils import objective_function
 
 
 @dataclass
