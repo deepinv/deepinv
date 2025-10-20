@@ -1053,11 +1053,20 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
 
 
 @pytest.mark.parametrize("n_channels", [3])
-def test_dsccp_net(device, n_channels):
-    # Load the pretrained model
+@pytest.mark.parametrize("spatials", [(37, 28), (32, 32, 32)])
+def test_dsccp_net(device, n_channels, spatials):
+    image_size = (n_channels, *spatials)
+    d = len(spatials)
 
-    image_size = (n_channels, 37, 28)
-    model = dinv.models.DScCP().to(device)
+    depth = 20 if d == 2 else 3
+    n_c_per_layer = 64 if d == 2 else 8
+
+    model = dinv.models.DScCP(
+        depth=depth,
+        n_channels_per_layer=n_c_per_layer,
+        pretrained="download" if d == 2 else None,
+        dim=d,
+    ).to(device)
     x = torch.rand(image_size, device=device).unsqueeze(0)
 
     y = model(x, 0.01)
@@ -1069,7 +1078,7 @@ def test_dsccp_net(device, n_channels):
     assert y.shape == x.shape
 
     # batch of sigma
-    x = x.expand(4, -1, -1, -1)
+    x = x.expand(4, *tuple(-1 for i in range(d + 1)))
     y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
 
