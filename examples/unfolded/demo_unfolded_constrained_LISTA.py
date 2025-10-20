@@ -250,7 +250,10 @@ model = trainer.train()
 plot_images = True
 method = "artifact_removal"
 
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test1"),
+)
 
 # %%
 # Saving the model
@@ -311,5 +314,10 @@ model_new.eval()
 
 # Test the model and check that the results are the same as before saving
 dinv.training.test(
-    model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
+    model_new,
+    test_dataloader,
+    physics=physics,
+    device=device,
+    show_progress_bar=False,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test2"),
 )

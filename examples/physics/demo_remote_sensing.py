@@ -207,7 +207,7 @@ trainer = dinv.Trainer(
 )
 
 trainer.train()
-trainer.test(DataLoader(dataset))
+trainer.test(DataLoader(dataset), loggers=LocalLogger(log_dir="logs/pansharpen/test"))
 
 # %%
 # Plot sample results:

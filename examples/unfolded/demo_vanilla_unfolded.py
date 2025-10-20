@@ -203,7 +203,9 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 test_sample, _ = next(iter(test_dataloader))
 model.eval()

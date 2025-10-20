@@ -196,7 +196,10 @@ test_dataloader = DataLoader(
 )
 
 trainer.log_images = True
-trainer.test(test_dataloader=test_dataloader)
+trainer.test(
+    test_dataloader=test_dataloader,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"),
+)
 
 # %%
 # :References:
