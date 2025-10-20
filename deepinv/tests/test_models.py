@@ -769,12 +769,21 @@ def test_PDNet(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
-def test_icnn(device, rng):
+@pytest.mark.parametrize("dims", [2, 3])
+def test_icnn(dims, device, rng):
     from deepinv.models import ICNN
 
-    model = ICNN(in_channels=3, device=device)
+    num_filters = 64 if dims == 2 else 4
+    num_layers = 10 if dims == 2 else 3
+    model = ICNN(
+        num_filters=num_filters,
+        num_layers=num_layers,
+        in_channels=3,
+        device=device,
+        dim=dims,
+    )
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
-    x = torch.ones((1, 3, 128, 128), device=device)
+    x = torch.ones((1, 3, *tuple(128 for i in range(dims))), device=device)
     y = physics(x)
     potential = model(y)
     grad = model.grad(y)
