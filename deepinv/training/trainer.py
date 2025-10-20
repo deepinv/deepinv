@@ -1002,6 +1002,9 @@ class Trainer:
         ) = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
+        loggers: RunLogger | list[RunLogger] | None = field(
+            default_factory=lambda: [LocalLogger("./logs")]
+        ),
     ) -> dict:
         r"""
         Test the model, compute metrics and plot images.

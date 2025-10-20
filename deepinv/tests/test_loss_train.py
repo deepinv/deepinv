@@ -307,8 +307,7 @@ def test_optim_algo(name_algo, imsize, device, logger):
         online_measurements=True,
     )
     trainer.train()
-    trainer.loggers = logger()
-    trainer.test(test_dataloader)
+    trainer.test(test_dataloader, loggers=logger())
 
 
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):

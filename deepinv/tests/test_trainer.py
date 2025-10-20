@@ -546,8 +546,7 @@ def test_trainer_test_metrics(non_blocking_plots, device, rng, logger):
     )
 
     _ = trainer.train()
-    trainer.loggers = logger()
-    results = trainer.test(dataloader, log_raw_metrics=True)
+    results = trainer.test(dataloader, loggers=logger(), log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
     assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
@@ -765,8 +764,7 @@ def test_early_stop(
         assert len(metrics_history) < epochs
         last = metrics_history[-1]
         best = max(metrics_history)
-        trainer.loggers = logger()
-        metrics = trainer.test(val_dataloader)
+        metrics = trainer.test(val_dataloader, loggers=logger())
         assert metrics["PSNR"] < best and metrics["PSNR"] == last
     else:
         assert len(metrics_history) == epochs

@@ -407,8 +407,7 @@ def test_losses(
     trainer.loggers = logger()
     # train the network
     trainer.train()
-    trainer.loggers = logger()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+    final_test = trainer.test(test_dataloader=test_dataloader, loggers=logger())
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
