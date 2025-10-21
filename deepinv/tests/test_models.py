@@ -649,6 +649,26 @@ def test_drunet_inputs(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
+@pytest.mark.parametrize(
+    "drunet_args",
+    [
+        {"act_mode": "L", "downsample_mode": "avgpool", "upsample_mode": "upconv"},
+        {
+            "act_mode": "E",
+            "downsample_mode": "maxpool",
+            "upsample_mode": "pixelshuffle",
+        },
+        {"act_mode": "s"},
+    ],
+)
+def test_drunet_options(drunet_args, device):
+    args = {"pretrained": None, "nc": (4, 4, 4, 4), "nb": 2, "device": device, "dim": 2}
+    args.update(drunet_args)
+    drunet_2d = dinv.models.DRUNet(**args)
+    out = drunet_2d(torch.randn([1, 3, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64)
+
+
 def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.
     # The Ho et al. diffusion model only works for color, square image with powers of two in w, h.

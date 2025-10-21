@@ -40,7 +40,7 @@ class DRUNet(Denoiser):
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelshuffle" for pixel
-        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
+        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution. "pixelshuffle" is not implemented for 3D.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for the default architecture with 3 or 1 input/output channels).

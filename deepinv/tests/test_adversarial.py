@@ -113,7 +113,7 @@ def test_adversarial_nets(test_shape):
 
     dim = len(test_shape) - 1
 
-    generator = dinv.models.DCGANGenerator(output_size=64, nz=4, ngf=16, dim=dim)
+    generator = dinv.models.DCGANGenerator(output_size=64, nz=4, ngf=16, dim=str(dim))
     latent = torch.randn([1, 4, *tuple(1 for i in range(dim))])
     out = generator(latent)
     assert out.shape[1:] == test_shape
