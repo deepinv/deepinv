@@ -573,7 +573,7 @@ def downsample_maxpool(
     out_channels=64,
     kernel_size=3,
     stride=1,
-    padding=0,
+    padding=1,
     bias=True,
     mode="2R",
     negative_slope=0.2,

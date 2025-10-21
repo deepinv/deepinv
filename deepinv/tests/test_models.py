@@ -667,6 +667,12 @@ def test_drunet_options(drunet_args, device):
     drunet_2d = dinv.models.DRUNet(**args)
     out = drunet_2d(torch.randn([1, 3, 64, 64], device=device), 0.1)
     assert out.shape == (1, 3, 64, 64)
+    args["dim"] = 3
+    if args.get("upsample_mode", None) == "pixelshuffle":
+        args.pop("upsample_mode")
+    drunet_3d = dinv.models.DRUNet(**args)
+    out = drunet_3d(torch.randn([1, 3, 64, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64, 64)
 
 
 def test_diffunetmodel(imsize, device):
