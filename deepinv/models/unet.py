@@ -73,6 +73,7 @@ class UNet(Denoiser):
         if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
+    :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
@@ -86,6 +87,7 @@ class UNet(Denoiser):
         bias: bool = True,
         batch_norm: bool | str = True,
         scales: int = 4,
+        device: torch.device | str = None,
         dim: str | int = 2,
     ):
         super(UNet, self).__init__()
@@ -251,6 +253,9 @@ class UNet(Denoiser):
             self._forward = self.forward_compact3
         if self.compact == 2:
             self._forward = self.forward_compact2
+
+        if device is not None:
+            self.to(device)
 
     def forward(self, x: torch.Tensor, sigma=None, **kwargs) -> torch.Tensor:
         r"""

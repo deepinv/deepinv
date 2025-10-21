@@ -507,6 +507,34 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
         assert x_hat.shape == x.shape
 
 
+MODELS_3D = {
+    dinv.models.DnCNN: {
+        "depth": 2,
+        "nf": 8,
+        "pretrained": None,
+    },
+    dinv.models.DRUNet: {
+        "in_channels": 1,
+        "out_channels": 1,
+        "nc": [8, 8, 8, 8],
+        "nb": 2,
+        "pretrained": None,
+    },
+    dinv.models.UNet: {"scales": 2},
+}
+
+
+@pytest.mark.parametrize("model", MODELS_3D.items())
+def test_3d_nets(model, device):
+    default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
+    model, args = model
+    args.update(default_args)
+    net = model(**args)
+    test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
+    out = net(test_tensor, sigma=0.1)
+    assert out.shape == test_tensor.shape
+
+
 @pytest.mark.parametrize("level", [3, 5, 6])
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
