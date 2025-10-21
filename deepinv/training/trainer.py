@@ -277,7 +277,7 @@ class Trainer:
         for loader in self.train_dataloader + (
             self.eval_dataloader if self.eval_dataloader is not None else []
         ):
-            if loader is not None:
+            if loader is not None and isinstance(loader, torch.utils.data.DataLoader):
                 check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
@@ -1330,7 +1330,8 @@ class Trainer:
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
-            check_dataset(loader.dataset)
+            if isinstance(loader, torch.utils.data.DataLoader):
+                check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 
