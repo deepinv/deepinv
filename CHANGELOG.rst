@@ -9,7 +9,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
- - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
+- Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
+- Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
 
 Changed
 ^^^^^^^
