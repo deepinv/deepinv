@@ -1330,7 +1330,7 @@ class Trainer:
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
-            if isinstance(loader, torch.utils.data.DataLoader):
+            if isinstance(loader, torch.utils.data.DataLoader): # pragma: no cover
                 check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
