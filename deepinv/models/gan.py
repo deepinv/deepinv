@@ -113,13 +113,16 @@ class ESRGANDiscriminator(nn.Module):
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
+    :param tuple filter: Width (number of filters) at each stage. This can also be used to control the number of stages (or also: the output shape relative to input shapes). Defaults to (64, 128, 256, 512)
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
 
     """
 
     @_deprecated_alias(input_shape="img_size")
-    def __init__(self, img_size: tuple, dim: str | int = 2):
+    def __init__(
+        self, img_size: tuple, filters: tuple = (64, 128, 256, 512), dim: str | int = 2
+    ):
         super().__init__()
 
         dim = fix_dim(dim)
@@ -128,7 +131,7 @@ class ESRGANDiscriminator(nn.Module):
 
         self.img_size = img_size
         in_channels, *spatials = self.img_size
-        patch_spatials = tuple(s // 4 for s in spatials)
+        patch_spatials = tuple(s // 2 ** len(filters) for s in spatials)
         self.output_shape = (1, *patch_spatials)
 
         def discriminator_block(in_filters, out_filters, first_block=False):
@@ -148,7 +151,7 @@ class ESRGANDiscriminator(nn.Module):
 
         layers = []
         in_filters = in_channels
-        for i, out_filters in enumerate([64, 128, 256, 512]):
+        for i, out_filters in enumerate(filters):
             layers.extend(
                 discriminator_block(in_filters, out_filters, first_block=(i == 0))
             )
