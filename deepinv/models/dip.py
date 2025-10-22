@@ -76,15 +76,16 @@ class ConvDecoder(nn.Module):
         self.net = nn.Sequential()
         for i in range(layers - 1):
             self.net.add(nn.Upsample(size=hidden_size[i], mode="nearest"))
-            c = conv(
-                channels,
-                channels,
-                kernel_size,
-                strides[i],
-                padding=(kernel_size - 1) // 2,
-                bias=True,
+            self.net.add(
+                conv(
+                    channels,
+                    channels,
+                    kernel_size,
+                    strides[i],
+                    padding=(kernel_size - 1) // 2,
+                    bias=True,
+                )
             )
-            self.net.add(c)
             self.net.add(nn.ReLU())
             self.net.add(batchnorm(channels, affine=True))
         # final layer
