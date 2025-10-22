@@ -26,8 +26,149 @@ from deepinv.utils.tensorlist import TensorList
 
 @dataclass
 class Trainer:
-    """
-    TODO
+    r"""Trainer(model, physics, optimizer, train_dataloader, ...)
+    Trainer class for training a reconstruction network.
+
+    .. seealso::
+
+        See the :ref:`User Guide <trainer>` for more details and for how to adapt the trainer to your needs.
+
+        See :ref:`sphx_glr_auto_examples_models_demo_training.py` for a simple example of how to use the trainer.
+
+    The trainer provides a unified interface for both **offline** (pre-computed measurements) and **online** (generated on-the-fly) training setups, supports multiple datasets and physics operators, and integrates seamlessly with both local and remote logging tools via :class:`deepinv.training.run_logger.RunLogger`.
+
+    ---
+
+    **Dataset interface**
+
+    The dataloaders should return samples formatted according to :func:`deepinv.datasets.check_dataset`. These are automatically validated at setup.
+
+    - If ``online_measurements=False`` (default), dataloaders must return tuples ``(x, y)`` or ``(x, y, params)``.
+    - If ``online_measurements=True``, dataloaders may return only ``x`` or ``(x, params)``, and measurements will be generated online via ``y = physics(x, **params)``.
+
+    For random physics or noise models that vary across iterations, a :class:`deepinv.physics.generator.PhysicsGenerator` can be used to produce different operators each step.
+
+    .. tip::
+
+        If your dataloaders do not return `y` but you do not want online measurements, use :func:`deepinv.datasets.generate_dataset` to generate a dataset
+        of offline measurements from a dataset of `x` and a `physics`.
+
+    ---
+
+    **Checkpoints and Logging**
+
+    Training state is saved automatically every ``ckpt_interval`` epochs, and can be resumed with ``ckpt_pretrained``.
+    Each checkpoint contains:
+        {
+            "epoch": current epoch,
+            "state_dict": model weights,
+            "optimizer": optimizer state dict (if defined),
+            "scheduler": scheduler state dict (if defined),
+            "loss": training loss history,
+            "val_metrics": validation metrics history
+        }
+
+    Checkpoints are handled by configured :class:`RunLogger` instances (e.g. :class:`LocalLogger`, :class:`WandbLogger`, etc.).
+
+    ---
+
+    **Custom Losses and Metrics**
+
+    Any loss can be used if it takes as input ``(x, x_net, y, physics, model)`` and returns a tensor of shape ``(batch_size,)`` (i.e. no reduction),
+    where ``x`` is the ground truth,
+          ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
+          ``y`` is the measurement vector,
+          ``physics`` is the forward operator,
+           and ``model`` is the reconstruction network.
+    Note that not all inputs need to be used by the loss, e.g., self-supervised losses will not make use of ``x``.
+
+    Likewise, metrics should have ``reduction=None``.
+
+    Custom classes must inherit from :class:`deepinv.loss.Loss` or :class:`deepinv.loss.metric.Metric`.
+
+    .. note::
+        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
+    ---
+
+    **Main Features**
+
+    - Supports multiple datasets and physics operators
+    - Online measurement generation
+    - Gradient clipping and logging
+    - Custom or multiple loss functions
+    - Automatic metrics tracking
+    - Local, WANDB, or MLflow logging via :class:`RunLogger`
+    - Checkpoint save/load for experiment resuming
+
+    ---
+
+    **Parameters**
+
+    :Basics:
+        :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
+        :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
+        :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
+        :param bool iterative_model_returns_different_outputs: If True, indicate that the model returns an additional output.
+
+    |sep|
+
+    :Data and Measurements:
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Validation data loader(s).
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s).
+        :param bool online_measurements: If True, measurements ``y`` are generated online as ``physics(x)``, else they are provided by the dataset.
+        :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating the physics operators. If not `None`, the physics operators are randomly sampled at each iteration using the generator.
+        :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch, so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch. Used in conjunction with ``online_measurements=True`` and `physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
+
+    |sep|
+
+    :Optimization:
+        :param None, torch.optim.Optimizer optimizer: Torch optimizer for training the network.
+        :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
+        :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
+        :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
+        :param int epochs: Number of training epochs.
+        :param int max_batch_steps: Max number of training batches the model sees. Default is `1e10`.
+        :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``. The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+
+    |sep|
+
+    :Losses and Metrics:
+        :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model. Optionally wrap losses using a loss scheduler for more advanced training. :ref:`See the libraries' training losses <loss>` where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
+        :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model. They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+        :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
+        :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
+
+    |sep|
+
+    :Checkpointing and Logging:
+        :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
+        :param int ckpt_interval: The model is saved every ``ckpt_interval`` epochs. Default is ``1``.
+        :param RunLogger or list[RunLogger] loggers: Logging backends (e.g. LocalLogger, WandbLogger, MLflowLogger, etc.).
+        :param bool log_images: Log the last batch reconstructions for each epoch. Default is ``False``.
+        :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
+        :param bool log_grad: Whether to log the gradient norm at each optimization step. Default is ``False``.
+        :param bool show_progress_bar: Display progress bar using tqdm.
+        :param bool verbose: Verbosity flag for console and loggers.
+
+    ---
+
+    :Examples:
+
+        ```
+        trainer = Trainer(
+            model=my_model,
+            physics=my_physics,
+            train_dataloader=train_loader,
+            val_dataloader=val_loader,
+            optimizer=torch.optim.Adam(my_model.parameters(), lr=1e-3),
+            losses=SupLoss(),
+            metrics=[PSNR()],
+            loggers=[LocalLogger("./logs")],
+        )
+        trainer.train()
+        ```
+
     """
 
     ## Core Components
