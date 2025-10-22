@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 import os
 import shutil
 import zipfile

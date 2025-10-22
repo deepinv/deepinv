@@ -181,7 +181,6 @@ def least_squares(
                     return A(AT(x))
 
                 AAT = aat
-            if ATA is None:
 
             if gamma_provided:
                 b = AT(y) + 1 / gamma * z

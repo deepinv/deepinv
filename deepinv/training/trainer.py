@@ -1342,7 +1342,7 @@ class Trainer:
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
-            progress_bar.set_description(f"Test")
+            progress_bar.set_description("Test")
             self.step(
                 0,
                 progress_bar,

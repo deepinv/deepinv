@@ -56,8 +56,8 @@ psnr = dinv.metric.PSNR()
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse": x_lin,
-        f"Pretrained RAM": x_hat,
+        "Linear inverse": x_lin,
+        "Pretrained RAM": x_hat,
     },
     subtitles=[
         "PSNR:",
@@ -97,8 +97,8 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse": x_lin,
-        f"Pretrained RAM": x_hat,
+        "Linear inverse": x_lin,
+        "Pretrained RAM": x_hat,
     },
     subtitles=[
         "PSNR:",
@@ -133,8 +133,8 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"FBP pseudo-inverse": x_lin,
-        f"Pretrained RAM": x_hat,
+        "FBP pseudo-inverse": x_lin,
+        "Pretrained RAM": x_hat,
     },
     subtitles=[
         "PSNR:",
@@ -168,8 +168,8 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse": x_lin,
-        f"Pretrained RAM": x_hat,
+        "Linear inverse": x_lin,
+        "Pretrained RAM": x_hat,
     },
     subtitles=[
         "PSNR:",
@@ -204,8 +204,8 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Original": x,
-        f"Measurement": y,
-        f"Reconstruction": x_hat,
+        "Measurement": y,
+        "Reconstruction": x_hat,
     },
     subtitles=[
         "PSNR:",
@@ -286,9 +286,9 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Original": x,
-        f"Measurement": y,
-        f"Zero-shot \nReconstruction": x_hat,
-        f"Fine-tuned \nReconstruction": x_hat_ft,
+        "Measurement": y,
+        "Zero-shot \nReconstruction": x_hat,
+        "Fine-tuned \nReconstruction": x_hat_ft,
     },
     subtitles=[
         "PSNR:",
