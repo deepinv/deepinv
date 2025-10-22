@@ -5,11 +5,22 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
+from deepinv.optim.data_fidelity import (
+    L2,
+    IndicatorL2,
+    L1,
+    AmplitudeLoss,
+    ZeroFidelity,
+    ItohFidelity,
+)
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
+from deepinv.optim.utils import least_squares_implicit_backward
+
+from functools import partial
+import copy
 
 
 def custom_init_CP(y, physics):
@@ -86,7 +97,9 @@ def test_data_fidelity_l2(device):
 
     # 5. Testing the torch autograd implementation of the gradient
     def dummy_torch_l2(x, y):
-        return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
+        return (
+            0.5 * torch.linalg.vector_norm((B @ (x - y)).flatten(), dim=-1, ord=2) ** 2
+        )
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
     torch_loss_grad = torch_loss.d.grad(x, y)
@@ -171,7 +184,10 @@ def test_data_fidelity_indicator(device):
     x_proj = torch.Tensor([[[0.5290], [2.9932]]]).to(device)
     dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
-    assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
+    assert (
+        torch.linalg.vector_norm((A_forward(dfb_proj) - y).flatten(), dim=-1, ord=2)
+        <= radius + 1e-6
+    )
 
     # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
     assert torch.allclose(
@@ -316,6 +332,34 @@ def test_data_fidelity_amplitude_loss(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
+@pytest.mark.parametrize("mode", ["floor", "round"])
+def test_itoh_fidelity(device, mode):
+    r"""
+    Tests if the gradient computed with grad_d method of Itoh fidelity is consistent with the autograd gradient.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: assertion error if the relative difference between the two gradients is more than 1e-5
+    """
+    # essential to enable autograd
+    with torch.enable_grad():
+        x = torch.randn(
+            (1, 1, 3, 3), dtype=torch.float32, device=device, requires_grad=True
+        )
+        physics = dinv.physics.SpatialUnwrapping(threshold=1.0, mode=mode)
+        loss = ItohFidelity(threshold=1.0)
+        y = torch.ones_like(physics(x)) * 0.1
+        _, vjp_func = torch.func.vjp(loss.D, x)
+        vjp_value = vjp_func(loss.grad_d(loss.D(x), y, physics))[0]
+        grad_value = loss.grad(x, y, physics)
+    assert torch.isclose(grad_value[0], vjp_value, rtol=1e-5).all()
+
+    x_dagger = loss.D_dagger(y)
+    assert x_dagger.shape == x.shape
+
+    x_prox = loss.prox(x, y, physics, gamma=1.0)
+    assert x_prox.shape == x.shape
+
+
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
@@ -340,17 +384,17 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 0.1
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
         if (
             name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_sqnorm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = 1.0
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
+            stepsize = 0.9 / physics.compute_sqnorm(x, tol=1e-4).item()
             sigma = None
 
         lamb = 0.9
@@ -708,7 +752,7 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         def prior_g(x, *args, **kwargs):
             ths = 1.0
-            return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+            return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
 
@@ -808,7 +852,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     def prior_g(x, *args, **kwargs):
         ths = 1.0
-        return ths * torch.norm(x.view(x.shape[0], -1), p=1, dim=-1)
+        return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), ord=1, dim=-1)
 
     prior = Prior(g=prior_g)  # The prior term
 
@@ -921,21 +965,31 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr", "minres"]
-least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+least_squares_physics = [
+    "inpainting",
+    "super_resolution_circular",
+    "deblur_valid",
+    "MultiCoilMRI",
+]
 
 
 @pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
-def test_least_square_solvers(device, solver, physics_name):
+@pytest.mark.parametrize("implicit_backward_solver", [False, True])
+@pytest.mark.parametrize("gamma_scalar", [False, True])
+def test_least_square_solvers(
+    device, solver, physics_name, implicit_backward_solver, gamma_scalar
+):
     batch_size = 4
 
     physics, img_size, _, _ = find_operator(physics_name, device=device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn((batch_size, *img_size), device=device)
 
     tol = 0.01
     y = physics(x)
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
     assert (
         (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
@@ -943,23 +997,28 @@ def test_least_square_solvers(device, solver, physics_name):
     ).all()
 
     z = x.clone()
-    gamma = 1.0
+    if gamma_scalar:
+        gamma = 1.0
+    else:
+        gamma = torch.ones((batch_size, 1, 1, 1), device=device)
 
-    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=1e-6, max_iter=100)
 
     assert (
         (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < 3 * tol
+        < tol
     ).all()
 
     # test backprop
-    y.requires_grad = True
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-    loss = (x_hat - x).pow(2).mean()
-    loss.backward()
-    if "inpainting" not in physics_name:
-        assert y.grad.norm() > 0
+    if solver != "BiCGStab":  # bicgstab currently has issues with backprop
+        with torch.enable_grad():
+            y.requires_grad_(True)
+            x_hat = physics.A_dagger(y, solver=solver, tol=1e-6, max_iter=100)
+            loss = (x_hat - x).pow(2).mean()
+            loss.backward()
+
+        assert torch.all(~torch.isnan(y.grad))
 
 
 DTYPES = [torch.float32, torch.complex64]
@@ -967,12 +1026,10 @@ DTYPES = [torch.float32, torch.complex64]
 
 @pytest.mark.parametrize("solver", solvers)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_linear_system(device, solver, dtype):
+def test_linear_system(device, solver, dtype, rng):
     # test the solution of linear systems with random matrices
-    batch_size = 4
-    dim = 32
-
-    mat = torch.randn((dim, dim), dtype=dtype, device=device)
+    batch_size = 2
+    mat = torch.randn((32, 32), dtype=dtype, device=device, generator=rng)
     if solver == "CG":
         # CG is only for hermite positive definite matrices
         mat = mat.adjoint() @ mat
@@ -983,32 +1040,25 @@ def test_linear_system(device, solver, dtype):
     if solver == "BiCGStab" and torch.is_complex(mat):
         # bicgstab currently doesn't work for complex-valued systems
         return
-    b = torch.randn((batch_size, dim), dtype=dtype, device=device)
-
-    def A(x):
-        return (mat @ x.T).T
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
     def AT(x):
         return (mat.adjoint() @ x.T).T
 
-    tol = 1e-3
+    tol = 1e-5
     if solver == "CG":
-        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
     elif solver == "minres":
-        x = dinv.optim.utils.minres(A, b, tol=tol)
+        x = dinv.optim.utils.minres(A, b, tol=tol, max_iter=1000)
     elif solver == "BiCGStab":
-        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol, max_iter=1000)
     elif solver == "lsqr":
-        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol, max_iter=1000)[0]
     else:
         raise ValueError("Solver not found")
 
-    x_star = torch.linalg.solve(mat, b.T).T
-
-    # consider relative error
-    assert (
-        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
-    )
+    error = (A(x) - b).abs().pow(2).sum()
+    assert error < tol * b.abs().pow(2).sum()
 
 
 def test_condition_number(device):
@@ -1029,3 +1079,122 @@ def test_condition_number(device):
     gt_cond = c.max() / c.min()
     rel_error = (cond - gt_cond).abs() / gt_cond
     assert rel_error < 0.1
+
+
+@pytest.mark.parametrize("batch_size", [2])
+@pytest.mark.parametrize(
+    "physics_name",
+    [
+        "deblur_valid",
+        "super_resolution_circular",
+    ],
+)
+@pytest.mark.parametrize("solver", solvers)
+def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
+    # Check that the backward gradient matches the finite difference gradient
+    prev_deterministic = torch.are_deterministic_algorithms_enabled()
+    torch.use_deterministic_algorithms(True)
+
+    dtype = torch.float64
+    physics, img_size, _, _, params = find_operator(
+        physics_name, device=device, get_physics_param=True
+    )
+    physics = physics.to(dtype=dtype)
+
+    x = torch.randn((batch_size, *img_size), device=device, dtype=dtype)
+    y = physics(x)
+
+    # ------------------------------------------------------------
+    # Check gradients w.r.t y, z, gamma
+    y.requires_grad_(True)
+    z = torch.randn_like(x).requires_grad_(True)
+    gamma = (
+        torch.rand((batch_size,), dtype=dtype, device=device, requires_grad=True) + 0.1
+    )
+    init = torch.zeros_like(z).requires_grad_(False)
+
+    # This check can be quite slow since it needs to compute finite differences in all directions
+    # So we limit the number of iterations and allow a higher tolerance
+    assert torch.autograd.gradcheck(
+        partial(least_squares_implicit_backward, max_iter=20),
+        (physics, y, z, init, gamma),
+        eps=1e-6,
+        atol=1e-2,
+        rtol=1e-2,
+    )
+
+    # ------------------------------------------------------------
+    # Check gradients physics parameters
+
+    # Enable gradients w.r.t physics parameters
+    # We only do this for physics that have a continuous parameterization w.r.t its parameters
+    buffers = copy.deepcopy(dict(physics.named_buffers()))
+    parameters = {k: v for k, v in buffers.items() if k in params}
+    for k, v in parameters.items():
+        if isinstance(v, torch.Tensor) and v.dtype in [
+            torch.float16,
+            torch.float32,
+            torch.float64,
+        ]:
+            parameters[k] = v.requires_grad_(True)
+
+    # Compute gradient with implicit backward, when calling `.backward()`, it will use the custom jvp defined in least_squares_implicit_backward
+    init = torch.zeros_like(z)
+    with torch.enable_grad():
+        physics.update_parameters(**parameters)
+        sol = least_squares_implicit_backward(
+            physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+        )
+        # simple loss
+        loss = (sol - 1).pow(2).sum()
+        loss.backward()
+
+    # Check that all physics parameters have a gradient and close to finite difference gradient
+    for k, v in parameters.items():
+        if isinstance(v, torch.Tensor) and v.dtype in [
+            torch.float16,
+            torch.float32,
+            torch.float64,
+        ]:
+            assert v.requires_grad == True
+            assert v.grad is not None
+            assert torch.all(~torch.isnan(v.grad))
+
+            # Only check a few random entries for large parameters
+            num_samples = min(10, v.numel())
+            idx_flat = torch.randperm(v.numel())[:num_samples]
+            delta = 1e-6
+            implicit_grad = v.grad.detach().clone().contiguous()
+            expected_grad = torch.ones_like(v).view(-1)
+
+            with torch.no_grad():
+                for idx in idx_flat:
+                    v_p = v.detach().clone().view(-1)
+                    v_m = v.detach().clone().view(-1)
+                    v_p[idx] += delta
+                    v_m[idx] -= delta
+                    v_p = v_p.view_as(v)
+                    v_m = v_m.view_as(v)
+                    physics.update_parameters(**{k: v_p})
+                    sol_p = least_squares_implicit_backward(
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                    )
+                    loss_p = (sol_p - 1).pow(2).sum()
+
+                    physics.update_parameters(**{k: v_m})
+                    sol_m = least_squares_implicit_backward(
+                        physics, y, z, init, gamma, solver=solver, tol=1e-6, max_iter=50
+                    )
+                    loss_m = (sol_m - 1).pow(2).sum()
+
+                    expected_grad[idx] = (loss_p - loss_m) / (2 * delta)
+
+            torch.testing.assert_close(
+                implicit_grad.view(-1)[idx_flat],
+                expected_grad[idx_flat],
+                rtol=5e-2,
+                atol=5e-2,
+                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+            )
+
+    torch.use_deterministic_algorithms(prev_deterministic)

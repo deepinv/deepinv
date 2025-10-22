@@ -205,7 +205,7 @@ N0 = 1024.0
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
-angles = torch.linspace(20, 160, steps=num_angles)
+angles = torch.linspace(20, 160, steps=num_angles, device=device)
 physics = Tomography(
     img_width=img_size, angles=angles, device=device, noise_model=noise_model
 )

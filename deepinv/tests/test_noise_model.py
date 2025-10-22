@@ -13,6 +13,7 @@ NOISES = [
     "Uniform",
     "LogPoisson",
     "SaltPepper",
+    "RicianNoise",
 ]
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
@@ -41,6 +42,8 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu, rng=rng)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s, rng=rng)
+    elif noise_type == "RicianNoise":
+        noise_model = dinv.physics.RicianNoise(sigma=sigma, rng=rng)
     else:
         raise Exception("Noise model not found")
 
@@ -194,7 +197,7 @@ def test_gaussian_noise_device_inference(sigma_device, rng_kind):
         rng = None
 
     noise_model = None
-    with pytest.raises(AssertionError) if rng_kind == "inconsistent" else nullcontext():
+    with pytest.raises(RuntimeError) if rng_kind == "inconsistent" else nullcontext():
         noise_model = dinv.physics.GaussianNoise(sigma=sigma, rng=rng)
 
     if noise_model is not None:

@@ -1,14 +1,8 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from .base import Denoiser
 from typing import Union, Sequence  # noqa: F401
-
-try:
-    import ptwt
-    import pywt
-except:  # pragma: no cover
-    ptwt = ImportError("The ptwt package is not installed.")  # pragma: no cover
-    # No need to pywt, which is a dependency of ptwt
 
 
 class WaveletDenoiser(Denoiser):
@@ -45,6 +39,10 @@ class WaveletDenoiser(Denoiser):
     :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
     :param str device: cpu or gpu
 
+    .. note::
+
+        This class requires the ``ptwt`` package to be installed. Install with ``pip install ptwt``.
+
     """
 
     def __init__(
@@ -56,11 +54,6 @@ class WaveletDenoiser(Denoiser):
         mode: str = "zero",
         wvdim: int = 2,
     ):
-        if isinstance(ptwt, ImportError):
-            raise ImportError(
-                "pytorch_wavelets is needed to use the WaveletDenoiser class. "
-                "It should be installed with `pip install ptwt`."
-            ) from ptwt
         super().__init__()
         self.level = level
         self.wv = wv
@@ -73,6 +66,9 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet decomposition.
         """
+        import pywt
+        import ptwt
+
         if self.dimension == 2:
             dec = ptwt.wavedec2(
                 x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
@@ -118,6 +114,9 @@ class WaveletDenoiser(Denoiser):
         :param int level: decomposition level.
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
+        import pywt
+        import ptwt
+
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
@@ -140,6 +139,8 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet recomposition.
         """
+        import pywt
+        import ptwt
 
         coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:
@@ -161,9 +162,7 @@ class WaveletDenoiser(Denoiser):
         )
 
     @staticmethod
-    def _expand_ths_as(
-        ths: Union[float, torch.Tensor], x: torch.Tensor
-    ) -> torch.Tensor:
+    def _expand_ths_as(ths: float | torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         r"""
         Expand the threshold to the same shape as the input tensor.
         """
@@ -175,9 +174,7 @@ class WaveletDenoiser(Denoiser):
         else:
             raise ValueError(f"Invalid threshold type: {type(ths)}")
 
-    def prox_l0(
-        self, x: torch.Tensor, ths: Union[float, torch.Tensor] = 0.1
-    ) -> torch.Tensor:
+    def prox_l0(self, x: torch.Tensor, ths: float | torch.Tensor = 0.1) -> torch.Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.
 
@@ -391,7 +388,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor x: noisy image.
+        :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
             ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
@@ -481,7 +478,7 @@ class WaveletDictDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor y: noisy image.
+        :param torch.Tensor y: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: noise level.
         """
         z_p = y.repeat(len(self.list_prox), *([1] * (len(y.shape))))

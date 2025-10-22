@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, Union
 from warnings import warn
 import torch
 from deepinv.physics import Inpainting, Physics
@@ -35,7 +34,6 @@ class SplittingLoss(Loss):
     This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
     Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.
 
-
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
     .. warning::
@@ -52,6 +50,10 @@ class SplittingLoss(Loss):
     .. note::
 
         To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
+
+    .. note::
+
+        This loss allows training over images of varying shapes.
 
     .. seealso::
 
@@ -93,9 +95,9 @@ class SplittingLoss(Loss):
 
     def __init__(
         self,
-        metric: Union[Metric, torch.nn.Module, None] = None,
+        metric: Metric | torch.nn.Module | None = None,
         split_ratio: float = 0.9,
-        mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
+        mask_generator: BernoulliSplittingMaskGenerator | None = None,
         eval_n_samples: int = 5,
         eval_split_input: bool = True,
         eval_split_output: bool = False,
@@ -116,7 +118,7 @@ class SplittingLoss(Loss):
         self.normalize_loss = normalize_loss
 
     @staticmethod
-    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None):
         r"""Perform splitting given mask
 
         :param torch.Tensor mask: splitting mask of shape (B,C,H,W)
@@ -270,17 +272,17 @@ class SplittingLoss(Loss):
             """
 
             if self.mask_generator is None:
-                warn("Mask generator not defined. Using new Bernoulli mask generator.")
+                warn(
+                    f"Mask generator not defined. Using new Bernoulli mask generator with shape {y.shape[-2:]}."
+                )
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    img_size=y.shape[1:],
+                    img_size=(
+                        y.shape[1],
+                        *y.shape[-2:],
+                    ),  # (C, H, W) with no intermediate dims
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
-                )
-
-            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
-                raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -306,9 +308,11 @@ class SplittingLoss(Loss):
 
             for _ in range(eval_n_samples):
                 # Perform input masking
+
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
@@ -323,14 +327,20 @@ class SplittingLoss(Loss):
             """
             Perform splitting at model output too, only at eval time
             """
-            out = 0
-            normalizer = torch.zeros_like(y)
+            out = 0.0
+            normalizer = 0.0
 
             for _ in range(self.eval_n_samples):
                 # Perform input masking
                 mask = self.mask_generator.step(
-                    y.size(0), input_mask=getattr(physics, "mask", None)
+                    batch_size=y.size(0), input_mask=getattr(physics, "mask", None)
                 )["mask"]
+
+                if mask.shape[-2:] != y.shape[-2:]:
+                    raise ValueError(
+                        f"Generated mask should be same shape as y in last 2 dims, but mask has {mask.shape[-2:]} and y has {y.shape[-2:]}"
+                    )
+
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
@@ -381,7 +391,7 @@ class Neighbor2Neighbor(Loss):
 
     """
 
-    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None, gamma=2.0):
+    def __init__(self, metric: Metric | torch.nn.Module | None = None, gamma=2.0):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()

@@ -1,6 +1,7 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
-from typing import Callable, Union, Optional
+from typing import Callable
 from collections.abc import Iterable
 import warnings
 import deepinv as dinv
@@ -252,8 +253,8 @@ class GaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        sigma: Union[float, torch.Tensor] = 0.1,
-        rng: Optional[torch.Generator] = None,
+        sigma: float | torch.Tensor = 0.1,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([sigma, rng])
         super().__init__(rng=rng)
@@ -443,8 +444,8 @@ class UniformGaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        sigma_min: Union[float, torch.Tensor] = 0.0,
-        sigma_max: Union[float, torch.Tensor] = 0.5,
+        sigma_min: float | torch.Tensor = 0.0,
+        sigma_max: float | torch.Tensor = 0.5,
         rng: torch.Generator = None,
     ):
         device = _infer_device([sigma_min, sigma_max, rng])
@@ -516,10 +517,10 @@ class PoissonNoise(NoiseModel):
 
     def __init__(
         self,
-        gain: Union[float, torch.Tensor] = 1.0,
+        gain: float | torch.Tensor = 1.0,
         normalize: bool = True,
         clip_positive: bool = False,
-        rng: Optional[torch.Generator] = None,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([gain, rng])
         super().__init__(rng=rng)
@@ -573,7 +574,7 @@ class GammaNoise(NoiseModel):
     Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`
 
     Follows the (shape, scale) parameterization of the Gamma distribution,
-    where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
+    where the mean is given by :math:`x` and the variance is given by :math:`x^2/\ell`,
     see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 
     Distribution for modelling speckle noise (e.g. SAR images),
@@ -641,11 +642,11 @@ class PoissonGaussianNoise(NoiseModel):
 
     def __init__(
         self,
-        gain: Union[float, torch.Tensor] = 1.0,
-        sigma: Union[float, torch.Tensor] = 0.1,
+        gain: float | torch.Tensor = 1.0,
+        sigma: float | torch.Tensor = 0.1,
         clip_positive: bool = False,
         min_gain: [float, torch.Tensor] = 1e-12,
-        rng: Union[torch.Generator, None] = None,
+        rng: torch.Generator | None = None,
     ):
         device = _infer_device([gain, sigma, rng])
         super().__init__(rng=rng)
@@ -729,9 +730,7 @@ class UniformNoise(NoiseModel):
 
     """
 
-    def __init__(
-        self, a: Union[float, torch.Tensor] = 0.1, rng: torch.Generator = None
-    ):
+    def __init__(self, a: float | torch.Tensor = 0.1, rng: torch.Generator = None):
         device = _infer_device([a, rng])
         super().__init__(rng=rng)
 
@@ -792,8 +791,8 @@ class LogPoissonNoise(NoiseModel):
 
     def __init__(
         self,
-        N0: Union[float, torch.Tensor] = 1024.0,
-        mu: Union[float, torch.Tensor] = 1 / 50.0,
+        N0: float | torch.Tensor = 1024.0,
+        mu: float | torch.Tensor = 1 / 50.0,
         rng: torch.Generator = None,
     ):
         device = _infer_device([N0, mu, rng])
@@ -859,8 +858,8 @@ class SaltPepperNoise(NoiseModel):
 
     def __init__(
         self,
-        p: Union[float, torch.Tensor] = 0.025,
-        s: Union[float, torch.Tensor] = 0.025,
+        p: float | torch.Tensor = 0.025,
+        s: float | torch.Tensor = 0.025,
         rng: torch.Generator = None,
     ):
         device = _infer_device([p, s, rng])
@@ -896,6 +895,83 @@ class SaltPepperNoise(NoiseModel):
         mask_salt = (self.rand_like(x) < proba_salt_vs_pepper).float()
         y = x * (1 - mask_flipped) + mask_flipped * mask_salt
         return y
+
+
+class FisherTippettNoise(NoiseModel):
+    r"""
+    Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+    Distribution for modelling the noise of log-intensities images in SAR imaging.
+
+    .. warning:: This noise model does not support the random number generator.
+
+    :param float, torch.Tensor l: noise level.
+    """
+
+    def __init__(self, l=1.0):
+        super().__init__(rng=None)
+        if isinstance(l, int):
+            l = float(l)
+        self.register_buffer("l", self._float_to_tensor(l))
+
+    def forward(self, x, l=None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements (log-intensities)
+        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :returns: noisy measurements (log-intensities)
+        """
+        self.update_parameters(l=l, **kwargs)
+        self.to(x.device)
+        x = torch.exp(x)
+        gamma = GammaNoise(self.l)
+        return torch.log(gamma(x))
+
+
+class RicianNoise(NoiseModel):
+    r"""
+    RicianNoise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
+
+    where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`
+
+    This noise model is often used in MRI imaging and has the property of keeping pixel intensities :math:`\geq 0`
+
+    .. warning:: All pixel intensities will become positive: this noise model may not be suited for data with negative intensities.
+
+    :param Union[float, torch.Tensor] sigma: Standard deviation used.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    """
+
+    def __init__(
+        self,
+        sigma: float | torch.Tensor = 0.1,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([sigma, rng])
+        super().__init__(rng=rng)
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
+
+    def forward(
+        self, x: torch.Tensor, sigma: float | torch.Tensor = None, seed: int = None
+    ):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param float, torch.Tensor, None sigma: standard deviation to be used.
+            If not `None`, it will overwrite the current noise level.
+        :param int, None seed: the seed for the random number generator.
+        :returns: noisy measurements
+        """
+        self.update_parameters(sigma=sigma)
+        self.rng_manual_seed(seed)
+
+        N1 = self.randn_like(x)
+        N2 = self.randn_like(x)
+        return torch.sqrt((self.sigma * N1 + x) ** 2 + (self.sigma * N2) ** 2)
 
 
 def _infer_device(

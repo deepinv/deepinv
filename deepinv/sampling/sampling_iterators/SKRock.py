@@ -1,8 +1,8 @@
+from __future__ import annotations
 from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
 import time as time
-from typing import Optional
 
 from deepinv.optim import ScorePrior
 from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
@@ -60,7 +60,7 @@ class SKRockIterator(SamplingIterator):
     """
 
     def __init__(
-        self, algo_params: dict[str, float], clip: Optional[tuple[float, float]] = None
+        self, algo_params: dict[str, float], clip: tuple[float, float] | None = None
     ):
         super().__init__(algo_params)
         # Check for required parameters and raise error if any are missing

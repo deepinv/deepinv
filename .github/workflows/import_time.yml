@@ -1,4 +1,4 @@
-name: "⏰ Import Time Benchmark (vs main)"
+name: "⏰ Import Time vs main"
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   benchmark-comparison:
-    name: Import time vs main
+    name: benchmark
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -42,10 +42,10 @@ jobs:
             pip install .[${{ matrix.extra }}]
           fi
 
-      - name: "Benchmark torch"
+      - name: "Benchmark torch+torchvision"
         run: |
           echo "Benchmarking torch..."
-          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch"'
+          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch, torchvision"'
 
       - name: "Benchmark PR"
         run: |
