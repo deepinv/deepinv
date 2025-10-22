@@ -78,8 +78,10 @@ x_rgb = channel_norm(x_rgb) * dynamic_range
 # while with a blur of 2.0, the differences :math:`Dx` remain within the threshold, matching the wrapped differences :math:`w_t(Dy)`,
 # indicating that the Itoh condition is satisfied.
 
-modulo_round = lambda x: x - torch.round(x)
-modulo_fn = lambda x: x - torch.floor(x) if mode == "floor" else modulo_round(x)
+def modulo_round(x):
+    return x - torch.round(x)
+def modulo_fn(x):
+    return x - torch.floor(x) if mode == "floor" else modulo_round(x)
 row = 120
 
 row_sel = x_rgb[0, 0, row, :]

@@ -24,7 +24,7 @@ _CHECKED_TEX = False  # Whether checked tex problems
 
 def set_default_plot_fontsize(fontsize: int):
     """Set global default fontsize for DeepInv plots."""
-    global _DEFAULT_PLOT_FONTSIZE
+    global _DEFAULT_PLOT_FONTSIZE  # noqa: PLW0603
     _DEFAULT_PLOT_FONTSIZE = fontsize
 
 
@@ -35,13 +35,13 @@ def get_default_plot_fontsize() -> int:
 
 def disable_tex():
     """Globally disable LaTeX"""
-    global _ENABLE_TEX
+    global _ENABLE_TEX  # noqa: PLW0603
     _ENABLE_TEX = False
 
 
 def enable_tex():
     """Globally enable LaTeX"""
-    global _ENABLE_TEX
+    global _ENABLE_TEX  # noqa: PLW0603
     _ENABLE_TEX = True
 
 
@@ -52,7 +52,7 @@ def get_enable_tex() -> bool:
 
 def set_checked_tex(checked: bool):
     """Set whether tex has been globally checked already."""
-    global _CHECKED_TEX
+    global _CHECKED_TEX  # noqa: PLW0603
     _CHECKED_TEX = checked
 
 
@@ -66,8 +66,8 @@ def config_matplotlib(fontsize=17):
     import matplotlib.pyplot as plt
     from matplotlib.texmanager import TexManager
 
-    global _CHECKED_TEX
-    global _ENABLE_TEX
+    global _CHECKED_TEX  # noqa: PLW0603
+    global _ENABLE_TEX  # noqa: PLW0603
 
     if fontsize is None:
         fontsize = get_default_plot_fontsize()

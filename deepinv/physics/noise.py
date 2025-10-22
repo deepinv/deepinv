@@ -922,7 +922,7 @@ class FisherTippettNoise(NoiseModel):
         :param None, float, torch.Tensor noise_level: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements (log-intensities)
         """
-        self.update_parameters(noise_level=l, **kwargs)
+        self.update_parameters(noise_level=noise_level, **kwargs)
         self.to(x.device)
         x = torch.exp(x)
         gamma = GammaNoise(self.l)
