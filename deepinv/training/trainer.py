@@ -776,14 +776,9 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    res = metric(
-                        x=x, x_net=x_lin, y=y, physics=physics, model=self.model
                     no_learning_model = self._NoLearningModel(trainer=self)
-                    metric = l(
+                    res = metric(
                         x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
-                    )
-                    self.logs_metrics_no_learning[k].update(
-                        metric.detach().cpu().numpy()
                     )
                     self.logs_metrics_no_learning[k].update(res.detach().cpu().numpy())
                     logs[f"{metric.__class__.__name__} no learning"] = (
