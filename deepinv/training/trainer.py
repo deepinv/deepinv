@@ -419,7 +419,7 @@ class Trainer:
             and self.show_progress_bar
         ):
             warnings.warn(
-                "Update progress bar frequency of 1 may slow down training on GPU. Consider increasing this."
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider setting freq_update_progress_bar > 1."
             )
 
         _ = self.load_model()
