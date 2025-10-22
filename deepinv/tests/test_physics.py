@@ -1179,6 +1179,7 @@ def choose_noise(noise_type, device="cpu"):
     N0 = 1024.0
     one = torch.ones((1), device=device)
     p, s = 0.025, 0.025
+    l = 1
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":

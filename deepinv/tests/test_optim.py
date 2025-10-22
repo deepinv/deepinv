@@ -1045,6 +1045,9 @@ def test_linear_system(device, solver, dtype, rng):
     def AT(x):
         return (mat.adjoint() @ x.T).T
 
+    def A(x):
+        return (mat @ x.T).T
+
     tol = 1e-5
     if solver == "CG":
         x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol, max_iter=1000)
