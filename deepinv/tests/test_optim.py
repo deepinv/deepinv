@@ -1159,7 +1159,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             torch.float32,
             torch.float64,
         ]:
-            assert v.requires_grad == True
+            assert v.requires_grad
             assert v.grad is not None
             assert torch.all(~torch.isnan(v.grad))
 

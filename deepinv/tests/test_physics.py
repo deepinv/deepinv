@@ -1966,7 +1966,7 @@ def test_clone(name, device):
     physics_clone = physics.clone()
 
     # Test clone type (parent class)
-    assert type(physics_clone) == type(physics), "Clone is not of the same type."
+    assert type(physics_clone) is type(physics), "Clone is not of the same type."
 
     # Check parameters
     parameter_names = set(name for name, _ in physics.named_parameters())

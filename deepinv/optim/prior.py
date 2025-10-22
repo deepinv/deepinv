@@ -343,7 +343,7 @@ class WaveletPrior(Prior):
         else:
             raise ValueError("p should be 0, 1 or inf")
 
-        if type(self.wv) == str:
+        if type(self.wv) is str:
             self.WaveletDenoiser = WaveletDenoiser(
                 level=self.level,
                 wv=self.wv,
@@ -351,7 +351,7 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 wvdim=self.wvdim,
             )
-        elif type(self.wv) == list:
+        elif type(self.wv) is list:
             self.WaveletDenoiser = WaveletDictDenoiser(
                 level=self.level,
                 list_wv=self.wv,

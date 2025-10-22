@@ -148,9 +148,12 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
 # Rule E402 is ruff's module level import not at top of file rule.
+# Rule F811 is ruff's redefinition of unused name from line N rule. Doesn't work well with pytest fixtures.
 "__init__.py" = ["F401", "E402"]
 "examples/**/*" = ["E402", "TID253"]
 "deepinv/transform/base.py" = ["SLF001"]
+"deepinv/tests/**.py" = ["F811"] 
+
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
 banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]

@@ -253,7 +253,6 @@ class TGVDenoiser(Denoiser):
                 slice_input_to = (*slice_to, i)
 
                 # Slice for output component
-                slice_output_from = (*slice_from, comp_idx)
                 slice_output_to = (*slice_to, comp_idx)
 
                 # Apply finite difference

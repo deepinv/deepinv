@@ -531,7 +531,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
     for sharp_frame, blurry_shot in data_points:
         if frames != "all":
             assert (
-                type(sharp_frame) == PIL.PngImagePlugin.PngImageFile
+                type(sharp_frame) is PIL.PngImagePlugin.PngImageFile
             ), "The sharp frame is unexpectedly not a PIL image."
         else:
             assert isinstance(
@@ -539,7 +539,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
             ), "The sharp frames are unexpectedly not a list."
 
         assert (
-            type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
+            type(blurry_shot) is PIL.PngImagePlugin.PngImageFile
         ), "The blurry frame is unexpectedly not a PIL image."
 
 

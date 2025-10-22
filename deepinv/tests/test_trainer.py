@@ -911,7 +911,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     model_performance,
     learning_free_performance,
 ):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
