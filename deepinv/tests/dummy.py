@@ -18,23 +18,6 @@ def create_circular_spherical_mask(imsize, center=None, radius=None):
     return mask
 
 
-def create_spherical_mask(imsize, center=None, radius=None):
-    h, w, d = imsize
-    if center is None:  # use the middle of the image
-        center = (int(h / 2), int(w / 2), int(d / 2))
-    if radius is None:  # use the smallest distance between the center and image walls
-        radius = min(
-            center[0], center[1], center[2], h - center[0], w - center[1], d - center[2]
-        )
-
-    X, Y, Z = np.ogrid[:h, :w, :d]
-    dist_from_center = np.sqrt(
-        (X - center[0]) ** 2 + (Y - center[1]) ** 2 + (Z - center[2])
-    )
-    mask = dist_from_center <= radius
-    return mask
-
-
 class DummyCircles(ImageDataset):
     def __init__(self, samples, imsize=(3, 32, 28), max_circles=10, seed=1):
         super().__init__()
@@ -62,22 +45,6 @@ class DummyCircles(ImageDataset):
 
     def __len__(self):
         return self.x.shape[0]
-
-
-if __name__ == "__main__":
-    device = "cuda:0"
-    imsize = (3, 23, 100)
-    dataset = DummyCircles(10, imsize=imsize)
-
-    x = dataset[0]
-
-    import matplotlib.pyplot as plt
-    from deepinv.utils.plotting import config_matplotlib
-
-    config_matplotlib()
-
-    plt.imshow(x.permute(1, 2, 0).cpu().numpy())
-    plt.show()
 
 
 class DummyModel(torch.nn.Module):
