@@ -14,7 +14,7 @@ import torch
 from torch.nn import Module
 
 from deepinv.training.trainer import Trainer
-from deepinv.loss import Loss
+from deepinv.loss import Loss, BaseLossScheduler
 from deepinv.utils import AverageMeter
 
 
@@ -167,19 +167,24 @@ class AdversarialTrainer(Trainer):
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 
+    ## Special optimizer for Adversarial Training
     optimizer: AdversarialOptimizer
-    losses_d: Loss | list[Loss] = None
+
+    ## Discriminator settings
+    losses_d: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = None
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_run(self, **kwargs):
+    def setup_run(self) -> None:
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
+        # resume state from a training checkpoint
         self.epoch_start = 0
+        self.load_ckpt(self.ckpt_pretrained)
 
         super()._setup_data()
-        super()._setup_logging()
+        self._setup_logging()
 
         if self.optimizer_step_multi_dataset:
             warnings.warn(
@@ -187,9 +192,17 @@ class AdversarialTrainer(Trainer):
             )
             self.optimizer_step_multi_dataset = False
 
-        if not isinstance(self.losses_d, (list, tuple)):
+    def _setup_logging(self) -> None:
+        r"""
+        Set up the monitoring before running an experience..
+        """
+        super()._setup_logging()
+
+        # losses processing for discriminator
+        if not isinstance(self.losses_d, list):
             self.losses_d = [self.losses_d]
 
+        # add discriminator losses computed during an epoch
         for l in self.losses_d:
             self.meters_losses_train[l.__class__.__name__] = AverageMeter(
                 "Training discrim loss " + l.__class__.__name__, ":.2e"
@@ -198,26 +211,89 @@ class AdversarialTrainer(Trainer):
                 "Validation discrim loss " + l.__class__.__name__, ":.2e"
             )
 
-        if self.log_grad:
-            self.check_grad_val_D = AverageMeter(
-                "Gradient norm for discriminator", ":.2e"
-            )
+    def save_ckpt(self, epoch: int, name: str | None = None) -> None:
+        r"""
+        Save necessary information to resume training, notably discrimator.
 
-        if self.ckpt_pretrained is not None:
-            self.load_ckpt(self.ckpt_pretrained)
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.D.load_state_dict(checkpoint["state_dict_D"])
+        :param int epoch: Current epoch.
+        :param str name: Name of the checkpoint file.
+        """
+        state = {
+            "epoch": epoch,
+            "state_dict": self.model.state_dict(),
+            "state_dict_D": self.D.state_dict(),
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+            "loss": self.train_loss_history,
+            "val_metrics": self.val_metrics_history_per_epoch,
+        }
 
-    def _compute_losses(
+        for logger in self.loggers:
+            logger.log_checkpoint(epoch=epoch, state=state, name=name)
+
+    def load_ckpt(
         self,
-        losses,
-        x,
-        x_net,
-        y,
-        physics,
+        ckpt_pretrained: str | None = None,
+    ) -> None:
+        """Load model from checkpoint, notably discrimator.
+
+        :param str ckpt_pretrained: Path to the checkpoint file.
+        """
+        if ckpt_pretrained is not None:
+            self.ckpt_pretrained = ckpt_pretrained
+
+        # Early return if no checkpoint to load
+        if self.ckpt_pretrained is None:
+            return
+
+        # Load checkpoint from file
+        checkpoint = torch.load(
+            self.ckpt_pretrained, map_location=self.device, weights_only=False
+        )
+
+        self.epoch_start = checkpoint["epoch"] + 1
+        self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+        self.D.load_state_dict(checkpoint["state_dict_D"], strict=True)
+        self.train_loss_history = checkpoint["loss"]
+        self.val_metrics_history_per_epoch = checkpoint["val_metrics"]
+
+        # Optimizer and Scheduler may be None
+        if self.optimizer is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
+
+        for logger in self.loggers:
+            logger.load_from_checkpoint(checkpoint)
+
+    def apply_grad_clip_D(self) -> float | None:
+        r"""
+        Check the discriminator's gradient norm and perform gradient clipping if necessary.
+
+        Analogous to ``check_clip_grad`` for generator.
+        """
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
+
+        if self.log_grad:
+            grads = [
+                param.grad.detach().flatten()
+                for param in self.D.parameters()
+                if param.grad is not None
+            ]
+            return torch.cat(grads).norm().item()
+        return None
+
+    def _compute_loss(
+        self,
+        losses: list[Loss] | list[BaseLossScheduler],
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
         train=True,
         epoch: int = None,
-    ):
+    ) -> torch.Tensor:
         r"""
         Compute losses for a given set of loss functions.
 
@@ -260,15 +336,15 @@ class AdversarialTrainer(Trainer):
 
         return loss_total
 
-    def compute_losses_generator(
+    def compute_generator_loss(
         self,
-        x,
-        x_net,
-        y,
-        physics,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
         train=True,
         epoch: int = None,
-    ):
+    ) -> torch.Tensor:
         r"""
         Compute losses for the generator network.
 
@@ -280,17 +356,17 @@ class AdversarialTrainer(Trainer):
         :param int epoch: current epoch.
         :returns: Total generator loss.
         """
-        return self._compute_losses(self.losses, x, x_net, y, physics, train, epoch)
+        return self._compute_loss(self.losses, x, x_net, y, physics, train, epoch)
 
-    def compute_losses_discriminator(
+    def compute_discriminator_loss(
         self,
-        x,
-        x_net,
-        y,
-        physics,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
         train=True,
         epoch: int = None,
-    ):
+    ) -> torch.Tensor:
         r"""
         Compute losses for the discriminator network.
 
@@ -302,7 +378,7 @@ class AdversarialTrainer(Trainer):
         :param int epoch: current epoch.
         :returns: Total discriminator loss.
         """
-        return self._compute_losses(self.losses_d, x, x_net, y, physics, train, epoch)
+        return self._compute_loss(self.losses_d, x, x_net, y, physics, train, epoch)
 
     def step(
         self,
@@ -349,7 +425,7 @@ class AdversarialTrainer(Trainer):
         x_net = self.model_inference(y=y, physics=physics_cur, x=x, train=training_step)
 
         # Compute the loss for the batch
-        loss_generator_cur = self.compute_losses_generator(
+        loss_generator_cur = self.compute_generator_loss(
             x=x,
             x_net=x_net,
             y=y,
@@ -358,11 +434,13 @@ class AdversarialTrainer(Trainer):
             epoch=epoch,
         )
 
-        # Backward + Optimizer
         if training_step:
-            loss_generator_cur.backward(retain_graph=True)
+            # Backward
+            loss_generator_cur.backward(
+                retain_graph=True
+            )  # keep the activations for later use
 
-        if training_step:
+            # Logging
             loss_logs = {}
             loss_logs["Loss Generator"] = loss_generator_cur.item()
 
@@ -384,7 +462,7 @@ class AdversarialTrainer(Trainer):
                 self.optimizer.D.zero_grad()
 
             # Compute the discriminator loss for the batch
-            loss_discriminator_cur = self.compute_losses_discriminator(
+            loss_discriminator_cur = self.compute_discriminator_loss(
                 x,
                 x_net,
                 y,
@@ -395,17 +473,23 @@ class AdversarialTrainer(Trainer):
 
             # Backward + Optimizer
             if training_step:
+                # Backward
                 loss_discriminator_cur.backward()
 
+                # Logging
                 loss_logs = {}
                 loss_logs["Loss Discriminator"] = loss_discriminator_cur.item()
 
                 # Gradient clipping
-                norm = self.apply_grad_clip_D()
-                if norm is not None:
-                    loss_logs["gradient_norm_D"] = self.check_grad_val_D.avg
+                grad_norm = self.apply_grad_clip_D()
+                if self.log_grad:
+                    loss_logs["gradient_norm_D"] = grad_norm
 
+                # Optimizer step
                 self.optimizer.D.step()
+
+                # Update the progress bar
+                progress_bar.set_postfix(loss_logs)
 
         # Compute the metrics for the batch
         x_net = x_net.detach()  # detach the network output for metrics and plotting
@@ -424,7 +508,6 @@ class AdversarialTrainer(Trainer):
 
         # Log epoch losses and metrics
         if last_batch:
-
             ## Losses
             epoch_loss_logs = {}
 
@@ -460,41 +543,3 @@ class AdversarialTrainer(Trainer):
             for logger in self.loggers:
                 logger.log_losses(epoch_loss_logs, step=epoch, phase=phase)
                 logger.log_metrics(epoch_metrics_logs, step=epoch, phase=phase)
-
-    def apply_grad_clip_D(self):
-        r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.
-
-        Analogous to ``check_clip_grad`` for generator.
-        """
-        if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.D.parameters(), self.grad_clip)
-
-        if self.log_grad:
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.D.parameters()
-                if param.grad is not None
-            ]
-            norm_grads = torch.cat(grads).norm()
-            self.check_grad_val_D.update(norm_grads.item())
-            return norm_grads.item()
-
-    def save_ckpt(self, epoch: int, name: str | None = None) -> None:
-        r"""
-        Save necessary information to resume training.
-
-        :param int epoch: Current epoch.
-        :param str name: Name of the checkpoint file.
-        """
-        state = {
-            "epoch": epoch,
-            "state_dict": self.model.state_dict(),
-            "state_dict_D": self.D.state_dict(),
-            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
-            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-            "loss": self.train_loss_history,
-            "val_metrics": self.val_metrics_history_per_epoch,
-        }
-
-        for logger in self.loggers:
-            logger.log_checkpoint(epoch=epoch, state=state, name=name)

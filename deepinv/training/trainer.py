@@ -87,7 +87,6 @@ class Trainer:
         r"""
         Set up the training/testing process.
 
-        :param bool train: whether model is being trained.
         """
         # resume state from a training checkpoint
         self.epoch_start = 0
