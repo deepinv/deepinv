@@ -159,12 +159,9 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
-    try:
-        from deepinv.utils.plotting import set_default_plot_fontsize
+    from deepinv.utils.plotting import set_default_plot_fontsize
 
-        set_default_plot_fontsize(12)
-    except Exception as e:
-        logger.warning(f"Could not set default plot fontsize: {e}")
+    set_default_plot_fontsize(12)
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
