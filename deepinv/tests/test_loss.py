@@ -584,7 +584,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             y = torch.ones(
                 *y.shape[:-1], y.shape[-1] + 1, dtype=y.dtype, device=y.device
             )
-            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
 
     # Test loss works even after updating new x shape
     x = torch.ones((batch_size, 2, 68, 70), device=device)
@@ -605,7 +605,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     x_net = f(y, physics, update_parameters=True)
     if loss_name in ("weighted-splitting", "robust-splitting"):
         with pytest.warns(UserWarning, match="Recalculating weight"):
-            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
 
         # Revert shape, shouldn't recalculate again
         x = torch.ones((batch_size, *imsize), device=device)
@@ -625,9 +625,9 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         assert len(loss.metric.weights) == 2  # weight cache
     else:
         loss.metric = torch.nn.MSELoss()
-        l = loss(x_net=x_net, y=y, physics=physics, model=f)
+        loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
 
-    assert l >= 0.0
+    assert loss_val >= 0.0
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])

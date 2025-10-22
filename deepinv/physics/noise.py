@@ -905,24 +905,24 @@ class FisherTippettNoise(NoiseModel):
 
     .. warning:: This noise model does not support the random number generator.
 
-    :param float, torch.Tensor l: noise level.
+    :param float, torch.Tensor noise_level: noise level.
     """
 
-    def __init__(self, l=1.0):
+    def __init__(self, noise_level=1.0):
         super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+        if isinstance(noise_level, int):
+            noise_level = float(noise_level)
+        self.register_buffer("l", self._float_to_tensor(noise_level))
 
-    def forward(self, x, l=None, **kwargs):
+    def forward(self, x, noise_level=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements (log-intensities)
-        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param None, float, torch.Tensor noise_level: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements (log-intensities)
         """
-        self.update_parameters(l=l, **kwargs)
+        self.update_parameters(noise_level=l, **kwargs)
         self.to(x.device)
         x = torch.exp(x)
         gamma = GammaNoise(self.l)

@@ -216,19 +216,23 @@ class TGVDenoiser(Denoiser):
         return TVDenoiser.nabla_adjoint(x)
 
     @staticmethod
-    def epsilon(I):
+    def epsilon(vector_field):
         r"""
         Applies the jacobian of a vector field.
         """
-        if I.ndim not in [5, 6]:
-            raise ValueError(f"Input tensor must be 5D or 6D, got {I.ndim}D")
+        if vector_field.ndim not in [5, 6]:
+            raise ValueError(f"Input tensor must be 5D or 6D, got {vector_field.ndim}D")
 
         n_spatial = (
-            I.ndim - 3
+            vector_field.ndim - 3
         )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
         n_components = n_spatial**2  # Jacobian components (4 for 2D, 9 for 3D)
 
-        G = torch.zeros((*I.shape[:-1], n_components), device=I.device, dtype=I.dtype)
+        G = torch.zeros(
+            (*vector_field.shape[:-1], n_components),
+            device=vector_field.device,
+            dtype=vector_field.dtype,
+        )
 
         # Compute all Jacobian components: d(component_i)/d(spatial_j)
         comp_idx = 0
@@ -239,8 +243,8 @@ class TGVDenoiser(Denoiser):
                 )  # Dimension to differentiate along (skip batch and channel dims)
 
                 # Create slice objects for spatial differencing
-                slice_from = [slice(None)] * (I.ndim - 1)
-                slice_to = [slice(None)] * (I.ndim - 1)
+                slice_from = [slice(None)] * (vector_field.ndim - 1)
+                slice_to = [slice(None)] * (vector_field.ndim - 1)
                 slice_from[dim] = slice(None, -1)
                 slice_to[dim] = slice(1, None)
 
@@ -253,7 +257,9 @@ class TGVDenoiser(Denoiser):
                 slice_output_to = (*slice_to, comp_idx)
 
                 # Apply finite difference
-                G[slice_output_to] = I[slice_input_to] - I[slice_input_from]
+                G[slice_output_to] = (
+                    vector_field[slice_input_to] - vector_field[slice_input_from]
+                )
 
                 comp_idx += 1
 
@@ -270,7 +276,7 @@ class TGVDenoiser(Denoiser):
         n_spatial = (
             jacobian.ndim - 3
         )  # Number of spatial dimensions (2 for 5D tensor, 3 for 6D tensor)
-        I = torch.zeros(
+        res = torch.zeros(
             (*jacobian.shape[:-1], n_spatial),
             device=jacobian.device,
             dtype=jacobian.dtype,
@@ -298,9 +304,9 @@ class TGVDenoiser(Denoiser):
                 slice_input_to = (*slice_to, comp_idx)
 
                 # Apply adjoint operator (reversed finite difference)
-                I[slice_output_from] -= jacobian[slice_input_to]
-                I[slice_output_to] += jacobian[slice_input_to]
+                res[slice_output_from] -= jacobian[slice_input_to]
+                res[slice_output_to] += jacobian[slice_input_to]
 
                 comp_idx += 1
 
-        return I
+        return res

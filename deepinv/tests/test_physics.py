@@ -1179,7 +1179,7 @@ def choose_noise(noise_type, device="cpu"):
     N0 = 1024.0
     one = torch.ones((1), device=device)
     p, s = 0.025, 0.025
-    l = 1
+    l_fishertippet = 1
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -1199,7 +1199,7 @@ def choose_noise(noise_type, device="cpu"):
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     elif noise_type == "FisherTippett":
-        noise_model = dinv.physics.FisherTippettNoise(l)
+        noise_model = dinv.physics.FisherTippettNoise(l_fishertippet)
     else:
         raise Exception("Noise model not found")
 

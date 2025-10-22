@@ -1004,8 +1004,8 @@ def test_restoration_models(
 
     if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
         # Test backward pass
-        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
-        l.backward()
+        loss_val = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        loss_val.backward()
     else:
         pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
 
