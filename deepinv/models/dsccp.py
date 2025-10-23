@@ -94,7 +94,7 @@ class DScCP(Denoiser):
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
-        sigma = self._handle_sigma(
+        sigma = self.handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
 

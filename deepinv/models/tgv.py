@@ -111,7 +111,7 @@ class TGVDenoiser(Denoiser):
 
         if ths is not None:
             lambda1 = (
-                self._handle_sigma(
+                self.handle_sigma(
                     ths,
                     batch_size=y.size(0),
                     ndim=y.ndim,
@@ -121,7 +121,7 @@ class TGVDenoiser(Denoiser):
                 * 0.1
             )
             lambda2 = (
-                self._handle_sigma(
+                self.handle_sigma(
                     ths,
                     batch_size=y.size(0),
                     ndim=y.ndim,

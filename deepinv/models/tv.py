@@ -112,7 +112,7 @@ class TVDenoiser(Denoiser):
         )  # square of the Lipschitz constant of nabla
 
         if ths is not None:
-            lambd = self._handle_sigma(
+            lambd = self.handle_sigma(
                 ths,
                 batch_size=y.size(0),
                 ndim=y.ndim + 1,

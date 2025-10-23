@@ -473,7 +473,7 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs.
         """
 
-        sigma = self._handle_sigma(
+        sigma = self.handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
         alpha = 1 / (1 + 4 * sigma**2)

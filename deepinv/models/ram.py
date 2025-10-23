@@ -301,12 +301,12 @@ class RAM(Reconstructor, Denoiser):
         sigma = torch.maximum(
             sigma, torch.tensor(self.sigma_threshold, device=x_in.device)
         )
-        sigma = self._handle_sigma(sigma)
+        sigma = self.handle_sigma(sigma)
 
         gain = torch.maximum(
             gain, torch.tensor(self.gain_threshold, device=x_in.device)
         )
-        gain = self._handle_sigma(gain)
+        gain = self.handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
