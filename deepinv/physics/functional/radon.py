@@ -232,11 +232,13 @@ class Radon(nn.Module):
             if not "detector_spacing" in self.fan_parameters.keys():
                 self.fan_parameters["detector_spacing"] = 0.077
 
-        all_grids = self._create_grids(self.theta, in_size, circle).to(device)        
+        all_grids = self._create_grids(self.theta, in_size, circle).to(device)
         if self.parallel_computation:
-            self.register_buffer("all_grids", torch.cat(
-                [all_grids[i] for i in range(len(self.theta))], 2
-            ), persistent=False)
+            self.register_buffer(
+                "all_grids",
+                torch.cat([all_grids[i] for i in range(len(self.theta))], 2),
+                persistent=False,
+            )
         else:
             self.register_buffer("all_grids", all_grids, persistent=False)
 
@@ -275,9 +277,7 @@ class Radon(nn.Module):
         N, C, W, _ = x.shape
 
         if self.parallel_computation:
-            rotated_par = grid_sample(
-                x, self.all_grids.repeat(N, 1, 1, 1).to(x.device)
-            )
+            rotated_par = grid_sample(x, self.all_grids.repeat(N, 1, 1, 1).to(x.device))
             out = (
                 rotated_par.sum(2).reshape(N, C, len(self.theta), -1).transpose(-2, -1)
             )
@@ -361,21 +361,21 @@ class IRadon(nn.Module):
         self.in_size = in_size
         self.parallel_computation = parallel_computation
         self.dtype = dtype
-        
+
         ygrid, xgrid = self._create_yxgrid(in_size, circle)
         self.register_buffer("xgrid", xgrid, persistent=False)
         self.register_buffer("ygrid", ygrid, persistent=False)
-        
-        all_grids = self._create_grids(self.theta, in_size, circle).to(
-            self.device
-        )
+
+        all_grids = self._create_grids(self.theta, in_size, circle).to(self.device)
         if self.parallel_computation:
-            self.register_buffer("all_grids", torch.cat(
-                [all_grids[i] for i in range(len(self.theta))], 2
-            ), persistent=False)
+            self.register_buffer(
+                "all_grids",
+                torch.cat([all_grids[i] for i in range(len(self.theta))], 2),
+                persistent=False,
+            )
         else:
             self.register_buffer("all_grids", all_grids, persistent=False)
-            
+
         self.filter = (
             RampFilter(dtype=self.dtype, device=self.device)
             if use_filter

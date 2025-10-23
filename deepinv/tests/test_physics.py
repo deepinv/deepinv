@@ -231,12 +231,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
     elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
-            img_width=img_size[-1], 
-            angles=img_size[-1], 
-            fan_beam=False,
-            device=device
+            img_width=img_size[-1], angles=img_size[-1], fan_beam=False, device=device
         )
-    
+
         params = []
     elif name == "2DFanBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
@@ -1372,9 +1369,13 @@ def test_tomography(
     r_tol = 0.05 if not fbp_pseudo_inverse else 0.65
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
-    
-    error = torch.linalg.vector_norm(physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r) / torch.linalg.vector_norm(r)
-    assert error < r_tol, f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
+
+    error = torch.linalg.vector_norm(
+        physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r
+    ) / torch.linalg.vector_norm(r)
+    assert (
+        error < r_tol
+    ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
 @pytest.mark.parametrize(
@@ -1802,7 +1803,10 @@ def test_physics_state_dict(name, device):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
-            if isinstance(attr, torch.Tensor) and name not in module._non_persistent_buffers_set:
+            if (
+                isinstance(attr, torch.Tensor)
+                and name not in module._non_persistent_buffers_set
+            ):
                 tensor_attrs[full_name] = attr
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
