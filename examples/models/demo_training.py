@@ -133,4 +133,6 @@ _ = trainer.train()
 #
 # The testing function will compute metrics and plot and save the results.
 
-trainer.test(test_dataloader, loggers=dinv.loggers.LocalLogger(log_dir="./test_logs"))
+trainer.test(
+    test_dataloader, loggers=dinv.training.run_logger.LocalLogger(log_dir="./test_logs")
+)

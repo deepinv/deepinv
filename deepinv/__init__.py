@@ -59,7 +59,7 @@ from deepinv import training
 
 __all__ += ["training"]
 
-from deepinv.training import Trainer
+from deepinv.training import test, Trainer
 
 
 # GLOBAL PROPERTY
