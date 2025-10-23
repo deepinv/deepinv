@@ -1737,7 +1737,7 @@ def test_device_consistency(name):
         try:
             physics, imsize, dtype = finder(name)
             break
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError):
             continue
     else:
         raise ValueError(f"Could not find an operator for {name}")
@@ -1792,7 +1792,7 @@ def test_physics_state_dict(name, device):
         for name in dir(module):
             try:
                 attr = getattr(module, name)
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
