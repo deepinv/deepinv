@@ -68,9 +68,9 @@ class CBSD68(ImageDataset):
     ) -> None:
         try:
             from datasets import load_dataset as load_dataset_hf, load_from_disk
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
-                "The library datasets is required to for the CBSD68 dataset. Install it using pip install datasets"
+                "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
             )
 
         self.root = root
