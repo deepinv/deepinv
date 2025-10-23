@@ -149,10 +149,11 @@ select = [
 # NOTE: Rule F401 is ruff's unused imports rule.
 # Rule E402 is ruff's module level import not at top of file rule.
 # Rule F811 is ruff's redefinition of unused name from line N rule. Doesn't work well with pytest fixtures.
+# Rule SLF001 is ruff's Private member accessed rule. We ignore it for tests.
 "__init__.py" = ["F401", "E402", "F403", "F405"]
 "examples/**/*" = ["E402", "TID253"]
 "deepinv/transform/base.py" = ["SLF001"]
-"deepinv/tests/**.py" = ["F811"] 
+"deepinv/tests/**.py" = ["F811", "SLF001"] 
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
