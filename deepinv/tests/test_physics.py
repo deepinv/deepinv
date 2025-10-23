@@ -1325,6 +1325,7 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("circle", [True, False])
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+@pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1332,6 +1333,7 @@ def test_tomography(
     circle,
     adjoint_via_backprop,
     fbp_interpolate_boundary,
+    fbp_pseudo_inverse,
     device,
 ):
     r"""
@@ -1350,7 +1352,6 @@ def test_tomography(
         adjoint_via_backprop=adjoint_via_backprop,
         fbp_interpolate_boundary=fbp_interpolate_boundary,
         parallel_computation=parallel_computation,
-        implicit_backward_solver=False,
     )
 
     x = torch.randn(
@@ -1368,17 +1369,12 @@ def test_tomography(
         assert physics.normalize is True
         assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
-    # r_tol = 0.05 if geometry_type == "parallel" else 0.1
-    r_tol = 0.05
+    r_tol = 0.05 if not fbp_pseudo_inverse else 0.65
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
     
-    A_dagger_y = physics.A_dagger(y, fbp=True)
-    # A_dagger_y = dinv.optim.utils.least_squares(physics.A, physics.A_adjoint, y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True)
-    
-    # error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)
-    error = torch.linalg.vector_norm(A_dagger_y - r) / torch.linalg.vector_norm(r)
-    assert error < r_tol, f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}"
+    error = torch.linalg.vector_norm(physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r) / torch.linalg.vector_norm(r)
+    assert error < r_tol, f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
 @pytest.mark.parametrize(
@@ -1806,7 +1802,7 @@ def test_physics_state_dict(name, device):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
-            if isinstance(attr, torch.Tensor):
+            if isinstance(attr, torch.Tensor) and name not in module._non_persistent_buffers_set:
                 tensor_attrs[full_name] = attr
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules

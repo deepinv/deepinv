@@ -192,7 +192,7 @@ class Tomography(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
+            operator_norm = self.compute_norm(
                 torch.randn(
                     (img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
@@ -200,6 +200,7 @@ class Tomography(LinearPhysics):
                 )[None, None],
                 squared=False,
             )
+            self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
