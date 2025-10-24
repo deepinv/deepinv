@@ -109,9 +109,9 @@ class TestTomographyWithAstra:
             loss.backward()
             assert pred.grad is not None
 
-                if normalize is None:
-                    # when normalize is not set by the user, it should default to True
-                    assert physics.normalize is True
+            if normalize is None:
+                # when normalize is not set by the user, it should default to True
+                assert physics.normalize is True
 
         else:
             ## --- Test adjointness ---
@@ -146,7 +146,6 @@ class TestTomographyWithAstra:
                 # when normalize is not set by the user, it should default to True
                 assert physics.normalize is True
                 assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold
-
 
         ## --- Test geometry properties ---
         if is_2d:
