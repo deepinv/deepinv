@@ -20,6 +20,7 @@ from deepinv.physics.functional.astra import (
     create_projection_geometry,
     create_object_geometry,
 )
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class Tomography(LinearPhysics):
@@ -442,6 +443,11 @@ class TomographyWithAstra(LinearPhysics):
         This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
+    @_deprecated_alias(
+        num_angles="angles",
+        num_detectors="n_detector_pixels",
+        object_spacing="pixel_spacing",
+    )
     def __init__(
         self,
         img_size: tuple[int, ...],
