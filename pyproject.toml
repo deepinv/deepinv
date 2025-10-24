@@ -98,6 +98,8 @@ dataset = [
     "pydicom",
     "mat73",
     "scipy",
+    "nibabel",
+    "blosc2",
 ]
 
 # optional dependencies for training

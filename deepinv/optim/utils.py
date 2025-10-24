@@ -12,7 +12,14 @@ import warnings
 from typing import Callable
 
 
-def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
+def check_conv(
+    X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
+    X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
+    it,
+    crit_conv="residual",
+    thres_conv=1e-3,
+    verbose=False,
+):
     if crit_conv == "residual":
         if isinstance(X_prev, dict):
             X_prev = X_prev["est"][0]
@@ -236,14 +243,14 @@ def dot(a, b, dim):
 
 def conjugate_gradient(
     A: Callable,
-    b: torch.Tensor,
-    max_iter: float = 1e2,
+    b: Tensor,
+    max_iter: int = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
-    parallel_dim=0,
-    init=None,
-    verbose=False,
-):
+    parallel_dim: None | int | list[int] = 0,
+    init: Tensor = None,
+    verbose: bool = False,
+) -> Tensor:
     """
     Standard conjugate gradient algorithm.
 
@@ -303,16 +310,16 @@ def conjugate_gradient(
 
 
 def bicgstab(
-    A,
-    b,
-    init=None,
-    max_iter=1e2,
-    tol=1e-5,
-    parallel_dim=0,
-    verbose=False,
+    A: Callable,
+    b: Tensor,
+    init: Tensor = None,
+    max_iter: int = 1e2,
+    tol: float = 1e-5,
+    parallel_dim: None | int | list[int] = 0,
+    verbose: bool = False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
-):
+) -> Tensor:
     """
     Biconjugate gradient stabilized algorithm.
 
@@ -406,7 +413,7 @@ def bicgstab(
     return x
 
 
-def _sym_ortho(a, b):
+def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, ...]:
     """
     Stable implementation of Givens rotation.
 
@@ -437,18 +444,18 @@ def _sym_ortho(a, b):
 
 
 def lsqr(
-    A,
-    AT,
-    b,
-    eta=0.0,
-    x0=None,
-    tol=1e-6,
-    conlim=1e8,
-    max_iter=100,
-    parallel_dim=0,
-    verbose=False,
+    A: Callable,
+    AT: Callable,
+    b: Tensor,
+    eta: float | torch.Tensor = 0.0,
+    x0: Tensor = None,
+    tol: float = 1e-6,
+    conlim: float = 1e8,
+    max_iter: int = 100,
+    parallel_dim: None | int | list[int] = 0,
+    verbose: bool = False,
     **kwargs,
-):
+) -> Tensor:
     r"""
     LSQR algorithm for solving linear systems.
 
@@ -666,9 +673,9 @@ def lsqr(
 
 def minres(
     A,
-    b,
+    b: Tensor,
     init=None,
-    max_iter=1e2,
+    max_iter: int = 1e2,
     tol=1e-5,
     eps=1e-6,
     parallel_dim=0,
