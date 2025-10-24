@@ -13,6 +13,7 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
@@ -35,7 +36,6 @@ Changed
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 - Make tqdm progress bar auto-resize (:gh:`835` by `Andrew Wang`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
-- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
@@ -50,7 +50,6 @@ Fixed
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 - Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
 - Change deprecated `torch.norm` calls to `torch.linalg.vector_norm` (:gh:`840` by `Minh Hai Nguyen`_)
-- Fix `TomographyWithAstra` failing due to missing subpackage imports (:gh:`747` by `Alexander Skorikov`_)
 
 
 v0.3.4
