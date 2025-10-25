@@ -247,8 +247,8 @@ dataset = dinv.datasets.TensorDataset(y=y_train)
 train_dataloader = torch.utils.data.DataLoader(dataset)
 
 # %%
-# We fine-tune using early stopping using a validation set, again without ground truth.
-# We use a small patch of another set of measurements.
+# We fine-tune using early stopping on a validation set, again without ground truth.
+# We use a small patch of another set of measurements as validation.
 
 eval_dataloader = torch.utils.data.DataLoader(
     dinv.datasets.TensorDataset(
@@ -264,8 +264,9 @@ trainer = dinv.Trainer(
     physics=physics_train,
     eval_interval=5,
     ckp_interval=max_epochs - 1,
-    metrics=None,  # no supervised metrics
+    metrics=None,
     compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     early_stop=2,  # early stop after 2 evals without improvement
     device=device,
     losses=losses,
@@ -273,10 +274,12 @@ trainer = dinv.Trainer(
     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
     train_dataloader=train_dataloader,
     eval_dataloader=eval_dataloader,
+    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
 finetuned_model = trainer.train()
 
+finetuned_model = trainer.load_best_model()
 # %%
 # We can now use the fine-tuned model to reconstruct the image from the measurement `y`.
 
