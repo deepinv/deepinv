@@ -1,0 +1,90 @@
+name: PR Comment Trigger
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to trigger tests for"
+        required: true # Making this required for manual runs
+        type: string # Inputs are always strings
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+  actions: write  # Needed to trigger other workflows
+
+jobs:
+  trigger-gpu-workflows:
+    # Run on manual trigger OR if a comment on a PR starts with "/gpu-tests"
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request && startsWith(github.event.comment.body, '/gpu-tests'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR number
+        id: pr
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "pr_number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "pr_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify commenter permissions
+        if: github.event_name == 'issue_comment'
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: commenter
+            });
+            // Valid permissions are 'admin', 'write', 'read', 'none'
+            core.setOutput('permission', perm.permission);
+
+      - name: Stop if user is not a maintainer
+        if: github.event_name == 'issue_comment' && steps.check.outputs.permission != 'admin' && steps.check.outputs.permission != 'write'
+        run: |
+          echo "❌ User @${{ github.event.comment.user.login }} is not authorized (needs write/admin access to trigger workflows)."
+          exit 1
+
+      - name: Add 'Rocket' reaction to comment
+        if: github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: rocket
+
+      - name: Trigger GPU Tests
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: test_gpu.yml
+          ref: ${{ github.event.pull_request.head.ref }}
+          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+
+      - name: Trigger GPU Docs Check
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: gpu_docs.yml
+          ref: ${{ github.event.pull_request.head.ref }}
+          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+
+  post-comment:
+    needs: trigger-gpu-workflows
+    if: needs.trigger-gpu-workflows.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post confirmation comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number || inputs.pr_number }}
+          body: |
+            🚀 GPU test workflows successfully triggered!
+          token: ${{ secrets.GITHUB_TOKEN }}

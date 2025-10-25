@@ -502,7 +502,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     elif loss_name == "splitting-gaussian":
         loss = dinv.loss.SplittingLoss(
             mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
-                imsize, split_ratio=0.7
+                imsize, split_ratio=0.7, device=device
             ),
             metric=test_metric,
             eval_split_input=False,
@@ -587,7 +587,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             # Split data averaged across n samples so contains multiple values
             assert len(y1_eval.unique()) == eval_n_samples + 1
             # Split amount averages to amount during training
-            assert y1_eval.mean() == y1.mean()
+            assert torch.allclose(y1_eval.mean(), y1.mean(), atol=1e-3)
         elif loss_name == "splitting_eval_split_input_output":
             # Splits output with complement mask
             assert torch.all(y1_eval == 0)

@@ -72,7 +72,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         random_split_ratio: bool = False,
         min_split_ratio: float = 0.0,
         max_split_ratio: float = 1.0,
-        device: torch.device = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
         *args,

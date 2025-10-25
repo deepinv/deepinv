@@ -1,0 +1,80 @@
+name: Test GPU
+
+on:
+  schedule:
+    - cron: "30 2 */1 * *"
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test"
+        required: true
+        type: number
+
+jobs:
+  test:
+    name: Test GPU
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+      WORKING_DIR: "/local/jtachell"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha
+                  || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
+                  || github.sha }}
+                  
+      # See https://docs.astral.sh/uv/guides/integration/github
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+          python-version: "3.11"
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Set up Python
+        run: |
+          uv python install
+          uv run python --version
+
+      - name: Install the project
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training
+
+      - name: Check installed packages
+        run: |
+          uv pip list
+
+      - name: Check import
+        run: |
+          uv run python -c "import deepinv"
+
+      - name: Test with pytest
+        run: |
+          uv run python -m pytest -n 2 --dist=loadgroup
+
+      - name: Post result to PR
+        if: always() && inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.inputs.pr_number;
+            const result = "${{ job.status }}";
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+      
+            const body = result === "success"
+              ? `✅ GPU tests passed\n\n🔗 [View run details](${runUrl})`
+              : `❌ GPU tests failed\n\n🔗 [View run details](${runUrl})`;
+      
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body,
+            });
+            
