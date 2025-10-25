@@ -53,6 +53,7 @@ from .phase_retrieval import (
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
+from .cavitation import  Cavitation
 
 from .spatial_unwrapping import SpatialUnwrapping
 
