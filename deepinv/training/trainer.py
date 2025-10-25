@@ -1410,7 +1410,7 @@ class Trainer:
         save_path: str | Path = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
-        metrics: Union[Metric, list[Metric], None] = None,
+        metrics: Metric | list[Metric] | None = None,
     ) -> dict:
         r"""
         Test the model, compute metrics and plot images.
@@ -1427,15 +1427,18 @@ class Trainer:
         if metrics is not None:
             self.metrics = metrics
         self.compare_no_learning = compare_no_learning
+
+        # Disable mlops and visualization during testing
+        former_values = (self.wandb_vis, self.wandb_setup, self.mlflow_vis, self.mlflow_setup, self.log_train_batch)
+        self.wandb_vis = False
+        self.wandb_setup = {}
+        self.mlflow_vis = False
+        self.mlflow_setup = {}
+        self.log_train_batch = False
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
 
-        # Disable mlops and visualization during testing
-        former_values = (self.wandb_vis, self.mlflow_vis, self.log_train_batch)
-        self.wandb_vis = False
-        self.mlflow_vis = False
-        self.log_train_batch = False
 
         self.reset_metrics()
 
@@ -1459,7 +1462,7 @@ class Trainer:
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
+        self.wandb_vis, self.wandb_setup, self.mlflow_vis, self.mlflow_setup, self.log_train_batch = former_values
 
         if self.verbose:
             print("Test results:")
