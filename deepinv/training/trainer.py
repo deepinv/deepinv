@@ -36,15 +36,38 @@ class Trainer:
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
 
+    |sep|
+
+    .. tip::
+
+        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
+        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``.
+
+    :Saved information:
+
     Training details are saved every ``ckp_interval`` epochs in the following format
 
     ::
 
         save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
 
-    where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
-    dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
-    and ``eval_metrics`` the evaluation metrics history.
+    where ``.pth.tar`` file contains a dictionary with the keys:
+
+    - `epoch`: current epoch number when saved
+    - `state_dict`: model parameters state dictionary
+    - `loss`: loss history on train set
+    - `train_metrics`: metric history on train set
+    - `eval_loss`: loss history on eval set
+    - `eval_metrics`: metric history on eval set
+    - `optimizer`: optimizer state dictionary, or ``None`` if not used
+    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
+
+    |sep|
+
+    Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
+    **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
+
+    :Basics:
 
     The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets user guide <datasets>` for
     how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
@@ -58,30 +81,6 @@ class Trainer:
 
         If your dataloaders do not return `y` but you do not want online measurements, use :func:`deepinv.datasets.generate_dataset` to generate a dataset
         of offline measurements from a dataset of `x` and a `physics`.
-
-    .. note::
-
-        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
-
-        Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
-        and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
-        where ``x`` is the ground truth, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
-        ``y`` is the measurement vector, ``physics`` is the forward operator
-        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
-        e.g., self-supervised losses will not make use of ``x``.
-
-        Custom metrics can also be used in the exact same way as custom losses.
-
-    .. note::
-
-        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
-        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``. The user can also customize the setup of wandb and MLflow
-        by providing a dictionary for the parameters ``wandb_setup`` or ``mlflow_setup`` respectively.
-
-    Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
-    **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
-
-    :Basics:
 
     :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         or any other custom reconstruction network.
@@ -113,6 +112,19 @@ class Trainer:
         using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
     :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
+
+    .. note::
+
+        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
+
+        Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
+        and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
+        where ``x`` is the ground truth, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
+        ``y`` is the measurement vector, ``physics`` is the forward operator
+        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
+        e.g., self-supervised losses will not make use of ``x``.
+
+        Custom metrics can also be used in the exact same way as custom losses.
 
     |sep|
 
@@ -237,6 +249,7 @@ class Trainer:
 
     :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
     :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
+
     """
 
     model: torch.nn.Module
@@ -394,10 +407,10 @@ class Trainer:
             for l in self.losses
         ]
 
-        self.train_loss_history = {}
+        self.loss_history = {}
         self.eval_loss_history = {}
         for l in self.losses:
-            self.train_loss_history[l.__class__.__name__] = []
+            self.loss_history[l.__class__.__name__] = []
             self.eval_loss_history[l.__class__.__name__] = []
 
         # metrics
@@ -1116,7 +1129,7 @@ class Trainer:
         state = state | {
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
-            "loss": self.train_loss_history,
+            "loss": self.loss_history,
             "train_metrics": self.train_metrics_history,
             "eval_loss": self.eval_loss_history,
             "eval_metrics": self.eval_metrics_history,
@@ -1312,7 +1325,7 @@ class Trainer:
                 if self.log_train_batch or last_batch:
                     # store losses history
                     for l in self.losses:
-                        self.train_loss_history[l.__class__.__name__].append(
+                        self.loss_history[l.__class__.__name__].append(
                             self.logs_losses_train[self.losses.index(l)].avg
                         )
 
@@ -1442,7 +1455,13 @@ class Trainer:
         self.compare_no_learning = compare_no_learning
 
         # Disable mlops and visualization during testing
-        former_values = (self.wandb_vis, self.wandb_setup, self.mlflow_vis, self.mlflow_setup, self.log_train_batch)
+        former_values = (
+            self.wandb_vis,
+            self.wandb_setup,
+            self.mlflow_vis,
+            self.mlflow_setup,
+            self.log_train_batch,
+        )
         self.wandb_vis = False
         self.wandb_setup = {}
         self.mlflow_vis = False
@@ -1451,7 +1470,6 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-
 
         self.reset_metrics()
 
@@ -1482,7 +1500,13 @@ class Trainer:
                 update_progress_bar=(i % self.freq_update_progress_bar == 0),
             )
 
-        self.wandb_vis, self.wandb_setup, self.mlflow_vis, self.mlflow_setup, self.log_train_batch = former_values
+        (
+            self.wandb_vis,
+            self.wandb_setup,
+            self.mlflow_vis,
+            self.mlflow_setup,
+            self.log_train_batch,
+        ) = former_values
 
         if self.verbose:
             print("Test results:")

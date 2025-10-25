@@ -737,7 +737,7 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-class ConstantLossEvalTrain(dinv.loss.Loss):
+class ConstantLossEvalTrain(dinv.loss.Loss, dinv.loss.Metric):
     def __init__(self, value_train, value_eval, device):
         super().__init__()
         self.value_train = value_train
@@ -806,12 +806,11 @@ def test_loss_logging(
         verbose=False,
         online_measurements=True,
         save_path=tmpdir,
-        device=device,
     )
 
     trainer.train()
 
-    for k, (loss_name, loss_history) in enumerate(trainer.train_loss_history.items()):
+    for k, (loss_name, loss_history) in enumerate(trainer.loss_history.items()):
         l = losses[k]
         assert loss_name == l.__class__.__name__
         assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
