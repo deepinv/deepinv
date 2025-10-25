@@ -1,0 +1,935 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.transform.projective &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/transform/projective';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/transform/projective.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.transform.projective</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.transform.projective</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.transform.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span><span class="p">,</span> <span class="n">TransformParam</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rotation_matrix</span><span class="p">(</span><span class="n">tx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tz</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Numpy implementation of ``scipy`` rotation matrix from Euler angles.</span>
+
+<span class="sd">    Construct 3D extrinsic rotation matrix from x, y and z angles. This is equivalent of using the ``scipy`` function:</span>
+
+<span class="sd">    ``scipy.spatial.transform.Rotation.from_euler(&quot;xyz&quot;, (tx, ty, tz), degrees=True).as_matrix()``</span>
+
+<span class="sd">    :param float tx: x rotation in degrees</span>
+<span class="sd">    :param float ty: y rotation in degrees</span>
+<span class="sd">    :param float tz: z rotation in degrees</span>
+<span class="sd">    :return np.ndarray: 3D rotation matrix.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">,</span> <span class="n">tz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">((</span><span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">,</span> <span class="n">tz</span><span class="p">))</span>
+
+    <span class="c1"># fmt: off</span>
+    <span class="n">Rx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tx</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tx</span><span class="p">)],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tx</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tx</span><span class="p">)]</span>
+    <span class="p">])</span>
+
+    <span class="n">Ry</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ty</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ty</span><span class="p">)],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ty</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ty</span><span class="p">)]</span>
+    <span class="p">])</span>
+
+    <span class="n">Rz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tz</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tz</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tz</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tz</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">])</span>
+    <span class="c1"># fmt: on</span>
+
+    <span class="k">return</span> <span class="n">Rz</span> <span class="o">@</span> <span class="n">Ry</span> <span class="o">@</span> <span class="n">Rx</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_homography</span><span class="p">(</span>
+    <span class="n">im</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span>
+    <span class="n">theta_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">theta_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">theta_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">zoom_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">skew</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">x_stretch_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">y_stretch_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">x_t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">y_t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reflection&quot;</span><span class="p">,</span>
+    <span class="n">interpolation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Perform homography (projective transformation).</span>
+
+<span class="sd">    Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.</span>
+
+<span class="sd">    See :class:`deepinv.transform.Homography` for more details.</span>
+
+<span class="sd">    The input image can be a torch Tensor, in which case ``kornia`` is used to perform the transformation, or a PIL Image where PIL transform is used.</span>
+
+<span class="sd">    Following :footcite:t:`wang2024perspective`, we assume principal point in center, initial focal length 100, initial skew of 0, initial square pixels.</span>
+
+<span class="sd">    :param torch.Tensor | Image.Image im: Input if tensor, image of shape (B,C,H,W), otherwise a PIL image.</span>
+<span class="sd">    :param float theta_x: tilt angle in degrees, defaults to 0.</span>
+<span class="sd">    :param float theta_y: pan angle in degrees, defaults to 0.</span>
+<span class="sd">    :param float theta_z: 2D rotation angle in degrees, defaults to 0.</span>
+<span class="sd">    :param float zoom_factor: relative focal length zoom (lower zooms out), defaults to 1.</span>
+<span class="sd">    :param float skew: relative pixel skew, defaults to 0</span>
+<span class="sd">    :param float x_stretch_factor: relative pixel x length factor, defaults to 1.</span>
+<span class="sd">    :param float y_stretch_factor: relative pixel y length factor, defaults to 1.</span>
+<span class="sd">    :param float x_t: relative x pixel translation, defaults to 0.</span>
+<span class="sd">    :param float y_t: relative y pixel translation, defaults to 0.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, choose from &quot;bilinear&quot;, &quot;nearest&quot; or &quot;bicubic&quot;. Defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param bool verbose: if True, print homography matrix, defaults to False</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;</span>
+<span class="sd">    :return torch.Tensor | Image.Image: transformed image.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">kornia.geometry.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">warp_perspective</span>
+
+    <span class="k">assert</span> <span class="n">interpolation</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="s2">&quot;bicubic&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+
+    <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">im</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">u0</span><span class="p">,</span> <span class="n">v0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">m_x</span> <span class="o">=</span> <span class="n">m_y</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># fmt: off</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">f</span><span class="o">*</span><span class="n">m_x</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">u0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">*</span><span class="n">m_y</span><span class="p">,</span> <span class="n">v0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">])</span>
+
+    <span class="n">K_dash</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">f</span><span class="o">/</span><span class="n">zoom_factor</span><span class="o">*</span><span class="n">m_x</span><span class="o">/</span><span class="n">x_stretch_factor</span><span class="p">,</span> <span class="n">s</span> <span class="o">+</span> <span class="n">skew</span><span class="p">,</span> <span class="n">u0</span> <span class="o">+</span> <span class="n">x_t</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">/</span><span class="n">zoom_factor</span><span class="o">*</span><span class="n">m_y</span><span class="o">/</span><span class="n">y_stretch_factor</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">y_t</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">])</span>
+    <span class="c1"># fmt: on</span>
+
+    <span class="n">R_dash</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">theta_x</span><span class="p">,</span> <span class="n">theta_y</span><span class="p">,</span> <span class="n">theta_z</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="c1"># note thetas defined in the opposite direction here, but it doesn&#39;t matter</span>
+        <span class="c1"># for random transformations which have symmetric ranges about 0.</span>
+        <span class="n">H_inverse</span> <span class="o">=</span> <span class="n">K</span> <span class="o">@</span> <span class="n">R_dash</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">K_dash</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">printoptions</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">suppress</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">H_inverse</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">warp_perspective</span><span class="p">(</span>
+            <span class="n">im</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">H_inverse</span><span class="p">)[</span><span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">dsize</span><span class="o">=</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">interpolation</span><span class="p">,</span>
+            <span class="n">padding_mode</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s2">&quot;bilinear&quot;</span><span class="p">:</span>
+            <span class="n">pil_interp</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">Resampling</span><span class="o">.</span><span class="n">BILINEAR</span>
+        <span class="k">elif</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s2">&quot;bicubic&quot;</span><span class="p">:</span>
+            <span class="n">pil_interp</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">Resampling</span><span class="o">.</span><span class="n">BICUBIC</span>
+        <span class="k">elif</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s2">&quot;nearest&quot;</span><span class="p">:</span>
+            <span class="n">pil_interp</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">Resampling</span><span class="o">.</span><span class="n">NEAREST</span>
+
+        <span class="n">H</span> <span class="o">=</span> <span class="n">K_dash</span> <span class="o">@</span> <span class="n">R_dash</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">im</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">im</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">Image</span><span class="o">.</span><span class="n">Transform</span><span class="o">.</span><span class="n">PERSPECTIVE</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">H</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
+            <span class="n">resample</span><span class="o">=</span><span class="n">pil_interp</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="Homography">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.transform.Homography.html#deepinv.transform.Homography">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Homography</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Random projective transformations (homographies).</span>
+
+<span class="sd">    The homography is parameterized by</span>
+<span class="sd">    geometric parameters. By fixing these parameters, subgroup transformations are</span>
+<span class="sd">    retrieved, see :footcite:t:`wang2024perspective`.</span>
+
+<span class="sd">    For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,</span>
+<span class="sd">    theta_max = theta_z_max = skew_max = 0 gives a pure translation.</span>
+
+<span class="sd">    Subgroup transformations include :class:`deepinv.transform.projective.Affine`, :class:`deepinv.transform.projective.Similarity`,</span>
+<span class="sd">    :class:`deepinv.transform.projective.Euclidean` along with the basic :class:`deepinv.transform.Shift`,</span>
+<span class="sd">    :class:`deepinv.transform.Rotate` and semigroup :class:`deepinv.transform.Scale`.</span>
+
+<span class="sd">    Transformations with perspective effects (i.e. pan+tilt) are recovered by setting</span>
+<span class="sd">    theta_max &gt; 0.</span>
+
+<span class="sd">    Generates ``n_trans`` random transformations concatenated along the batch dimension.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        Apply a random projective transformation:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.transform.projective import Homography</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 16, 16) # Random 16x16 image</span>
+<span class="sd">        &gt;&gt;&gt; transform = Homography(n_trans = 1)</span>
+<span class="sd">        &gt;&gt;&gt; x_T = transform(x)</span>
+
+<span class="sd">    :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.</span>
+<span class="sd">    :param float skew_max: Maximum skew parameter, defaults to 50.</span>
+<span class="sd">    :param float x_stretch_factor_min: Min stretch factor along the x-axis (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param float y_stretch_factor_min: Min stretch factor along the y-axis (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;.</span>
+<span class="sd">    :param int n_trans: number of transformed versions generated per input image, defaults to 1.</span>
+<span class="sd">    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_trans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">theta_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">180.0</span>
+    <span class="n">theta_z_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">180.0</span>
+    <span class="n">zoom_factor_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">shift_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">skew_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.0</span>
+    <span class="n">x_stretch_factor_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">y_stretch_factor_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">padding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reflection&quot;</span>
+    <span class="n">interpolation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;bilinear&quot;</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">n_trans</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trans</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">mini</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mini</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mini</span> <span class="o">=</span> <span class="o">-</span><span class="n">maxi</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="n">mini</span> <span class="o">-</span> <span class="n">maxi</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_trans</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">maxi</span>
+        <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>  <span class="c1"># require cpu for numpy</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="n">Reciprocal</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">TransformParam</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">neg</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;theta_x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_max</span><span class="p">),</span>
+            <span class="s2">&quot;theta_y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_max</span><span class="p">),</span>
+            <span class="s2">&quot;theta_z&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_z_max</span><span class="p">),</span>
+            <span class="s2">&quot;zoom_f&quot;</span><span class="p">:</span> <span class="n">Reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zoom_factor_min</span><span class="p">)),</span>
+            <span class="s2">&quot;shift_x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">W</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">shift_max</span><span class="p">),</span>
+            <span class="s2">&quot;shift_y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">H</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">shift_max</span><span class="p">),</span>  <span class="c1">### note W and H swapped</span>
+            <span class="s2">&quot;skew&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skew_max</span><span class="p">),</span>
+            <span class="s2">&quot;stretch_x&quot;</span><span class="p">:</span> <span class="n">Reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_stretch_factor_min</span><span class="p">)),</span>
+            <span class="s2">&quot;stretch_y&quot;</span><span class="p">:</span> <span class="n">Reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_stretch_factor_min</span><span class="p">)),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_transform</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">theta_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">theta_y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">theta_z</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">zoom_f</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">shift_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">shift_y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">skew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">stretch_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="n">stretch_y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterable</span> <span class="o">|</span> <span class="n">TransformParam</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">params</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">apply_homography</span><span class="p">(</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">theta_x</span><span class="o">=</span><span class="n">tx</span><span class="p">,</span>
+                    <span class="n">theta_y</span><span class="o">=</span><span class="n">ty</span><span class="p">,</span>
+                    <span class="n">theta_z</span><span class="o">=</span><span class="n">tz</span><span class="p">,</span>
+                    <span class="n">zoom_factor</span><span class="o">=</span><span class="n">zf</span><span class="p">,</span>
+                    <span class="n">x_t</span><span class="o">=</span><span class="n">xt</span><span class="p">,</span>
+                    <span class="n">y_t</span><span class="o">=</span><span class="n">yt</span><span class="p">,</span>
+                    <span class="n">skew</span><span class="o">=</span><span class="n">sk</span><span class="p">,</span>
+                    <span class="n">x_stretch_factor</span><span class="o">=</span><span class="n">xsf</span><span class="p">,</span>
+                    <span class="n">y_stretch_factor</span><span class="o">=</span><span class="n">ysf</span><span class="p">,</span>
+                    <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+                    <span class="n">interpolation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">interpolation</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">,</span> <span class="n">tz</span><span class="p">,</span> <span class="n">zf</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">,</span> <span class="n">sk</span><span class="p">,</span> <span class="n">xsf</span><span class="p">,</span> <span class="n">ysf</span> <span class="ow">in</span> <span class="n">zip_strict</span><span class="p">(</span>
+                    <span class="n">theta_x</span><span class="p">,</span>
+                    <span class="n">theta_y</span><span class="p">,</span>
+                    <span class="n">theta_z</span><span class="p">,</span>
+                    <span class="n">zoom_f</span><span class="p">,</span>
+                    <span class="n">shift_x</span><span class="p">,</span>
+                    <span class="n">shift_y</span><span class="p">,</span>
+                    <span class="n">skew</span><span class="p">,</span>
+                    <span class="n">stretch_x</span><span class="p">,</span>
+                    <span class="n">stretch_y</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Affine">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.transform.projective.Affine.html#deepinv.transform.Affine">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Affine</span><span class="p">(</span><span class="n">Homography</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Random affine image transformations using projective transformation framework.</span>
+
+<span class="sd">    Special case of homography which corresponds to the actions of the affine subgroup</span>
+<span class="sd">    Aff(3). Affine transformations include translations, rotations, reflections,</span>
+<span class="sd">    skews, and stretches. These transformations are parametrized using geometric parameters in the pinhole camera model.</span>
+<span class="sd">    See :class:`deepinv.transform.Homography` for more details.</span>
+
+<span class="sd">    Generates ``n_trans`` random transformations concatenated along the batch dimension.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        Apply a random affine transformation:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.transform.projective import Affine</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 16, 16) # Random 16x16 image</span>
+<span class="sd">        &gt;&gt;&gt; transform = Affine(n_trans = 1)</span>
+<span class="sd">        &gt;&gt;&gt; x_T = transform(x)</span>
+
+<span class="sd">    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.</span>
+<span class="sd">    :param float skew_max: Maximum skew parameter, defaults to 50.</span>
+<span class="sd">    :param float x_stretch_factor_min: Min stretch factor along the x-axis (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param float y_stretch_factor_min: Min stretch factor along the y-axis (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;.</span>
+<span class="sd">    :param n_trans: number of transformed versions generated per input image, defaults to 1.</span>
+<span class="sd">    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_max</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_params</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Similarity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.transform.projective.Similarity.html#deepinv.transform.Similarity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Similarity</span><span class="p">(</span><span class="n">Homography</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Random 2D similarity image transformations using projective transformation framework.</span>
+
+<span class="sd">    Special case of homography which corresponds to the actions of the similarity subgroup</span>
+<span class="sd">    S(2). Similarity transformations include translations, rotations, reflections and</span>
+<span class="sd">    uniform scale. These transformations are parametrized using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.</span>
+
+<span class="sd">    Generates ``n_trans`` random transformations concatenated along the batch dimension.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        Apply a random similarity transformation:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.transform.projective import Similarity</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 16, 16) # Random 16x16 image</span>
+<span class="sd">        &gt;&gt;&gt; transform = Similarity(n_trans = 1)</span>
+<span class="sd">        &gt;&gt;&gt; x_T = transform(x)</span>
+
+<span class="sd">    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.</span>
+<span class="sd">    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;.</span>
+<span class="sd">    :param n_trans: number of transformed versions generated per input image, defaults to 1.</span>
+<span class="sd">    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skew_max</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_stretch_factor_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_stretch_factor_min</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_params</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Euclidean">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.transform.projective.Euclidean.html#deepinv.transform.Euclidean">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Euclidean</span><span class="p">(</span><span class="n">Homography</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Random Euclidean image transformations using projective transformation framework.</span>
+
+<span class="sd">    Special case of homography which corresponds to the actions of the Euclidean subgroup</span>
+<span class="sd">    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrized using geometric parameters in the pinhole camera model.</span>
+<span class="sd">    See :class:`deepinv.transform.Homography` for more details.</span>
+
+<span class="sd">    Generates ``n_trans`` random transformations concatenated along the batch dimension.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        Apply a random Euclidean transformation:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.transform.projective import Euclidean</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 16, 16) # Random 16x16 image</span>
+<span class="sd">        &gt;&gt;&gt; transform = Euclidean(n_trans = 1)</span>
+<span class="sd">        &gt;&gt;&gt; x_T = transform(x)</span>
+
+<span class="sd">    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;.</span>
+<span class="sd">    :param n_trans: number of transformed versions generated per input image, defaults to 1.</span>
+<span class="sd">    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skew_max</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zoom_factor_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_stretch_factor_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_stretch_factor_min</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_params</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PanTiltRotate">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.transform.projective.PanTiltRotate.html#deepinv.transform.PanTiltRotate">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PanTiltRotate</span><span class="p">(</span><span class="n">Homography</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Random 3D camera rotation image transformations using projective transformation framework.</span>
+
+<span class="sd">    Special case of homography which corresponds to the actions of the 3D camera rotation,</span>
+<span class="sd">    or &quot;pan+tilt+rotate&quot; subgroup from :footcite:t:`wang2024perspective`.</span>
+
+<span class="sd">    The transformations simulate panning, tilting or rotating the camera, leading to a</span>
+<span class="sd">    &quot;perspective&quot; effect. The subgroup is isomorphic to SO(3).</span>
+
+<span class="sd">    See :class:`deepinv.transform.Homography` for more details.</span>
+
+<span class="sd">    Generates ``n_trans`` random transformations concatenated along the batch dimension.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        Apply a random pan+tilt+rotate transformation:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.transform.projective import PanTiltRotate</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 16, 16) # Random 16x16 image</span>
+<span class="sd">        &gt;&gt;&gt; transform = PanTiltRotate(n_trans = 1)</span>
+<span class="sd">        &gt;&gt;&gt; x_T = transform(x)</span>
+
+<span class="sd">    :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.</span>
+<span class="sd">    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.</span>
+<span class="sd">    :param str padding: kornia padding mode, defaults to &quot;reflection&quot;</span>
+<span class="sd">    :param str interpolation: kornia or PIL interpolation mode, defaults to &quot;bilinear&quot;</span>
+<span class="sd">    :param str device: torch device, defaults to &quot;cpu&quot;.</span>
+<span class="sd">    :param n_trans: number of transformed versions generated per input image, defaults to 1.</span>
+<span class="sd">    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shift_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skew_max</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zoom_factor_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_stretch_factor_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_stretch_factor_min</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_params</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
