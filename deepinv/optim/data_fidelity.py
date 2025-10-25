@@ -511,20 +511,31 @@ class ItohFidelity(L2):
             psi = psi + (gamma / 2) * x
 
         NX, MX = psi.shape[-1], psi.shape[-2]
-        I, J = torch.meshgrid(torch.arange(0, MX), torch.arange(0, NX), indexing="ij")
-        I, J = I.to(psi.device), J.to(psi.device)
+        IndexX, IndexY = torch.meshgrid(
+            torch.arange(0, MX), torch.arange(0, NX), indexing="ij"
+        )
+        IndexX, IndexY = IndexX.to(psi.device), IndexY.to(psi.device)
 
-        I, J = I.unsqueeze(0).unsqueeze(0), J.unsqueeze(0).unsqueeze(0)
+        IndexX, IndexY = IndexX.unsqueeze(0).unsqueeze(0), IndexY.unsqueeze(
+            0
+        ).unsqueeze(0)
 
         if x is None:
             denom = 2 * (
-                2 - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+                2
+                - (
+                    torch.cos(torch.pi * IndexX / MX)
+                    + torch.cos(torch.pi * IndexY / NX)
+                )
             )
         else:
             denom = 2 * (
                 (gamma / 4)
                 + 2
-                - (torch.cos(torch.pi * I / MX) + torch.cos(torch.pi * J / NX))
+                - (
+                    torch.cos(torch.pi * IndexX / MX)
+                    + torch.cos(torch.pi * IndexY / NX)
+                )
             )
 
         dct_psi = dct_2d(psi, norm="ortho")

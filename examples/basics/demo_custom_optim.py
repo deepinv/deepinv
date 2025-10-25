@@ -117,7 +117,7 @@ metric = dinv.metric.PSNR()
 
 dinv.utils.plot(
     {
-        f"Ground truth": x,
+        "Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
         f"Recon w/ TV prior\n {metric(x_k, x).item():.2f} dB": x_k,
     }
@@ -149,7 +149,7 @@ with torch.no_grad():  # disable autodifferentiation
 
 dinv.utils.plot(
     {
-        f"Ground truth": x,
+        "Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
         f"Recon w/ PnP prior\n {metric(x_k, x).item():.2f} dB": x_k,
     }
@@ -202,7 +202,7 @@ x_hat = tv_algo(y, physics)
 
 dinv.utils.plot(
     {
-        f"Ground truth": x,
+        "Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
         f"Recon w/ custom PGD\n {metric(x_hat, x).item():.2f} dB": x_hat,
     }
@@ -247,7 +247,7 @@ x_hat = model(y, physics)
 
 dinv.utils.plot(
     {
-        f"Ground truth": x,
+        "Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
         f"Reconstruction\n {metric(x_hat, x).item():.2f} dB": x_hat,
     }

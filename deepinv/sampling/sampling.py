@@ -12,7 +12,7 @@ from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
 from deepinv.physics import Physics, LinearPhysics
-from deepinv.sampling.sampling_iterators import *
+from deepinv.sampling.sampling_iterators import SamplingIterator
 from deepinv.sampling.utils import Welford
 from deepinv.utils.compat import zip_strict
 

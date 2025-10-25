@@ -116,13 +116,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 
 # Define the image gradient operator
-def nabla(I):
-    b, c, h, w = I.shape
-    G = torch.zeros((b, c, h, w, 2), device=I.device).type(I.dtype)
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - I[:, :, :-1]
-    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + I[:, :, 1:]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - I[..., :-1]
-    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + I[..., 1:]
+def nabla(img):
+    b, c, h, w = img.shape
+    G = torch.zeros((b, c, h, w, 2), device=img.device).type(img.dtype)
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] - img[:, :, :-1]
+    G[:, :, :-1, :, 0] = G[:, :, :-1, :, 0] + img[:, :, 1:]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] - img[..., :-1]
+    G[:, :, :, :-1, 1] = G[:, :, :, :-1, 1] + img[..., 1:]
     return G
 
 

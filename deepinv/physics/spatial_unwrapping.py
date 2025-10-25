@@ -1,8 +1,13 @@
 import torch
 from deepinv.physics.forward import Physics
 
-modulo_floor = lambda x, t: x - t * torch.floor(x / t)
-modulo_round = lambda x, t: x - t * torch.round(x / t)
+
+def modulo_floor(x, t):
+    return x - t * torch.floor(x / t)
+
+
+def modulo_round(x, t):
+    return x - t * torch.round(x / t)
 
 
 class SpatialUnwrapping(Physics):

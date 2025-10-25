@@ -108,16 +108,20 @@ dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
 # transform (with a Monte Carlo approach of ``n_trans=2`` transforms per call):
 #
 
+
 # Example non-equivariant function
-f = lambda x: x[..., [0]] * x
+def non_equivariant_f(x):
+    return x[..., [0]] * x
+
 
 # Example non-linear transform with n=2
 t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max=0)
 
 # Symmetrize function with respect to transform
-f_s = t.symmetrize(f, average=True)
+f_s = t.symmetrize(non_equivariant_f, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
+    [x, non_equivariant_f(x), f_s(x)],
+    titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"],
 )
 
 

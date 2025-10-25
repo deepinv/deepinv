@@ -36,7 +36,7 @@ class Denoiser(torch.nn.Module):
         raise NotImplementedError()
 
     @staticmethod
-    def _handle_sigma(
+    def handle_sigma(
         sigma: float | torch.Tensor,
         batch_size: int = None,
         ndim: int = None,

@@ -181,6 +181,12 @@ class XrayTransform:
         """Implements and returns the adjoint of the transform operator."""
         parent = self
 
+        # To avoid accessing a private method in _Adjoint
+        def backproject(
+            self, x: torch.Tensor, out: torch.Tensor | None = None
+        ) -> torch.Tensor:
+            return self._backprojection(x, out)
+
         class _Adjoint:
             def __init__(self):
                 self.is_2d = parent.is_2d
@@ -214,7 +220,8 @@ class XrayTransform:
                         self.range_shape, dtype=torch.float32, device=x.device
                     )
 
-                parent._backprojection(x, out)
+                parent.backproject(x, out)
+
                 if self.is_2d:
                     # necessary scaling in fanbeam to obtain decent approximated adjoint
                     out /= parent.magnitude

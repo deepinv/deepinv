@@ -42,7 +42,10 @@ class Potential(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
         :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
         """
-        grad = lambda z: self.grad(z, *args, **kwargs) - x
+
+        def grad(z):
+            return -self.grad(z, *args, **kwargs) + x
+
         z = gradient_descent(-grad, x)
         return self.forward(z, *args, **kwargs) - torch.sum(
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
@@ -105,7 +108,10 @@ class Potential(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma h}(x)`, computed in :math:`x`.
         """
-        grad = lambda z: gamma * self.grad(z, *args, **kwargs) + (z - x)
+
+        def grad(z):
+            return gamma * self.grad(z, *args, **kwargs) + (z - x)
+
         return gradient_descent(
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
@@ -153,9 +159,12 @@ class Potential(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}^h_{\gamma \regname}(x)`, computed in :math:`x`.
         """
-        grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
-            bregman_potential.grad(u) - bregman_potential.grad(x)
-        )
+
+        def grad(u):
+            return gamma * self.grad(u, *args, **kwargs) + (
+                bregman_potential.grad(u) - bregman_potential.grad(x)
+            )
+
         return gradient_descent(
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
