@@ -122,13 +122,13 @@ model = dinv.Trainer(
     physics=physics,
     online_measurements=True,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=1,
     losses=losses,
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 ).train()
 

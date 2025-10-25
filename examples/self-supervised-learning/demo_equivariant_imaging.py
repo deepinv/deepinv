@@ -18,6 +18,7 @@ from deepinv.datasets import SimpleFastMRISliceDataset
 from deepinv.utils import get_data_home, load_degradation
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -178,12 +179,12 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    plot_images=True,
+    log_images=True,
     device=device,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    ckp_interval=10,
+    ckpt_interval=10,
 )
 
 model = trainer.train()
@@ -194,7 +195,9 @@ model = trainer.train()
 #
 #
 
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 # %%
 # :References:

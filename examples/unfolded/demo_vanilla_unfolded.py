@@ -16,6 +16,7 @@ from deepinv.unfolded import unfolded_builder
 from torchvision import transforms
 from deepinv.utils import get_data_home
 from deepinv.datasets import BSDS500
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -182,14 +183,14 @@ trainer = dinv.Trainer(
     model,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=epochs,
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
     device=device,
     early_stop=True,  # set to None to disable early stopping
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
@@ -202,7 +203,9 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 test_sample, _ = next(iter(test_dataloader))
 model.eval()

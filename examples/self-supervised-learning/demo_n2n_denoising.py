@@ -25,6 +25,7 @@ from torchvision import transforms, datasets
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
 from deepinv.utils.demo import get_data_home
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -165,9 +166,9 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-    plot_images=True,
-    save_path=str(CKPT_DIR / operation),
+    val_dataloader=test_dataloader,
+    log_images=True,
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
@@ -180,7 +181,9 @@ model = trainer.train()
 #
 #
 
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 # %%
 # :References:

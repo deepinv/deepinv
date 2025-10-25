@@ -17,6 +17,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
+from deepinv.training.run_logger import LocalLogger
 from deepinv.utils.demo import load_dataset
 
 
@@ -185,7 +186,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    loggers=LocalLogger(log_dir=RESULTS_DIR / method / operation / "test"),
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=verbose,
 )

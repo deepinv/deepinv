@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.utils import get_timestamp
+from deepinv.training.run_logger import LocalLogger
 from dummy import DummyCircles, DummyModel
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
@@ -14,10 +15,10 @@ from deepinv.datasets.base import ImageDataset
 from deepinv.utils.compat import zip_strict
 from unittest.mock import patch
 import math
-import io
-import contextlib
 import re
 import typing
+import logging
+import uuid
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -37,6 +38,21 @@ def model():
 
 
 @pytest.fixture
+def logger(tmp_path_factory, request):
+    base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
+
+    def make_logger(suffix=None):
+        # For some tests two runs are getting launched in less than a second
+        # so we add a random suffix to avoid clashes
+        sid = suffix or uuid.uuid4().hex[:6]
+        run_dir = base / f"run-{sid}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return LocalLogger(log_dir=run_dir, project_name="test_project")
+
+    return make_logger
+
+
+@pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
     filter = torch.ones((1, 1, 3, 3), device=device) / 9
@@ -44,7 +60,7 @@ def physics(imsize, device):
 
 
 @pytest.mark.parametrize("no_learning", NO_LEARNING)
-def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
+def test_nolearning(imsize, physics, model, no_learning, device, logger):
     y = torch.ones((1,) + imsize, device=device)
     trainer = dinv.Trainer(
         model=model,
@@ -54,7 +70,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
         physics=physics,
         compare_no_learning=True,
         no_learning_method=no_learning,
-        save_path=tmpdir,
+        loggers=logger(),
         device=device,
     )
     x_hat = trainer.no_learning_inference(y, physics)
@@ -131,7 +147,7 @@ def test_get_samples(
     use_physics_generator,
     online_measurements,
     rng,
-    tmpdir,
+    logger,
 ):
     # Dummy constant GT dataset
     class DummyDataset(ImageDataset):
@@ -223,13 +239,12 @@ def test_get_samples(
             if online_measurements and physics_generator is not None
             else None
         ),
-        save_path=tmpdir,
+        loggers=None,
         device=device,
     )
-
     iterator = iter(dataloader)
 
-    trainer.setup_train(train=True)
+    trainer._setup_data()
     x1, y1, physics1 = trainer.get_samples([iterator], g=0)
     # take this out now as otherwise physics gets modified in place by next get_samples
     param1 = getattr(physics1, param_name)
@@ -311,9 +326,9 @@ def test_trainer_physics_generator_params(
         loop_random_online_physics=loop_random_online_physics,  # IMPORTANT
         epochs=2,
         device=device,
-        save_path=None,
         verbose=False,
         show_progress_bar=False,
+        loggers=None,
     )
 
     trainer.train()
@@ -387,9 +402,9 @@ def test_trainer_identity(imsize, rng, device):
         optimizer_step_multi_dataset=True,  # this is what we test in this function
         epochs=100,
         device=device,
-        save_path=None,
         verbose=False,
         show_progress_bar=False,
+        loggers=None,
     )
 
     trainer.train()
@@ -450,9 +465,9 @@ def test_trainer_multidatasets(imsize, rng, device):
         optimizer_step_multi_dataset=True,  # this is what we test in this function
         epochs=100,
         device=device,
-        save_path=None,
         verbose=False,
         show_progress_bar=False,
+        loggers=None,
     )
 
     trainer.train()
@@ -462,7 +477,30 @@ def test_trainer_multidatasets(imsize, rng, device):
     assert torch.isclose(dummy_model.dummy_param, torch.tensor(avg_value), atol=1e-6)
 
 
-def test_trainer_load_model(tmp_path):
+def test_trainer_save_ckpt(logger):
+    class TempModel(torch.nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.a = torch.nn.Parameter(torch.Tensor([1]), requires_grad=False)
+
+    trainer = dinv.Trainer(
+        model=TempModel(),
+        physics=dinv.physics.Physics(),
+        optimizer=None,
+        train_dataloader=None,
+        loggers=logger(),
+    )
+    trainer.setup_run()
+
+    trainer.save_ckpt(epoch=1, name="temp")
+    trainer.model.a *= 3
+    saved_model = torch.load(trainer.loggers[0].checkpoints_dir / "temp.pth.tar")[
+        "state_dict"
+    ]
+    assert saved_model["a"].item() == 1
+
+
+def test_trainer_load_ckpt(tmp_path):
     class TempModel(torch.nn.Module):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -474,34 +512,41 @@ def test_trainer_load_model(tmp_path):
         optimizer=None,
         train_dataloader=None,
     )
+    trainer.setup_run()
 
     torch.save({"state_dict": trainer.model.state_dict()}, tmp_path / "temp.pth")
     trainer.model.a *= 3
-    trainer.load_model(tmp_path / "temp.pth")
+    trainer = dinv.Trainer(
+        model=TempModel(),
+        physics=dinv.physics.Physics(),
+        optimizer=None,
+        train_dataloader=None,
+        ckpt_pretrained=tmp_path / "temp.pth",
+    )
     assert trainer.model.a == 1
 
 
-def test_trainer_test_metrics(non_blocking_plots, device, rng):
+def test_trainer_test_metrics(non_blocking_plots, device, rng, logger):
     N = 10
     dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
     trainer = dinv.Trainer(
         model=dinv.models.MedianFilter().to(device),
         physics=dinv.physics.Inpainting((3, 32, 28), mask=0.8, device=device, rng=rng),
         train_dataloader=torch.utils.data.DataLoader(DummyCircles(3)),
-        eval_dataloader=dataloader,
+        val_dataloader=dataloader,
         optimizer=None,
         epochs=0,
         losses=dinv.loss.SupLoss(),
-        save_path=None,
         verbose=False,
         show_progress_bar=False,
         device=device,
         online_measurements=True,
-        plot_images=True,
+        log_images=True,
+        loggers=logger(),
     )
 
     _ = trainer.train()
-    results = trainer.test(dataloader, log_raw_metrics=True)
+    results = trainer.test(dataloader, loggers=logger(), log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
     assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
@@ -545,7 +590,7 @@ def test_dataloader_formats(
     online_measurements,
     batch_size,
     rng,
-    tmpdir,
+    logger,
 ):
     """Test dataloader return formats
 
@@ -614,7 +659,7 @@ def test_dataloader_formats(
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
-        plot_images=True,
+        log_images=True,
         epochs=1,
         physics=physics,
         physics_generator=generator2,
@@ -622,10 +667,10 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
-        save_path=tmpdir,
+        loggers=logger(),
         device=device,
     )
-    trainer.setup_train()
+    trainer._setup_data()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
 
     # fmt: off
@@ -682,7 +727,7 @@ def test_early_stop(
     dummy_model,
     early_stop,
     max_batch_steps,
-    tmpdir,
+    logger,
 ):
     torch.manual_seed(0)
     model = dummy_model
@@ -690,7 +735,7 @@ def test_early_stop(
     epochs = 100 if early_stop else 4
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    val_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
     optimizer = torch.optim.Adam(model.parameters(), lr=1)
     losses = dinv.loss.MCLoss()
@@ -702,24 +747,24 @@ def test_early_stop(
         physics=physics,
         max_batch_steps=max_batch_steps,
         train_dataloader=dataloader,
-        eval_dataloader=eval_dataloader,
+        val_dataloader=val_dataloader,
         online_measurements=True,
         optimizer=optimizer,
         verbose=False,
-        plot_images=True,
-        save_path=tmpdir,
+        log_images=True,
+        loggers=logger(),
         device=device,
     )
     trainer.train()
 
-    metrics_history = trainer.eval_metrics_history["PSNR"]
+    metrics_history = trainer.val_metrics_history_per_epoch["PSNR"]
     if max_batch_steps == 3:
         assert len(metrics_history) <= len(dataloader) * epochs
     elif early_stop:
         assert len(metrics_history) < epochs
         last = metrics_history[-1]
         best = max(metrics_history)
-        metrics = trainer.test(eval_dataloader)
+        metrics = trainer.test(val_dataloader, loggers=logger())
         assert metrics["PSNR"] < best and metrics["PSNR"] == last
     else:
         assert len(metrics_history) == epochs
@@ -737,10 +782,10 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
+def test_total_loss(dummy_dataset, imsize, device, dummy_model, logger):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    val_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     losses = [
@@ -754,19 +799,22 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
         epochs=2,
         physics=physics,
         train_dataloader=dataloader,
-        eval_dataloader=eval_dataloader,
+        val_dataloader=val_dataloader,
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
-        save_path=tmpdir,
+        loggers=logger(),
         device=device,
     )
 
     trainer.train()
 
-    loss_history = trainer.loss_history
+    train_loss_history = trainer.train_loss_history
     assert all(
-        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+        [
+            abs(value - sum([l.value for l in losses])) < 1e-6
+            for value in train_loss_history
+        ]
     )
 
 
@@ -776,7 +824,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
+def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, logger, caplog):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
@@ -787,7 +835,6 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
     trainer = dinv.Trainer(
         model,
         device=device,
-        save_path=tmpdir,
         verbose=True,
         show_progress_bar=False,
         physics=physics,
@@ -796,7 +843,8 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
         optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         online_measurements=True,
-        check_grad=True,
+        log_grad=True,
+        loggers=logger,
     )
 
     call_count = 0
@@ -826,20 +874,26 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
             if p.requires_grad:
                 p.grad = epoch * p.grad / norm
 
-    # Capture the standard output for future testing
-    stdout_buf = io.StringIO()
-    with contextlib.redirect_stdout(stdout_buf):
+        # Capture logger output instead of stdout
+        caplog.set_level(logging.INFO)
         with patch.object(torch.Tensor, "backward", mock_fn):
             trainer.train()
 
-    stdout_value = stdout_buf.getvalue()
+        # Pull gradient_norm values from the captured log records
+        msgs = [
+            rec.message
+            for rec in caplog.records
+            if rec.name == "stdout_logger"
+            and "gradient_norm" in rec.message
+            and "train - epoch" in rec.message
+        ]
+        gradient_norms = [
+            float(re.search(r"gradient_norm:\s*([0-9.]+)", m).group(1)) for m in msgs
+        ]
 
-    gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
-    gradient_norms = [float(norm[0]) for norm in gradient_norms]
-    gradient_norms = torch.tensor(gradient_norms)
-    expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
-    expected_gradient_norms = torch.tensor(expected_gradient_norms)
-    assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+        expected = torch.tensor([float(e) for e in range(1, trainer.epochs + 1)])
+        got = torch.tensor(gradient_norms)
+        assert torch.allclose(got, expected, atol=1e-2)
 
 
 # Test output directory collision detection
@@ -848,7 +902,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
 # value every time it is called. This forces a collision to occur and we make
 # sure that it is detected as it should.
 def test_out_dir_collision_detection(
-    dummy_dataset, imsize, device, dummy_model, tmpdir
+    dummy_dataset, imsize, device, dummy_model, logger
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
@@ -861,14 +915,17 @@ def test_out_dir_collision_detection(
 
     # NOTE: Due to the way it's imported in the trainer module we need to patch
     # the importing module instead of the imported module.
-    with patch.object(dinv.training.trainer, "get_timestamp", return_value=timestamp):
+    with patch.object(
+        dinv.training.run_logger, "get_timestamp", return_value=timestamp
+    ):
         with pytest.raises(FileExistsError, match=re.escape(timestamp)):
             # Train twice
+            # Using the same logger on purpose
+            logger = logger()
             for _ in range(2):
                 trainer = dinv.Trainer(
                     model,
                     device=device,
-                    save_path=tmpdir,
                     verbose=True,
                     show_progress_bar=False,
                     physics=physics,
@@ -877,7 +934,8 @@ def test_out_dir_collision_detection(
                     optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
                     train_dataloader=dataloader,
                     online_measurements=True,
-                    check_grad=True,
+                    log_grad=True,
+                    loggers=logger,
                 )
 
                 trainer.train()
@@ -893,6 +951,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     tmpdir,
     model_performance,
     learning_free_performance,
+    logger,
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
@@ -905,7 +964,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     trainer = dinv.Trainer(
         model,
         device=device,
-        save_path=tmpdir,
+        loggers=logger(),
         verbose=True,
         show_progress_bar=False,
         physics=physics,
@@ -915,7 +974,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
         optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         online_measurements=True,
-        check_grad=True,
+        log_grad=True,
     )
 
     with patch.object(metric, "forward") as m:

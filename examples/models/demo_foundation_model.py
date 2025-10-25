@@ -262,8 +262,7 @@ max_epochs = 20
 trainer = dinv.Trainer(
     model=model,
     physics=physics_train,
-    eval_interval=5,
-    ckp_interval=max_epochs - 1,
+    ckpt_interval=max_epochs - 1,
     metrics=losses[0],
     early_stop=True,
     device=device,
@@ -271,7 +270,7 @@ trainer = dinv.Trainer(
     epochs=max_epochs,
     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
     train_dataloader=train_dataloader,
-    eval_dataloader=eval_dataloader,
+    val_dataloader=eval_dataloader,
 )
 
 finetuned_model = trainer.train()
