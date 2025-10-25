@@ -217,6 +217,8 @@ class Trainer:
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
+        Increasing this may speed up training.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
 
     |sep|
@@ -280,7 +282,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
-    freq_update_progress_bar: int = 5
+    freq_update_progress_bar: int = 1
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -300,7 +302,7 @@ class Trainer:
         for loader in self.train_dataloader + (
             self.eval_dataloader if self.eval_dataloader is not None else []
         ):
-            if loader is not None:
+            if loader is not None and isinstance(loader, torch.utils.data.DataLoader):
                 check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
@@ -482,6 +484,14 @@ class Trainer:
                 assert (
                     len(self.metrics) > 0
                 ), "At least one metric should be provided for early stopping if early_stop_on_losses=True."
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider setting freq_update_progress_bar > 1."
+            )
 
         _ = self.load_model()
 
@@ -1283,7 +1293,7 @@ class Trainer:
             for i in (
                 progress_bar := tqdm(
                     range(batches),
-                    ncols=150,
+                    dynamic_ncols=True,
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
@@ -1335,7 +1345,7 @@ class Trainer:
                     for j in (
                         eval_progress_bar := tqdm(
                             range(eval_batches),
-                            ncols=150,
+                            dynamic_ncols=True,
                             disable=(not self.verbose or not self.show_progress_bar),
                             colour="green",
                         )
@@ -1349,6 +1359,9 @@ class Trainer:
                             train_ite=train_ite,
                             train=False,
                             last_batch=(j == eval_batches - 1),
+                            update_progress_bar=(
+                                i % self.freq_update_progress_bar == 0
+                            ),
                         )
 
                     # store losses history
@@ -1446,7 +1459,8 @@ class Trainer:
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
-            check_dataset(loader.dataset)
+            if isinstance(loader, torch.utils.data.DataLoader):  # pragma: no cover
+                check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 
@@ -1455,12 +1469,18 @@ class Trainer:
         for i in (
             progress_bar := tqdm(
                 range(batches),
-                ncols=150,
+                dynamic_ncols=True,
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
             progress_bar.set_description(f"Test")
-            self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
+            self.step(
+                0,
+                progress_bar,
+                train=False,
+                last_batch=(i == batches - 1),
+                update_progress_bar=(i % self.freq_update_progress_bar == 0),
+            )
 
         self.wandb_vis, self.wandb_setup, self.mlflow_vis, self.mlflow_setup, self.log_train_batch = former_values
 

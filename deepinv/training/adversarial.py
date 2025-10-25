@@ -130,6 +130,7 @@ class AdversarialTrainer(Trainer):
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
         ...     verbose = False,
+        ...     device = "cpu",
         ...     optimizer_step_multi_dataset = False
         ... )
         >>>

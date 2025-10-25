@@ -55,6 +55,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
         compare_no_learning=True,
         no_learning_method=no_learning,
         save_path=tmpdir,
+        device=device,
     )
     x_hat = trainer.no_learning_inference(y, physics)
     assert (physics.A(x_hat) - y).pow(2).mean() < 0.1
@@ -223,6 +224,7 @@ def test_get_samples(
             else None
         ),
         save_path=tmpdir,
+        device=device,
     )
 
     iterator = iter(dataloader)
@@ -621,6 +623,7 @@ def test_dataloader_formats(
         train_dataloader=dataloader,
         optimizer=optimizer,
         save_path=tmpdir,
+        device=device,
     )
     trainer.setup_train()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
@@ -705,6 +708,7 @@ def test_early_stop(
         verbose=False,
         plot_images=True,
         save_path=tmpdir,
+        device=device,
     )
     trainer.train()
 
@@ -802,6 +806,7 @@ def test_loss_logging(
         verbose=False,
         online_measurements=True,
         save_path=tmpdir,
+        device=device,
     )
 
     trainer.train()
@@ -970,8 +975,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
             p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
         ]
         grads = torch.cat(grads)
-        norm = grads.norm()
-        norm = norm.item()
+        norm = torch.linalg.vector_norm(grads, ord=2).item()
 
         # 3. Rescale the gradients so that the gradient norm is equal to 1.0 for
         # the 1st epoch, to 2.0 for the 2nd, and so on.
