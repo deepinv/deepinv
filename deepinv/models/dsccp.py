@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
 from torch import nn
 from deepinv.models import Denoiser
-from .utils import get_weights_url
+from .utils import get_weights_url, fix_dim, conv_nd, conv_transpose_nd
 
 
 class DScCP(Denoiser):
@@ -17,15 +18,24 @@ class DScCP(Denoiser):
 
     :param int depth: depth i.e. number of convolutional layers.
     :param int n_channels_per_layer: number of channels per convolutional layer.
-    :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
+    :param str, None pretrained: 'download' to download pretrained weights, or path to local weights file.
     :param torch.device, str device: 'cuda' or 'cpu'.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
 
     """
 
     def __init__(
-        self, depth=20, n_channels_per_layer=64, pretrained="download", device=None
+        self,
+        depth: int = 20,
+        n_channels_per_layer: int = 64,
+        pretrained: str | None = "download",
+        device: torch.device | str = None,
+        dim: int | str = 2,
     ):
         super(DScCP, self).__init__()
+        dim = fix_dim(dim)
+        conv = conv_nd(dim)
+        convtranspose = conv_transpose_nd(dim)
         self.depth = depth
         self.n_channels_per_layer = n_channels_per_layer
         self.norm_net = 0
@@ -33,7 +43,7 @@ class DScCP(Denoiser):
         self.conv = nn.ModuleList()
         for i in range(self.depth):
             self.conv.append(
-                nn.Conv2d(
+                conv(
                     in_channels=3,
                     out_channels=n_channels_per_layer,
                     kernel_size=3,
@@ -43,7 +53,7 @@ class DScCP(Denoiser):
                 )
             )
             self.conv.append(
-                nn.ConvTranspose2d(
+                convtranspose(
                     in_channels=n_channels_per_layer,
                     out_channels=3,
                     kernel_size=3,
@@ -64,7 +74,10 @@ class DScCP(Denoiser):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
 
         if pretrained is not None:
+
             if pretrained == "download":
+                if dim == 3:  # pragma: no cover
+                    raise RuntimeError("Pretrained weights are not available for 3D")
                 url = get_weights_url(
                     model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
                 )
