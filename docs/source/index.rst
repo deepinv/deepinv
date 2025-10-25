@@ -76,7 +76,7 @@ DeepInverse is a community-driven project and we encourage contributions of all 
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
-Interested? Check out our :ref:`contributing guide <contributing>`.
+Interested? :ref:`Check out how you can contribute <contributing>`!
 
 
 Finding help
