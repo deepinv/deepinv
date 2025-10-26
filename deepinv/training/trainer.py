@@ -133,11 +133,11 @@ class Trainer:
     .. note::
 
         - **Supervised evaluation**: If ground-truth data is available for validation, use any
-          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`deepinv.metric.PSNR`.
+          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`deepinv.loss.metric.PSNR`.
 
         - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
           still possible to validate using i) :ref:`no reference metrics
-          <no-reference-metrics>`, e.g. :class:`deepinv.metric.NIQE`, or ii)
+          <no-reference-metrics>`, e.g. :class:`deepinv.loss.metric.NIQE`, or ii)
           :ref:`self-supervised losses <self-supervised-losses>` with
           ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
           are used we recommend setting ``compute_train_metrics=False`` to avoid computing
