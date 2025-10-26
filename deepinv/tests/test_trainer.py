@@ -897,17 +897,18 @@ def test_model_forward_passes(
     trainer.train()
 
     train_calls = len(dataloader) * epochs
-    # TODO: fix this for eval_interval=1
-    eval_calls = len(eval_dataloader) * (epochs // eval_interval) + 1
+    eval_calls = len(eval_dataloader) * (
+        (epochs // eval_interval) + (eval_interval - 1)
+    )
+
+    # checking number of eval calls
+    assert model.eval_count == eval_calls
 
     # checking number of train calls
     if compute_eval_losses:
         assert model.train_count == train_calls + eval_calls
     else:
         assert model.train_count == train_calls
-
-    # checking number of eval calls
-    assert model.eval_count == eval_calls
 
     model.train_count = 0
     model.eval_count = 0
