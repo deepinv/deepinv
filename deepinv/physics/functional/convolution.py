@@ -57,7 +57,7 @@ def conv2d(
 
     .. note::
 
-        Contrarily to Pytorch :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
+        Contrarily to Pytorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.

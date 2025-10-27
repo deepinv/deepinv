@@ -1162,7 +1162,7 @@ class DecomposablePhysics(LinearPhysics):
                 isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
             ):  # may be the case when mask is fft related
                 gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
-                gamma = gamma.to(self.mask.device)
+                gamma = gamma.to(device=self.mask.device, dtype=self.mask.real.dtype)
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -1179,9 +1179,7 @@ class DecomposablePhysics(LinearPhysics):
 
         # avoid division by singular value = 0
         if not isinstance(self.mask, float):
-            mask = torch.where(
-                self.mask > 1e-5, self.mask.reciprocal(), torch.zeros_like(self.mask)
-            )
+            mask = torch.where(self.mask > 1e-5, self.mask.reciprocal(), 0.0)
         else:
             mask = 0.0 if self.mask <= 1e-5 else 1.0 / self.mask
 
