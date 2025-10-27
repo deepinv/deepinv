@@ -4,7 +4,14 @@ import pytest
 
 
 class TestTomographyWithAstra:
-    def dummy_compute_norm(cls, x0: torch.Tensor) -> torch.Tensor:
+    def dummy_compute_norm(
+        cls,
+        x0: torch.Tensor,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        squared: bool = True,
+    ) -> torch.Tensor:
         return torch.tensor(1.0).to(x0)
 
     def dummy_projection(cls, x: torch.Tensor, out: torch.Tensor) -> None:
