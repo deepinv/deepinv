@@ -200,8 +200,9 @@ Predefined Algorithms
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all predefined optimization algorithms.
 
-Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, for example:
-:class:`deepinv.optim.GD`, :class:`deepinv.optim.PGD`, :class:`deepinv.optim.ADMM`, etc...
+Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, such as
+:class:`deepinv.optim.GD`, :class:`deepinv.optim.PGD`, :class:`deepinv.optim.ADMM`, etc.
+
 For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
@@ -263,7 +264,7 @@ Some predefined optimizers are provided:
 .. _initialization:
     
 Initialization
----------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, in these predefined algorithms, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, 
 when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
@@ -274,13 +275,13 @@ Custom initialization can be defined in two ways:
    In this case, ``init`` can be either a fixed initialization or a Callable function of the form ``init(y, physics)`` that takes as input
    the measurement :math:`y` and the physics ``physics``. The output of the function or the fixed initialization can be either:
 
-   - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
-   - a torch.Tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+   - a tuple of tensors :math:`(x_0, z_0)` (where :math:`x_0` and :math:`z_0` are the initial primal and dual variables),
+   - a single tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
    - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
-2. When creating the model :class:`deepinv.optim.BaseOptim` via the ``custom_init`` argument.
+2. When creating the optim model via the :class:`custom_init <deepinv.optim.BaseOptim>` argument.
    In this case, it must be set as a callable function ``custom_init(y, physics)`` that takes as input
-   the measurement :math:`y` and the physics ``physics`` and returns the initialization in the same form as in case 1.
+   the measurement :math:`y` and the physics :math:`A` and returns the initialization in the same form as in case 1.
 
 
 For example, for initializing the above PGD algorithm with the pseudo-inverse of the measurement operator :math:`A^{\dagger}y`, 
@@ -369,8 +370,10 @@ which defines the parameters for backtracking line-search. The :class:`deepinv.o
 
 By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
 
-To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
-If the prior is not explicit (e.g. a denoiser) i.e. the argument ``explicit_prior``, of the prior :class:`deepinv.optim.Prior` is ``False`` or if the argument ``has_cost`` of the class :class:`deepinv.optim.BaseOptim` is ``False``, backtracking is automatically disabled.
+.. note::
+  To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
+  If the prior is not explicit (e.g. a denoiser) i.e. the argument ``explicit_prior``, of the prior :class:`deepinv.optim.Prior` is ``False`` or if the argument ``has_cost`` of the class :class:`deepinv.optim.BaseOptim` is ``False``, backtracking is automatically disabled.
+
 
 .. _bregman:
 

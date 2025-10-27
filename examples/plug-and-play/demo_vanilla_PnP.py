@@ -61,7 +61,7 @@ physics = dinv.physics.Tomography(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-SCALING = torch.pi / (2 * angles)  # approximate operator norm of A^T A
+scaling = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -79,7 +79,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-stepsize = 15 * SCALING
+stepsize = 15 * scaling
 sigma_denoiser = 0.01
 max_iter = 200
 early_stop = True
@@ -102,7 +102,7 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 
 # instantiate the algorithm class to solve the IP problem.
 # initialize with the rescaled adjoint such that the initialization lives already at the correct scale
-init = lambda y, physics: physics.A_adjoint(y) * SCALING
+init = lambda y, physics: physics.A_adjoint(y) * scaling
 
 # define the model
 model = PGD(
@@ -129,7 +129,7 @@ model.eval()
 
 y = physics(x)
 x_lin = (
-    physics.A_adjoint(y) * SCALING
+    physics.A_adjoint(y) * scaling
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.

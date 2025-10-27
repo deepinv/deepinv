@@ -17,10 +17,22 @@ from dataclasses import dataclass
 
 @dataclass
 class DEQConfig:
-    """Configuration parameters for Deep Equilibrium models."""
+    """Configuration parameters for Deep Equilibrium models.
+    
+    :param: bool jacobian_free: Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+    :param: bool anderson_acceleration_forward: Whether to use Anderson acceleration for solving the forward equilibrium.
+    :param: int history_size_forward: Number of past iterates used in Anderson acceleration for the forward pass.
+    :param: float beta_anderson_acc_forward: Momentum coefficient in Anderson acceleration for the forward pass.
+    :param: float eps_anderson_acc_forward: Regularization parameter for Anderson acceleration in the forward pass.
+    :param: bool anderson_acceleration_backward: Whether to use Anderson acceleration for solving the backward equilibrium.
+    :param: int history_size_backward: Number of past iterates used in Anderson acceleration for the backward pass.
+    :param: float beta_anderson_acc_backward: Momentum coefficient in Anderson acceleration for the backward pass.
+    :param: float eps_anderson_acc_backward: Regularization parameter for Anderson acceleration in the backward pass.
+    :param: int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
+    """
 
     jacobian_free: bool = (
-        False  # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+        False  # Whether to use a Jacobian-free backward pass.
     )
     anderson_acceleration_forward: bool = (
         False  # Whether to use Anderson acceleration for solving the forward equilibrium.
@@ -53,7 +65,12 @@ class DEQConfig:
 
 @dataclass
 class BacktrackingConfig:
-    """Configuration parameters for backtracking line search on the stepsize."""
+    """Configuration parameters for backtracking line search on the stepsize.
+    
+    :param: float gamma: Armijo-like parameter (controls sufficient decrease).
+    :param: float eta: Step reduction factor (e.g. multiply step by eta on failure).
+    :param: int max_iter: Maximum number of backtracking steps.
+    """
 
     gamma: float = 0.1  # Armijo-like parameter (controls sufficient decrease)
     eta: float = 0.9  # Step reduction factor (e.g. multiply step by eta on failure)
@@ -207,22 +224,9 @@ class BaseOptim(Reconstructor):
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
         If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
 
@@ -244,39 +248,7 @@ class BaseOptim(Reconstructor):
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-
-        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
-
-        .. code-block:: python
-
-            @dataclass
-            class DEQConfig:
-                jacobian_free: bool = False
-                    # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-
-                # Forward pass Anderson acceleration
-                anderson_acceleration_forward: bool = False
-                    # Whether to use Anderson acceleration for solving the forward equilibrium.
-                history_size_forward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the forward pass.
-                beta_anderson_acc_forward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the forward pass.
-                eps_anderson_acc_forward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the forward pass.
-
-                # Backward pass Anderson acceleration
-                anderson_acceleration_backward: bool = False
-                    # Whether to use Anderson acceleration for solving the backward equilibrium.
-                history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the backward pass.
-                beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the backward pass.
-                eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the backward pass.
-                max_iter_backward: int = 50
-                    # Maximum number of iterations in the backward equilibrium solver.
-
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :param bool show_progress_bar: show progress bar during optimization.
@@ -1019,22 +991,9 @@ class ADMM(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-                    
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.    
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1163,22 +1122,9 @@ class DRS(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1299,22 +1245,9 @@ class GD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1329,44 +1262,12 @@ class GD(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
+    :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-
-        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
-
-        .. code-block:: python
-
-            @dataclass
-            class DEQConfig:
-                jacobian_free: bool = False
-                    # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-
-                # Forward pass Anderson acceleration
-                anderson_acceleration_forward: bool = False
-                    # Whether to use Anderson acceleration for solving the forward equilibrium.
-                history_size_forward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the forward pass.
-                beta_anderson_acc_forward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the forward pass.
-                eps_anderson_acc_forward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the forward pass.
-
-                # Backward pass Anderson acceleration
-                anderson_acceleration_backward: bool = False
-                    # Whether to use Anderson acceleration for solving the backward equilibrium.
-                history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the backward pass.
-                beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the backward pass.
-                eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the backward pass.
-                max_iter_backward: int = 50
-                    # Maximum number of iterations in the backward equilibrium solver.
-
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
@@ -1475,22 +1376,9 @@ class HQS(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1506,44 +1394,12 @@ class HQS(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy. 
+    :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-
-        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
-
-        .. code-block:: python
-
-            @dataclass
-            class DEQConfig:
-                jacobian_free: bool = False
-                    # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-
-                # Forward pass Anderson acceleration
-                anderson_acceleration_forward: bool = False
-                    # Whether to use Anderson acceleration for solving the forward equilibrium.
-                history_size_forward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the forward pass.
-                beta_anderson_acc_forward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the forward pass.
-                eps_anderson_acc_forward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the forward pass.
-
-                # Backward pass Anderson acceleration
-                anderson_acceleration_backward: bool = False
-                    # Whether to use Anderson acceleration for solving the backward equilibrium.
-                history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the backward pass.
-                beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the backward pass.
-                eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the backward pass.
-                max_iter_backward: int = 50
-                    # Maximum number of iterations in the backward equilibrium solver.
-
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function.    
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
@@ -1650,22 +1506,9 @@ class PGD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``.
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1681,44 +1524,12 @@ class PGD(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param deepinv.optim.DEQConfig DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
+    :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
         If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-
-        The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and default values:
-
-        .. code-block:: python
-
-            @dataclass
-            class DEQConfig:
-                jacobian_free: bool = False
-                    # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-
-                # Forward pass Anderson acceleration
-                anderson_acceleration_forward: bool = False
-                    # Whether to use Anderson acceleration for solving the forward equilibrium.
-                history_size_forward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the forward pass.
-                beta_anderson_acc_forward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the forward pass.
-                eps_anderson_acc_forward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the forward pass.
-
-                # Backward pass Anderson acceleration
-                anderson_acceleration_backward: bool = False
-                    # Whether to use Anderson acceleration for solving the backward equilibrium.
-                history_size_backward: int = 5
-                    # Number of past iterates used in Anderson acceleration for the backward pass.
-                beta_anderson_acc_backward: float = 1.0
-                    # Momentum coefficient in Anderson acceleration for the backward pass.
-                eps_anderson_acc_backward: float = 1e-4
-                    # Regularization parameter for Anderson acceleration in the backward pass.
-                max_iter_backward: int = 50
-                    # Maximum number of iterations in the backward equilibrium solver.
-
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
+        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
     :param Callable F_fn: Custom user input cost function.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
@@ -1824,22 +1635,9 @@ class FISTA(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-        
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.            
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1955,22 +1753,9 @@ class MD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -2084,22 +1869,9 @@ class PMD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-        
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -2236,22 +2008,9 @@ class PDCP(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.optimizers.BacktrackingConfig backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation. Default: ``None``. 
-        If None, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        The :class:`BacktrackingConfig` dataclass has the following attributes:
-
-        .. code-block:: python
-
-            @dataclass
-            class BacktrackingConfig:
-                gamma: float = 0.1
-                    # Armijo-like parameter controlling sufficient decrease
-                eta: float = 0.9
-                    # Step reduction factor
-                max_iter: int = 10
-                    # Maximum number of backtracking iterations
-
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:

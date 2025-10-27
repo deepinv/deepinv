@@ -3,15 +3,13 @@
 Unfolded Algorithms
 ===================
 
-The :ref:`optimization module <optim>` module also be turned into an unfolded trainable architecture.
-
 Unfolded architectures (sometimes called 'unrolled architectures') are obtained by replacing parts of these algorithms
 by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
 It suffices to set the argument ``unfold=True`` when creating an optimization algorithm from the :ref:`optimization <optim>` module.
-By default, if a neural network is used in place of a regularization or data-fidelity step, the parameters of the network are learnable by default.
-Moreover, among all the parameters of the algorithm (e.g. step size, regularization parameter, etc.), the use can use which are learnable and which are not via the argument ``trainable_params``.
+By default, if a neural network is used in place of a regularization or data-fidelity step, the parameters of the network are learnable.
+Moreover, among all the parameters of the algorithm (e.g. step size, regularization parameter, etc.), the user can choose which are learnable and which are not via the argument ``trainable_params``.
 
-In the following example, we create an unfolded architecture of 5 proximal gradient steps
+The following example creates an unfolded architecture of 5 proximal gradient steps
 using a DnCNN plug-and-play prior a standard L2 data-fidelity term. The network can be trained end-to-end, and
 evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.). 
 Here, the stepsize ``stepsize``, the regularization parameter ``lambda_reg``, and the denoiser parameter ``sigma_denoiser`` of the plug-and-play denoising prior are learnable.
@@ -96,7 +94,7 @@ The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and 
     @dataclass
     class DEQConfig:
         jacobian_free: bool = False
-            # Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+            # Whether to use a Jacobian-free backward pass.
 
         # Forward pass Anderson acceleration
         anderson_acceleration_forward: bool = False
@@ -122,7 +120,8 @@ The :class:`deepinv.optim.DEQConfig` dataclass has the following attributes and 
 
 By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the above ``DEQConfig`` values are used.
 
-For now DEQ is only possible with Gradient Descent :class:`deepinv.optim.GD`,  Proximal Gradient Descent :class:`deepinv.optim.PGD` and Half-Quadratic-Splitting :class:`deepinv.optim.HQS` optimization algorithms.
+.. note::
+    Currently, DEQ is only possible with :class:`Gradient Descent <deepinv.optim.GD>`,  :class:`Proximal Gradient Descent <deepinv.optim.PGD>` and :class:`Half-Quadratic-Splitting <deepinv.optim.HQS>` optimization algorithms.
 
 .. _predefined-unfolded:
 
