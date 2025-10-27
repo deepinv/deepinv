@@ -210,12 +210,12 @@ dinv.utils.plot(
 )
 
 # %%
-# 3. Using a predefined optimization algorithm 
+# 3. Using a predefined optimization algorithm
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The library also comes with common optimization algorithms (PGD, ADMM, PGD, HQS, FISTA, Primal-Dual, etc.) 
-# already implemented as a :class:`Reconstructors <deepinv.models.Reconstructor>`. 
-# They can be instanciated in one line of code. 
+# The library also comes with common optimization algorithms (PGD, ADMM, PGD, HQS, FISTA, Primal-Dual, etc.)
+# already implemented as a :class:`Reconstructors <deepinv.models.Reconstructor>`.
+# They can be instanciated in one line of code.
 # For example, the above PnP algorithm can be defined as follows:
 #
 # .. seealso::
@@ -233,7 +233,7 @@ model = PGD(
     custom_init=custom_init,
 )
 
-x_hat = model(y, physics, init = tv_algo(y, physics))
+x_hat = model(y, physics, init=tv_algo(y, physics))
 
 dinv.utils.plot(
     {
@@ -254,4 +254,3 @@ dinv.utils.plot(
 # * Check out more :ref:`iterative algorithms examples <sphx_glr_auto_examples_optimization>`.
 # * Check out how to try the algorithm on a whole dataset by following the :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>` tutorial.
 # * Check out how to train your plug-and-play algorithm by unfolding its iterations in the :ref:`vanilla unfolded <sphx_glr_auto_examples_basics_demo_vanilla_unfolded.py>` tutorial.
-

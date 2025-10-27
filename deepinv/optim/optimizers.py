@@ -18,7 +18,7 @@ from dataclasses import dataclass
 @dataclass
 class DEQConfig:
     """Configuration parameters for Deep Equilibrium models.
-    
+
     :param: bool jacobian_free: Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
     :param: bool anderson_acceleration_forward: Whether to use Anderson acceleration for solving the forward equilibrium.
     :param: int history_size_forward: Number of past iterates used in Anderson acceleration for the forward pass.
@@ -31,9 +31,7 @@ class DEQConfig:
     :param: int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
     """
 
-    jacobian_free: bool = (
-        False  # Whether to use a Jacobian-free backward pass.
-    )
+    jacobian_free: bool = False  # Whether to use a Jacobian-free backward pass.
     anderson_acceleration_forward: bool = (
         False  # Whether to use Anderson acceleration for solving the forward equilibrium.
     )
@@ -66,7 +64,7 @@ class DEQConfig:
 @dataclass
 class BacktrackingConfig:
     """Configuration parameters for backtracking line search on the stepsize.
-    
+
     :param: float gamma: Armijo-like parameter (controls sufficient decrease).
     :param: float eta: Step reduction factor (e.g. multiply step by eta on failure).
     :param: int max_iter: Maximum number of backtracking steps.

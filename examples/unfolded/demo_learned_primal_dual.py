@@ -178,7 +178,6 @@ n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
 
 
-
 # %%
 # Define the unfolded trainable model.
 # -------------------------------------
