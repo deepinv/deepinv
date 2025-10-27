@@ -245,9 +245,9 @@ model = trainer.train()
 # Test the network.
 # ---------------------------
 #
-# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
-# measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
-# and `GT` shows the ground truth.
+# We now test the learned unrolled network on the test dataset. In the plotted results, the first column shows the
+# measurements back-projected in the image domain, the second column shows the output of our LISTA network,
+# and the third shows the ground truth.
 #
 
 

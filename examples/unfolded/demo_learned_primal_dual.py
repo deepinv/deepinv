@@ -178,20 +178,6 @@ n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
 
 
-# %%
-# Define the model.
-# -------------------------------
-
-
-def custom_init(y, physics):
-    x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
-    u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-    return (x0, x0, u0)
-
-
-def custom_output(X):
-    return X["est"][0][:, 1, :, :].unsqueeze(1)
-
 
 # %%
 # Define the unfolded trainable model.
@@ -205,6 +191,17 @@ def custom_output(X):
 #
 # that using a filtered gradient can improve both the training speed and reconstruction quality significantly.
 # Following this approach, we use the filtered backprojection instead of the adjoint operator in the primal step.
+
+
+def custom_init(y, physics):
+    x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
+    u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+    return (x0, x0, u0)
+
+
+def custom_output(X):
+    return X["est"][0][:, 1, :, :].unsqueeze(1)
+
 
 model = PDNet_optim(
     unfold=True,
@@ -250,14 +247,6 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-method = "learned primal-dual"
-save_folder = RESULTS_DIR / method / operation
-plot_images = True  # Images are saved in save_folder.
-plot_convergence_metrics = (
-    True  # compute performance and convergence metrics along the algorithm.
-)
-
-
 trainer = dinv.Trainer(
     model,
     physics=physics,
@@ -268,7 +257,6 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     device=device,
-    plot_convergence_metrics=plot_convergence_metrics,
     online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -284,6 +272,23 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+test_sample = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():  # it is important to disable gradient computation during testing.
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
 
 # %%
 # :References:
