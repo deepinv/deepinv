@@ -1,13 +1,12 @@
 # Adapted from https://github.com/tacalvin/Poisson2Sparse
 # and https://github.com/drorsimon/CSCNet
 from __future__ import annotations
-from .base import Denoiser
+from deepinv.models.base import Denoiser
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from tqdm import trange
-from deepinv.loss import Neighbor2Neighbor as N2N
 from functools import wraps
 from typing import Callable
 from deepinv.utils.compat import zip_strict
@@ -23,10 +22,10 @@ class ConvLista(nn.Module):
         *,
         in_channels: int,
         out_channels: int,
-        kernel_size: int,
-        num_filters: int,
-        stride: int,
-        num_iter: int,
+        kernel_size: int = 3,
+        num_filters: int = 512,
+        stride: int = 2,
+        num_iter: int = 10,
         threshold: float = 1e-2,
     ):
         super().__init__()
@@ -130,8 +129,8 @@ class ConvLista(nn.Module):
                     y.shape[0],
                     stride**2,
                     y.shape[1],
-                    y.shape[2] + top_pad + bot_pad,
-                    y.shape[3] + left_pad + right_pad,
+                    y.shape[-2] + top_pad + bot_pad,
+                    y.shape[-1] + left_pad + right_pad,
                 ),
                 dtype=y.dtype,
                 device=y.device,
@@ -218,8 +217,6 @@ class ConvLista(nn.Module):
         ) -> torch.Tensor:
             """Soft-thresholding operation
 
-            1. Beck, A., & Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences, 2(1), 183–202. https://doi.org/10.1137/080716542
-
             :param torch.Tensor x: Input tensor
             :param float | torch.Tensor threshold: Threshold value (constant or per entry). If a tensor, it must be broadcastable to the shape of ``x``.
             :return: (:class:`torch.Tensor`) Soft-thresholded tensor
@@ -245,15 +242,17 @@ def _pad_fn_even(func: Callable, *, value: float = 0.0):
 class Poisson2Sparse(Denoiser):
     def __init__(
         self,
+        backbone: torch.nn.Module | None = None,
         *,
-        backbone: torch.nn.Module,
-        lr: float,
-        weight_n2n: float,
-        weight_l1_regularization: float,
-        num_iter: int,
-        verbose: bool,
+        lr: float = 1e-4,
+        weight_n2n: float = 2.0,
+        weight_l1_regularization: float = 1e-5,
+        num_iter: int = 200,
+        verbose: bool = False,
     ):
         super().__init__()
+        if backbone is None:
+            backbone = ConvLista(in_channels=1, out_channels=1)
         self.backbone = backbone
         self.lr = lr
         self.weight_n2n = weight_n2n
@@ -266,7 +265,7 @@ class Poisson2Sparse(Denoiser):
         )
 
     @_pad_fn_even
-    def forward(self, y, physics=None):
+    def forward(self, y, physics=None, **kwargs):
         backbone = self.backbone
         optimizer = torch.optim.AdamW(backbone.parameters(), lr=self.lr)
 
@@ -280,13 +279,11 @@ class Poisson2Sparse(Denoiser):
             optimizer.zero_grad()
 
             with torch.no_grad():
-                x_hat = x_hat
                 if x_hat_avg is None:
-                    x_hat_avg = x_hat
+                    x_hat_avg = x_hat.detach()
                 else:
                     exp_weight = 0.98
                     x_hat_avg = x_hat_avg * exp_weight + x_hat * (1 - exp_weight)
-                x_hat_avg = x_hat_avg.detach()
 
         return x_hat_avg
 
@@ -298,6 +295,8 @@ class Poisson2Sparse(Denoiser):
             self.weight_l1_regularization = weight_l1_regularization
 
         def forward(self, *, y, model):
+            from deepinv.loss import Neighbor2Neighbor as N2N
+
             # Stop gradients
             with torch.no_grad():
                 x_hat = model(y).detach()

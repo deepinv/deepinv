@@ -9,13 +9,7 @@ This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sp
 """
 
 import deepinv as dinv
-from deepinv.utils.plotting import plot
 import torch
-import deepinv as dinv
-import torch
-import deepinv as dinv
-import numpy as np
-import random
 
 
 # %%
@@ -27,8 +21,6 @@ import random
 # Seed the RNGs for reproducibility
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
-random.seed(0)
-np.random.seed(0)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
@@ -69,9 +61,15 @@ model = dinv.models.Poisson2Sparse(
 
 x_hat = model(y)
 
-# Compute PSNR
-print(f"Measurement PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
-print(f"Poisson2Sparse PSNR: {dinv.metric.PSNR()(x, x_hat).item():.2f} dB")
+# Compute and display PSNR values
+learning_free_psnr = dinv.metric.PSNR()(y, x).item()
+model_psnr = dinv.metric.PSNR()(x_hat, x).item()
+print(f"Measurement PSNR: {learning_free_psnr:.1f} dB")
+print(f"Poisson2Sparse PSNR: {model_psnr:.1f} dB")
 
 # Plot results
-plot([y, x_hat, x], titles=["Measurement", "Poisson2Sparse", "Ground truth"])
+dinv.utils.plot(
+    [y, x_hat, x],
+    titles=["Measurement", "Poisson2Sparse", "Ground truth"],
+    subtitles=[f"{learning_free_psnr:.1f} dB", f"{model_psnr:.1f} dB", ""],
+)
