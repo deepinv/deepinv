@@ -499,7 +499,7 @@ class Trainer:
             else:
                 assert (
                     len(self.metrics) > 0
-                ), "At least one metric should be provided for early stopping if early_stop_on_losses=True."
+                ), "At least one metric should be provided for early stopping if early_stop_on_losses=False."
         if (
             self.freq_update_progress_bar == 1
             and self.verbose
