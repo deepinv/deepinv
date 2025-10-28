@@ -6,7 +6,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-
+from deepinv.utils.decorators import _deprecated_alias
 from pathlib import Path
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
@@ -112,12 +112,15 @@ class Trainer:
     .. note::
 
         - **Supervised evaluation**: If ground-truth data is available for validation, use any
-          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`deepinv.loss.metric.PSNR`.
+          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`PSNR <deepinv.loss.metric.PSNR>`.
 
         - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
-          still possible to validate using i) :ref:`no reference metrics
-          <no-reference-metrics>`, e.g. :class:`deepinv.loss.metric.NIQE`, or ii)
-          :ref:`self-supervised losses <self-supervised-losses>` with
+          still possible to validate using
+
+          - i) :ref:`no reference metrics
+          <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`,
+
+          - ii) :ref:`self-supervised losses <self-supervised-losses>` with
           ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
           are used we recommend setting ``compute_train_metrics=False`` to avoid computing
           metrics in ``model.train()`` mode. This is required by many self-supervised losses, such as
@@ -129,20 +132,23 @@ class Trainer:
     :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param bool compute_train_metrics: If `False` (default), do not compute metrics during training on train set.
-        If `True`, during training all metrics are computed on the training dataloader.
+    :param bool compute_train_metrics: If `False`, do not compute metrics during training on train set.
+        If `True` (default), during training all metrics are computed on the training dataloader.
 
         .. warning::
 
             If `compute_train_metrics=True` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
-            forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode.
+            forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode,
+            and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <dinv.loss.ReducedResolutionLoss>`).
 
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
         This is useful for visualising train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
-    :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``.
+    :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``. This is useful
+        when using self-supervised losses for evaluation and early-stopping or to make sure that the model is performing
+        similarly on losses on the train and eval sets.
 
     .. tip::
         If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
@@ -265,7 +271,7 @@ class Trainer:
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
     metrics: Metric | list[Metric] | None = field(default_factory=PSNR)
-    compute_train_metrics: bool = False
+    compute_train_metrics: bool = True
     early_stop_on_losses: bool = False
     device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: str | None = None
@@ -286,6 +292,7 @@ class Trainer:
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
+    display_losses_eval: bool = False
     compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
@@ -1581,3 +1588,9 @@ def train(
     )
     trained_model = trainer.train()
     return trained_model
+
+
+# for deprecating old argument names
+Trainer.__init__ = _deprecated_alias(display_losses_eval="compute_eval_losses")(
+    Trainer.__init__
+)
