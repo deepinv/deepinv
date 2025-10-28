@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import torch
 import torch.nn as nn
 from .drunet import test_pad
@@ -94,7 +95,7 @@ class UNet(Denoiser):
         self.name = "unet"
 
         if residual and in_channels != out_channels:  # pragma: no cover
-            raise UserWarning(
+            raise warnings.warn(
                 "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
             )
 
