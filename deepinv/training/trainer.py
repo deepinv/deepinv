@@ -139,7 +139,7 @@ class Trainer:
 
             If `compute_train_metrics=True` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
             forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode,
-            and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <dinv.loss.ReducedResolutionLoss>`).
+            and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <deepinv.loss.ReducedResolutionLoss>`).
 
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
@@ -299,6 +299,12 @@ class Trainer:
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.__init__ = _deprecated_alias(display_losses_eval="compute_eval_losses")(
+            cls.__init__
+        )
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -1588,9 +1594,3 @@ def train(
     )
     trained_model = trainer.train()
     return trained_model
-
-
-# for deprecating old argument names
-Trainer.__init__ = _deprecated_alias(display_losses_eval="compute_eval_losses")(
-    Trainer.__init__
-)
