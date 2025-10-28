@@ -507,7 +507,7 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
         assert x_hat.shape == x.shape
 
 
-MODELS_3D = {
+DENOISERS_3D = {
     dinv.models.DnCNN: {
         "depth": 2,
         "nf": 8,
@@ -524,8 +524,8 @@ MODELS_3D = {
 }
 
 
-@pytest.mark.parametrize("model", MODELS_3D.items())
-def test_3d_nets(model, device):
+@pytest.mark.parametrize("model", DENOISERS_3D.items())
+def test_3d_denoisers(model, device):
     default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
     model, args = model
     args.update(default_args)
