@@ -2187,14 +2187,17 @@ def test_coarse_physics_adjointness(name, device):
     if not isinstance(physics, dinv.physics.LinearPhysics):
         pytest.skip("Skip " + name + " : not LinearPhysics")
 
-    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
-    x_coarse = physics.downsample_signal(x)
-    p_coarse = physics.to_coarse()
+    p_coarse = dinv.physics.wrappers.to_multiscale(
+        physics, imsize, dtype=dtype, factors=(2,)
+    )
+    p_coarse.set_scale(1)
 
     assert isinstance(
         p_coarse, dinv.physics.LinearPhysics
     ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
 
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
     error = p_coarse.adjointness_test(x_coarse).abs()
     assert error < 1e-3
 

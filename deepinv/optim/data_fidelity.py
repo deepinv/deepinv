@@ -10,8 +10,7 @@ from deepinv.optim.distance import (
 )
 from deepinv.optim.potential import Potential
 import torch
-
-from deepinv.physics import LinearPhysics
+import deepinv as dinv
 
 
 class DataFidelity(Potential):
@@ -296,7 +295,7 @@ class L2(DataFidelity):
         :param deepinv.physics.Physics physics: physics model.
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
-        if isinstance(physics, LinearPhysics):
+        if isinstance(physics, dinv.physics.LinearPhysics):
             return physics.A_adjoint_A(x) - physics.A_adjoint(y)
         else:
             return self.base.grad(x, y, physics, *args, **kwargs)
