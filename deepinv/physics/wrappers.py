@@ -219,7 +219,8 @@ class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         """
         self.set_scale(scale)
         physics = self.scaled_physics[self.scale - 1]
-        return physics.A_adjoint_A(x)
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
 
 
 class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
@@ -278,7 +279,8 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         """
         self.set_scale(scale)
         physics = self.scaled_physics[self.scale - 1]
-        return physics.A_adjoint_A(x)
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
 
 
 class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
@@ -336,7 +338,8 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         """
         self.set_scale(scale)
         physics = self.scaled_physics[self.scale - 1]
-        return physics.A_adjoint_A(x)
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
 
 
 def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
