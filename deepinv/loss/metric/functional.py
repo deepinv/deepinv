@@ -3,7 +3,7 @@ import torch
 
 def norm(a):
     """Computes the L2 norm i.e. root sum of squares"""
-    return a.pow(2).sum(dim=(-1, -2), keepdim=True).sqrt()
+    return torch.linalg.vector_norm(a, dim=(-1, -2), keepdim=True)
 
 
 def cal_psnr(

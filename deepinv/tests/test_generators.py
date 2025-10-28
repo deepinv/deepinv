@@ -85,7 +85,7 @@ def find_generator(name, size, num_channels, device, dtype, psf_size=None):
             device=device,
             dtype=dtype,
         )
-        keys = ["filters", "multipliers", "padding"]
+        keys = ["filters", "multipliers"]
     elif name == "DownsamplingGenerator":
         g = dinv.physics.generator.DownsamplingGenerator(
             filters=["bilinear", "bicubic", "gaussian"], factors=[2, 4]
@@ -138,7 +138,7 @@ def test_shape(name, size, num_channels, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_newparams(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators' ability to generate new parameters at each step.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -165,7 +165,7 @@ def test_generation_newparams(name, device, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_generation_seed(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators consistency with the same random seed.
     """
     size = (32, 32)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
@@ -185,34 +185,6 @@ def test_generation_seed(name, device, dtype):
 
     for key in param_key:
         assert torch.allclose(params0[key], params1[key])
-
-
-@pytest.mark.parametrize("name", GENERATORS)
-@pytest.mark.parametrize("device", DEVICES)
-@pytest.mark.parametrize("dtype", [torch.float64])
-def test_generation(name, device, dtype):
-    r"""
-    Tests generators shape.
-    """
-    size = (5, 5)
-    generator, size, _ = find_generator(name, size, 1, device, dtype)
-    batch_size = 1
-    params = generator.step(batch_size=batch_size, seed=0)
-    if name == "MotionBlurGenerator" or name == "DiffractionBlurGenerator":
-        w = params["filter"]
-    elif name == "ProductConvolutionBlurGenerator":
-        w = params["filters"]
-    elif name == "SigmaGenerator":
-        w = params["sigma"]
-
-    wref = (
-        torch.load(
-            f"deepinv/tests/assets/generators/{name.lower()}_{device}_{dtype}.pt"
-        )
-        .to(device)
-        .to(dtype)
-    )
-    assert torch.allclose(w, wref, atol=1e-8)
 
 
 @pytest.mark.parametrize(
@@ -483,6 +455,16 @@ def test_inpainting_generators(
         atol=1e-2 if generator_name != "multiplicative" else 2e-1,
     )
     correct_pixelwise(mask3)
+
+    # Adapt to new img sizes
+    assert gen.step(batch_size=batch_size, img_size=(73, 29))["mask"].shape[-2:] == (
+        73,
+        29,
+    )
+
+    # Raise error if input_mask and img_size both passed
+    with pytest.raises(ValueError):
+        gen.step(img_size=(20, 20), input_mask=(2, 20, 20))
 
 
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)

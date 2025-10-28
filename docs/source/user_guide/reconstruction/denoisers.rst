@@ -117,7 +117,8 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
 Classical denoisers
 ~~~~~~~~~~~~~~~~~~~
 All denoisers in this list are non-learned (except for EPLL)
-and rely on hand-crafted priors.
+and rely on hand-crafted priors. Some of these denoisers also support 3D data,
+underlined in the table below by (D) in the tensor size which accounts for depth dimension.
 
 .. list-table:: Non-Learned Denoisers Overview
    :widths: 30 30 30
@@ -134,16 +135,16 @@ and rely on hand-crafted priors.
      - Any C, H, W
    * - :class:`deepinv.models.TVDenoiser`
      - :class:`Total variation prior <deepinv.optim.TVPrior>`
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.TGVDenoiser`
      - Total generalized variation prior
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.WaveletDenoiser`
      - :class:`Sparsity in orthogonal wavelet domain <deepinv.optim.WaveletPrior>`
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.WaveletDictDenoiser`
      - Sparsity in overcomplete wavelet domain
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.EPLLDenoiser`
      - Learned patch-prior
      - C=1 or C=3, any H, W

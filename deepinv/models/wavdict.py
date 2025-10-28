@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from .base import Denoiser
@@ -207,9 +208,7 @@ class WaveletDenoiser(Denoiser):
         )
 
     @staticmethod
-    def _expand_ths_as(
-        ths: Union[float, torch.Tensor], x: torch.Tensor
-    ) -> torch.Tensor:
+    def _expand_ths_as(ths: float | torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         r"""
         Expand the threshold to the same shape as the input tensor.
         """
@@ -221,9 +220,7 @@ class WaveletDenoiser(Denoiser):
         else:
             raise ValueError(f"Invalid threshold type: {type(ths)}")
 
-    def prox_l0(
-        self, x: torch.Tensor, ths: Union[float, torch.Tensor] = 0.1
-    ) -> torch.Tensor:
+    def prox_l0(self, x: torch.Tensor, ths: float | torch.Tensor = 0.1) -> torch.Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.
 
@@ -437,7 +434,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor x: noisy image.
+        :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
             ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
@@ -531,7 +528,7 @@ class WaveletDictDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param torch.Tensor y: noisy image.
+        :param torch.Tensor y: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: noise level.
         """
         z_p = y.repeat(len(self.list_prox), *([1] * (len(y.shape))))
