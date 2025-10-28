@@ -1113,6 +1113,19 @@ def test_denoiser_perf(device):
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
 
+    # Test denoisers on complex data
+    x = x.to(torch.complex64)
+    y = y.to(torch.complex64)
+    denoiser = dinv.models.WaveletDenoiser(
+        level=1,
+        wvdim=2,
+        is_complex=True,
+    ).to(device)
+    x_hat = denoiser(y)
+    psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
+    psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
+    assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
+
 
 @pytest.mark.parametrize("return_metadata", [False, True])
 def test_client_mocked(return_metadata):

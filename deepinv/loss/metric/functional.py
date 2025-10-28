@@ -27,7 +27,7 @@ def cal_psnr(
 
 def cal_mse(a, b):
     """Computes the mean squared error (MSE)"""
-    return (a - b).pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
+    return (a - b).abs().pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
 
 
 def cal_mae(a, b):

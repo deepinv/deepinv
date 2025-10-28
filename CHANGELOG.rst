@@ -9,12 +9,14 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 
 
 v0.3.4
@@ -444,3 +446,4 @@ Authors
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
+.. _Chaithya G R: https://github.com/chaithyagr
