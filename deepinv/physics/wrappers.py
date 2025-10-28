@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from deepinv.physics import Physics, LinearPhysics, Inpainting, Demosaicing
+from deepinv.physics import Physics, LinearPhysics, Inpainting
 from deepinv.physics.blur import Upsampling, Blur, BlurFFT
 from typing import Sequence  # noqa: F401
 
