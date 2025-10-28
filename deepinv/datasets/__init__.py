@@ -1,8 +1,10 @@
 from .datagenerator import generate_dataset, HDF5Dataset
 from .patch_dataset import PatchDataset
+from .random_sampler import RandomPatchSampler
 from .div2k import DIV2K
 from .urban100 import Urban100HR
 from .set14 import Set14HR
+from .bsds500 import BSDS500
 from .cbsd68 import CBSD68
 from .fastmri import (
     FastMRISliceDataset,

@@ -108,15 +108,24 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
     :param tuple img_shape: shape of the input image (C, H, W).
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
     :param list[int] factors: list of factors to use for upsampling.
-    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    :param str, torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
 
-    def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
+    def __init__(
+        self,
+        physics,
+        img_shape,
+        filter="sinc",
+        factors=(2, 4, 8),
+        device="cpu",
+        **kwargs,
+    ):
         super().__init__(
             physics=physics,
             img_shape=img_shape,
             filter=filter,
             factors=factors,
+            device=device,
             **kwargs,
         )
 

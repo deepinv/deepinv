@@ -1,0 +1,77 @@
+name: Test PRs
+
+on:
+  pull_request:
+    branches:
+    - main
+
+# Cancel in-progress runs when pushing a new commit on the PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Ubuntu tests
+          - os: ubuntu-latest
+            version_python: "3.9"
+            extra: test
+            name: "ubuntu py3.9 no optional dependencies"
+          - os: ubuntu-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test,training
+            name: "ubuntu py3.12 all optional dependencies"
+          # Windows tests
+          - os: windows-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test,training
+            name: "windows py3.12 all optional dependencies"
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.version_python }}
+          cache: 'pip' # caching pip dependencies
+
+      # Make sure it uses dependencies compatible with Python 3.9 (only affects the Python 3.9 job)
+      - name: Fake the minimum supported version for Python 3.9
+        if: matrix.version_python == '3.9'
+        run: |
+          sed -i "s/>=3.10/>=3.9/" pyproject.toml
+
+      - name: Install deepinv and its dependencies
+        run: |
+          pip install -e .[${{ matrix.extra }}]
+
+      # For debugging purposes
+      - name: Check Python version
+        run: python3 --version
+
+      - name: Check installed packages
+        run: pip list
+
+      - name: Python 3.9 check import warning
+        if: matrix.version_python == '3.9'
+        run: |
+          python -c "import deepinv"
+
+      - name: Test with pytest and generate coverage report
+        if: ${{matrix.version_python == '3.12' }}
+        run: |
+          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+
+      - name: Upload coverage to Codecov
+        # Only upload coverage on Linux
+        if: ${{ runner.os == 'Linux' && matrix.version_python == '3.12' }}
+        uses: codecov/codecov-action@v5
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() && runner.os == 'Linux' && matrix.version_python == '3.12'}}
+        uses: codecov/test-results-action@v1
