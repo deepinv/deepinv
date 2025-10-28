@@ -1,11 +1,17 @@
+from __future__ import annotations
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import warnings
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
+from deepinv.models.drunet import DRUNet
 from deepinv.utils import patch_extractor
+from deepinv.models.GSPnP import GSPnP
+from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
 class Prior(Potential):
@@ -705,3 +711,376 @@ class L12Prior(Prior):
         # 1 - gamma/max(z, gamma) = relu(z - gamma) / z, adding 1e-12 to avoid division by 0
         z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
         return z * x
+
+
+class RidgeRegularizer(Prior):
+    r"""
+    (Weakly) Convex Ridge Regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+    for filters :math:`W_c` and potentials :math:`\psi_c`. The filters :math:`W_c` are realized by a concatenation multiple convolution
+    layers without nonlinearity. The potentials :math:`\psi_c` are given by scaled versions smoothed absolute values,
+    see :footcite:t:`hertrich2025learning` for a precise description.
+
+    To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
+    we implement :math:`\frac{\alpha}{\sigma^2}\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
+    If the weak CRR is used, :math:`\alpha` is fixed per default, since it changes the weak convexity constant.
+
+    The (W)CRR was introduced by :footcite:t:`goujon2023neural` and :footcite:t:`goujon2024learning`.
+    The specific implementation is taken from :footcite:t:`hertrich2025learning`.
+
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
+    :param float weak_convexity: Weak convexity of the regularizer. Set to `0.0` for a convex regularizer and to `1.0` for a 1-weakly convex regularizer.
+        Default: `0.0`
+    :param list of int nb_channels: List of ints taking the hidden number of channels in the multiconvolution. Default: `[4, 8, 64]`
+    :param list of int filter_sizes: List of ints taking the kernel sizes of the convolution. Default: `[5,5,5]`
+    :param str device: Device for the weights. Default: `"cpu"`
+    :param str, None pretrained: use pretrained weights. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-learned-reg>` for more details.
+    :param bool warn_output_scaling: warn if `weak_convexity>0` and the output scaling (:math:`\log(\alpha)` in the above description) is not zero. This case
+        destroys the weak convexity constant defined by teh `weak_convexity` argument. Default: `True`
+    """
+
+    def __init__(
+        self,
+        in_channels: int = 3,
+        weak_convexity: float = 0.0,
+        nb_channels: tuple[int, ...] = (4, 8, 64),
+        filter_sizes: tuple[int, ...] = (5, 5, 5),
+        device: str = "cpu",
+        pretrained: str = "download",
+        warn_output_scaling: bool = True,
+    ):
+        super(RidgeRegularizer, self).__init__()
+        nb_channels = [in_channels] + list(nb_channels)
+        self.warn_output_scaling = warn_output_scaling
+        self.nb_filters = nb_channels[-1]
+        self.filter_size = sum(filter_sizes) - len(filter_sizes) + 1
+        self.filters = nn.Sequential(
+            *[
+                nn.Conv2d(
+                    nb_channels[i],
+                    nb_channels[i + 1],
+                    filter_sizes[i],
+                    padding=filter_sizes[i] // 2,
+                    bias=False,
+                    device=device,
+                )
+                for i in range(len(filter_sizes))
+            ]
+        )
+
+        class ZeroMean(nn.Module):
+            """Enforces zero mean on the filters"""
+
+            def forward(self, x):
+                return x - torch.mean(x, dim=(1, 2, 3), keepdim=True)
+
+        torch.nn.utils.parametrize.register_parametrization(
+            self.filters[0], "weight", ZeroMean()
+        )
+
+        self.dirac = torch.zeros(
+            (1, in_channels, 2 * self.filter_size - 1, 2 * self.filter_size - 1),
+            device=device,
+        )
+        self.dirac[0, 0, self.filter_size - 1, self.filter_size - 1] = 1.0
+
+        self.scaling = nn.Parameter(
+            torch.log(torch.tensor(20.0, device=device))
+            * torch.ones((1, self.nb_filters, 1, 1), device=device)
+        )
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+        self.beta = nn.Parameter(torch.tensor(4.0, device=device))
+        # output scaling is not trainable for weak_convexity > 0 (to preserve the weak convexity)
+        self.output_scaling = nn.Parameter(
+            torch.tensor(0.0, device=device)
+        ).requires_grad_(weak_convexity == 0.0)
+        self.weak_cvx = weak_convexity
+
+        if pretrained is not None:
+            if pretrained == "download":
+                if in_channels == 1 and weak_convexity == 0.0:
+                    file_name = "CRR_gray.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1Yz2eSCM85EaGQTDviPnmqMY1ySqti3hr"
+                elif in_channels == 3 and weak_convexity == 0.0:
+                    file_name = "CRR_color.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1MBXxuHGmRBEalMOE4fNuCHpiIp3yFo4J"
+                elif in_channels == 1 and weak_convexity == 1.0:
+                    file_name = "WCRR_gray.pt"
+                    url = "https://drive.google.com/uc?export=download&id=10Gg_C0EE-ItWCxEPDSriRz-CICL9ythY"
+                elif in_channels == 3 and weak_convexity == 1.0:
+                    file_name = "WCRR_color.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1Z6LW7utP8xTTvb8jktugT-E-wOM4KX_h"
+                else:
+                    raise ValueError(
+                        "Weights are only available for weak_convexity in [0.0, 1.0] and in_channels in [1, 3]!"
+                    )
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+                self.load_state_dict(weights, strict=True)
+            else:
+                self.load_state_dict(torch.load(pretrained, map_location=device))
+
+    def __smooth_l1(self, x):
+        return torch.clip(x**2, 0.0, 1.0) / 2 + torch.clip(torch.abs(x), 1.0) - 1.0
+
+    def __grad_smooth_l1(self, x):
+        return torch.clip(x, -1.0, 1.0)
+
+    def __get_conv_lip(self):
+        impulse = self.filters(self.dirac)
+        for filt in reversed(self.filters):
+            impulse = F.conv_transpose2d(impulse, filt.weight, padding=filt.padding)
+        return torch.fft.rfft2(impulse, s=[256, 256]).abs().max()
+
+    def __conv(self, x):
+        x = x / torch.sqrt(self.__get_conv_lip())
+        return self.filters(x)
+
+    def __conv_transpose(self, x):
+        x = x / torch.sqrt(self.__get_conv_lip())
+        for filt in reversed(self.filters):
+            x = F.conv_transpose2d(x, filt.weight, padding=filt.padding)
+        return x
+
+    def grad(self, x, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
+        grad = self.__conv(x)
+        grad = grad * torch.exp(self.scaling + self.input_scaling)
+        if get_energy:
+            reg = (
+                self.__smooth_l1(torch.exp(self.beta) * grad) * torch.exp(-self.beta)
+                - self.__smooth_l1(grad) * self.weak_cvx
+            )
+            reg = reg * torch.exp(
+                self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
+            )
+            reg = reg.sum(dim=(1, 2, 3))
+        grad = (
+            self.__grad_smooth_l1(torch.exp(self.beta) * grad)
+            - self.__grad_smooth_l1(grad) * self.weak_cvx
+        )
+        grad = grad * torch.exp(self.output_scaling - self.scaling - self.input_scaling)
+        grad = self.__conv_transpose(grad)
+        if get_energy:
+            return reg, grad
+        return grad
+
+    def fn(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
+        if (
+            not self.output_scaling == 0.0
+            and not self.weak_cvx == 0
+            and self.warn_output_scaling
+        ):
+            warnings.warn(
+                "The parameter RidgeRegularizer.output_scaling is not zero even though RidgeRegularizer.weak_convexity is not zero! "
+                + "This means that the weak convexity parameter of the RidgeRegularizer is not RidgeRegularizer.weak_convexity but exp(output_scaling)*RidgeRegularizer.weak_convexity. "
+                + "If you require the RidgeRegularizer to keep the weak convexity, set RidgeRegularizer.output_scaling.requires_grad_(False) for all training methods and do not "
+                + "change RidgeRegularizer.output_scaling. To suppress this warning, set warn_output_scaling in the constructor of the RidgeRegularizer to False."
+            )
+        reg = self.__conv(x)
+        reg = reg * torch.exp(self.scaling + self.input_scaling)
+        reg = (
+            self.__smooth_l1(torch.exp(self.beta) * reg) * torch.exp(-self.beta)
+            - self.__smooth_l1(reg) * self.weak_cvx
+        )
+        reg = reg * torch.exp(
+            self.output_scaling - 2 * self.scaling - 2 * self.input_scaling
+        )
+        reg = reg.sum(dim=(1, 2, 3))
+        return reg
+
+    def _apply(self, fn):
+        self.dirac = fn(self.dirac)
+        return super()._apply(fn)
+
+    @torch.no_grad()
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""
+        Calculates the proximity operator of the the regularizer at :math:`x`.
+
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{argmin}_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+
+
+        where :math:`\gamma` is a stepsize. The minimizer is computed using the
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` algorithm.
+
+        .. warning::
+            The prox computation with the nmAPG is not differentiable and gradient computations are disabled. See :class:`deepinv.optim.NonmonotonicAcceleratedPGD` for details.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param int l2_axis: axis in which the l2 norm is computed.
+        :return torch.Tensor: proximity operator at :math:`x`.
+        """
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+
+        def f_and_nabla(z, y):
+            with torch.no_grad():
+                out_f, out_grad = self.grad(z, get_energy=True)
+            return (
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f,
+                z - y + out_grad,
+            )
+
+        return nonmonotone_accelerated_proximal_gradient(
+            x, f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
+        )[0]
+
+
+class LeastSquaresResidual(Prior):
+    r"""
+    Least Squares Regularizer :math:`\reg{x}=\|x-D(x)\|^2` for some denoising network :math:`D`.
+
+    To allow the automatic tuning of the regularization parameter, we parameterize the regularizer with two additional scalings, i.e.,
+    we implement :math:`\alpha\reg{\sigma x}` instead of :math:`\reg{x}` where :math:`\alpha` and :math:`\sigma` are learnable parameters of the regularizer.
+    These parameters are learned in the log scale to enforce positivity.
+
+    This type of network was used in several references, see e.g., :footcite:t:`hurault2021gradient` or :footcite:t:`zou2023deep`.
+
+    :param int in_channels: Number of input channels (`1` for gray valued images, `3` for color images). Default: `3`
+    :param str device: Device for the weights. Default: `"cpu"`
+    :param str, None pretrained: use pretrained weights. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+    :param torch.nn.Module denoiser: Denoising network :math:`D` which is used in the architecture. Use `None` for a DRUNet with `nb=2`, `nc=(32, 64, 128, 256)` and softmax activation. Default: `None`
+    :param float sigma: Noise level applied in the DRUNet. Default: `0.03`
+    """
+
+    def __init__(
+        self,
+        in_channels: int = 3,
+        device: str = "cpu",
+        pretrained: str = "download",
+        denoiser: torch.nn.Module = None,
+        sigma: float = 0.03,
+    ):
+        super(LeastSquaresResidual, self).__init__()
+
+        if denoiser is None:
+            denoiser = DRUNet(
+                in_channels=in_channels,
+                out_channels=in_channels,  # we require out_channels == in_channels
+                nb=2,
+                nc=(32, 64, 128, 256),
+                act_mode="s",
+                pretrained=None,
+                device=device,
+            )
+        else:
+            self.add_module(
+                "model", denoiser
+            )  # add module, otherwise parameters might not be recognized...
+        self.model = GSPnP(denoiser, alpha=1.0)
+        self.model.detach = True
+
+        self.input_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+        self.output_scaling = nn.Parameter(torch.tensor(0.0, device=device))
+
+        self.sigma = sigma
+
+        if pretrained is not None:
+            if pretrained == "download":
+                if in_channels == 1:
+                    file_name = "LSR_gray.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1YclYsQe7eM7l9Cmp9bxqT7f2WbOF0SKy"
+                elif in_channels == 3:
+                    file_name = "LSR_color.pt"
+                    url = "https://drive.google.com/uc?export=download&id=1am3EG6XQubZM3oO08ByKyC2sRPrc7VzV"
+                else:
+                    raise ValueError(
+                        "Weights are only available for in_channels in [1, 3]!"
+                    )
+                weights = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=file_name
+                )
+                self.load_state_dict(weights, strict=True)
+            else:
+                self.load_state_dict(torch.load(pretrained, map_location=device))
+
+    def grad(self, x, *args, get_energy=False, **kwargs):
+        r"""
+        Calculates the gradient of the regularizer at :math:`x`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param bool get_energy: Optional flag. If set to True, the function additionally returns the objective value at :math:`x`. Dafault: False.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
+        """
+        grad = torch.exp(self.output_scaling) * self.model.potential_grad(
+            torch.exp(self.input_scaling) * x.contiguous(), self.sigma
+        )
+        if get_energy:
+            reg = self(x)
+            return reg, grad
+        return grad
+
+    def fn(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x}=\|x-D(x)\|^2`
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
+        """
+        return torch.exp(
+            self.output_scaling + self.input_scaling
+        ) * self.model.potential(
+            torch.exp(self.input_scaling) * x.contiguous(), self.sigma
+        )
+
+    @torch.no_grad()
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""
+        Calculates the proximity operator of the the regularizer at :math:`x`.
+
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = \operatorname{argmin}_z \frac{1}{2}\|z-x\|^2 + \gamma g(x)
+
+
+        where :math:`\gamma` is a stepsize. The minimizer is computed using the
+        :class:`nonmonotonic accelerated (proximal) gradient <deepinv.optim.NonmonotonicAcceleratedPGD>` (nmAPG) algorithm.
+
+        .. warning::
+            The prox computation with the nmAPG is not differentiable and gradient computations are disabled. See :class:`deepinv.optim.NonmonotonicAcceleratedPGD` for details.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param int l2_axis: axis in which the l2 norm is computed.
+        :return torch.Tensor: proximity operator at :math:`x`.
+        """
+        f = lambda z, y: 0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + gamma * self(z)
+        nabla_f = lambda z, y: z - y + gamma * self.grad(z)
+
+        def f_and_nabla(z, y):
+            with torch.no_grad():
+                out_f, out_grad = self.grad(z, get_energy=True)
+            return (
+                0.5 * torch.sum((z - y) ** 2, (1, 2, 3)) + out_f,
+                z - y + out_grad,
+            )
+
+        return nonmonotone_accelerated_proximal_gradient(
+            x, f, nabla_f=nabla_f, f_and_nabla=f_and_nabla, y=x
+        )[0]

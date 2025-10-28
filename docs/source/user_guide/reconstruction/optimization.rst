@@ -218,6 +218,12 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.L12Prior`
      - :math:`\reg{x} = \sum_i\| x_i \|_2`
      - Yes
+   * - :class:`deepinv.optim.RidgeRegularizer`
+     - :math:`\reg{x}=\sum_{c} \psi_c(W_c x)`
+     - Yes
+   * - :class:`deepinv.optim.LeastSquaresResidual`
+     - :math:`\reg{x}=\|x-D(x)\|^2` for a DRUNet :math:`D`
+     - Yes
 
 
 .. _optim_iterators:
@@ -297,6 +303,19 @@ Some predefined optimizers are provided:
    * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
      - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
      - (phase-retrieval only)
+
+
+.. _optim-non-convex:
+
+Nonconvex Optimization
+~~~~~~~~~~~~~~~~~~~~~~
+
+For some inverse problems, an optimization algorithm for nonconvex objective functions is required.
+To this end, the nonmonotonic accelerated proximal gradient descent algorithm (nmAPG)
+implmented in :class:`deepinv.optim.NonmonotonicAcceleratedPGD` can be used. It basically combines a proximal gradient descent
+algorithm with momentum and line search methods. In contrast to the methods implemented via an iterator it
+admits convergence guarantees to a stationary point even in the nonconvex case.
+A functional interface is implemented at :class:`deepinv.optim.utils.nonmonotone_accelerated_proximal_gradient`.
 
 
 .. _optim-params:

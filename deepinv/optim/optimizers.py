@@ -2,15 +2,17 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 import sys
 import warnings
+from typing import Callable
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero, Prior
-from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.data_fidelity import ZeroFidelity, DataFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
+from deepinv.optim.utils import nonmonotone_accelerated_proximal_gradient
 
 
 if TYPE_CHECKING:
@@ -688,3 +690,146 @@ def optim_builder(
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
+
+class NonmonotonicAcceleratedPGD(Reconstructor):
+    r"""
+    Nonmonotonic accelerated Proximal Gradient Descent (nmAPG)
+
+    It is used for minimizing functions of the form
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    The nmAPG combines a proximal gradient descent with momentum and a backtracking/line search mechanism with Barzilai-Borwein step sizes.
+    The algorithm supports batching wrt. :math:`y` and applies the stopping criterion per element in the batch.
+
+    The algorithm was proposed in :footcite:t:`li2015accelerated`.
+    We use the variant with Barzilai-Borwein step sizes as summmarized in Algorithm 4 in the
+    supplementary material of the paper. The specific implementation is taken from :footcite:t:`hertrich2025learning`.
+
+    .. warning::
+        Due to the line search, the nmAPG is not differentiable and backpropagating through it (e.g. in an unrolling setting)
+        does not make sense. As a consequence, to prevent memory leaks, gradients of the intermediate steps are detached.
+
+    :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}` as an instance of
+        :class:`deepinv.optim.DataFidelity`. Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}` as an instance of
+        :class:`deepinv.optim.Prior`. Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``2000``.
+    :param Callable custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),
+        the algorithm is initialized with the adjoint :math:`A^{\dagger}y`. Default: ``None``.
+    :param float L_init: Initial guess of the (local) Lipschitz constant of :math:`\nabla_x f(x,y)`. Default: `1.0`
+    :param float thres_conv: convergence criterion. The algorithm terminates if the relative residual between two steps is smaller than thres_conv. Default: `1e-4`
+    :param float rho: Decrease ratio of the step size if the line search fails. Default: `0.9`
+    :param float delta: Quadratic decay parameter for the line search. Should be :math:`>0`. Default: `0.1`
+    :param float eta: Non-monotonicity parameter for the line search. Should be in :math:`[0,1)`. Default: `0.8`
+    :param bool gradient_for_both: If `True`, we define :math:`f(x,y)=\datafid{x}{y}+\lambda \reg{x}` and :math:`g(x,y)=0` in the nmAPG
+        (that is, we use purely gradient-based optimization). If `False`, we set :math:`f(x,y)=\lambda \reg{x}` and :math:`g(x,y)=\datafid{x}{y}`
+        (that is, we use the prox for the data-fidelity term and the gradient for the prior). Default: `True`.
+    :param bool verbose: Set to `True` to print the number of iterations used in the algorithm. Default: `False`.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity = None,
+        prior: Prior = None,
+        lambda_reg: torch.Tensor | float = 1.0,
+        max_iter: int = 2000,
+        custom_init: Callable = None,
+        L_init: float = 1.0,
+        thres_conv: float = 1e-4,
+        rho: float = 0.9,
+        delta: float = 0.1,
+        eta: float = 0.8,
+        gradient_for_both: bool = True,
+        verbose: bool = False,
+    ):
+        super().__init__()
+        self.data_fidelity = ZeroFidelity() if data_fidelity is None else data_fidelity
+        self.prior = Zero() if prior is None else prior
+        self.lambda_reg = lambda_reg
+        self.max_iter = max_iter
+        self.L_init = L_init
+        self.tol = thres_conv
+        self.rho = rho
+        self.delta = delta
+        self.eta = eta
+        self.gradient_for_both = gradient_for_both
+        self.verbose = verbose
+        self.custom_init = custom_init
+
+    def forward(self, y, physics, compute_stats=False, x_init=None):
+        r"""
+        Runs the nmAPG for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        :param bool compute_stats: whether to compute certain statistics (number of steps, approximated Lipschitz of :math:`f`) or not. Default: ``False``.
+        :param torch.Tensor x_init: Use `x_init` as initialization instead of :math:`A^{\dagger}y` or the custom init function. Default: `None`
+        :return: If ``compute_stats`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and a dictionary with the stats.
+        """
+        if self.gradient_for_both:
+            f = (
+                lambda x, y: self.data_fidelity(x, y, physics).detach()
+                + self.lambda_reg * self.prior(x).detach()
+            )
+            nabla_f = (
+                lambda x, y: self.data_fidelity.grad(x, y, physics).detach()
+                + self.lambda_reg * self.prior.grad(x).detach()
+            )
+            f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
+            g = None
+            prox_g = None
+        else:
+            f = lambda x, y: self.lambda_reg * self.prior(x).detach()
+            nabla_f = lambda x, y: self.lambda_reg * self.prior.grad(x).detach()
+            f_and_nabla = lambda x, y: (f(x, y), nabla_f(x, y))
+            g = lambda x, y: self.data_fidelity(x, y, physics).detach()
+            prox_g = lambda x, y, gamma: self.data_fidelity.prox(
+                x, y, physics, gamma=gamma
+            ).detach()
+        if x_init is None:
+            if self.custom_init is None:
+                x0 = physics.A_dagger(y)
+            else:
+                x0 = self.custom_init(y, physics)
+        else:
+            x0 = x_init
+
+        with torch.no_grad():
+            (
+                rec,
+                L,
+                steps,
+                line_searches,
+                converged,
+            ) = nonmonotone_accelerated_proximal_gradient(
+                x0,
+                f,
+                y=y,
+                nabla_f=nabla_f,
+                f_and_nabla=f_and_nabla,
+                g=g,
+                prox_g=prox_g,
+                weighting=1.0,
+                max_iter=self.max_iter,
+                L_init=self.L_init,
+                tol=self.tol,
+                rho=self.rho,
+                delta=self.delta,
+                eta=self.eta,
+                verbose=self.verbose,
+            )
+
+        stats = dict(L=L, steps=steps, line_searches=line_searches, converged=converged)
+        if compute_stats:
+            return rec, stats
+        return rec

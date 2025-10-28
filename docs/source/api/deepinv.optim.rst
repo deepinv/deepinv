@@ -76,6 +76,8 @@ Priors
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+   deepinv.optim.RidgeRegularizer
+   deepinv.optim.LeastSquaresResidual
 
 Predefined models
 -----------------
@@ -146,6 +148,20 @@ Iterators
    deepinv.optim.optim_iterators.MDIteration
    deepinv.optim.optim_iterators.SMIteration
 
+Nonconvex Optimization
+----------------------
+
+.. userguide:: optim-non-convex
+
+For nonconvex optimization problems, the nonmonotonic accelerated proximal gradient descent algorithm (nmAPG)
+implmented in:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.NonmonotonicAcceleratedPGD
 
 Utils
 -----
@@ -163,6 +179,7 @@ Utils
     deepinv.optim.utils.minres
     deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
+    deepinv.optim.utils.nonmonotone_accelerated_proximal_gradient
     deepinv.optim.phase_retrieval.correct_global_phase
     deepinv.optim.phase_retrieval.spectral_methods
 
