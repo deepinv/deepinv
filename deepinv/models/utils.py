@@ -85,6 +85,10 @@ def test_onesplit(model, L, refield=32, sf=1):
 
 
 def fix_dim(dim: str | int) -> int:
+    """
+    Takes in dim, checks if it is in alloowed range (2 or 3) and returns dim as int
+    :param str, int dim: dimensionality; can be 2 or 3 and specified as str ('2d', '2', '3D', ...)
+    """
     if isinstance(dim, str):
         if len(dim) == 1:
             dim_int = int(dim)
