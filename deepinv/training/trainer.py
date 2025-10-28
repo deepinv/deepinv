@@ -43,27 +43,6 @@ class Trainer:
         The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
         for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``.
 
-    :Saved information:
-
-    Training details are saved every ``ckp_interval`` epochs in the following format
-
-    ::
-
-        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
-
-    where ``.pth.tar`` file contains a dictionary with the keys:
-
-    - `epoch`: current epoch number when saved
-    - `state_dict`: model parameters state dictionary
-    - `loss`: loss history on train set
-    - `train_metrics`: metric history on train set
-    - `eval_loss`: loss history on eval set
-    - `eval_metrics`: metric history on eval set
-    - `optimizer`: optimizer state dictionary, or ``None`` if not used
-    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
-
-    |sep|
-
     Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
     **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
 
@@ -202,6 +181,23 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
+
+    Training details are saved every ``ckp_interval`` epochs in the following format
+
+    ::
+
+        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
+
+    where ``.pth.tar`` file contains a dictionary with the keys:
+
+    - `epoch`: current epoch number when saved
+    - `state_dict`: model parameters state dictionary
+    - `loss`: loss history on train set
+    - `train_metrics`: metric history on train set
+    - `eval_loss`: loss history on eval set
+    - `eval_metrics`: metric history on eval set
+    - `optimizer`: optimizer state dictionary, or ``None`` if not used
+    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
 
     |sep|
 
