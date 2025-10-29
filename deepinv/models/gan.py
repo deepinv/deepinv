@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch.nn as nn
 from torch import Tensor
 from torch import rand
+import torch
 from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
@@ -332,6 +333,7 @@ class CSGMGenerator(Reconstructor):
             - 1
         )
 
+    @torch.enable_grad()
     def optimize_z(self, z: Tensor, y: Tensor, physics: Physics):
         r"""Run inference-time optimisation of latent z that is consistent with input measurement y according to physics.
 
