@@ -6,7 +6,6 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-from deepinv.utils.decorators import _deprecated_alias
 from pathlib import Path
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
@@ -292,7 +291,7 @@ class Trainer:
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
-    display_losses_eval: bool = False
+    display_losses_eval: bool = None
     compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
@@ -300,11 +299,15 @@ class Trainer:
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.__init__ = _deprecated_alias(display_losses_eval="compute_eval_losses")(
-            cls.__init__
-        )
+    def __post_init__(self):
+        if self.display_losses_eval is not None:
+            warnings.warn(
+                "Argument 'display_losses_eval' is deprecated and will be removed in a future version. "
+                f"Use 'compute_eval_losses' instead. Setting 'compute_eval_losses' to {self.display_losses_eval}...",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.compute_eval_losses = self.display_losses_eval
 
     def setup_train(self, train=True, **kwargs):
         r"""
