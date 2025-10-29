@@ -550,21 +550,25 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
-def test_wavelet_decomposition(channels, dimension, batch_size, device):
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, device):
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
+    model = dinv.models.WaveletDenoiser(
+        level=1, wvdim=dimension, is_complex=is_complex
+    ).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
         if dimension == 2
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    x = torch.randn(img_size, dtype=torch.float32).to(device)
+    dtype = torch.complex64 if is_complex else torch.float32
+    x = torch.randn(img_size, dtype=dtype, device=device)
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
@@ -1173,6 +1177,19 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+    # Test denoisers on complex data
+    x = x.to(torch.complex64)
+    y = y.to(torch.complex64)
+    denoiser = dinv.models.WaveletDenoiser(
+        level=1,
+        wvdim=2,
+        is_complex=True,
+    ).to(device)
+    x_hat = denoiser(y)
+    psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
+    psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
+    assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
 
 
 @pytest.mark.parametrize("return_metadata", [False, True])
