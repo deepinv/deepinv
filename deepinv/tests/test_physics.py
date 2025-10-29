@@ -2188,23 +2188,23 @@ def test_physics_warn_extra_kwargs():
         dinv.physics.Denoising(sigma=0.5)
 
 
-MULTISCALE_EXCLUSION = set(
-    [
-        "3Ddeblur_valid",
-        "3Ddeblur_circular",
-        "3DMRI",
-        "3DMultiCoilMRI",
-        "DynamicMRI",
-        "fast_singlepixel",
-        "fast_singlepixel_zig_zag",
-        "fast_singlepixel_old_sequency",
-        "fast_singlepixel_cake_cutting",
-        "fast_singlepixel_xy",
-    ]
+MULTISCALE_EXCLUSION = [
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "DynamicMRI",
+    "fast_singlepixel",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_old_sequency",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_xy",
+]
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
 )
-
-
-@pytest.mark.parametrize("name", list(set(OPERATORS).difference(MULTISCALE_EXCLUSION)))
 def test_coarse_physics_adjointness(name, device):
     if (
         "MRI" in name
@@ -2236,7 +2236,9 @@ def test_coarse_physics_adjointness(name, device):
     assert error < 1e-3
 
 
-@pytest.mark.parametrize("name", list(set(OPERATORS).difference(MULTISCALE_EXCLUSION)))
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
 def test_multiscale_A_adjoint_A(name, device):
     if (
         "MRI" in name
