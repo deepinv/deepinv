@@ -329,7 +329,7 @@ class L2(DataFidelity):
         if isinstance(physics, dinv.physics.LinearPhysics):
             return physics.A_adjoint_A(x) - physics.A_adjoint(y)
         else:
-            return self.base.grad(x, y, physics, *args, **kwargs)
+            return super().grad(x, y, physics, *args, **kwargs)
 
 
 class ItohFidelity(L2):
