@@ -114,17 +114,16 @@ class Trainer:
           :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`PSNR <deepinv.loss.metric.PSNR>`.
 
         - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
-          still possible to validate using
+          still possible to validate using:
 
-          - i) :ref:`no reference metrics
-          <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`,
-
+          - i) :ref:`no reference metrics <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`
           - ii) :ref:`self-supervised losses <self-supervised-losses>` with
-          ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
-          are used we recommend setting ``compute_train_metrics=False`` to avoid computing
-          metrics in ``model.train()`` mode. This is required by many self-supervised losses, such as
-          :class:`splitting <deepinv.loss.SplittingLoss>` or :class:`recorruption <deepinv.loss.R2RLoss>` losses,
-          that have a different behaviour in ``model.train()`` and ``model.eval()`` mode.
+            ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
+            are used, we recommend setting ``compute_train_metrics=False`` to avoid computing
+            metrics in ``model.train()`` mode. This is required by many self-supervised losses,
+            such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>` or
+            :class:`R2RLoss <deepinv.loss.R2RLoss>`, which behave differently in
+            ``model.train()`` and ``model.eval()`` modes.
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
