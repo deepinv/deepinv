@@ -33,7 +33,7 @@ which are based on CNN, Transformer or hybrid CNN-Transformer modules. Several d
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Deep denoisers
-   :widths: 15 25 15 15 10, 10
+   :widths: 15 25 15 15 10 10
    :header-rows: 1
 
    * - Model
