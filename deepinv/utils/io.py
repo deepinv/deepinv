@@ -169,8 +169,7 @@ def load_raster(
 
     :Examples:
 
-    >>> assert 1==0
-    >>> from deepinv.utils.io_utils import load_raster, load_url
+    >>> from deepinv.utils.io import load_raster, load_url
     >>> file = load_url("https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF")
     >>> x = load_raster(file, patch=False) # Load whole image
     >>> x.shape
@@ -272,9 +271,18 @@ def load_nifti(
 ) -> torch.Tensor | nib.arrayproxy.ArrayProxy:
     """Load volume from nifti file as torch tensor.
 
+    We assume that the data contains a channel dimension. If not, unsqueeze the output to
+    add a channel dimension `x = load_nifti(...).unsqueeze(0)`.
+
     .. warning::
 
         When loading zipped nifti files (e.g., .nii.gz), it is recommended to install indexed_gzip (`pip install indexed-gzip`) to speed up loading times.
+
+    .. warning:
+
+        Set the `dtype` correctly to load double or complex data.
+        You can also inspect the `nibabel` image object headers (result of `nib.load`) prior to calling `get_fdata` or `dataobj`,
+        to get the intended `dtype` and other metadata.
 
     :param str, pathlib.Path fname: file to load.
     :param bool, as_memmap: open this file as a proxy array, which does not eagerly load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
