@@ -55,13 +55,22 @@ def load_url(url: str) -> BytesIO:
     return BytesIO(response.content)
 
 
-def load_dicom(fname: str | Path) -> torch.Tensor:
+def load_dicom(
+    fname: str | Path,
+    as_tensor: bool = True,
+    apply_rescale: bool = False,
+    dtype: np.typing.DTypeLike = np.float32,
+) -> torch.Tensor | np.ndarray:
     """Load image from DICOM file.
 
     Requires `pydicom` to be installed. Install it with `pip install pydicom`.
 
     :param str, pathlib.Path fname: path to DICOM file or buffer.
-    :return: torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
+    :param bool as_tensor: if `True`, return as torch tensor (default), otherwise return as numpy array.
+    :param bool apply_rescale: if `True`, map the stored values (SV) to output values according to the pydicom `apply_rescale`, default False.
+        See `pydicom docs <https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html>`_ for details.
+    :param dtype: data type to use when loading the nifti file.
+    :return: either numpy array of shape of raw data `(...)`, or torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
     try:
         import pydicom
@@ -70,7 +79,33 @@ def load_dicom(fname: str | Path) -> torch.Tensor:
             "load_dicom requires pydicom, which is not installed. Please install it with `pip install pydicom`."
         )
     fname = str(fname) if isinstance(fname, Path) else fname
-    return torch.from_numpy(pydicom.dcmread(fname).pixel_array).float().unsqueeze(0)
+    data = pydicom.dcmread(fname)
+    x = data.pixel_array
+
+    if apply_rescale:
+        # Sources:
+        # * https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html
+        # * https://pydicom.github.io/pydicom/3.0/release_notes/v3.0.0.html
+        # * https://pydicom.github.io/pydicom/2.4/reference/generated/pydicom.pixel_data_handlers.apply_rescale.html
+        # NOTE: This function is deprecated in pydicom 3.0.0 in favor of
+        # the new function pydicom.pixels.apply_rescale. It is currently
+        # kept for compatibility with Python 3.9 which is only compatible
+        # with versions of pydicom older than version 3.0.0.
+        if not hasattr(pydicom, "pixel_data_handlers") or not hasattr(
+            pydicom.pixel_data_handlers, "apply_rescale"
+        ):
+            raise ImportError(
+                "pydicom version is unsupported. Please install a version of pydicom ≥ 2.0.0 and < 4.0.0"
+            )
+        x = pydicom.pixel_data_handlers.apply_rescale(x, data)
+
+        # NOTE: apply_rescale returns float64 arrays. Most
+        # applications do not need double precision so we cast it back to
+        # float32 for improved memory efficiency.
+
+    x = x.astype(dtype)
+
+    return torch.from_numpy(x).unsqueeze(0) if as_tensor else x
 
 
 def load_ismrmd(

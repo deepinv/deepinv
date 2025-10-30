@@ -1051,7 +1051,9 @@ def test_default_tex(latex_exists, monkeypatch):
     deepinv.utils.plotting.enable_tex()
 
 
-def test_io_dicom():
+@pytest.mark.parametrize("apply_rescale", [True, False])
+@pytest.mark.parametrize("as_tensor", [True, False])
+def test_io_dicom(apply_rescale, as_tensor):
     pytest.importorskip(
         "pydicom",
         reason="This test requires pydicom. It should be "
@@ -1060,7 +1062,9 @@ def test_io_dicom():
     file = deepinv.io.load_url(
         "https://github.com/robyoung/dicom-test-files/raw/refs/heads/master/data/pydicom/693_J2KI.dcm"
     )
-    assert deepinv.io.load_dicom(file).shape == (1, 512, 512)
+    x = deepinv.io.load_dicom(file, as_tensor=as_tensor, apply_rescale=apply_rescale)
+    assert x.shape == (1, 512, 512) if as_tensor else (512, 512)
+    assert isinstance(x, torch.Tensor) if as_tensor else np.ndarray
 
 
 def test_io_nifti(tmp_path):
