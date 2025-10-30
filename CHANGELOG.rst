@@ -12,6 +12,7 @@ New Features
 - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
 - Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
