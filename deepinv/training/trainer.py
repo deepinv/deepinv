@@ -13,7 +13,6 @@ import torch.nn as nn
 
 # DeepInv libraries
 from deepinv.datasets.base import check_dataset
-from pathlib import Path
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric

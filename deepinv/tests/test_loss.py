@@ -415,7 +415,9 @@ def test_losses(
     trainer.loggers = logger()
     # train the network
     trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader, loggers=logger(), metrics=deepinv.metric.PSNR())
+    final_test = trainer.test(
+        test_dataloader=test_dataloader, loggers=logger(), metrics=deepinv.metric.PSNR()
+    )
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 

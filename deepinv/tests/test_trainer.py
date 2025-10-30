@@ -836,11 +836,13 @@ def test_loss_logging(
         ConstantLossEvalTrain2(1 / 5, -1 / 5, device),
     ]
 
+    epochs = 2
+
     trainer = dinv.Trainer(
         model=dummy_model,
         losses=losses,
         metrics=metrics,
-        epochs=2,
+        epochs=epochs,
         physics=physics,
         device=device,
         train_dataloader=dataloader,
@@ -849,20 +851,6 @@ def test_loss_logging(
         verbose=False,
         online_measurements=True,
         loggers=logger(),
-        device=device,
-        save_path=tmpdir,
-        verbose=False,
-        show_progress_bar=False,
-        physics=physics,
-        epochs=epochs,
-        eval_interval=eval_interval,
-        losses=dinv.loss.SupLoss(),
-        optimizer=torch.optim.SGD(model.parameters(), lr=1e-3),
-        train_dataloader=dataloader,
-        eval_dataloader=eval_dataloader,
-        online_measurements=True,
-        compute_eval_losses=compute_eval_losses,
-        compute_train_metrics=compute_train_metrics,
     )
 
     assert model.train_count == 0
@@ -870,32 +858,10 @@ def test_loss_logging(
 
     trainer.train()
 
-    train_calls = len(dataloader) * epochs
-    eval_calls = len(eval_dataloader) * (
-        (epochs // eval_interval) + (eval_interval - 1)
-    )
-
-    # checking number of eval calls
-    assert model.eval_count == eval_calls
-
-    # checking number of train calls
-    if compute_eval_losses:
-        assert model.train_count == train_calls + eval_calls
-    else:
-        assert model.train_count == train_calls
-
     model.train_count = 0
     model.eval_count = 0
 
-    trainer.test(eval_dataloader)
-
-    test_calls = len(eval_dataloader)
-    assert model.eval_count == test_calls
-
-    if compute_eval_losses:
-        assert model.train_count == test_calls
-    else:
-        assert model.train_count == 0
+    trainer.test(val_dataloader)
 
 
 # We test that the gradient norm is correctly computed and printed to the

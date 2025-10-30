@@ -200,5 +200,7 @@ model = trainer.train()
 #
 
 trainer.test(
-    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"), metrics=dinv.metric.PSNR()
+    test_dataloader,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"),
+    metrics=dinv.metric.PSNR(),
 )
