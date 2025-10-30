@@ -27,22 +27,6 @@ def load_dicom(fname: str | Path) -> torch.Tensor:
     return torch.from_numpy(pydicom.dcmread(fname).pixel_array).float().unsqueeze(0)
 
 
-def load_nifti(fname: str | Path) -> torch.Tensor:
-    """Load image from NIFTI `.nii.gz` file.
-
-    Requires `nibabel` to be installed. Install it with `pip install nibabel`.
-
-    :param str, pathlib.Path fname: path to NIFTI `.nii.gz` file.
-    :return: torch float tensor of shape `(1, ...)` where `...` are the NIFTI image dimensions.
-    """
-    try:
-        import nibabel as nib
-    except ImportError:  # pragma: no cover
-        raise ImportError(
-            "load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`."
-        )
-    return torch.from_numpy(nib.load(fname).get_fdata()).float().unsqueeze(0)
-
 
 def load_ismrmd(
     fname: str | Path,
@@ -88,14 +72,6 @@ def load_torch(fname: str | Path, device=None) -> torch.Tensor:
     """
     return torch.load(fname, weights_only=True, map_location=device)
 
-
-def load_np(fname: str | Path) -> torch.Tensor:
-    """Load numpy array from file as torch tensor.
-
-    :param str, pathlib.Path fname: file to load.
-    :return: :class:`torch.Tensor` containing loaded numpy array.
-    """
-    return torch.from_numpy(np.load(fname, allow_pickle=False))
 
 
 def load_url(url: str) -> BytesIO:

@@ -1077,7 +1077,6 @@ def test_io_nifti(tmp_path):
         )
 
     assert deepinv.io.load_nifti(tmp_path / "tmp.nii.gz").shape == (
-        1,
         210,
         256,
         179,

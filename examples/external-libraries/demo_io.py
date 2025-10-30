@@ -49,7 +49,7 @@ with open(save_path, "wb") as f:
         ).content
     )
 
-x = dinv.io.load_nifti(save_path)  # (1, H, W, D)
+x = dinv.io.load_nifti(save_path).unsqueeze(0)  # (1, H, W, D)
 
 x = x[..., x.shape[-1] // 2]  # take central slice, (1,H,W)
 
