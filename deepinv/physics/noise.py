@@ -864,7 +864,7 @@ class FisherTippettNoise(NoiseModel):
 
 class RicianNoise(NoiseModel):
     r"""
-    RicianNoise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
+    Rician noise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`
 
     where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`
 

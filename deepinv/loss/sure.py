@@ -197,7 +197,7 @@ class SureGaussianLoss(Loss):
         mse = metric(y1 - y).pow(2).reshape(y.size(0), -1).mean(1)
         loss_sure = mse + div - self.sigma2
 
-        if self.unsure:  # update the estimate of the noise level
+        if self.unsure and model.training:  # update the estimate of the noise level
             self.sigma2, self.grad_sigma, self.init_flag = unsure_gradient_step(
                 div.mean(),
                 self.sigma2,

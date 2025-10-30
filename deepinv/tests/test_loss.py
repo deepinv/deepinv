@@ -350,15 +350,23 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
-        disable_train_metrics=(loss_name == "reducedresolution"),
     )
 
     # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    initial_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
-    # train the network
+    # in self-supervised cases, remove supervised metrics and compute self-sup losses on eval dataset
+    trainer.metrics = (
+        [] if (loss_name == "reducedresolution") else [deepinv.metric.PSNR()]
+    )
+    trainer.compute_eval_losses = True
+
     trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+    final_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 

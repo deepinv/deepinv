@@ -73,8 +73,8 @@ class ReducedResolutionLoss(SupLoss):
 
     .. hint::
 
-        During training, consider using the `disable_train_metrics` option in :class:`deepinv.Trainer` to prevent a shape
-        mismatch during metric computation if the reduced resolution output will be smaller than ground truth.
+        During training, consider using the `compute_train_metrics=False` option in :class:`deepinv.Trainer` to prevent a shape
+        mismatch during metric computation since the reduced resolution output will smaller than ground truth.
 
     This loss was used in :footcite:t:`shocher2017zero-shot` for downsampling tasks, and is named Wald's protocol :footcite:p:`wald1997fusion`
     for pan-sharpening tasks.
@@ -104,7 +104,8 @@ class ReducedResolutionLoss(SupLoss):
             return self.metric(x_net, y)
         except (RuntimeError, TypeError, ValueError) as e:
             raise RuntimeError(
-                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. Full error:",
+                f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. "
+                f"Full error:",
                 str(e),
             )
 
