@@ -133,7 +133,7 @@ class WaveletDenoiser(Denoiser):
             flat = torch.hstack(
                 [_complexify(dec[0], self.is_complex).flatten()]
                 + [
-                    _complexify(dec[l][key], self.is_complex).flatten()
+                    _complexify(dec[level][key], self.is_complex).flatten()
                     for level in range(1, len(dec))
                     for key in dec[level]
                 ]
@@ -171,7 +171,7 @@ class WaveletDenoiser(Denoiser):
             )
             dec = list(dec)
             vec = [
-                _complexify(dec[l][key], is_complex).flatten(1, -1)
+                _complexify(dec[level][key], is_complex).flatten(1, -1)
                 for level in range(1, len(dec))
                 for key in dec[level]
             ]

@@ -825,25 +825,25 @@ def test_loss_logging(
     trainer.train()
 
     for k, (loss_name, loss_history) in enumerate(trainer.loss_history.items()):
-        l = losses[k]
-        assert loss_name == l.__class__.__name__
-        assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
+        loss = losses[k]
+        assert loss_name == loss.__class__.__name__
+        assert all([abs(value - loss.value_train) < 1e-6 for value in loss_history])
 
     for k, (metric_name, metrics_history) in enumerate(
         trainer.eval_metrics_history.items()
     ):
-        l = metrics[k]
+        metric = metrics[k]
 
-        assert metric_name == l.__class__.__name__
-        assert all([abs(value - l.value_eval) < 1e-6 for value in metrics_history])
+        assert metric_name == metric.__class__.__name__
+        assert all([abs(value - metric.value_eval) < 1e-6 for value in metrics_history])
 
     if compute_eval_losses:
         for k, (loss_name, loss_history) in enumerate(
             trainer.eval_loss_history.items()
         ):
-            l = losses[k]
-            assert loss_name == l.__class__.__name__
-            assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
+            loss = losses[k]
+            assert loss_name == loss.__class__.__name__
+            assert all([abs(value - loss.value_train) < 1e-6 for value in loss_history])
     else:
         for loss_history in trainer.eval_loss_history.values():
             assert len(loss_history) == 0

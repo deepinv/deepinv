@@ -420,9 +420,9 @@ class Trainer:
 
         self.loss_history = {}
         self.eval_loss_history = {}
-        for l in self.losses:
-            self.loss_history[l.__class__.__name__] = []
-            self.eval_loss_history[l.__class__.__name__] = []
+        for loss in self.losses:
+            self.loss_history[loss.__class__.__name__] = []
+            self.eval_loss_history[loss.__class__.__name__] = []
 
         # metrics
         self.logs_metrics_train = [
@@ -823,7 +823,7 @@ class Trainer:
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+            logs["TotalLoss"] = meters.avg
         else:
             loss_total = 0
             x_net = None
@@ -1333,9 +1333,9 @@ class Trainer:
 
                 if self.log_train_batch or last_batch:
                     # store losses history
-                    for l in self.losses:
-                        self.loss_history[l.__class__.__name__].append(
-                            self.logs_losses_train[self.losses.index(l)].avg
+                    for loss in self.losses:
+                        self.loss_history[loss.__class__.__name__].append(
+                            self.logs_losses_train[self.losses.index(loss)].avg
                         )
 
                 perform_eval = self.eval_dataloader and (
@@ -1388,9 +1388,9 @@ class Trainer:
 
                     # store losses history
                     if self.compute_eval_losses:
-                        for l in self.losses:
-                            self.eval_loss_history[l.__class__.__name__].append(
-                                self.logs_losses_eval[self.losses.index(l)].avg
+                        for loss in self.losses:
+                            self.eval_loss_history[loss.__class__.__name__].append(
+                                self.logs_losses_eval[self.losses.index(loss)].avg
                             )
 
                     if self.compute_train_metrics:
