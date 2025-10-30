@@ -80,7 +80,7 @@ prior = dinv.optim.TVPrior()  # Prior term
 lambd = 0.05  # Regularization parameter
 
 # Compute the squared norm of the operator A
-norm_A2 = physics.compute_norm(y, tol=1e-4, verbose=False).item()
+norm_A2 = physics.compute_sqnorm(y, tol=1e-4, verbose=False).item()
 stepsize = 1.9 / norm_A2  # stepsize for the PGD algorithm
 
 # PGD algorithm
