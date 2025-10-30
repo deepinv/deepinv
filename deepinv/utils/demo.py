@@ -315,7 +315,8 @@ def load_example(
     :param int, tuple[int] img_size: Size of the image to return.
     :param bool grayscale: Whether to convert the image to grayscale.
     :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
-    :param str device: Device on which to load the image (gpu or cpu).
+    :param torch.device, str device: Device on which to load the image (gpu or cpu).
+    :param torch.dtype dtype: torch dtype to cast the image to.
     :return: :class:`torch.Tensor` containing the image.
     """
     url = get_image_url(name)

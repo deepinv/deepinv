@@ -33,7 +33,9 @@ def load_np(
         return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
 
-def load_torch(fname: str | Path, device=None, **kwargs) -> torch.Tensor:
+def load_torch(
+    fname: str | Path, device: torch.device | str = None, **kwargs
+) -> torch.Tensor:
     """Load torch tensor from file.
 
     :param str, pathlib.Path fname: file to load.
