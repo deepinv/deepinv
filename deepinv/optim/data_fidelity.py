@@ -327,7 +327,7 @@ class L2(DataFidelity):
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         if isinstance(physics, dinv.physics.LinearPhysics):
-            return physics.A_adjoint_A(x) - physics.A_adjoint(y)
+            return self.norm * (physics.A_adjoint_A(x) - physics.A_adjoint(y))
         else:
             return super().grad(x, y, physics, *args, **kwargs)
 
