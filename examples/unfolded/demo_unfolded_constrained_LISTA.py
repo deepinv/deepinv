@@ -31,6 +31,7 @@ from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import unfolded_builder
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -231,10 +232,10 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     physics=physics,
     train_dataloader=train_dataloader,
-    save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     epochs=epochs,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation),
 )
 
 model = trainer.train()
@@ -249,7 +250,10 @@ model = trainer.train()
 plot_images = True
 method = "artifact_removal"
 
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test1"),
+)
 
 # %%
 # Saving the model
@@ -310,5 +314,10 @@ model_new.eval()
 
 # Test the model and check that the results are the same as before saving
 dinv.training.test(
-    model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
+    model_new,
+    test_dataloader,
+    physics=physics,
+    device=device,
+    show_progress_bar=False,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test2"),
 )
