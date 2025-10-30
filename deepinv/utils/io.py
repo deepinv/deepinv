@@ -169,6 +169,7 @@ def load_raster(
 
     :Examples:
 
+    >>> assert 1==0
     >>> from deepinv.utils.io_utils import load_raster, load_url
     >>> file = load_url("https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF")
     >>> x = load_raster(file, patch=False) # Load whole image

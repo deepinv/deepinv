@@ -11,7 +11,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
-from deepinv.utils.io_utils import load_np, load_torch, load_url as _load_url
+from deepinv.utils.io import load_np, load_torch, load_url as _load_url
 
 if TYPE_CHECKING:
     from deepinv.datasets.base import ImageFolder

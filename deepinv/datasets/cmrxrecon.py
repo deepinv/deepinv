@@ -15,7 +15,7 @@ import torch
 import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
-from deepinv.utils.io_utils import load_mat
+from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel

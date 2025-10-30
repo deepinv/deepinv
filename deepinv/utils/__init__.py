@@ -44,7 +44,7 @@ from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
 from .mixins import TimeMixin, MRIMixin
 from .compat import zip_strict
-from .io_utils import (
+from .io import (
     load_dicom,
     load_nifti,
     load_url,
