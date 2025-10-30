@@ -24,7 +24,7 @@ def load_np(
 
     :param str, pathlib.Path fname: file to load.
     :param bool, as_memmap: open this file as a memmap, which does not load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
-    :param np.dtype, str dtype: data type to use when loading the numpy array. This is ignored if `as_memmap` is `True`.
+    :param numpy.dtype, str dtype: data type to use when loading the numpy array. This is ignored if `as_memmap` is `True`.
     :return: :class:`torch.Tensor` containing loaded numpy array. If `as_memmap` is `True`, returns a numpy `memmap` object instead.
     """
     if as_memmap:
@@ -73,7 +73,7 @@ def load_dicom(
     :param bool as_tensor: if `True`, return as torch tensor (default), otherwise return as numpy array.
     :param bool apply_rescale: if `True`, map the stored values (SV) to output values according to the pydicom `apply_rescale`, default False.
         See `pydicom docs <https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html>`_ for details.
-    :param np.dtype, str dtype: data type to use when loading the nifti file.
+    :param numpy.dtype, str dtype: data type to use when loading the nifti file.
     :return: either numpy array of shape of raw data `(...)`, or torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
     try:
@@ -310,7 +310,7 @@ def load_nifti(
     as_memmap: bool = False,
     dtype: np.dtype | str = np.float32,
     **kwargs,
-) -> torch.Tensor | nib.arrayproxy.ArrayProxy:
+) -> torch.Tensor | "nib.arrayproxy.ArrayProxy":
     """Load volume from nifti file as torch tensor.
 
     We assume that the data contains a channel dimension. If not, unsqueeze the output to
@@ -328,7 +328,7 @@ def load_nifti(
 
     :param str, pathlib.Path fname: file to load.
     :param bool, as_memmap: open this file as a proxy array, which does not eagerly load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
-    :param np.dtype, str dtype: data type to use when loading the nifti file. This is ignored if `as_memmap` is `True`.
+    :param numpy.dtype, str dtype: data type to use when loading the nifti file. This is ignored if `as_memmap` is `True`.
     :return: :class:`torch.Tensor` containing nifti image. If `as_memmap` is `True`, returns a proxy array instead.
     """
     try:
@@ -354,7 +354,7 @@ def load_blosc2(
 
     :param str, pathlib.Path fname: file to load.
     :param bool, as_memmap: open this file as a memory-mapped array (which does not load the entire array into memory). This is useful when extracting patches from large arrays or to quickly infer dtype and shape.
-    :param np.dtype, str dtype: data type to use when loading the blosc2 file. This is ignored if `as_memmap` is `True`.
+    :param numpy.dtype, str dtype: data type to use when loading the blosc2 file. This is ignored if `as_memmap` is `True`.
     :return: :class:`torch.Tensor` containing loaded numpy array. If `as_memmap` is `True`, returns a blosc2 array object instead.
     """
     try:
