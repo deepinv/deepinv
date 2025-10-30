@@ -86,9 +86,15 @@ class ENSURELoss(SureGaussianLoss):
         self, y: Tensor, x_net: Tensor, physics: Physics, model: Reconstructor, **kwargs
     ) -> Tensor:
         if isinstance(physics, MRI):
-            metric = lambda y: MRIMixin().kspace_to_im(y * self.dsqrti)
+
+            def metric(y):
+                return MRIMixin().kspace_to_im(y * self.dsqrti)
+
         elif isinstance(physics, Inpainting):
-            metric = lambda y: y * self.dsqrti
+
+            def metric(y):
+                return y * self.dsqrti
+
         else:
             raise ValueError(
                 "ENSURE loss is currently only implemented for single-coil MRI or inpainting."

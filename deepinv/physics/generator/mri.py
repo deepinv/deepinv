@@ -267,8 +267,7 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
                 b = c
             else:
                 return scaled_pdf
-        else:
-            raise ValueError(f"get_pdf did not converge after {max_iter} iterations")
+        raise ValueError(f"get_pdf did not converge after {max_iter} iterations")
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         for b in range(mask.shape[0]):

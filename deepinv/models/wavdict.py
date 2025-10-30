@@ -125,17 +125,17 @@ class WaveletDenoiser(Denoiser):
                 [_complexify(dec[0], self.is_complex).flatten()]
                 + [
                     _complexify(decl, self.is_complex).flatten()
-                    for l in range(1, len(dec))
-                    for decl in dec[l]
+                    for level in range(1, len(dec))
+                    for decl in dec[level]
                 ]
             )
         elif self.dimension == 3:
             flat = torch.hstack(
                 [_complexify(dec[0], self.is_complex).flatten()]
                 + [
-                    _complexify(dec[l][key], self.is_complex).flatten()
-                    for l in range(1, len(dec))
-                    for key in dec[l]
+                    _complexify(dec[level][key], self.is_complex).flatten()
+                    for level in range(1, len(dec))
+                    for key in dec[level]
                 ]
             )
         return flat
@@ -162,8 +162,8 @@ class WaveletDenoiser(Denoiser):
             dec = list(dec)
             vec = [
                 _complexify(decl, is_complex).flatten(1, -1)
-                for l in range(1, len(dec))
-                for decl in dec[l]
+                for level in range(1, len(dec))
+                for decl in dec[level]
             ]
         elif dimension == 3:
             dec = ptwt.wavedec3(
@@ -171,9 +171,9 @@ class WaveletDenoiser(Denoiser):
             )
             dec = list(dec)
             vec = [
-                _complexify(dec[l][key], is_complex).flatten(1, -1)
-                for l in range(1, len(dec))
-                for key in dec[l]
+                _complexify(dec[level][key], is_complex).flatten(1, -1)
+                for level in range(1, len(dec))
+                for key in dec[level]
             ]
         return vec
 

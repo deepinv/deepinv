@@ -9,9 +9,14 @@ from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterat
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.physics import Physics
 
+
 # First kind Chebyshev functions
-T_s = lambda s, u: np.cosh(s * np.arccosh(u))
-T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
+def T_s(s, u):
+    return np.cosh(s * np.arccosh(u))
+
+
+def T_prime_s(s, u):
+    return s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
 
 
 class SKRockIterator(SamplingIterator):
@@ -101,10 +106,12 @@ class SKRockIterator(SamplingIterator):
         :rtype: Dict
         """
         x = X["x"]
+
         # Define posterior gradient
-        posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + self.algo_params[
-            "alpha"
-        ] * (cur_prior.grad(u, self.algo_params["sigma"]))
+        def posterior(u):
+            return cur_data_fidelity.grad(u, y, physics) + self.algo_params["alpha"] * (
+                cur_prior.grad(u, self.algo_params["sigma"])
+            )
 
         # Compute SK-ROCK parameters
         w0 = 1 + self.algo_params["eta"] / (

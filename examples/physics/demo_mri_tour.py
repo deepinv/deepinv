@@ -29,7 +29,8 @@ Contents:
 
 # %%
 import deepinv as dinv
-import torch, torchvision
+import torch
+import torchvision
 from torch.utils.data import DataLoader
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"

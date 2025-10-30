@@ -220,7 +220,7 @@ plot(
         "PreconULA": preconula_mean,
     },
     subtitles=[
-        f"PSNR:",
+        "PSNR:",
         f"{psnr_lin:.2f} dB",
         f"{psnr_ula:.2f} dB",
         f"{psnr_preconula:.2f} dB",

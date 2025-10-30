@@ -184,7 +184,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.to(device)
 
     def get_A_squared_mean(self):
-        return self.B._A.var() + self.B._A.mean() ** 2
+        return self.B.A_matrix().var() + self.B.A_matrix().mean() ** 2
 
 
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
@@ -494,7 +494,7 @@ class Ptychography(PhaseRetrieval):
         self.device = device
         self.img_size = img_size
         super().__init__(B, **kwargs)
-        self.name = f"Ptychography_PR"
+        self.name = "Ptychography_PR"
         self.to(device)
 
 

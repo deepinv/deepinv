@@ -12,7 +12,6 @@ from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
-import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -991,10 +990,10 @@ class DecomposablePhysics(LinearPhysics):
         super().__init__(**kwargs)
 
         assert not (
-            U is None and not (U_adjoint is None)
+            U is None and U_adjoint is not None
         ), "U must be provided if U_adjoint is provided."
         assert not (
-            V_adjoint is None and not (V is None)
+            V_adjoint is None and V is not None
         ), "V_adjoint must be provided if V is provided."
 
         # set to identity if not provided

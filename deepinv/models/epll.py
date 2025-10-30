@@ -65,7 +65,7 @@ class EPLLDenoiser(Denoiser):
             but a small value reduces the memory consumption
             and might increase the computation time. ``-1`` for considering all patches at once.
         """
-        sigma = self._handle_sigma(
+        sigma = self.handle_sigma(
             sigma, batch_size=x.size(0), device=x.device, dtype=x.dtype
         )
         return self.PatchGMM(

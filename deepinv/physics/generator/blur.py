@@ -74,11 +74,11 @@ class MotionBlurGenerator(PSFGenerator):
         rng: torch.Generator = None,
         device: str = "cpu",
         dtype: type = torch.float32,
-        l: float = 0.3,
+        length: float = 0.3,
         sigma: float = 0.25,
         n_steps: int = 1000,
     ) -> None:
-        kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
+        kwargs = {"length": length, "sigma": sigma, "n_steps": n_steps}
         if len(psf_size) != 2:
             raise ValueError(
                 "psf_size must 2D. Add channels via num_channels parameter"
@@ -92,28 +92,28 @@ class MotionBlurGenerator(PSFGenerator):
             **kwargs,
         )
 
-    def matern_kernel(self, diff, sigma: float = None, l: float = None):
+    def matern_kernel(self, diff, sigma: float = None, length: float = None):
         r"""
         Compute the Matérn 3/2 covariance.
 
         :param torch.Tensor diff: the difference `t - s`
         :param float sigma: the standard deviation of the Gaussian Process
-        :param float l: the length scale of the trajectory
+        :param float length: the length scale of the trajectory
         """
         if sigma is None:
             sigma = self.sigma
-        if l is None:
-            l = self.l
-        fraction = 5**0.5 * diff.abs() / l
+        if length is None:
+            length = self.length
+        fraction = 5**0.5 * diff.abs() / length
         return sigma**2 * (1 + fraction + fraction**2 / 3) * torch.exp(-fraction)
 
-    def f_matern(self, batch_size: int = 1, sigma: float = None, l: float = None):
+    def f_matern(self, batch_size: int = 1, sigma: float = None, length: float = None):
         r"""
         Generates the trajectory.
 
         :param int batch_size: batch_size.
         :param float sigma: the standard deviation of the Gaussian Process.
-        :param float l: the length scale of the trajectory.
+        :param float length: the length scale of the trajectory.
         :return: the trajectory of shape `(batch_size, n_steps)`
         """
         vec = torch.randn(
@@ -123,7 +123,7 @@ class MotionBlurGenerator(PSFGenerator):
             None
         ]
 
-        kernel = self.matern_kernel(time, sigma, l)
+        kernel = self.matern_kernel(time, sigma, length)
         kernel_fft = torch.fft.rfft(kernel)
         vec_fft = torch.fft.rfft(vec)
         return torch.fft.irfft(vec_fft * torch.sqrt(kernel_fft)).real[
@@ -137,7 +137,7 @@ class MotionBlurGenerator(PSFGenerator):
         self,
         batch_size: int = 1,
         sigma: float = None,
-        l: float = None,
+        length: float = None,
         seed: int = None,
         **kwargs,
     ):
@@ -146,14 +146,14 @@ class MotionBlurGenerator(PSFGenerator):
 
         :param int batch_size: batch_size.
         :param float sigma: the standard deviation of the Gaussian Process
-        :param float l: the length scale of the trajectory
+        :param float length: the length scale :math:`l` of the trajectory
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with key **'filter'**: the generated PSF of shape `(batch_size, 1, psf_size[0], psf_size[1])`
         """
         self.rng_manual_seed(seed)
-        f_x = self.f_matern(batch_size, sigma, l)[..., None]
-        f_y = self.f_matern(batch_size, sigma, l)[..., None]
+        f_x = self.f_matern(batch_size, sigma, length)[..., None]
+        f_y = self.f_matern(batch_size, sigma, length)[..., None]
 
         trajectories = torch.cat(
             (
@@ -563,8 +563,8 @@ def bump_function(x, a=1.0, b=1.0):
     """
     v = torch.zeros_like(x)
     v[torch.abs(x) <= a] = 1
-    I = (torch.abs(x) > a) * (torch.abs(x) < a + b)
-    v[I] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[I]) - a) / b) ** 2)) / np.exp(-1.0)
+    idx = (torch.abs(x) > a) * (torch.abs(x) < a + b)
+    v[idx] = torch.exp(-1.0 / (1.0 - ((torch.abs(x[idx]) - a) / b) ** 2)) / np.exp(-1.0)
     return v
 
 

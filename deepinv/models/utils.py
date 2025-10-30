@@ -280,7 +280,7 @@ class AttentionOp(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dw):
         q, k, w = ctx.saved_tensors
-        db = torch._softmax_backward_data(
+        db = torch._softmax_backward_data(  # noqa: SLF001
             grad_output=dw.to(torch.float32),
             output=w.to(torch.float32),
             dim=2,

@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
-from deepinv.optim.optim_iterators import *
+from deepinv.optim.optim_iterators import OptimIterator
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero, Prior
 from deepinv.optim.data_fidelity import DataFidelity

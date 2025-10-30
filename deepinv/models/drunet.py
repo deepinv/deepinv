@@ -1,6 +1,7 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 from __future__ import annotations
 import torch
+import torch.nn as nn
 from .utils import (
     get_weights_url,
     test_onesplit,
@@ -15,6 +16,7 @@ from .utils import (
 )
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
+from collections import OrderedDict
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -217,7 +219,7 @@ class DRUNet(Denoiser):
         else:
             if self.dim == 3:  # pragma: no cover
                 raise NotImplementedError(
-                    f"test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
+                    "test_onesplit is not implemented yet for 3D. Please pass images with spatial shape smaller than 32, or multiple of 8 and larger than 32 to DRUNet."
                 )
             x = test_onesplit(self.forward_unet, x, refield=64)
         return x
@@ -226,9 +228,6 @@ class DRUNet(Denoiser):
 """
 Functional blocks below
 """
-from collections import OrderedDict
-import torch
-import torch.nn as nn
 
 
 """
@@ -353,7 +352,7 @@ def conv(
         elif t == "A":
             L.append(avgpool_nd(dim)(kernel_size=kernel_size, stride=stride, padding=0))
         else:  # pragma: no cover
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError("Undefined type: ")
     return sequential(*L)
 
 

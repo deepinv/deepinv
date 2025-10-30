@@ -301,12 +301,12 @@ class RAM(Reconstructor, Denoiser):
         sigma = torch.maximum(
             sigma, torch.tensor(self.sigma_threshold, device=x_in.device)
         )
-        sigma = self._handle_sigma(sigma)
+        sigma = self.handle_sigma(sigma)
 
         gain = torch.maximum(
             gain, torch.tensor(self.gain_threshold, device=x_in.device)
         )
-        gain = self._handle_sigma(gain)
+        gain = self.handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
@@ -442,7 +442,9 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
         x = x_init.clone()
 
     norm = factor**2  # Precompute normalization factor
-    AtA = lambda u: p.A_adjoint(p.A(u)) * norm  # Define the linear operator
+
+    def AtA(u):
+        return p.A_adjoint(p.A(u)) * norm
 
     v = v if v is not None else torch.zeros_like(x)
 
@@ -1101,7 +1103,7 @@ def conv(
         elif t == "R":
             L.append(nn.ReLU(inplace=True))
         else:
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError("Undefined type: ".format())
     return sequential(*L)
 
 
