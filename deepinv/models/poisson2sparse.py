@@ -197,11 +197,11 @@ class ConvLista(nn.Module):
         ]
         x = torch.randn(1, weight.shape[0], *needles_shape).type_as(weight)
         for _ in range(num_iters):
-            c = torch.norm(x.reshape(-1))
+            c = torch.linalg.vector_norm(x.reshape(-1), ord=2)
             x = x / c
             y = F.conv_transpose2d(x, weight, stride=stride)
             x = F.conv2d(y, weight, stride=stride)
-        return torch.norm(x.reshape(-1))
+        return torch.linalg.vector_norm(x.reshape(-1), ord=2)
 
     class _SoftThreshold2d(nn.Module):
         """Learnable 2d channel-wise soft-thresholding layer
