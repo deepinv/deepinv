@@ -247,8 +247,8 @@ dataset = dinv.datasets.TensorDataset(y=y_train)
 train_dataloader = torch.utils.data.DataLoader(dataset)
 
 # %%
-# We fine-tune using early stopping using a validation set, again without ground truth.
-# We use a small patch of another set of measurements.
+# We fine-tune using early stopping on a validation set, again without ground truth.
+# We use a small patch of another set of measurements as validation.
 
 eval_dataloader = torch.utils.data.DataLoader(
     dinv.datasets.TensorDataset(
@@ -275,6 +275,7 @@ trainer = dinv.Trainer(
 
 finetuned_model = trainer.train()
 
+finetuned_model = trainer.load_best_model()
 # %%
 # We can now use the fine-tuned model to reconstruct the image from the measurement `y`.
 

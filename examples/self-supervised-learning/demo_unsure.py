@@ -150,6 +150,14 @@ print(f"INIT. noise level {loss.sigma2.sqrt().item():.3f}")
 # --------------------------------------------
 # We train the network using the :class:`deepinv.Trainer` class.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation (without updating the noise level, which is equivalent to SURE with the estimated noise level),
+#       as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -161,6 +169,10 @@ trainer = dinv.Trainer(
     physics=physics,
     epochs=epochs,
     losses=loss,
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
@@ -199,6 +211,7 @@ trainer.log_images = True
 trainer.test(
     test_dataloader=test_dataloader,
     loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"),
+    metrics=dinv.metric.PSNR()
 )
 
 # %%

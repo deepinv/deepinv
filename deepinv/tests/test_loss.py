@@ -401,13 +401,21 @@ def test_losses(
     )
 
     # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    initial_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
+
+    # in self-supervised cases, remove supervised metrics and compute self-sup losses on eval dataset
+    trainer.metrics = (
+        [] if (loss_name == "reducedresolution") else [deepinv.metric.PSNR()]
+    )
+    trainer.compute_eval_losses = True
 
     # ensure different loggers are used even if the runs are launched within the same second
     trainer.loggers = logger()
     # train the network
     trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader, loggers=logger())
+    final_test = trainer.test(test_dataloader=test_dataloader, loggers=logger(), metrics=deepinv.metric.PSNR())
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 

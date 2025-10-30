@@ -13,6 +13,8 @@ import torch.nn as nn
 
 # DeepInv libraries
 from deepinv.datasets.base import check_dataset
+from pathlib import Path
+from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
@@ -119,6 +121,23 @@ class Trainer:
         :param bool online_measurements: If True, measurements ``y`` are generated online as ``physics(x)``, else they are provided by the dataset.
         :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating the physics operators. If not `None`, the physics operators are randomly sampled at each iteration using the generator.
         :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch, so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch. Used in conjunction with ``online_measurements=True`` and `physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
+
+    Training details are saved every ``ckp_interval`` epochs in the following format
+
+    ::
+
+        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
+
+    where ``.pth.tar`` file contains a dictionary with the keys:
+
+    - `epoch`: current epoch number when saved
+    - `state_dict`: model parameters state dictionary
+    - `loss`: loss history on train set
+    - `train_metrics`: metric history on train set
+    - `eval_loss`: loss history on eval set
+    - `eval_metrics`: metric history on eval set
+    - `optimizer`: optimizer state dictionary, or ``None`` if not used
+    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
 
     |sep|
 
@@ -598,6 +617,11 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
+        if train:
+            self.model.train()
+        else:
+            self.model.eval()
+
         if not train:
             with torch.no_grad():
                 if self.iterative_model_returns_different_outputs:
@@ -970,7 +994,10 @@ class Trainer:
         r"""
         Save the best model using validation metrics.
 
-        By default, uses validation based on first metric. Override this method to provide custom criterion.
+        By default, uses validation based on first metric. If no metric is provided (e.g. in self-supervised learning),
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
+
+        Override this method to provide custom criterion.
 
         :param int epoch: Current epoch.
         """
@@ -993,6 +1020,9 @@ class Trainer:
         Stop criterion for early stopping.
 
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
+
+        If `early_stop_on_losses=True` (default is `False`)
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
 
         Override this method to early stop on a custom condition.
 
@@ -1017,7 +1047,7 @@ class Trainer:
                 "the last 2 epochs, disable it with early_stop=False"
             )
 
-        return early_stop
+        return stop
 
     def train(
         self,
@@ -1153,6 +1183,8 @@ class Trainer:
             for how we expect data to be provided.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
+        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
+            ``None``, uses the metrics provided during Trainer initialization.
         :returns: dict of metrics results with means and stds.
         """
         # Setup
@@ -1169,7 +1201,6 @@ class Trainer:
             [len(loader) - loader.drop_last for loader in self.test_dataloader]
         )
 
-        self.model.eval()
         for i in (
             test_progress_bar := tqdm(
                 range(batches),

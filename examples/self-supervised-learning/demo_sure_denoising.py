@@ -154,7 +154,13 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # Train the network
 # --------------------------------------------
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 verbose = True  # print training information
 
@@ -189,9 +195,10 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-#
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
 trainer.test(
-    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"), metrics=dinv.metric.PSNR()
 )

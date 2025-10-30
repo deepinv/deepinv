@@ -308,7 +308,8 @@ class AdversarialTrainer(Trainer):
         """
         y_hat = physics.A(x_net)
 
-        with torch.set_grad_enabled(train):
+        ### Train Generator
+        if train or self.compute_eval_losses:
             loss_total = 0
             for l in losses:
                 loss = l(
@@ -457,7 +458,6 @@ class AdversarialTrainer(Trainer):
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
-
             if training_step:
                 self.optimizer.D.zero_grad()
 
