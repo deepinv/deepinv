@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     import nibabel as nib
     import blosc2
 
+
 def load_np(
     fname: str | Path, as_memmap: bool = False, dtype: np.typing.DtypeLike = np.float32
 ) -> torch.Tensor | np.memmap:
@@ -28,6 +29,7 @@ def load_np(
     else:
         return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
+
 def load_torch(fname: str | Path, device=None) -> torch.Tensor:
     """Load torch tensor from file.
 
@@ -36,6 +38,7 @@ def load_torch(fname: str | Path, device=None) -> torch.Tensor:
     :return: :class:`torch.Tensor` containing loaded torch tensor.
     """
     return torch.load(fname, weights_only=True, map_location=device)
+
 
 def load_url(url: str) -> BytesIO:
     """Load URL to a buffer.
@@ -50,6 +53,7 @@ def load_url(url: str) -> BytesIO:
     response = requests.get(url)
     response.raise_for_status()
     return BytesIO(response.content)
+
 
 def load_dicom(fname: str | Path) -> torch.Tensor:
     """Load image from DICOM file.
@@ -67,7 +71,6 @@ def load_dicom(fname: str | Path) -> torch.Tensor:
         )
     fname = str(fname) if isinstance(fname, Path) else fname
     return torch.from_numpy(pydicom.dcmread(fname).pixel_array).float().unsqueeze(0)
-
 
 
 def load_ismrmd(
@@ -103,6 +106,7 @@ def load_ismrmd(
         )
 
     return data
+
 
 def load_mat(fname: str, mat73: bool = False) -> dict[str, np.ndarray]:
     """Load MATLAB array from file.
