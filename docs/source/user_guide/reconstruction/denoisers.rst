@@ -77,6 +77,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - No
      - No
+     - No
    * - :class:`deepinv.models.SwinIR`
      - CNN-Transformer
      - Any C, H, W
