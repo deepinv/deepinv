@@ -2,7 +2,7 @@ r"""
 Poisson denoising using Poisson2Sparse
 =======================================
 
-This code shows how to restore an image corrupted by Poisson noise using Poisson2Sparse
+This code shows how to restore a single image corrupted by Poisson noise using Poisson2Sparse, without requiring external training or knowledge of the noise level.
 
 This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sparse` and restores an image by learning a sparse non-linear dictionary parametrized by a neural network using a combination of Neighbor2Neighbor :footcite:t:`huang2021neighbor2neighbor`, of the negative log Poisson likelihood, of the :math:`\ell^1` pixel distance and of a sparsity-inducing :math:`\ell^1` regularization function on the weights.
 
@@ -58,6 +58,9 @@ model = dinv.models.Poisson2Sparse(
 # %%
 # Run the model
 # -------------
+#
+# Note that we do not pass in the physics model as Poisson2Sparse assumes a
+# Poisson noise model internally and does not depend on the noise level.
 
 x_hat = model(y)
 

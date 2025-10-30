@@ -1,5 +1,3 @@
-# Adapted from https://github.com/tacalvin/Poisson2Sparse
-# and https://github.com/drorsimon/CSCNet
 from __future__ import annotations
 from deepinv.models.base import Denoiser
 import torch
@@ -12,11 +10,23 @@ from typing import Callable
 from deepinv.utils.compat import zip_strict
 
 
-# Credit goes to https://github.com/drorsimon/CSCNet
-# Simon, Dror, and Michael Elad. "Rethinking the CSC model for natural images." Advances in Neural Information Processing Systems 32 (2019).
-
-
 class ConvLista(nn.Module):
+    r"""
+    Convolutional LISTA network.
+
+    The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is wel suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).
+
+
+    :param int in_channels: Number of channels in the input image.
+    :param int out_channels: Number of channels in the output image.
+    :param int kernel_size: Size of the convolutional kernels (default: 3).
+    :param int num_filters: Number of filters in the convolutional layers (default: 512).
+    :param int stride: Stride of the convolutional layers (default: 2).
+    :param int num_iter: Number of iterations of the LISTA algorithm (default: 10).
+    :param float threshold: Initial value for the learned soft-thresholding (default: 1e-2).
+
+    """
+
     def __init__(
         self,
         *,
@@ -240,6 +250,24 @@ def _pad_fn_even(func: Callable, *, value: float = 0.0):
 
 
 class Poisson2Sparse(Denoiser):
+    r"""
+    Poisson2Sparse model for Poisson denoising.
+
+    This method, introduced by :footcite:t:`ta2022poisson2sparse`, reconstructs an image corrupted by Poisson noise by learning a sparse non-linear dictionary parametrized by a neural network using a combination of Neighbor2Neighbor :footcite:t:`huang2021neighbor2neighbor`, of the negative log Poisson likelihood, of the :math:`\ell^1` pixel distance and of a sparsity-inducing :math:`\ell^1` regularization function on the weights.
+
+    .. note::
+
+        This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics model can be omitted when calling the :meth:`forward` method and specifying it will have no effect.
+
+    :param torch.nn.Module | None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.
+    :param float lr: Learning rate of the AdamW optimizer (default: 1e-4).
+    :param float weight_n2n: Weight of the Neighbor2Neighbor loss term (default: 2.0).
+    :param float weight_l1_regularization: Weight of the sparsity-inducing :math:`\ell^1` regularization on the weights (default: 1e-5).
+    :param int num_iter: Number of optimization iterations (default: 200).
+    :param bool verbose: If ``True``, print progress (default: ``False``).
+
+    """
+
     def __init__(
         self,
         backbone: torch.nn.Module | None = None,
