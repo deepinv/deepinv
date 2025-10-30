@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -100,6 +100,7 @@ dataset = [
     "scipy",
     "nibabel",
     "rasterio",
+    "blosc2",
 ]
 
 # optional dependencies for training
@@ -137,7 +138,7 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
@@ -150,3 +151,7 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 
 [tool.ruff.lint.flake8-builtins]
 strict-checking = true
+
+# Deprecated functions that should be replaced
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"

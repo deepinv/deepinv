@@ -86,8 +86,8 @@ class ThinPlateSpline:
         self.device = torch.device(device)
         self.dtype = dtype
 
-        self.parameters = torch.tensor([], dtype=torch.float32)
-        self.control_points = torch.tensor([], dtype=torch.float32)
+        self.parameters = torch.tensor([], dtype=torch.float32, device=device)
+        self.control_points = torch.tensor([], dtype=torch.float32, device=device)
 
     def fit(self, X: torch.Tensor, Y: torch.Tensor):
         r"""Learn f that matches Y given X
