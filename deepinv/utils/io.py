@@ -168,7 +168,9 @@ def load_mat(fname: str, mat73: bool = False, **kwargs) -> dict[str, np.ndarray]
         except ImportError:  # pragma: no cover
             raise ImportError("mat73 is required, install with 'pip install mat73'.")
         except TypeError:  # pragma: no cover
-            pass
+            warn(
+                "Array is incompatible with MATLAB 7.3 loader. Using scipy loader instead..."
+            )
 
     try:
         from scipy.io import loadmat as scipy_loadmat
