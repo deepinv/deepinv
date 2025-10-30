@@ -673,7 +673,7 @@ def mock_lidc_idri():
             patch.object(pd, "read_csv", return_value=dummy_df),
             patch.object(os, "listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
             # We use patch instead of patch.object to avoid cluttering the namespace.
-            patch("deepinv.utils.io.dcmread", return_value=dummy_dicom),
+            patch("pydicom.dcmread", return_value=dummy_dicom),
         ):
             yield "/dummy"
     else:
