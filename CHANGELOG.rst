@@ -9,7 +9,9 @@ Current
 
 New Features
 ^^^^^^^^^^^^
- - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
+- Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
+- Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
+- Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 
 Changed
 ^^^^^^^
@@ -18,6 +20,10 @@ Fixed
 ^^^^^
 - Blur physics objects now put new filters to physics device regardless of input filter device (:gh:`844` by `Vicky De Ridder`_)
 - Set14HR dataset now downloads from a different source (and has slightly different folderstructure), since old link broke. (:gh:`845` by `Vicky De Ridder`_)
+- LsdirHR dataset now downloads from a different source (since old link broke) and correctly contains the specific folder images, instead of everything in root (:gh:`866` by `Vicky De Ridder`_)
+- Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
+- Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
+- Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 
 v0.3.5
 ------
@@ -28,12 +34,14 @@ New Features
 - Add RicianNoise model (:gh:`805` by `Vicky De Ridder`_)
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
+- Add SpatialUnwrapping forward model and ItohFidelity data fidelity (:gh:`723` by `Brayan Monroy`_)
 
 Changed
 ^^^^^^^
 - Reformat the way we define optimization algorithms. (:gh:`592` by `Samuel Hurault`_)
 - Add ``squared`` parameter to ``LinearPhysics.compute_norm()`` and ``compute_sqnorm()`` method (:gh:`832` by `Jérémy Scanvic`_)
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Allow self-supervised eval by removing the model.eval() from Trainer.train() (:gh:`777` by `Julian Tachella`_)
 - Make tqdm progress bar auto-resize (:gh:`835` by `Andrew Wang`_)
 - (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
@@ -47,6 +55,7 @@ Fixed
 - Fix scaling issue in DiffusionSDE (:gh:`772` by `Minh Hai Nguyen`_)
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - Trainer treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
+- Save training loss history (:gh:`777` by `Julian Tachella`_)
 - Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
 - Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
 - Change deprecated `torch.norm` calls to `torch.linalg.vector_norm` (:gh:`840` by `Minh Hai Nguyen`_)
@@ -485,3 +494,4 @@ Authors
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
+.. _Chaithya G R: https://github.com/chaithyagr
