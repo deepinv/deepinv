@@ -10,12 +10,9 @@ bases, which does not admit a closed-form solution. We solve the denoising probl
 
 import deepinv as dinv
 from pathlib import Path
-import numpy as np
 
 import torch
 import torch.nn as nn
-
-from deepinv.utils.demo import load_np_url
 
 # %%
 # Setup paths for data loading and results.
@@ -41,11 +38,14 @@ torch.manual_seed(0)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-volume_data = load_np_url(
-    "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+volume_data = (
+    dinv.utils.load_np_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+    )
+    .flip(0)
+    .unsqueeze(0)
+    .unsqueeze(0)
 )
-volume_data = np.copy(volume_data[::-1, ...])
-volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
 x = volume_data / volume_data.max()
 
 noise_level_img = 0.1  # Gaussian Noise standard deviation for the degradation
