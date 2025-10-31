@@ -10,6 +10,7 @@ Current
 New Features
 ^^^^^^^^^^^^
  - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh: `806` by `Vicky De Ridder`_)
+- Expand current MultiScaler physics implementation (:gh:`342` by `Nils Laurent`)
 
 Changed
 ^^^^^^^
