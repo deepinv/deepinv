@@ -12,6 +12,29 @@ import warnings
 from typing import Callable
 
 
+def objective_function(x, data_fidelity, prior, cur_params, y, physics):
+    r"""
+    Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    and :math:`\regname` is a regularizer.
+
+    :param torch.Tensor x: Current iterate.
+    :param deepinv.optim.DataFidelity data_fidelity: Instance of the DataFidelity class defining the current data-fidelity.
+    :param deepinv.optim.prior prior: Instance of the Prior class defining the current prior.
+    :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+    :param torch.Tensor y: Obervation.
+    :param deepinv.physics physics: Instance of the physics modeling the observation.
+    """
+    if prior is not None and prior.explicit_prior:
+        return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
+            x, cur_params["g_param"]
+        )
+    else:
+        warnings.warn(
+            "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."
+        )
+        return data_fidelity(x, y, physics)
+
+
 def check_conv(
     X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
     X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],

@@ -42,6 +42,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Reformat the way we define optimization algorithms. (:gh:`592` by `Samuel Hurault`_)
 - Add ``squared`` parameter to ``LinearPhysics.compute_norm()`` and ``compute_sqnorm()`` method (:gh:`832` by `Jérémy Scanvic`_)
 - (Breaking) Make HDF5Dataset similar to Trainer in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 - Allow self-supervised eval by removing the model.eval() from Trainer.train() (:gh:`777` by `Julian Tachella`_)

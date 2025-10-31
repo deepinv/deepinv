@@ -633,6 +633,8 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     fig, ax = plt.subplots(figsize=(7, 7))
 
     if init_params is not None:
+        if "lambda_reg" in init_params:
+            init_params[init_params.index("lambda_reg")] = "lambda"
         for key, value in init_params.items():
             if not isinstance(value, Iterable):
                 init_params[key] = [value]
