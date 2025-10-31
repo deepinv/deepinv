@@ -5,6 +5,7 @@ import deepinv as dinv
 from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
 from deepinv import optim
+from dataclasses import dataclass
 
 UNFOLDED_ALGO = [
     "PGD",
@@ -176,19 +177,26 @@ def test_DEQ(
     if not default_data_fidelity:
         kwargs["data_fidelity"] = data_fidelity
 
+    DEQ_config = dinv.optim.DEQConfig(
+                jacobian_free = jac_free,
+                anderson_acceleration_backward=and_acc,
+                history_size_backward=2,
+                beta_backward=1.0,
+                eps_backward=1e-4,
+                max_iter_backward=5
+                    )
+
     # Define the unfolded trainable model.
     # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
     model = getattr(optim, unfolded_algo)(
         stepsize=stepsize,
         g_param=sigma_denoiser,
         lambda_reg=lamb,
-        DEQ=True,
+        DEQ=DEQ_config,
         trainable_params=trainable_params,
         max_iter=max_iter,
         prior=prior,
         anderson_acceleration=and_acc,
-        DEQ_anderson_acceleration_backward=and_acc,
-        DEQ_jacobian_free=jac_free,
         **kwargs,
     )
     model.to(device)

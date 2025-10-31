@@ -372,20 +372,33 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         lambda_reg = 0.9
         max_iter = 1000
-
-        optimalgo = getattr(dinv.optim, name_algo)(
-            prior=prior,
-            data_fidelity=data_fidelity,
-            max_iter=max_iter,
-            crit_conv="residual",
-            thres_conv=1e-11,
-            verbose=True,
-            stepsize=stepsize,
-            lambda_reg=lambda_reg,
-            g_param=sigma,
-            early_stop=True,
-            g_first=g_first,
-        )
+        if name_algo in ('GD', 'MD'):
+            optimalgo = getattr(dinv.optim, name_algo)(
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                crit_conv="residual",
+                thres_conv=1e-11,
+                verbose=True,
+                stepsize=stepsize,
+                lambda_reg=lambda_reg,
+                g_param=sigma,
+                early_stop=True
+            )
+        else:
+            optimalgo = getattr(dinv.optim, name_algo)(
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                crit_conv="residual",
+                thres_conv=1e-11,
+                verbose=True,
+                stepsize=stepsize,
+                lambda_reg=lambda_reg,
+                g_param=sigma,
+                early_stop=True,
+                g_first=g_first,
+            )
 
         # Run the optimization algorithm
         x = optimalgo(y, physics)
@@ -488,27 +501,38 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     # here the prior model is common for all iterations
     prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    stepsize_dual = 1.0 if pnp_algo == "PDCP" else None
-
     if pnp_algo == "PDCP":
+        stepsize_dual = 1.0
         x_init = physics.A_adjoint(y)
         u_init = y
         init = (x_init, x_init, u_init)
+        pnp = getattr(dinv.optim, pnp_algo)(
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            thres_conv=1e-4,
+            verbose=True,
+            stepsize=stepsize,
+            stepsize_dual=stepsize_dual,
+            g_param=sigma_denoiser,
+            lambda_reg=lambda_reg,
+            early_stop=True,
+        )
     else:
         init = None
+        pnp = getattr(dinv.optim, pnp_algo)(
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            thres_conv=1e-4,
+            verbose=True,
+            stepsize=stepsize,
+            g_param=sigma_denoiser,
+            lambda_reg=lambda_reg,
+            early_stop=True,
+        )
 
-    pnp = getattr(dinv.optim, pnp_algo)(
-        prior=prior,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        thres_conv=1e-4,
-        verbose=True,
-        stepsize=stepsize,
-        stepsize_dual=stepsize_dual,
-        g_param=sigma_denoiser,
-        lambda_reg=lambda_reg,
-        early_stop=True,
-    )
+    
 
     x = pnp(y, physics, init=init)
 
@@ -592,27 +616,38 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
 
-        stepsize_dual = 1.0 if pnp_algo == "PDCP" else None
-
         if pnp_algo == "PDCP":
+            stepsize_dual = 1.0
             x_init = physics.A_adjoint(y)
             u_init = y
             init = (x_init, x_init, u_init)
+            opt_algo = getattr(dinv.optim, pnp_algo)(
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                thres_conv=1e-4,
+                verbose=True,
+                stepsize=stepsize,
+                g_param=sigma_denoiser,
+                lambda_reg=lambda_reg,
+                stepsize_dual=stepsize_dual,
+                early_stop=True,
+            )
         else:
             init = None
+            opt_algo = getattr(dinv.optim, pnp_algo)(
+                prior=prior,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                thres_conv=1e-4,
+                verbose=True,
+                stepsize=stepsize,
+                g_param=sigma_denoiser,
+                lambda_reg=lambda_reg,
+                early_stop=True,
+            )
 
-        opt_algo = getattr(dinv.optim, pnp_algo)(
-            prior=prior,
-            data_fidelity=data_fidelity,
-            max_iter=max_iter,
-            thres_conv=1e-4,
-            verbose=True,
-            stepsize=stepsize,
-            g_param=sigma_denoiser,
-            lambda_reg=lambda_reg,
-            stepsize_dual=stepsize_dual,
-            early_stop=True,
-        )
+        
 
         x = opt_algo(y, physics, init=init)
 
@@ -668,7 +703,6 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_param=sigma_denoiser,
         lambda_reg=lambda_reg,
         early_stop=True,
-        g_first=True,
     )
 
     red(y, physics)

@@ -8,7 +8,7 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero, Prior
-from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -16,51 +16,41 @@ import torch.nn as nn
 from contextlib import nullcontext
 from dataclasses import dataclass
 
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+    from deepinv.loss.metric import Metric
+
 
 @dataclass
 class DEQConfig:
     """Configuration parameters for Deep Equilibrium models.
 
     :param: bool jacobian_free: Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-    :param: bool anderson_acceleration_forward: Whether to use Anderson acceleration for solving the forward equilibrium.
-    :param: int history_size_forward: Number of past iterates used in Anderson acceleration for the forward pass.
-    :param: float beta_anderson_acc_forward: Momentum coefficient in Anderson acceleration for the forward pass.
-    :param: float eps_anderson_acc_forward: Regularization parameter for Anderson acceleration in the forward pass.
     :param: bool anderson_acceleration_backward: Whether to use Anderson acceleration for solving the backward equilibrium.
     :param: int history_size_backward: Number of past iterates used in Anderson acceleration for the backward pass.
-    :param: float beta_anderson_acc_backward: Momentum coefficient in Anderson acceleration for the backward pass.
-    :param: float eps_anderson_acc_backward: Regularization parameter for Anderson acceleration in the backward pass.
+    :param: float beta_backward: Momentum coefficient in Anderson acceleration for the backward pass.
+    :param: float eps_backward: Regularization parameter for Anderson acceleration in the backward pass.
     :param: int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
     """
+    jacobian_free: bool = False
+    anderson_acceleration_backward: bool = False
+    history_size_backward: int = 5
+    beta_backward: float = 1.0
+    eps_backward: float = 1e-4
+    max_iter_backward: int = 50
 
-    jacobian_free: bool = False  # Whether to use a Jacobian-free backward pass.
-    anderson_acceleration_forward: bool = (
-        False  # Whether to use Anderson acceleration for solving the forward equilibrium.
-    )
-    history_size_forward: int = (
-        5  # Number of past iterates used in Anderson acceleration for the forward pass.
-    )
-    beta_anderson_acc_forward: float = (
-        1.0  # Momentum coefficient in Anderson acceleration for the forward pass.
-    )
-    eps_anderson_acc_forward: float = (
-        1e-4  # Regularization parameter for Anderson acceleration in the forward pass.
-    )
-    anderson_acceleration_backward: bool = (
-        False  # Whether to use Anderson acceleration for solving the backward equilibrium.
-    )
-    history_size_backward: int = (
-        5  # Number of past iterates used in Anderson acceleration for the backward pass.
-    )
-    beta_anderson_acc_backward: float = (
-        1.0  # Momentum coefficient in Anderson acceleration for the backward pass.
-    )
-    eps_anderson_acc_backward: float = (
-        1e-4  # Regularization parameter for Anderson acceleration in the backward pass.
-    )
-    max_iter_backward: int = (
-        50  # Maximum number of iterations in the backward equilibrium solver.
-    )
+
+@dataclass
+class AndersonAccelerationConfig:
+    """Configuration parameters for Anderson acceleration of a fixed-point algorithm.
+
+    :param: int history_size: Number of past iterates used in Anderson acceleration.
+    :param: float beta: Momentum coefficient in Anderson acceleration.
+    :param: float eps: Regularization parameter for Anderson acceleration.
+    """
+    history_size: float = 0.1
+    beta: float = 0.9
+    eps: int = 20
 
 
 @dataclass
@@ -71,15 +61,9 @@ class BacktrackingConfig:
     :param: float eta: Step reduction factor (e.g. multiply step by eta on failure).
     :param: int max_iter: Maximum number of backtracking steps.
     """
-
-    gamma: float = 0.1  # Armijo-like parameter (controls sufficient decrease)
-    eta: float = 0.9  # Step reduction factor (e.g. multiply step by eta on failure)
-    max_iter: int = 20  # Maximum number of backtracking steps
-
-
-if TYPE_CHECKING:
-    from deepinv.physics import Physics
-    from deepinv.loss.metric import Metric
+    gamma: float = 0.1
+    eta: float = 0.9
+    max_iter: int = 20
 
 
 class BaseOptim(Reconstructor):
@@ -229,9 +213,9 @@ class BaseOptim(Reconstructor):
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
         If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
     :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
+    :param BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
+        If ``None`` (default) or ``False``, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
+        If ``True``, the default ``BacktrackingConfig`` is used.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
 
@@ -248,12 +232,16 @@ class BaseOptim(Reconstructor):
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
     :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
         Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
-    :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
+    :param DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
-        If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
+        If ``None`` (default) or ``False``, DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
+        If ``True``, the default ``DEQConfig`` is used.
+    :param AndersonAccelerationConfig, bool anderson_acceleration: Configuration of Anderson acceleration for the fixed-point iterations.
+        If ``None`` (default) or ``False``, Anderson acceleration is disabled.
+        Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
+        If ``True``, the default ``AndersonAccelerationConfig`` is used.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :param bool show_progress_bar: show progress bar during optimization.
@@ -280,8 +268,10 @@ class BaseOptim(Reconstructor):
         unfold: bool = False,
         trainable_params: list[str] = None,
         DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = False,
         verbose: bool = False,
         show_progress_bar: bool = False,
+        device: torch.device = torch.device("cpu"),
     ):
         super(BaseOptim, self).__init__()
 
@@ -296,8 +286,6 @@ class BaseOptim(Reconstructor):
         else:
             self.backtracking = backtracking is not None
             self.backtracking_config = backtracking or BacktrackingConfig()
-        self.gamma_backtracking = gamma_backtracking
-        self.eta_backtracking = eta_backtracking
         self.has_converged = False
         self.thres_conv = thres_conv
         self.custom_metrics = custom_metrics
@@ -311,6 +299,14 @@ class BaseOptim(Reconstructor):
         else:
             self.DEQ = DEQ is not None
             self.DEQ_config = DEQConfig or DEQConfig()
+        if isinstance(anderson_acceleration, bool):
+            self.anderson_acceleration_config = (
+                AndersonAccelerationConfig() if anderson_acceleration else None
+            )
+        else:
+            self.anderson_acceleration_config = (
+                anderson_acceleration or AndersonAccelerationConfig()
+            )
         self.device = device
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
@@ -434,11 +430,8 @@ class BaseOptim(Reconstructor):
             update_metrics_fn=self.update_metrics_fn,
             max_iter=max_iter,
             early_stop=early_stop,
-            anderson_acceleration=anderson_acceleration,
-            history_size=history_size,
-            beta_anderson_acc=beta_anderson_acc,
-            eps_anderson_acc=eps_anderson_acc,
-            max_iter_backtracking=self.backtracking_config.max_iter,
+            anderson_acceleration_config=self.anderson_acceleration_config,
+            backtracking_config = self.backtracking_config,
             verbose=self.verbose,
             show_progress_bar=self.show_progress_bar,
         )
@@ -491,7 +484,14 @@ class BaseOptim(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        init : Callable[torch.Tensor, Physics],  | torch.Tensor | tuple = None, 
+        init: (
+            Callable[
+                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
+            ]
+            | Iterable[torch.Tensor]
+            | torch.Tensor
+            | dict
+        ) = None,
         F_fn: Callable[
             [
                 torch.Tensor,
@@ -567,7 +567,7 @@ class BaseOptim(Reconstructor):
         return init_X
 
     def init_metrics_fn(
-        self, X_init: torch.Tensor, x_gt: torch.Tensor = None
+        self, X_init: dict, x_gt: torch.Tensor = None
     ) -> dict[str, list]:
         r"""
         Initializes the metrics.
@@ -602,11 +602,11 @@ class BaseOptim(Reconstructor):
 
     def update_metrics_fn(
         self,
-        metrics: dict[str, Metric],
+        metrics: dict[str, list],
         X_prev: dict,
         X: dict,
         x_gt: torch.Tensor = None,
-    ) -> dict[str, list[torch.Tensor]]:
+    ) -> dict[str, list]:
         r"""
         Function that compute all the metrics, across all batches, for the current iteration.
 
@@ -709,7 +709,7 @@ class BaseOptim(Reconstructor):
         else:
             return False
 
-    def DEQ_additional_step(self, X, y, physics, **kwargs):
+    def DEQ_additional_step(self, X: dict, y: torch.Tensor, physics: Physics, **kwargs):
         r"""
         For Deep Equilibrium models, performs an additional step at the equilibrium point
         to compute the gradient of the fixed point operator with respect to the input.
@@ -768,15 +768,22 @@ class BaseOptim(Reconstructor):
                 def init_iterate_fn(y, physics, init=None, F_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
+                if self.DEQ_config.anderson_acceleration_backward:
+                    anderson_acceleration_config = AndersonAccelerationConfig(
+                        self.DEQ_config.history_size_backward,
+                        self.DEQ_config.beta_backward,
+                        self.DEQ_config.eps_backward,
+                        self.DEQ_config.max_iter_backward,
+                    )
+                else:
+                    anderson_acceleration_config = None
+
                 backward_FP = FixedPoint(
                     backward_iterator(),
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration=self.DEQ_config.anderson_acceleration_backward,
-                    history_size=self.DEQ_config.history_size_backward,
-                    beta_anderson_acc=self.DEQ_config.beta_anderson_acc_backward,
-                    eps_anderson_acc=self.DEQ_config.eps_anderson_acc_backward,
+                    anderson_acceleration_config=self.anderson_acceleration_config
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g
@@ -787,7 +794,20 @@ class BaseOptim(Reconstructor):
         return x
 
     def forward(
-        self, y, physics, init=None, x_gt=None, compute_metrics=False, **kwargs
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        init: (
+            Callable[
+                [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
+            ]
+            | Iterable[torch.Tensor]
+            | torch.Tensor
+            | dict
+        ) = None,
+        x_gt: torch.Tensor = None,
+        compute_metrics: bool = False,
+        **kwargs,
     ):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
@@ -1033,9 +1053,6 @@ class ADMM(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.    
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1062,26 +1079,35 @@ class ADMM(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        beta=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        unfold=False,
-        trainable_params=None,
-        g_first=False,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        beta: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        g_first: bool = False,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
 
@@ -1105,7 +1131,6 @@ class ADMM(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -1164,9 +1189,6 @@ class DRS(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1192,26 +1214,35 @@ class DRS(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        beta=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        g_first=False,
-        unfold=False,
-        trainable_params=None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        beta: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        g_first: bool = False,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1233,7 +1264,6 @@ class DRS(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -1306,10 +1336,14 @@ class GD(BaseOptim):
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
-        If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
+        If ``None`` (default) or ``False``, DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
+        If ``True``, the default ``DEQConfig`` is used.
+    :param bool anderson_acceleration: Configure Anderson acceleration for the fixed-point iterations.
+        If ``None`` (default) or ``False``, Anderson acceleration is disabled.
+        Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
+        If ``True``, the default ``AndersonAccelerationConfig`` is used.
     :param Callable F_fn: Custom user input cost function.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
@@ -1321,25 +1355,36 @@ class GD(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        unfold=False,
-        trainable_params=None,
-        DEQ: DEQConfig | None = None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        backtracking: BacktrackingConfig | bool = None,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1418,9 +1463,6 @@ class HQS(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1438,10 +1480,14 @@ class HQS(BaseOptim):
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
-        If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
+        If ``None`` (default) or ``False``, DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
+        If ``True``, the default ``DEQConfig`` is used.
+    :param bool anderson_acceleration: Configure Anderson acceleration for the fixed-point iterations.
+        If ``None`` (default) or ``False``, Anderson acceleration is disabled.
+        Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
+        If ``True``, the default ``AndersonAccelerationConfig`` is used.
     :param Callable F_fn: Custom user input cost function.    
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
@@ -1453,26 +1499,36 @@ class HQS(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        g_first=False,
-        unfold=False,
-        trainable_params=None,
-        DEQ: DEQConfig | None = None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1493,7 +1549,6 @@ class HQS(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -1568,10 +1623,14 @@ class PGD(BaseOptim):
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param deepinv.optim.DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
-        If ``None`` (default), DEQ is disabled and the algorithm runs a standard finite number of iterations.
+        If ``None`` (default) or ``False``, DEQ is disabled and the algorithm runs a standard finite number of iterations.
         Otherwise, ``DEQ`` must be an instance of :class:`deepinv.optim.DEQConfig`, which defines the parameters
         for forward and backward equilibrium-based implicit differentiation.
-        By default, DEQ is disabled (``DEQ=None``). As soon as ``DEQ`` is not ``None``, the ``DEQConfig`` values are used.
+        If ``True``, the default ``DEQConfig`` is used.
+    :param bool anderson_acceleration: Configure Anderson acceleration for the fixed-point iterations.
+        If ``None`` (default) or ``False``, Anderson acceleration is disabled.
+        Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
+        If ``True``, the default ``AndersonAccelerationConfig`` is used.
     :param Callable F_fn: Custom user input cost function.
             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
@@ -1583,26 +1642,37 @@ class PGD(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        g_first=False,
-        unfold=False,
-        trainable_params=None,
-        DEQ: DEQConfig | None = None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        backtracking: BacktrackingConfig | bool = None,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1677,9 +1747,6 @@ class FISTA(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1706,26 +1773,35 @@ class FISTA(BaseOptim):
 
     def __init__(
         self,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        a=3,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        g_first=False,
-        unfold=False,
-        trainable_params=None,
-        F_fn=None,
-        device=torch.device("cpu"),
-        params_algo=None,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        a: int = 3,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1747,7 +1823,6 @@ class FISTA(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -1795,9 +1870,6 @@ class MD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1824,24 +1896,33 @@ class MD(BaseOptim):
     def __init__(
         self,
         bregman_potential=BregmanL2(),
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        unfold=False,
-        trainable_params=None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1862,7 +1943,6 @@ class MD(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -1911,9 +1991,6 @@ class PMD(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -1941,24 +2018,34 @@ class PMD(BaseOptim):
     def __init__(
         self,
         bregman_potential=BregmanL2(),
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        unfold=False,
-        trainable_params=None,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1970,7 +2057,9 @@ class PMD(BaseOptim):
                 "g_param": g_param,
             }
         super(PMD, self).__init__(
-            PMDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            PMDIteration(
+                F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential
+            ),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1978,7 +2067,6 @@ class PMD(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             custom_init=custom_init,
             unfold=unfold,
@@ -2050,9 +2138,6 @@ class PDCP(BaseOptim):
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     :param bool early_stop: whether to stop the algorithm as soon as the convergence criterion is met. Default: ``False``.
-    :param deepinv.optim.BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
-        If None (default), stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
-        By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the default ``BacktrackingConfig`` is used.
     :param dict custom_metrics: dictionary of custom metric functions to be computed along the iterations. The keys of the dictionary are the names of the metrics, and the values are functions that take as input the current and previous iterates, and return a scalar value. Default: ``None``.
     :param Callable custom_init:  Custom initialization of the algorithm.
         The callable function ``custom_init(y, physics)`` takes as input the measurement :math:`y` and the physics ``physics`` and returns the initialization in the form of either:
@@ -2079,29 +2164,38 @@ class PDCP(BaseOptim):
 
     def __init__(
         self,
-        K=lambda x: x,
-        K_adjoint=lambda x: x,
-        data_fidelity=None,
-        prior=None,
-        lambda_reg=1.0,
-        stepsize=1.0,
-        stepsize_dual=1.0,
-        beta=1.0,
-        g_param=None,
-        sigma_denoiser=None,
-        max_iter=100,
-        crit_conv="residual",
-        thres_conv=1e-5,
-        early_stop=False,
-        backtracking: BacktrackingConfig | None = None,
-        custom_metrics=None,
-        custom_init=None,
-        unfold=False,
-        trainable_params=None,
-        g_first=False,
-        F_fn=None,
-        params_algo=None,
-        device=torch.device("cpu"),
+        K: Callable[torch.Tensor, torch.Tensor] = lambda x: x,
+        K_adjoint: Callable[torch.Tensor, torch.Tensor] = lambda x: x,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        stepsize: float = 1.0,
+        stepsize_dual: float = 1.0,
+        beta: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        g_first: bool = False,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        F_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -2141,7 +2235,6 @@ class PDCP(BaseOptim):
             crit_conv=crit_conv,
             thres_conv=thres_conv,
             early_stop=early_stop,
-            backtracking=backtracking,
             custom_metrics=custom_metrics,
             unfold=unfold,
             trainable_params=trainable_params,
