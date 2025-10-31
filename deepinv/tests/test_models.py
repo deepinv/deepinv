@@ -1353,3 +1353,45 @@ def test_client_mocked(return_metadata):
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="output"):
             _ = model(y)
+
+
+def test_siren_net(device):
+    siren = dinv.models.SIREN(
+        input_dim=2,
+        encoding_dim=32,
+        out_channels=1,
+        siren_dims=[32],
+        bias={"encoding": False, "siren": False},
+        device=device,
+    )
+    siren.siren.init_weights()
+    x = dinv.models.siren.get_mgrid((32, 32)).to(device)
+    assert x.min() == -1 and x.max() == 1
+    assert (siren.pe(x) == -siren.pe(-x)).all()
+    assert (siren(x) == -siren(-x)).all()
+
+
+def test_siren_reconstructor(imsize, device):
+    torch.manual_seed(0)
+    imsize = (1, 1, 32, 32)
+    siren_net = dinv.models.SIREN(
+        input_dim=2,
+        encoding_dim=32,
+        out_channels=1,
+        siren_dims=[32] * 1,
+        bias={"encoding": True, "siren": True},
+        omega0={"encoding": 1.0, "siren": 1.0},
+        device=device,
+    )
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.05))
+    f = dinv.models.SirenReconstructor(
+        siren_net=siren_net,
+        img_size=imsize[1:],
+        iterations=500,
+        learning_rate=1e-2,
+        regul_param=1e-2,
+    )
+    x = torch.ones(imsize[2:], device=device).unsqueeze(0)
+    y = physics(x)
+    x_net = f(y, physics)
+    return torch.allclose(x, x_net, atol=0.1)

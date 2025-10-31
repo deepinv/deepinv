@@ -1016,12 +1016,12 @@ def least_squares_implicit_backward(
 ) -> Tensor:
     r"""
     Least squares solver with O(1) memory backward propagation using implicit differentiation.
-    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations. 
+    The function is similar to :func:`deepinv.optim.utils.least_squares` for the forward pass, but uses implicit differentiation for the backward pass, which reduces memory consumption to O(1) in the number of iterations.
 
-    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details. 
-    
+    This function supports backpropagation with respect to the inputs :math:`y`, :math:`z` and :math:`\gamma` and also with respect to the parameters of the physics operator :math:`A_\theta` if they require gradients. See :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constant_memory.py` and the notes below for more details.
+
     Let :math:`h(z, y, \theta, \gamma)` denote the output of the least squares solver, i.e. the solution of the following problem:
-    
+
     .. math::
 
         h(z, y, \theta, \gamma) = \underset{x}{\arg\min} \; \frac{\gamma}{2}\|A_\theta x-y\|^2 + \frac{1}{2}\|x-z\|^2
@@ -1039,8 +1039,8 @@ def least_squares_implicit_backward(
         \left( \frac{\partial h}{\partial z} \right)^{\top} v               &= \frac{1}{\gamma} M v \\
         \left( \frac{\partial h}{\partial y} \right)^{\top} v               &= A_\theta M v \\
         \left( \frac{\partial h}{\partial \gamma} \right)^{\top} v          &=   (h - z)^\top M  v / \gamma^2 \\
-        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta} 
-        
+        \left( \frac{\partial h}{\partial \theta} \right)^{\top} v          &= \frac{\partial p}{\partial \theta}
+
     where :math:`p =  (y - A_\theta h)^{\top} A_\theta M v` and :math:`\frac{\partial p}{\partial \theta}` can be computed using the standard backpropagation mechanism (autograd).
 
     .. note::
@@ -1065,7 +1065,7 @@ def least_squares_implicit_backward(
 
     .. tip::
 
-        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations. 
+        Training unfolded network with implicit differentiation can reduce memory consumption significantly, especially when using many iterations. On GPU, we can expect a memory reduction factor of about 2x-3x compared to standard backpropagation and a speed-up of about 1.2x-1.5x. The exact numbers depend on the problem and the number of iterations.
 
     :param deepinv.physics.LinearPhysics physics: physics operator :class:`deepinv.physics.LinearPhysics`.
     :param torch.Tensor y: input tensor of shape (B, ...)
