@@ -1,0 +1,1574 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.noise &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/noise';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/physics/noise.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.noise</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.noise</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+
+
+<div class="viewcode-block" id="NoiseModel">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NoiseModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for noise model.</span>
+
+<span class="sd">    Noise models can be combined via :func:`deepinv.physics.NoiseModel.__mul__`.</span>
+
+<span class="sd">    :param Callable noise_model: noise model function :math:`N(y)`.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+<span class="sd">        If provided, it should be on the same device as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">noise_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">noise_model</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># NOTE: There is no use in moving RNG states from one device to another</span>
+            <span class="c1"># as Generator.set_state only supports inputs living on the CPU. Yet,</span>
+            <span class="c1"># by registering the initial random state as a buffer, it might be</span>
+            <span class="c1"># moved to another device. This might hinder performance as the tensor</span>
+            <span class="c1"># will need to be moved back to the CPU if it needs to be used later.</span>
+            <span class="c1"># We could fix that by letting it be a regular class attribute instead</span>
+            <span class="c1"># of a buffer but it would prevent it from being included in the</span>
+            <span class="c1"># state dicts which is undesirable.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;initial_random_state&quot;</span><span class="p">,</span> <span class="n">rng</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+
+<div class="viewcode-block" id="NoiseModel.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add noise to the input</span>
+
+<span class="sd">        :param torch.Tensor input: input tensor</span>
+<span class="sd">        :param int seed: the seed for the random number generator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.__mul__">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenates two noise :math:`N = N_1 \circ N_2` via the mul operation</span>
+
+<span class="sd">        The resulting operator will add the noise from both noise models and keep the `rng` of :math:`N_1`.</span>
+
+<span class="sd">        :param deepinv.physics.NoiseModel other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (deepinv.physics.NoiseModel) concatenated operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">NoiseModel</span><span class="p">(</span>
+            <span class="n">noise_model</span><span class="o">=</span><span class="n">noise_model</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.rng_manual_seed">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.rng_manual_seed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rng_manual_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the seed for the random number generator.</span>
+
+<span class="sd">        :param int seed: the seed to set for the random number generator.</span>
+<span class="sd">            If not provided, the current state of the random number generator is used.</span>
+<span class="sd">            .. note:: The seed will be ignored if the random number generator is not initialized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored.&quot;</span>
+                <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.reset_rng">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.reset_rng">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_rng</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the random number generator to its initial state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># NOTE: Generator.set_state expects a tensor living on the CPU.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_random_state</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot reset state for random number generator because it was not initialized. This is ignored.&quot;</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.rand_like">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.rand_like">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rand_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Equivalent to `torch.rand_like` but supports a pseudorandom number generator argument.</span>
+
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.randn_like">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.randn_like">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">randn_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.</span>
+
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.update_parameters">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.update_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the parameters of the noise model.</span>
+
+<span class="sd">        :param dict kwargs: dictionary of parameters to update.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_float_to_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a float or int to a torch.Tensor.</span>
+
+<span class="sd">        :param value float or int or torch.Tensor: the input value</span>
+
+<span class="sd">        :return: the same value as a torch.Tensor</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported type for noise level. Expected float, int, or torch.Tensor, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># To handle the transfer between CPU/GPU properly</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_device_from_args</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+            <span class="c1"># Move the generator to the specified device</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Moving the random number generator between CPU/GPU is not possible. Reinitialize the generator on the correct device.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="c1"># Helper to extract device from .to() arguments</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_device_from_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s2">&quot;device&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;device&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;device&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;device&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="ZeroNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ZeroNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Zero noise model :math:`y=x`, serves as a placeholder.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ZeroNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the same input.</span>
+
+<span class="sd">        :param torch.Tensor x: measurements.</span>
+<span class="sd">        :returns: x.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GaussianNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GaussianNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding gaussian noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, GaussianNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = GaussianNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">        We can sum 2 GaussianNoise instances:</span>
+
+<span class="sd">        &gt;&gt;&gt; gaussian_noise_1 = GaussianNoise(sigma=3.0)</span>
+<span class="sd">        &gt;&gt;&gt; gaussian_noise_2 = GaussianNoise(sigma=4.0)</span>
+<span class="sd">        &gt;&gt;&gt; gaussian_noise = gaussian_noise_1 + gaussian_noise_2</span>
+<span class="sd">        &gt;&gt;&gt; y = gaussian_noise(x)</span>
+<span class="sd">        &gt;&gt;&gt; gaussian_noise.sigma.item()</span>
+<span class="sd">        5.0</span>
+
+<span class="sd">        We can also multiply a GaussianNoise by a float:</span>
+
+<span class="sd">        | :math:`scaled\_gaussian\_noise(x) = \lambda \times gaussian\_noise(x)`</span>
+
+<span class="sd">        &gt;&gt;&gt; scaled_gaussian_noise = 3.0 * gaussian_noise</span>
+<span class="sd">        &gt;&gt;&gt; y = scaled_gaussian_noise(x)</span>
+<span class="sd">        &gt;&gt;&gt; scaled_gaussian_noise.sigma.item()</span>
+<span class="sd">        15.0</span>
+
+<span class="sd">        We can also create a batch of GaussianNoise with different standard deviations:</span>
+
+<span class="sd">        | :math:`x=[x_1, ..., x_b]`</span>
+<span class="sd">        | :math:`t=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.</span>
+<span class="sd">        | :math:`[t \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`</span>
+
+<span class="sd">        &gt;&gt;&gt; t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)</span>
+<span class="sd">        &gt;&gt;&gt; batch_gaussian_noise = t * gaussian_noise</span>
+<span class="sd">        &gt;&gt;&gt; y = batch_gaussian_noise(x)</span>
+<span class="sd">        &gt;&gt;&gt; assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), &quot;Wrong standard deviation value for the first GaussianNoise.&quot;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sum of 2 gaussian noises via + operator.</span>
+
+<span class="sd">        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`</span>
+
+<span class="sd">        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GaussianNoise</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;GaussianNoise Add Operator is unsupported for type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Element-wise multiplication of a GaussianNoise via `*` operator.</span>
+
+<span class="sd">        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.</span>
+
+<span class="sd">        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.</span>
+
+<span class="sd">            | :math:`x=[x_1, ..., x_b]` a batch of images.</span>
+<span class="sd">            | :math:`\lambda` a float.</span>
+<span class="sd">            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`</span>
+
+<span class="sd">        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.</span>
+
+<span class="sd">            | :math:`x=[x_1, ..., x_b]` a batch of images.</span>
+<span class="sd">            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.</span>
+<span class="sd">            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`</span>
+
+<span class="sd">        :param float or torch.Tensor other: Scaling factor for the GaussianNoise&#39;s standard deviation.</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>  <span class="c1"># standard NoiseModel multiplication</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">other</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="p">):</span>  <span class="c1"># should be a float or a torch.Tensor</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Multiplication with type </span><span class="si">{}</span><span class="s2"> is not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Commutativity of the __mul__ operator.</span>
+
+<span class="sd">        :param float or torch.Tensor other: Scaling factor for the GaussianNoise&#39;s standard deviation.</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Multiplication (noise_model * gaussian_noise) with type </span><span class="si">{}</span><span class="s2"> is not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="GaussianNoise.__add__">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.__add__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sum of 2 gaussian noises via + operator.</span>
+
+<span class="sd">        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`</span>
+
+<span class="sd">        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GaussianNoise</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;GaussianNoise Add Operator is unsupported for type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="GaussianNoise.__mul__">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Element-wise multiplication of a GaussianNoise via `*` operator.</span>
+
+<span class="sd">        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.</span>
+
+<span class="sd">        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.</span>
+
+<span class="sd">            | :math:`x=[x_1, ..., x_b]` a batch of images.</span>
+<span class="sd">            | :math:`\lambda` a float.</span>
+<span class="sd">            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`</span>
+
+<span class="sd">        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.</span>
+
+<span class="sd">            | :math:`x=[x_1, ..., x_b]` a batch of images.</span>
+<span class="sd">            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.</span>
+<span class="sd">            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`</span>
+
+<span class="sd">        :param float or torch.Tensor other: Scaling factor for the GaussianNoise&#39;s standard deviation.</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>  <span class="c1"># standard NoiseModel multiplication</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">other</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="p">):</span>  <span class="c1"># should be a float or a torch.Tensor</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Multiplication with type </span><span class="si">{}</span><span class="s2"> is not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+            <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Commutativity of the __mul__ operator.</span>
+
+<span class="sd">        :param float or torch.Tensor other: Scaling factor for the GaussianNoise&#39;s standard deviation.</span>
+<span class="sd">        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Multiplication (noise_model * gaussian_noise) with type </span><span class="si">{}</span><span class="s2"> is not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="GaussianNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param float, torch.Tensor sigma: standard deviation of the noise.</span>
+<span class="sd">            If not `None`, it will overwrite the current noise level.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">x</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="UniformGaussianNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.UniformGaussianNoise.html#deepinv.physics.UniformGaussianNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UniformGaussianNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gaussian noise :math:`y=z+\epsilon` where</span>
+<span class="sd">    :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and</span>
+<span class="sd">    :math:`\sigma \sim\mathcal{U}(\sigma_{\text{min}}, \sigma_{\text{max}})`</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] sigma_min: minimum standard deviation of the noise.</span>
+<span class="sd">    :param Union[float, torch.Tensor] sigma_max: maximum standard deviation of the noise.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding uniform gaussian noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, UniformGaussianNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = UniformGaussianNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sigma_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">sigma_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">sigma_min</span><span class="p">,</span> <span class="n">sigma_max</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">sigma_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">sigma_min</span><span class="p">)</span>
+        <span class="n">sigma_min</span> <span class="o">=</span> <span class="n">sigma_min</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma_min&quot;</span><span class="p">,</span> <span class="n">sigma_min</span><span class="p">)</span>
+
+        <span class="n">sigma_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">sigma_max</span><span class="p">)</span>
+        <span class="n">sigma_max</span> <span class="o">=</span> <span class="n">sigma_max</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma_max&quot;</span><span class="p">,</span> <span class="n">sigma_max</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UniformGaussianNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.UniformGaussianNoise.html#deepinv.physics.UniformGaussianNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x.</span>
+
+<span class="sd">        :param torch.Tensor x: measurements.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        :returns: noisy measurements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_min</span><span class="p">)</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_min</span>
+        <span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">sigma</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noise</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PoissonNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PoissonNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`</span>
+<span class="sd">    with gain :math:`\gamma&gt;0`.</span>
+
+<span class="sd">    If ``normalize=True``, the output is multiplied by the gain, i.e., :math:`\tilde{y} = \gamma y`.</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] gain: gain of the noise.</span>
+<span class="sd">    :param bool normalize: normalize the output.</span>
+<span class="sd">    :param bool clip_positive: clip the input to be positive before adding noise.</span>
+<span class="sd">        This may be needed when a NN outputs negative values e.g. when using leaky ReLU.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding Poisson noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, PoissonNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = PoissonNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">clip_positive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">gain</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">normalize</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">normalize</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;normalize&quot;</span><span class="p">,</span> <span class="n">normalize</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip_positive</span> <span class="o">=</span> <span class="n">clip_positive</span>
+
+        <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">gain</span><span class="p">)</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="n">gain</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PoissonNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param None, float, torch.Tensor gain: gain of the noise. If not None, it will overwrite the current noise level.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">gain</span><span class="o">=</span><span class="n">gain</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip_positive</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">gain</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># NOTE: PyTorch operations are generally run asynchronously on CUDA</span>
+            <span class="c1"># devices and the underlying CUDA kernel under</span>
+            <span class="c1"># torch.poisson typically raises a CUDA-level assertion error</span>
+            <span class="c1"># when its input has negative entries. Those errors can&#39;t be</span>
+            <span class="c1"># recovered from using Python&#39;s exception system due to their</span>
+            <span class="c1"># asynchronous nature. For this reason we add a manual check if the</span>
+            <span class="c1"># RNG is on a CUDA device.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">gain</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Gain must be positive&quot;</span>
+                <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;Input tensor must be non-negative&quot;</span>
+
+            <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">gain</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">*</span> <span class="n">gain</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GammaNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GammaNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`</span>
+
+<span class="sd">    Follows the (shape, scale) parameterization of the Gamma distribution,</span>
+<span class="sd">    where the mean is given by :math:`x` and the variance is given by :math:`x^2/\ell`,</span>
+<span class="sd">    see https://en.wikipedia.org/wiki/Gamma_distribution for more details.</span>
+
+<span class="sd">    Distribution for modelling speckle noise (e.g. SAR images),</span>
+<span class="sd">    where :math:`\ell&gt;0` controls the noise level (smaller values correspond to higher noise).</span>
+
+<span class="sd">    .. warning:: This noise model does not support the random number generator.</span>
+
+<span class="sd">    :param float, torch.Tensor l: noise level.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+
+<div class="viewcode-block" id="GammaNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="n">l</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">Gamma</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">l</span> <span class="o">/</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PoissonGaussianNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PoissonGaussianNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`</span>
+<span class="sd">    and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.</span>
+
+<span class="sd">    This noise model allows to recover the Poisson noise model by setting the standard deviation to zero,</span>
+<span class="sd">    i.e., :math:`\sigma=0`, and the Gaussian noise model by setting the gain to zero, i.e., :math:`\gamma\to0`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If :math:`\gamma=0`, the model will clamp the input to a small value</span>
+<span class="sd">        to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.</span>
+
+
+<span class="sd">    :param Union[float, torch.Tensor] gain: gain of the noise.</span>
+<span class="sd">    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.</span>
+<span class="sd">    :param bool clip_positive: (optional) if True, the input is clipped to be positive before adding noise.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding Poisson gaussian noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, PoissonGaussianNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = PoissonGaussianNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">clip_positive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">min_gain</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">gain</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip_positive</span> <span class="o">=</span> <span class="n">clip_positive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_gain</span> <span class="o">=</span> <span class="n">min_gain</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">gain</span><span class="p">)</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="n">gain</span><span class="p">)</span>
+
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PoissonGaussianNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param None, float, torch.Tensor gain: gain of the noise. If not None, it will overwrite the current gain.</span>
+<span class="sd">        :param None, float, torch.Tensor sigma: Tensor containing gain and standard deviation.</span>
+<span class="sd">            If not None, it will overwrite the current gain and standard deviation.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span>
+            <span class="n">gain</span><span class="o">=</span><span class="n">gain</span><span class="p">,</span>
+            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+
+        <span class="n">gain</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">gain</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_gain</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip_positive</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">gain</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span> <span class="o">*</span> <span class="n">gain</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># NOTE: PyTorch operations are generally run asynchronously on CUDA</span>
+            <span class="c1"># devices and the underlying CUDA kernel under</span>
+            <span class="c1"># torch.poisson typically raises a CUDA-level assertion error</span>
+            <span class="c1"># when its input has negative entries. Those errors can&#39;t be</span>
+            <span class="c1"># recovered from using Python&#39;s exception system due to their</span>
+            <span class="c1"># asynchronous nature. For this reason we add a manual check if the</span>
+            <span class="c1"># RNG is on a CUDA device.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">gain</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Gain must be positive&quot;</span>
+                <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;Input tensor must be non-negative&quot;</span>
+
+            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">gain</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span> <span class="o">*</span> <span class="n">gain</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">sigma</span>
+
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="UniformNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UniformNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Uniform noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.</span>
+
+<span class="sd">    :param Union[float, torch.Generator] a: amplitude of the noise.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding uniform noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, UniformNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = UniformNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UniformNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param float, torch.Tensor a: amplitude of the noise. If not None, it will overwrite the current noise level.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">x</span>
+            <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>
+            <span class="o">*</span> <span class="mi">2</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LogPoissonNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogPoissonNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log-Poisson noise :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})`.</span>
+
+<span class="sd">    This noise model is mostly used for modelling the noise for (low dose) computed tomography measurements.</span>
+<span class="sd">    Here, N0 describes the average number of measured photons. It acts as a noise-level parameter, where a</span>
+<span class="sd">    larger value of N0 corresponds to a lower strength of the noise.</span>
+<span class="sd">    The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.</span>
+
+<span class="sd">    For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] N0: number of photons</span>
+<span class="sd">    :param Union[float, torch.Tensor] mu: normalization constant</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding LogPoisson noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, LogPoissonNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = LogPoissonNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">N0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">1024.0</span><span class="p">,</span>
+        <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">50.0</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">N0</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">mu</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;mu&quot;</span><span class="p">,</span> <span class="n">mu</span><span class="p">)</span>
+
+        <span class="n">N0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">N0</span><span class="p">)</span>
+        <span class="n">N0</span> <span class="o">=</span> <span class="n">N0</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;N0&quot;</span><span class="p">,</span> <span class="n">N0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LogPoissonNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">N0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param None, float, torch.Tensor mu: number of photons.</span>
+<span class="sd">            If not None, it will overwrite the current number of photons.</span>
+<span class="sd">        :param None, float, torch.Tensor N0: normalization constant.</span>
+<span class="sd">            If not None, it will overwrite the current normalization constant.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mu</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">N1_tilde</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">N1_tilde</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SaltPepperNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SaltPepperNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SaltPepper noise :math:`y = \begin{cases} 0 &amp; \text{if } z &lt; p\\ z &amp; \text{if } z \in [p, 1-s]\\ 1 &amp; \text{if } z &gt; 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`</span>
+
+<span class="sd">    This noise model is also known as impulse noise, is a form of noise sometimes seen on digital images.</span>
+<span class="sd">    For black-and-white or grayscale images, it presents as sparsely occurring white and black pixels,</span>
+<span class="sd">    giving the appearance of an image sprinkled with salt and pepper.</span>
+
+<span class="sd">    The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] s: amount of salt noise.</span>
+<span class="sd">    :param Union[float, torch.Tensor] p: amount of pepper noise.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Adding LogPoisson noise to a physics operator by setting the ``noise_model``</span>
+<span class="sd">        attribute of the physics operator:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Denoising, SaltPepperNoise</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; physics = Denoising()</span>
+<span class="sd">        &gt;&gt;&gt; physics.noise_model = SaltPepperNoise()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(1, 1, 2, 2)</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span>
+        <span class="n">s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SaltPepperNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param None, float, torch.Tensor s: amount of salt noise.</span>
+<span class="sd">            If not None, it will overwrite the current salt noise.</span>
+<span class="sd">        :param None, float, torch.Tensor p: amount of pepper noise.</span>
+<span class="sd">            If not None, it will overwrite the current pepper noise.</span>
+<span class="sd">        :param int seed: the seed for the random number generator, if `rng` is provided.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">proba_flip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span>
+        <span class="n">proba_salt_vs_pepper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="n">mask_flipped</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">proba_flip</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">mask_salt</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">proba_salt_vs_pepper</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask_flipped</span><span class="p">)</span> <span class="o">+</span> <span class="n">mask_flipped</span> <span class="o">*</span> <span class="n">mask_salt</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FisherTippettNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.FisherTippettNoise.html#deepinv.physics.FisherTippettNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FisherTippettNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fisher-Tippett noise :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`</span>
+
+<span class="sd">    Distribution for modelling the noise of log-intensities images in SAR imaging.</span>
+
+<span class="sd">    .. warning:: This noise model does not support the random number generator.</span>
+
+<span class="sd">    :param float, torch.Tensor l: noise level.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+
+<div class="viewcode-block" id="FisherTippettNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.FisherTippettNoise.html#deepinv.physics.FisherTippettNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements (log-intensities)</span>
+<span class="sd">        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.</span>
+<span class="sd">        :returns: noisy measurements (log-intensities)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="n">l</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="n">GammaNoise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">gamma</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RicianNoise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.RicianNoise.html#deepinv.physics.RicianNoise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RicianNoise</span><span class="p">(</span><span class="n">NoiseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rician noise: :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`</span>
+
+<span class="sd">    where :math:`\epsilon_1\sim\mathcal{N}(0,I)` and :math:`\epsilon_2\sim\mathcal{N}(0,I)`</span>
+
+<span class="sd">    This noise model is often used in MRI imaging and has the property of keeping pixel intensities :math:`\geq 0`</span>
+
+<span class="sd">    .. warning:: All pixel intensities will become positive: this noise model may not be suited for data with negative intensities.</span>
+
+<span class="sd">    :param Union[float, torch.Tensor] sigma: Standard deviation used.</span>
+<span class="sd">    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">_infer_device</span><span class="p">([</span><span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_float_to_tensor</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RicianNoise.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.RicianNoise.html#deepinv.physics.RicianNoise.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the noise to measurements x</span>
+
+<span class="sd">        :param torch.Tensor x: measurements</span>
+<span class="sd">        :param float, torch.Tensor, None sigma: standard deviation to be used.</span>
+<span class="sd">            If not `None`, it will overwrite the current noise level.</span>
+<span class="sd">        :param int, None seed: the seed for the random number generator.</span>
+<span class="sd">        :returns: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng_manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">N1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">N2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">N1</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">N2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_device</span><span class="p">(</span>
+    <span class="n">device_held_candidates</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Infer the device from a list of candidates.</span>
+
+<span class="sd">    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.</span>
+
+<span class="sd">    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.</span>
+
+<span class="sd">    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.</span>
+<span class="sd">    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).</span>
+<span class="sd">    :raises RuntimeError: if more than one device is found among the inputs.</span>
+<span class="sd">    :return: the device of the candidates or the default device if no candidates are bound to a device.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">input_devices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">device_held_candidate</span> <span class="ow">in</span> <span class="n">device_held_candidates</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">device_held_candidate</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">TensorList</span><span class="p">),</span>
+        <span class="p">):</span>
+            <span class="n">input_devices</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">device_held_candidate</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_devices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Input tensors and Generator should be on the same device. Found devices: </span><span class="si">{</span><span class="n">input_devices</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">input_devices</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="k">if</span> <span class="n">input_devices</span> <span class="k">else</span> <span class="n">default</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

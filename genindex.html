@@ -1,0 +1,2667 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=ba50482b"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/genindex.html" />
+    <link rel="icon" href="_static/logo.ico"/>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ | <a href="#X"><strong>X</strong></a>
+ | <a href="#Z"><strong>Z</strong></a>
+ 
+</div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric.__add__">__add__() (deepinv.loss.metric.Metric method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.__add__">(deepinv.physics.GaussianNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.__add__">(deepinv.physics.generator.PhysicsGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.__add__">(deepinv.transform.Transform method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.__mul__">__mul__() (deepinv.physics.GaussianNoise method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting.__mul__">(deepinv.physics.Inpainting method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.__mul__">(deepinv.physics.LinearPhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.__mul__">(deepinv.physics.NoiseModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.__mul__">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.__mul__">(deepinv.transform.Transform method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur.A">A() (deepinv.physics.Blur method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.A">(deepinv.physics.CompressiveSpectralImaging method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A">(deepinv.physics.DecomposablePhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling.A">(deepinv.physics.Downsampling method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.DownsamplingMatlab.html#deepinv.physics.DownsamplingMatlab.A">(deepinv.physics.DownsamplingMatlab method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Haze.html#deepinv.physics.Haze.A">(deepinv.physics.Haze method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing.A">(deepinv.physics.HyperSpectralUnmixing method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.A">(deepinv.physics.MultiCoilMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A">(deepinv.physics.PhaseRetrieval method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.A">(deepinv.physics.PtychographyLinearOperator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry.A">(deepinv.physics.RadioInterferometry method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SinglePhotonLidar.html#deepinv.physics.SinglePhotonLidar.A">(deepinv.physics.SinglePhotonLidar method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur.A">(deepinv.physics.SpaceVaryingBlur method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpatialUnwrapping.html#deepinv.physics.SpatialUnwrapping.A">(deepinv.physics.SpatialUnwrapping method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.A">(deepinv.physics.StackedPhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A">(deepinv.physics.Tomography method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra.A">(deepinv.physics.TomographyWithAstra method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_A_adjoint">A_A_adjoint() (deepinv.physics.DecomposablePhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_A_adjoint">(deepinv.physics.LinearPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur.A_adjoint">A_adjoint() (deepinv.physics.Blur method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.A_adjoint">(deepinv.physics.CompressiveSpectralImaging method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_adjoint">(deepinv.physics.DecomposablePhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling.A_adjoint">(deepinv.physics.Downsampling method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.DownsamplingMatlab.html#deepinv.physics.DownsamplingMatlab.A_adjoint">(deepinv.physics.DownsamplingMatlab method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI.A_adjoint">(deepinv.physics.DynamicMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing.A_adjoint">(deepinv.physics.HyperSpectralUnmixing method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint">(deepinv.physics.LinearPhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI.A_adjoint">(deepinv.physics.MRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.A_adjoint">(deepinv.physics.MultiCoilMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.A_adjoint">(deepinv.physics.PtychographyLinearOperator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry.A_adjoint">(deepinv.physics.RadioInterferometry method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SequentialMRI.html#deepinv.physics.SequentialMRI.A_adjoint">(deepinv.physics.SequentialMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur.A_adjoint">(deepinv.physics.SpaceVaryingBlur method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpatialUnwrapping.html#deepinv.physics.SpatialUnwrapping.A_adjoint">(deepinv.physics.SpatialUnwrapping method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.StackedLinearPhysics.html#deepinv.physics.StackedLinearPhysics.A_adjoint">(deepinv.physics.StackedLinearPhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A_adjoint">(deepinv.physics.Tomography method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra.A_adjoint">(deepinv.physics.TomographyWithAstra method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_adjoint_A">A_adjoint_A() (deepinv.physics.DecomposablePhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint_A">(deepinv.physics.LinearPhysics method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.A_dagger">A_dagger() (deepinv.physics.DecomposablePhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Haze.html#deepinv.physics.Haze.A_dagger">(deepinv.physics.Haze method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing.A_dagger">(deepinv.physics.HyperSpectralUnmixing method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_dagger">(deepinv.physics.LinearPhysics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.A_dagger">(deepinv.physics.MultiCoilMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen.A_dagger">(deepinv.physics.Pansharpen method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A_dagger">(deepinv.physics.PhaseRetrieval method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A_dagger">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SinglePhotonLidar.html#deepinv.physics.SinglePhotonLidar.A_dagger">(deepinv.physics.SinglePhotonLidar method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A_dagger">(deepinv.physics.Tomography method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra.A_dagger">(deepinv.physics.TomographyWithAstra method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_vjp">A_vjp() (deepinv.physics.LinearPhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.A_vjp">(deepinv.physics.PhaseRetrieval method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A_vjp">(deepinv.physics.Physics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.adapt_model">adapt_model() (deepinv.loss.BaseLossScheduler method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.loss.Loss.html#deepinv.loss.Loss.adapt_model">(deepinv.loss.Loss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.mri.Phase2PhaseLoss.html#deepinv.loss.mri.Phase2PhaseLoss.adapt_model">(deepinv.loss.mri.Phase2PhaseLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.adapt_model">(deepinv.loss.R2RLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss.adapt_model">(deepinv.loss.ScoreLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.adapt_model">(deepinv.loss.SplittingLoss method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function">adjoint_function() (in module deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.adjointness_test">adjointness_test() (deepinv.physics.LinearPhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration">ADMMIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ADMUNet.html#deepinv.models.ADMUNet">ADMUNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.DiscriminatorLoss.html#deepinv.loss.adversarial.DiscriminatorLoss.adversarial_loss">adversarial_loss() (deepinv.loss.adversarial.DiscriminatorLoss method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.loss.adversarial.GeneratorLoss.html#deepinv.loss.adversarial.GeneratorLoss.adversarial_loss">(deepinv.loss.adversarial.GeneratorLoss method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer">AdversarialOptimizer (class in deepinv.training)</a>
+</li>
+      <li><a href="api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer">AdversarialTrainer (class in deepinv.training)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.projective.Affine.html#deepinv.transform.projective.Affine">Affine (class in deepinv.transform.projective)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.AmplitudeLoss.html#deepinv.optim.AmplitudeLoss">AmplitudeLoss (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.AmplitudeLossDistance.html#deepinv.optim.AmplitudeLossDistance">AmplitudeLossDistance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint.anderson_acceleration_step">anderson_acceleration_step() (deepinv.optim.FixedPoint method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.Artifact2ArtifactLoss.html#deepinv.loss.mri.Artifact2ArtifactLoss">Artifact2ArtifactLoss (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator">Artifact2ArtifactSplittingMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ArtifactRemoval.html#deepinv.models.ArtifactRemoval">ArtifactRemoval (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.AugmentConsistencyLoss.html#deepinv.loss.AugmentConsistencyLoss">AugmentConsistencyLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.AutoEncoder.html#deepinv.models.AutoEncoder">AutoEncoder (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.average">average() (deepinv.physics.generator.PhysicsGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.average">(deepinv.utils.TimeMixin static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.utils.AverageMeter.html#deepinv.utils.AverageMeter">AverageMeter (class in deepinv.utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.B_dagger">B_dagger() (deepinv.physics.PhaseRetrieval method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ArtifactRemoval.html#deepinv.models.ArtifactRemoval.backbone_inference">backbone_inference() (deepinv.models.ArtifactRemoval method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.models.VarNet.html#deepinv.models.VarNet.backbone_inference">(deepinv.models.VarNet method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.base_conditioning">base_conditioning() (deepinv.models.RAM method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.unfolded.BaseDEQ.html#deepinv.unfolded.BaseDEQ">BaseDEQ (class in deepinv.unfolded)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler">BaseLossScheduler (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator">BaseMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim">BaseOptim (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling">BaseSampling (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSDE.html#deepinv.sampling.BaseSDE">BaseSDE (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver">BaseSDESolver (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.unfolded.BaseUnfold.html#deepinv.unfolded.BaseUnfold">BaseUnfold (class in deepinv.unfolded)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.batch_step">batch_step() (deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.batch_step">(deepinv.physics.generator.BernoulliSplittingMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator.batch_step">(deepinv.physics.generator.GaussianSplittingMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.html#deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.batch_step">(deepinv.physics.generator.MultiplicativeSplittingMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.batch_step">(deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator">BernoulliSplittingMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.bicgstab.html#deepinv.optim.utils.bicgstab">bicgstab() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.blur.bicubic_filter.html#deepinv.physics.blur.bicubic_filter">bicubic_filter() (in module deepinv.physics.blur)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.blur.bilinear_filter.html#deepinv.physics.blur.bilinear_filter">bilinear_filter() (in module deepinv.physics.blur)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Blur.html#deepinv.physics.Blur">Blur (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.BlurFFT.html#deepinv.physics.BlurFFT">BlurFFT (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.BM3D.html#deepinv.models.BM3D">BM3D (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman">Bregman (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Bregman_ICNN.html#deepinv.optim.Bregman_ICNN">Bregman_ICNN (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.bregman_prox">bregman_prox() (deepinv.optim.Potential method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2">BregmanL2 (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.BSDS500.html#deepinv.datasets.BSDS500">BSDS500 (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.phase_retrieval.build_probe.html#deepinv.physics.phase_retrieval.build_probe">build_probe() (in module deepinv.physics.phase_retrieval)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy">BurgEntropy (class in deepinv.optim)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.calculate_lines">calculate_lines() (deepinv.physics.generator.BaseMaskGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68">CBSD68 (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.check_clip_grad">check_clip_grad() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer.check_clip_grad_D">check_clip_grad_D() (deepinv.training.AdversarialTrainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.check_conv_fn">check_conv_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.ImageDataset.html#deepinv.datasets.ImageDataset.check_dataset">check_dataset() (deepinv.datasets.ImageDataset method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.datasets.check_dataset.html#deepinv.datasets.check_dataset">(in module deepinv.datasets)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68.check_dataset_exists">check_dataset_exists() (deepinv.datasets.CBSD68 method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.datasets.Flickr2kHR.html#deepinv.datasets.Flickr2kHR.check_dataset_exists">(deepinv.datasets.Flickr2kHR method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.datasets.NBUDataset.html#deepinv.datasets.NBUDataset.check_dataset_exists">(deepinv.datasets.NBUDataset method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.datasets.Set14HR.html#deepinv.datasets.Set14HR.check_dataset_exists">(deepinv.datasets.Set14HR method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR.check_dataset_exists">(deepinv.datasets.Urban100HR method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling.check_factor">check_factor() (deepinv.physics.Downsampling method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.check_iteration_fn">check_iteration_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI.check_mask">check_mask() (deepinv.physics.DynamicMRI method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.check_mask">(deepinv.utils.MRIMixin method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.check_pixelwise">check_pixelwise() (deepinv.physics.generator.BernoulliSplittingMaskGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.classify">classify() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Client.html#deepinv.models.Client">Client (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.clone">clone() (deepinv.physics.Physics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset.close">close() (deepinv.datasets.HDF5Dataset method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.CMRxReconSliceDataset.html#deepinv.datasets.CMRxReconSliceDataset">CMRxReconSliceDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.component_log_likelihoods">component_log_likelihoods() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.CompressedSensing.html#deepinv.physics.CompressedSensing">CompressedSensing (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging">CompressiveSpectralImaging (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.compute_alpha">compute_alpha() (deepinv.sampling.DiffPIR method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS.compute_alpha_betas">compute_alpha_betas() (deepinv.sampling.DPS method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.compute_loss">compute_loss() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer.compute_loss">(deepinv.training.AdversarialTrainer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.compute_metrics">compute_metrics() (deepinv.Trainer method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_norm">compute_norm() (deepinv.physics.LinearPhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.compute_sqnorm">compute_sqnorm() (deepinv.physics.LinearPhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html#deepinv.loss.mri.WeightedSplittingLoss.compute_weight">compute_weight() (deepinv.loss.mri.WeightedSplittingLoss static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.condition_number">condition_number() (deepinv.physics.LinearPhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.ConfocalBlurGenerator3D.html#deepinv.physics.generator.ConfocalBlurGenerator3D">ConfocalBlurGenerator3D (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Bregman_ICNN.html#deepinv.optim.Bregman_ICNN.conjugate">conjugate() (deepinv.optim.Bregman_ICNN method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2.conjugate">(deepinv.optim.BregmanL2 method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy.conjugate">(deepinv.optim.BurgEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy.conjugate">(deepinv.optim.NegEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.conjugate">(deepinv.optim.Potential method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.utils.conjugate_gradient.html#deepinv.optim.utils.conjugate_gradient">conjugate_gradient() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.constant2map">constant2map() (deepinv.models.RAM method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv2d.html#deepinv.physics.functional.conv2d">conv2d() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv2d_fft.html#deepinv.physics.functional.conv2d_fft">conv2d_fft() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv3d_fft.html#deepinv.physics.functional.conv3d_fft">conv3d_fft() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv_transpose2d.html#deepinv.physics.functional.conv_transpose2d">conv_transpose2d() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv_transpose2d_fft.html#deepinv.physics.functional.conv_transpose2d_fft">conv_transpose2d_fft() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.conv_transpose3d_fft.html#deepinv.physics.functional.conv_transpose3d_fft">conv_transpose3d_fft() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ConvDecoder.html#deepinv.models.ConvDecoder">ConvDecoder (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.convert_to_fp16">convert_to_fp16() (deepinv.models.DiffUNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.convert_to_fp32">convert_to_fp32() (deepinv.models.DiffUNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.phase_retrieval.correct_global_phase.html#deepinv.optim.phase_retrieval.correct_global_phase">correct_global_phase() (in module deepinv.optim.phase_retrieval)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.CPABDiffeomorphism.html#deepinv.transform.CPABDiffeomorphism">CPABDiffeomorphism (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.CPIteration.html#deepinv.optim.optim_iterators.CPIteration">CPIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.PanNet.html#deepinv.models.PanNet.create_sampler">create_sampler() (deepinv.models.PanNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.utils.Crop.html#deepinv.datasets.utils.Crop">Crop (class in deepinv.datasets.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.crop">crop() (deepinv.physics.CompressiveSpectralImaging method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.crop">(deepinv.utils.MRIMixin method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.crop_output">crop_output() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator">CSGMGenerator (class in deepinv.models)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.D">D() (deepinv.optim.ItohFidelity method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.D_adjoint">D_adjoint() (deepinv.optim.ItohFidelity method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.D_lambda">D_lambda() (deepinv.loss.metric.QNR method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.D_s">D_s() (deepinv.loss.metric.QNR method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity">DataFidelity (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator">DCGANDiscriminator (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DCGANGenerator.html#deepinv.models.DCGANGenerator">DCGANGenerator (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.dct.html#deepinv.physics.functional.dct">dct() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.dct_2d.html#deepinv.physics.functional.dct_2d">dct_2d() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM">DDRM (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Decolorize.html#deepinv.physics.Decolorize">Decolorize (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics">DecomposablePhysics (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DeepImagePrior.html#deepinv.models.DeepImagePrior">DeepImagePrior (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Demosaicing.html#deepinv.physics.Demosaicing">Demosaicing (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Denoiser.html#deepinv.models.Denoiser">Denoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Denoising.html#deepinv.physics.Denoising">Denoising (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.unfolded.DEQ_builder.html#deepinv.unfolded.DEQ_builder">DEQ_builder() (in module deepinv.unfolded)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Client.html#deepinv.models.Client.deserialize">deserialize() (deepinv.models.Client static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.detector_cell_area">detector_cell_area (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.detector_cell_u_length">detector_cell_u_length (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.detector_cell_v_length">detector_cell_v_length (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.detector_radius">detector_radius (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.diff">diff() (deepinv.sampling.NoisyDataFidelity method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR">DiffPIR (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DiffractionBlurGenerator.html#deepinv.physics.generator.DiffractionBlurGenerator">DiffractionBlurGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html#deepinv.physics.generator.DiffractionBlurGenerator3D">DiffractionBlurGenerator3D (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet">DiffUNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffusionIterator.html#deepinv.sampling.DiffusionIterator">DiffusionIterator (class in deepinv.sampling)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler">DiffusionSampler (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE">DiffusionSDE (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.dirac_like.html#deepinv.utils.dirac_like">dirac_like() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.disable_tex.html#deepinv.utils.disable_tex">disable_tex() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSDE.html#deepinv.sampling.BaseSDE.discretize">discretize() (deepinv.sampling.BaseSDE method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.DiscriminatorLoss.html#deepinv.loss.adversarial.DiscriminatorLoss">DiscriminatorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.DiscriminatorMetric.html#deepinv.loss.adversarial.DiscriminatorMetric">DiscriminatorMetric (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance">Distance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.ENSURELoss.html#deepinv.loss.mri.ENSURELoss.div">div() (deepinv.loss.mri.ENSURELoss method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman.div">(deepinv.optim.Bregman method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2.div">(deepinv.optim.BregmanL2 method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.DIV2K.html#deepinv.datasets.DIV2K">DIV2K (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DnCNN.html#deepinv.models.DnCNN">DnCNN (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.domain_shape">domain_shape (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.Kohler.html#deepinv.datasets.Kohler.download">download() (deepinv.datasets.Kohler class method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.download_example.html#deepinv.utils.download_example">download_example() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling">Downsampling (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator">DownsamplingGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DownsamplingMatlab.html#deepinv.physics.DownsamplingMatlab">DownsamplingMatlab (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.DPIR.html#deepinv.optim.DPIR">DPIR (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS">DPS (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity">DPSDataFidelity (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.DRSIteration.html#deepinv.optim.optim_iterators.DRSIteration">DRSIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet">DRUNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DScCP.html#deepinv.models.DScCP">DScCP (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.dst1.html#deepinv.physics.functional.dst1">dst1() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.dwt">dwt() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI">DynamicMRI (class in deepinv.physics)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.EILoss.html#deepinv.loss.EILoss">EILoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.enable_tex.html#deepinv.utils.enable_tex">enable_tex() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.ENSURELoss.html#deepinv.loss.mri.ENSURELoss">ENSURELoss (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL">EPLL (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.EPLLDenoiser.html#deepinv.models.EPLLDenoiser">EPLLDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser.epsilon">epsilon() (deepinv.models.TGVDenoiser static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser.epsilon_adjoint">epsilon_adjoint() (deepinv.models.TGVDenoiser static method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.generator.EquispacedMaskGenerator.html#deepinv.physics.generator.EquispacedMaskGenerator">EquispacedMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser">EquivariantDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.ERGAS.html#deepinv.loss.metric.ERGAS">ERGAS (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ESRGANDiscriminator.html#deepinv.models.ESRGANDiscriminator">ESRGANDiscriminator (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.estimate_coil_maps">estimate_coil_maps() (deepinv.physics.MultiCoilMRI static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.projective.Euclidean.html#deepinv.transform.projective.Euclidean">Euclidean (class in deepinv.transform.projective)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver">EulerSolver (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.RobustSplittingLoss.html#deepinv.loss.mri.RobustSplittingLoss.expand_mask">expand_mask() (deepinv.loss.mri.RobustSplittingLoss static method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator.f_matern">f_matern() (deepinv.physics.generator.MotionBlurGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset">FastMRISliceDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.SliceSampleID">FastMRISliceDataset.SliceSampleID (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra.fbp_weighting">fbp_weighting() (deepinv.physics.TomographyWithAstra method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.fft">fft() (deepinv.utils.MRIMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.find_nearest">find_nearest() (deepinv.models.DiffUNet method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.find_nearest">(deepinv.sampling.DiffPIR method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.FisherTippettNoise.html#deepinv.physics.FisherTippettNoise">FisherTippettNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.FISTAIteration.html#deepinv.optim.optim_iterators.FISTAIteration">FISTAIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.fit">fit() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint">FixedPoint (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.flatten">flatten() (deepinv.physics.CompressiveSpectralImaging method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.flatten">(deepinv.utils.TimeMixin static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.flatten_C">flatten_C() (deepinv.utils.TimeMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.flatten_coeffs">flatten_coeffs() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.Flickr2kHR.html#deepinv.datasets.Flickr2kHR">Flickr2kHR (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD">FMD (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier">FMD.NoisySampleIdentifier (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.AmplitudeLossDistance.html#deepinv.optim.AmplitudeLossDistance.fn">fn() (deepinv.optim.AmplitudeLossDistance method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.Bregman_ICNN.html#deepinv.optim.Bregman_ICNN.fn">(deepinv.optim.Bregman_ICNN method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2.fn">(deepinv.optim.BregmanL2 method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy.fn">(deepinv.optim.BurgEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity.fn">(deepinv.optim.DataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance.fn">(deepinv.optim.Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.IndicatorL2Distance.html#deepinv.optim.IndicatorL2Distance.fn">(deepinv.optim.IndicatorL2Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.fn">(deepinv.optim.ItohFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior.fn">(deepinv.optim.L12Prior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior.fn">(deepinv.optim.L1Prior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L2Distance.html#deepinv.optim.L2Distance.fn">(deepinv.optim.L2Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy.fn">(deepinv.optim.NegEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR.fn">(deepinv.optim.PatchNR method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.PoissonLikelihoodDistance.html#deepinv.optim.PoissonLikelihoodDistance.fn">(deepinv.optim.PoissonLikelihoodDistance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.fn">(deepinv.optim.Potential method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity.fn">(deepinv.optim.StackedPhysicsDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.fn">(deepinv.optim.Tikhonov method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.fn">(deepinv.optim.TVPrior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.fn">(deepinv.optim.WaveletPrior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity.fn">(deepinv.optim.ZeroFidelity method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.SliceSampleID.fname">fname (deepinv.datasets.FastMRISliceDataset.SliceSampleID attribute)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier.fname">(deepinv.datasets.FMD.NoisySampleIdentifier attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.FNEJacobianSpectralNorm.html#deepinv.loss.FNEJacobianSpectralNorm">FNEJacobianSpectralNorm (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.utils.Rescale.html#deepinv.datasets.utils.Rescale.forward">forward() (deepinv.datasets.utils.Rescale method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.datasets.utils.ToComplex.html#deepinv.datasets.utils.ToComplex.forward">(deepinv.datasets.utils.ToComplex method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.forward">(deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss.forward">(deepinv.loss.adversarial.SupAdversarialGeneratorLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss.forward">(deepinv.loss.adversarial.UAIRGeneratorLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.forward">(deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.forward">(deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.AugmentConsistencyLoss.html#deepinv.loss.AugmentConsistencyLoss.forward">(deepinv.loss.AugmentConsistencyLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.forward">(deepinv.loss.BaseLossScheduler method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.EILoss.html#deepinv.loss.EILoss.forward">(deepinv.loss.EILoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.FNEJacobianSpectralNorm.html#deepinv.loss.FNEJacobianSpectralNorm.forward">(deepinv.loss.FNEJacobianSpectralNorm method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.JacobianSpectralNorm.html#deepinv.loss.JacobianSpectralNorm.forward">(deepinv.loss.JacobianSpectralNorm method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.Loss.html#deepinv.loss.Loss.forward">(deepinv.loss.Loss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.MCLoss.html#deepinv.loss.MCLoss.forward">(deepinv.loss.MCLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric.forward">(deepinv.loss.metric.Metric method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.MOEILoss.html#deepinv.loss.MOEILoss.forward">(deepinv.loss.MOEILoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.MOILoss.html#deepinv.loss.MOILoss.forward">(deepinv.loss.MOILoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html#deepinv.loss.mri.WeightedSplittingLoss.WeightedMetric.forward">(deepinv.loss.mri.WeightedSplittingLoss.WeightedMetric method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.Neighbor2Neighbor.html#deepinv.loss.Neighbor2Neighbor.forward">(deepinv.loss.Neighbor2Neighbor method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.forward">(deepinv.loss.R2RLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.ReducedResolutionLoss.html#deepinv.loss.ReducedResolutionLoss.forward">(deepinv.loss.ReducedResolutionLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss.forward">(deepinv.loss.ScoreLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss.ScoreModel.forward">(deepinv.loss.ScoreLoss.ScoreModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.forward">(deepinv.loss.SplittingLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel.forward">(deepinv.loss.SplittingLoss.SplittingModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.StackedPhysicsLoss.html#deepinv.loss.StackedPhysicsLoss.forward">(deepinv.loss.StackedPhysicsLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SupLoss.html#deepinv.loss.SupLoss.forward">(deepinv.loss.SupLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss.forward">(deepinv.loss.SureGaussianLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SurePGLoss.html#deepinv.loss.SurePGLoss.forward">(deepinv.loss.SurePGLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SurePoissonLoss.html#deepinv.loss.SurePoissonLoss.forward">(deepinv.loss.SurePoissonLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.TVLoss.html#deepinv.loss.TVLoss.forward">(deepinv.loss.TVLoss method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.ADMUNet.html#deepinv.models.ADMUNet.forward">(deepinv.models.ADMUNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.ArtifactRemoval.html#deepinv.models.ArtifactRemoval.forward">(deepinv.models.ArtifactRemoval method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.BM3D.html#deepinv.models.BM3D.forward">(deepinv.models.BM3D method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.Client.html#deepinv.models.Client.forward">(deepinv.models.Client method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.ConvDecoder.html#deepinv.models.ConvDecoder.forward">(deepinv.models.ConvDecoder method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.forward">(deepinv.models.CSGMGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DCGANDiscriminator.html#deepinv.models.DCGANDiscriminator.forward">(deepinv.models.DCGANDiscriminator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DCGANGenerator.html#deepinv.models.DCGANGenerator.forward">(deepinv.models.DCGANGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DeepImagePrior.html#deepinv.models.DeepImagePrior.forward">(deepinv.models.DeepImagePrior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.Denoiser.html#deepinv.models.Denoiser.forward">(deepinv.models.Denoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward">(deepinv.models.DiffUNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DnCNN.html#deepinv.models.DnCNN.forward">(deepinv.models.DnCNN method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet.forward">(deepinv.models.DRUNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.DScCP.html#deepinv.models.DScCP.forward">(deepinv.models.DScCP method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.EPLLDenoiser.html#deepinv.models.EPLLDenoiser.forward">(deepinv.models.EPLLDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser.forward">(deepinv.models.EquivariantDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.ESRGANDiscriminator.html#deepinv.models.ESRGANDiscriminator.forward">(deepinv.models.ESRGANDiscriminator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.ICNN.html#deepinv.models.ICNN.forward">(deepinv.models.ICNN method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp.forward">(deepinv.models.NCSNpp method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.PanNet.html#deepinv.models.PanNet.forward">(deepinv.models.PanNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.PatchGANDiscriminator.html#deepinv.models.PatchGANDiscriminator.forward">(deepinv.models.PatchGANDiscriminator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.PDNet_DualBlock.html#deepinv.models.PDNet_DualBlock.forward">(deepinv.models.PDNet_DualBlock method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.PDNet_PrimalBlock.html#deepinv.models.PDNet_PrimalBlock.forward">(deepinv.models.PDNet_PrimalBlock method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.forward">(deepinv.models.RAM method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.Reconstructor.html#deepinv.models.Reconstructor.forward">(deepinv.models.Reconstructor method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.forward">(deepinv.models.Restormer method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.SwinIR.html#deepinv.models.SwinIR.forward">(deepinv.models.SwinIR method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser.forward">(deepinv.models.TGVDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.TimeAgnosticNet.html#deepinv.models.TimeAgnosticNet.forward">(deepinv.models.TimeAgnosticNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.TimeAveragingNet.html#deepinv.models.TimeAveragingNet.forward">(deepinv.models.TimeAveragingNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser.forward">(deepinv.models.TVDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.UNet.html#deepinv.models.UNet.forward">(deepinv.models.UNet method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.forward">(deepinv.models.WaveletDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.WaveletDictDenoiser.html#deepinv.models.WaveletDictDenoiser.forward">(deepinv.models.WaveletDictDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.forward">(deepinv.optim.BaseOptim method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Distance.html#deepinv.optim.Distance.forward">(deepinv.optim.Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL.forward">(deepinv.optim.EPLL method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint.forward">(deepinv.optim.FixedPoint method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration.forward">(deepinv.optim.optim_iterators.ADMMIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.CPIteration.html#deepinv.optim.optim_iterators.CPIteration.forward">(deepinv.optim.optim_iterators.CPIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.DRSIteration.html#deepinv.optim.optim_iterators.DRSIteration.forward">(deepinv.optim.optim_iterators.DRSIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.FISTAIteration.html#deepinv.optim.optim_iterators.FISTAIteration.forward">(deepinv.optim.optim_iterators.FISTAIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.GDIteration.html#deepinv.optim.optim_iterators.GDIteration.forward">(deepinv.optim.optim_iterators.GDIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.MDIteration.html#deepinv.optim.optim_iterators.MDIteration.forward">(deepinv.optim.optim_iterators.MDIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.optim_iterators.SMIteration.html#deepinv.optim.optim_iterators.SMIteration.forward">(deepinv.optim.optim_iterators.SMIteration method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator.forward">(deepinv.optim.OptimIterator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.forward">(deepinv.optim.Potential method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.forward">(deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.FisherTippettNoise.html#deepinv.physics.FisherTippettNoise.forward">(deepinv.physics.FisherTippettNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.functional.IRadon.html#deepinv.physics.functional.IRadon.forward">(deepinv.physics.functional.IRadon method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.functional.Radon.html#deepinv.physics.functional.Radon.forward">(deepinv.physics.functional.Radon method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise.forward">(deepinv.physics.GammaNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise.forward">(deepinv.physics.GaussianNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise.forward">(deepinv.physics.LogPoissonNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.forward">(deepinv.physics.NoiseModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval.forward">(deepinv.physics.PhaseRetrieval method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.forward">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise.forward">(deepinv.physics.PoissonGaussianNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise.forward">(deepinv.physics.PoissonNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.RicianNoise.html#deepinv.physics.RicianNoise.forward">(deepinv.physics.RicianNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise.forward">(deepinv.physics.SaltPepperNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpatialUnwrapping.html#deepinv.physics.SpatialUnwrapping.forward">(deepinv.physics.SpatialUnwrapping method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.UniformGaussianNoise.html#deepinv.physics.UniformGaussianNoise.forward">(deepinv.physics.UniformGaussianNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise.forward">(deepinv.physics.UniformNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise.forward">(deepinv.physics.ZeroNoise method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.forward">(deepinv.sampling.BaseSampling method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM.forward">(deepinv.sampling.DDRM method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.forward">(deepinv.sampling.DiffPIR method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler.forward">(deepinv.sampling.DiffusionSampler method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity.forward">(deepinv.sampling.DPSDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.forward">(deepinv.sampling.NoisyDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion.forward">(deepinv.sampling.PosteriorDiffusion method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator.forward">(deepinv.sampling.SamplingIterator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.SKRock.html#deepinv.sampling.SKRock.forward">(deepinv.sampling.SKRock method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.SKRockIterator.html#deepinv.sampling.SKRockIterator.forward">(deepinv.sampling.SKRockIterator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.ULA.html#deepinv.sampling.ULA.forward">(deepinv.sampling.ULA method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.ULAIterator.html#deepinv.sampling.ULAIterator.forward">(deepinv.sampling.ULAIterator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.forward">(deepinv.transform.Transform method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.unfolded.BaseDEQ.html#deepinv.unfolded.BaseDEQ.forward">(deepinv.unfolded.BaseDEQ method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.unfolded.BaseUnfold.html#deepinv.unfolded.BaseUnfold.forward">(deepinv.unfolded.BaseUnfold method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward_denoise">forward_denoise() (deepinv.models.DiffUNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.forward_diffusion">forward_diffusion() (deepinv.models.DiffUNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.forward_restormer">forward_restormer() (deepinv.models.Restormer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ADMUNet.html#deepinv.models.ADMUNet.forward_unet">forward_unet() (deepinv.models.ADMUNet method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp.forward_unet">(deepinv.models.NCSNpp method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.forward_unet">(deepinv.models.RAM method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier.fov">fov (deepinv.datasets.FMD.NoisySampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.from_torch_complex">from_torch_complex() (deepinv.utils.MRIMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.fStep.html#deepinv.optim.optim_iterators.fStep">fStep (class in deepinv.optim.optim_iterators)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.generator.GainGenerator.html#deepinv.physics.generator.GainGenerator">GainGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise">GammaNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.blur.gaussian_blur.html#deepinv.physics.blur.gaussian_blur">gaussian_blur() (in module deepinv.physics.blur)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator">GaussianMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel">GaussianMixtureModel (class in deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise">GaussianNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator">GaussianSplittingMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.GDIteration.html#deepinv.optim.optim_iterators.GDIteration">GDIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DiffractionBlurGenerator.html#deepinv.physics.generator.DiffractionBlurGenerator.generate_coeff">generate_coeff() (deepinv.physics.generator.DiffractionBlurGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset">generate_dataset() (in module deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform.generate_maps">generate_maps() (deepinv.datasets.MRISliceTransform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform.generate_mask">generate_mask() (deepinv.datasets.MRISliceTransform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.phase_retrieval.generate_shifts.html#deepinv.physics.phase_retrieval.generate_shifts">generate_shifts() (in module deepinv.physics.phase_retrieval)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.GeneratorLoss.html#deepinv.loss.adversarial.GeneratorLoss">GeneratorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.GeneratorMixture.html#deepinv.physics.generator.GeneratorMixture">GeneratorMixture (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform.get_acs">get_acs() (deepinv.datasets.MRISliceTransform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_alpha_beta">get_alpha_beta() (deepinv.sampling.DiffPIR method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.get_alpha_prod">get_alpha_prod() (deepinv.models.DiffUNet method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_alpha_prod">(deepinv.sampling.DiffPIR method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.get_chain">get_chain() (deepinv.sampling.BaseSampling method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.get_cov">get_cov() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.get_cov_inv_reg">get_cov_inv_reg() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.get_data_home.html#deepinv.utils.get_data_home">get_data_home() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.get_degradation_url.html#deepinv.utils.get_degradation_url">get_degradation_url() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.get_freer_gpu.html#deepinv.utils.get_freer_gpu">get_freer_gpu() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.get_image_url.html#deepinv.utils.get_image_url">get_image_url() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.Kohler.html#deepinv.datasets.Kohler.get_item">get_item() (deepinv.datasets.Kohler method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator.get_kernel">get_kernel() (deepinv.physics.generator.DownsamplingGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_noise_schedule">get_noise_schedule() (deepinv.sampling.DiffPIR method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.get_overlap_img">get_overlap_img() (deepinv.physics.PtychographyLinearOperator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.get_params">get_params() (deepinv.transform.Transform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.get_pdf">get_pdf() (deepinv.physics.generator.BaseMaskGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator.get_pdf">(deepinv.physics.generator.GaussianMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator.get_pdf">(deepinv.physics.generator.GaussianSplittingMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator.get_pdf">(deepinv.physics.generator.RandomMaskGenerator method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples">get_samples() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples_offline">get_samples_offline() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples_online">get_samples_online() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html#deepinv.physics.StructuredRandomPhaseRetrieval.get_structure">get_structure() (deepinv.physics.StructuredRandomPhaseRetrieval static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.get_timestamp.html#deepinv.utils.get_timestamp">get_timestamp (class in deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.get_weights">get_weights() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.ICNN.html#deepinv.models.ICNN.grad">grad() (deepinv.models.ICNN method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.AmplitudeLossDistance.html#deepinv.optim.AmplitudeLossDistance.grad">(deepinv.optim.AmplitudeLossDistance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2.grad">(deepinv.optim.BregmanL2 method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy.grad">(deepinv.optim.BurgEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity.grad">(deepinv.optim.DataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.grad">(deepinv.optim.ItohFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L1Distance.html#deepinv.optim.L1Distance.grad">(deepinv.optim.L1Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L2Distance.html#deepinv.optim.L2Distance.grad">(deepinv.optim.L2Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy.grad">(deepinv.optim.NegEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.PoissonLikelihoodDistance.html#deepinv.optim.PoissonLikelihoodDistance.grad">(deepinv.optim.PoissonLikelihoodDistance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.grad">(deepinv.optim.Potential method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.RED.html#deepinv.optim.RED.grad">(deepinv.optim.RED method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior.grad">(deepinv.optim.ScorePrior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity.grad">(deepinv.optim.StackedPhysicsDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.grad">(deepinv.optim.Tikhonov method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity.grad">(deepinv.optim.ZeroFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity.grad">(deepinv.sampling.DPSDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.grad">(deepinv.sampling.NoisyDataFidelity method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2.grad_conj">grad_conj() (deepinv.optim.BregmanL2 method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy.grad_conj">(deepinv.optim.BurgEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy.grad_conj">(deepinv.optim.NegEntropy method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.grad_conj">(deepinv.optim.Potential method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity.grad_d">grad_d() (deepinv.optim.DataFidelity method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.grad_d">(deepinv.optim.ItohFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity.grad_d">(deepinv.optim.StackedPhysicsDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity.grad_d">(deepinv.optim.ZeroFidelity method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.utils.gradient_descent.html#deepinv.optim.utils.gradient_descent">gradient_descent() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.GSDRUNet.html#deepinv.models.GSDRUNet">GSDRUNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.gStep.html#deepinv.optim.optim_iterators.gStep">gStep (class in deepinv.optim.optim_iterators)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.metric.HaarPSI.html#deepinv.loss.metric.HaarPSI">HaarPSI (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.hard_threshold_topk">hard_threshold_topk() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Haze.html#deepinv.physics.Haze">Haze (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset">HDF5Dataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.HeunSolver.html#deepinv.sampling.HeunSolver">HeunSolver (class in deepinv.sampling)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.functional.histogram.html#deepinv.physics.functional.histogram">histogram() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.histogramdd.html#deepinv.physics.functional.histogramdd">histogramdd() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Homography.html#deepinv.transform.Homography">Homography (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.HQSIteration.html#deepinv.optim.optim_iterators.HQSIteration">HQSIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing">HyperSpectralUnmixing (class in deepinv.physics)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.models.ICNN.html#deepinv.models.ICNN">ICNN (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.idct.html#deepinv.physics.functional.idct">idct() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.idct_2d.html#deepinv.physics.functional.idct_2d">idct_2d() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Identity.html#deepinv.transform.Identity">Identity (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.identity">identity() (deepinv.transform.Transform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.ifft">ifft() (deepinv.utils.MRIMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.im_to_kspace">im_to_kspace() (deepinv.utils.MRIMixin method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.ImageDataset.html#deepinv.datasets.ImageDataset">ImageDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.ImageFolder.html#deepinv.datasets.ImageFolder">ImageFolder (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier.img_type">img_type (deepinv.datasets.FMD.NoisySampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.imresize_matlab.html#deepinv.physics.functional.imresize_matlab">imresize_matlab() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.IndicatorL2.html#deepinv.optim.IndicatorL2">IndicatorL2 (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.IndicatorL2Distance.html#deepinv.optim.IndicatorL2Distance">IndicatorL2Distance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint.init_anderson_acceleration">init_anderson_acceleration() (deepinv.optim.FixedPoint method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.init_iterate_fn">init_iterate_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.init_metrics_fn">init_metrics_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator.initialize_latent_variables">initialize_latent_variables() (deepinv.sampling.SamplingIterator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting">Inpainting (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.InterleavedEpochLossScheduler.html#deepinv.loss.InterleavedEpochLossScheduler">InterleavedEpochLossScheduler (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.InterleavedLossScheduler.html#deepinv.loss.InterleavedLossScheduler">InterleavedLossScheduler (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.inverse">inverse() (deepinv.transform.Transform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric.invert_metric">invert_metric() (deepinv.loss.metric.Metric method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.invert_params">invert_params() (deepinv.transform.Transform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.IRadon.html#deepinv.physics.functional.IRadon">IRadon (class in deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_deblurring_network">is_standard_deblurring_network() (deepinv.models.Restormer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_denoising_network">is_standard_denoising_network() (deepinv.models.Restormer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer.is_standard_deraining_network">is_standard_deraining_network() (deepinv.models.Restormer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity">ItohFidelity (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.iwt">iwt() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.JacobianSpectralNorm.html#deepinv.loss.JacobianSpectralNorm">JacobianSpectralNorm (class in deepinv.loss)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.datasets.Kohler.html#deepinv.datasets.Kohler">Kohler (class in deepinv.datasets)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.kspace_to_im">kspace_to_im() (deepinv.utils.MRIMixin method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.L1.html#deepinv.optim.L1">L1 (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior">L12Prior (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.L1Distance.html#deepinv.optim.L1Distance">L1Distance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.L1L2.html#deepinv.loss.metric.L1L2">L1L2 (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior">L1Prior (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.L2.html#deepinv.optim.L2">L2 (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.L2Distance.html#deepinv.optim.L2Distance">L2Distance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.least_squares.html#deepinv.optim.utils.least_squares">least_squares() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.least_squares_implicit_backward.html#deepinv.optim.utils.least_squares_implicit_backward">least_squares_implicit_backward() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset">LidcIdriSliceDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier">LidcIdriSliceDataset.SliceSampleIdentifier (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics">LinearPhysics (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysicsMultiScaler.html#deepinv.physics.LinearPhysicsMultiScaler">LinearPhysicsMultiScaler (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.load_best_model">load_best_model() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_dataset.html#deepinv.utils.load_dataset">load_dataset() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_degradation.html#deepinv.utils.load_degradation">load_degradation() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_dicom.html#deepinv.utils.load_dicom">load_dicom() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_example.html#deepinv.utils.load_example">load_example() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_image.html#deepinv.utils.load_image">load_image() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_ismrmd.html#deepinv.utils.load_ismrmd">load_ismrmd() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_mat.html#deepinv.utils.load_mat">load_mat() (in module deepinv.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.load_model">load_model() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_nifti.html#deepinv.utils.load_nifti">load_nifti() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_np.html#deepinv.utils.load_np">load_np() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_np_url.html#deepinv.utils.load_np_url">load_np_url() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_raster.html#deepinv.utils.load_raster">load_raster() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.load_state_dict">load_state_dict() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.load_state_dict">(deepinv.training.AdversarialOptimizer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.utils.load_torch.html#deepinv.utils.load_torch">load_torch() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_torch_url.html#deepinv.utils.load_torch_url">load_torch_url() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_url.html#deepinv.utils.load_url">load_url() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.load_url_image.html#deepinv.utils.load_url_image">load_url_image() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.log_metrics_mlops">log_metrics_mlops() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.log_metrics_wandb">log_metrics_wandb() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.LogPoissonLikelihood.html#deepinv.optim.LogPoissonLikelihood">LogPoissonLikelihood (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.LogPoissonLikelihoodDistance.html#deepinv.optim.LogPoissonLikelihoodDistance">LogPoissonLikelihoodDistance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise">LogPoissonNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.Loss.html#deepinv.loss.Loss">Loss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.LPIPS.html#deepinv.loss.metric.LPIPS">LPIPS (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.LpNorm.html#deepinv.loss.metric.LpNorm">LpNorm (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LsdirHR.html#deepinv.datasets.LsdirHR">LsdirHR (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.lsqr.html#deepinv.optim.utils.lsqr">lsqr() (in module deepinv.optim.utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.metric.MAE.html#deepinv.loss.metric.MAE">MAE (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.magnitude">magnitude (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator.matern_kernel">matern_kernel() (deepinv.physics.generator.MotionBlurGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.MCLoss.html#deepinv.loss.MCLoss">MCLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman.MD_step">MD_step() (deepinv.optim.Bregman method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.MDIteration.html#deepinv.optim.optim_iterators.MDIteration">MDIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.mean_has_converged">mean_has_converged (deepinv.sampling.BaseSampling property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.MedianFilter.html#deepinv.models.MedianFilter">MedianFilter (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.SliceSampleID.metadata">metadata (deepinv.datasets.FastMRISliceDataset.SliceSampleID attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.metadata_cache_manager">metadata_cache_manager() (deepinv.datasets.FastMRISliceDataset method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric">Metric (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric.metric">metric() (deepinv.loss.metric.Metric method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR.metric">(deepinv.loss.metric.QNR method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.utils.minres.html#deepinv.optim.utils.minres">minres() (in module deepinv.optim.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.model_inference">model_inference() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.MoDL.html#deepinv.models.MoDL">MoDL (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.MOEILoss.html#deepinv.loss.MOEILoss">MOEILoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.MOILoss.html#deepinv.loss.MOILoss">MOILoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator">MotionBlurGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI">MRI (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin">MRIMixin (class in deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform">MRISliceTransform (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.MSE.html#deepinv.loss.metric.MSE">MSE (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI">MultiCoilMRI (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.html#deepinv.physics.generator.MultiplicativeSplittingMaskGenerator">MultiplicativeSplittingMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.multiplier.html#deepinv.physics.functional.multiplier">multiplier() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.multiplier_adjoint.html#deepinv.physics.functional.multiplier_adjoint">multiplier_adjoint() (in module deepinv.physics.functional)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser.nabla">nabla() (deepinv.models.TGVDenoiser static method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser.nabla">(deepinv.models.TVDenoiser static method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.nabla">(deepinv.optim.TVPrior method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser.nabla_adjoint">nabla_adjoint() (deepinv.models.TGVDenoiser static method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser.nabla_adjoint">(deepinv.models.TVDenoiser static method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.nabla_adjoint">(deepinv.optim.TVPrior method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.NBUDataset.html#deepinv.datasets.NBUDataset">NBUDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp">NCSNpp (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL.negative_log_likelihood">negative_log_likelihood() (deepinv.optim.EPLL method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy">NegEntropy (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.Neighbor2Neighbor.html#deepinv.loss.Neighbor2Neighbor">Neighbor2Neighbor (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.MOILoss.html#deepinv.loss.MOILoss.next_physics">next_physics() (deepinv.loss.MOILoss method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.metric.NIQE.html#deepinv.loss.metric.NIQE">NIQE (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.NMSE.html#deepinv.loss.metric.NMSE">NMSE (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.no_learning_inference">no_learning_inference() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI.noise">noise() (deepinv.physics.DynamicMRI method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting.noise">(deepinv.physics.Inpainting method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI.noise">(deepinv.physics.MRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.noise">(deepinv.physics.MultiCoilMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.noise">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.noise">(deepinv.physics.StackedPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD.NoisySampleIdentifier.noise_dirname">noise_dirname (deepinv.datasets.FMD.NoisySampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel">NoiseModel (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity">NoisyDataFidelity (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform.normalize_kspace">normalize_kspace() (deepinv.datasets.MRISliceTransform method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.object_cell_volume">object_cell_volume (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.obtain_sigma_gain">obtain_sigma_gain() (deepinv.models.RAM method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.ones_like.html#deepinv.utils.ones_like">ones_like() (in module deepinv.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder">optim_builder() (in module deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator">OptimIterator (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.optimize_z">optimize_z() (deepinv.models.CSGMGenerator method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.pad">pad() (deepinv.physics.CompressiveSpectralImaging method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.pad_input">pad_input() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.PanNet.html#deepinv.models.PanNet">PanNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen">Pansharpen (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.projective.PanTiltRotate.html#deepinv.transform.projective.PanTiltRotate">PanTiltRotate (class in deepinv.transform.projective)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet.patch_forward">patch_forward() (deepinv.models.DiffUNet method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.PatchDataset.html#deepinv.datasets.PatchDataset">PatchDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.PatchGANDiscriminator.html#deepinv.models.PatchGANDiscriminator">PatchGANDiscriminator (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR">PatchNR (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.PatchPrior.html#deepinv.optim.PatchPrior">PatchPrior (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier.patient_id">patient_id (deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.PDNet_DualBlock.html#deepinv.models.PDNet_DualBlock">PDNet_DualBlock (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.PDNet_PrimalBlock.html#deepinv.models.PDNet_PrimalBlock">PDNet_PrimalBlock (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.PGDIteration.html#deepinv.optim.optim_iterators.PGDIteration">PGDIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.Phase2PhaseLoss.html#deepinv.loss.mri.Phase2PhaseLoss">Phase2PhaseLoss (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator">Phase2PhaseSplittingMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval">PhaseRetrieval (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics">Physics (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PhysicsCropper.html#deepinv.physics.PhysicsCropper">PhysicsCropper (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator">PhysicsGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PhysicsMultiScaler.html#deepinv.physics.PhysicsMultiScaler">PhysicsMultiScaler (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.utils.PlaceholderDataset.html#deepinv.datasets.utils.PlaceholderDataset">PlaceholderDataset (class in deepinv.datasets.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.plot">plot() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.plot.html#deepinv.utils.plot">(in module deepinv.utils)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.utils.plot_curves.html#deepinv.utils.plot_curves">plot_curves() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.plot_inset.html#deepinv.utils.plot_inset">plot_inset() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.plot_ortho3D.html#deepinv.utils.plot_ortho3D">plot_ortho3D() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.plot_parameters.html#deepinv.utils.plot_parameters">plot_parameters() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.plot_videos.html#deepinv.utils.plot_videos">plot_videos() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.PnP.html#deepinv.optim.PnP">PnP (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise">PoissonGaussianNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.PoissonLikelihood.html#deepinv.optim.PoissonLikelihood">PoissonLikelihood (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.PoissonLikelihoodDistance.html#deepinv.optim.PoissonLikelihoodDistance">PoissonLikelihoodDistance (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise">PoissonNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PolyOrderMaskGenerator.html#deepinv.physics.generator.PolyOrderMaskGenerator">PolyOrderMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion">PosteriorDiffusion (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential">Potential (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.precond">precond() (deepinv.sampling.NoisyDataFidelity method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.MRISliceTransform.html#deepinv.datasets.MRISliceTransform.prewhiten_kspace">prewhiten_kspace() (deepinv.datasets.MRISliceTransform method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.Prior.html#deepinv.optim.Prior">Prior (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.product_convolution2d.html#deepinv.physics.functional.product_convolution2d">product_convolution2d() (in module deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html#deepinv.physics.generator.ProductConvolutionBlurGenerator">ProductConvolutionBlurGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.ProgressMeter.html#deepinv.utils.ProgressMeter">ProgressMeter (class in deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.IndicatorL2.html#deepinv.optim.IndicatorL2.prox">prox() (deepinv.optim.IndicatorL2 method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.IndicatorL2Distance.html#deepinv.optim.IndicatorL2Distance.prox">(deepinv.optim.IndicatorL2Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.prox">(deepinv.optim.ItohFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L1.html#deepinv.optim.L1.prox">(deepinv.optim.L1 method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior.prox">(deepinv.optim.L12Prior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L1Distance.html#deepinv.optim.L1Distance.prox">(deepinv.optim.L1Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior.prox">(deepinv.optim.L1Prior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L2.html#deepinv.optim.L2.prox">(deepinv.optim.L2 method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.L2Distance.html#deepinv.optim.L2Distance.prox">(deepinv.optim.L2Distance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.PnP.html#deepinv.optim.PnP.prox">(deepinv.optim.PnP method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.PoissonLikelihoodDistance.html#deepinv.optim.PoissonLikelihoodDistance.prox">(deepinv.optim.PoissonLikelihoodDistance method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.prox">(deepinv.optim.Potential method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov.prox">(deepinv.optim.Tikhonov method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior.prox">(deepinv.optim.TVPrior method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.prox">(deepinv.optim.WaveletPrior method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.Potential.html#deepinv.optim.Potential.prox_conjugate">prox_conjugate() (deepinv.optim.Potential method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity.prox_d">prox_d() (deepinv.optim.DataFidelity method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.prox_d">(deepinv.optim.ItohFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity.prox_d">(deepinv.optim.StackedPhysicsDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity.prox_d">(deepinv.optim.ZeroFidelity method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity.prox_d_conjugate">prox_d_conjugate() (deepinv.optim.DataFidelity method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity.prox_d_conjugate">(deepinv.optim.StackedPhysicsDataFidelity method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity.prox_d_conjugate">(deepinv.optim.ZeroFidelity method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.prox_l0">prox_l0() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.prox_l1">prox_l1() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.prox_l2">prox_l2() (deepinv.physics.DecomposablePhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling.prox_l2">(deepinv.physics.Downsampling method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.prox_l2">(deepinv.physics.LinearPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser.prox_tau_fx">prox_tau_fx() (deepinv.models.TVDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PSFGenerator.html#deepinv.physics.generator.PSFGenerator">PSFGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.psi">psi() (deepinv.models.WaveletDenoiser static method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.models.WaveletDictDenoiser.html#deepinv.models.WaveletDictDenoiser.psi">(deepinv.models.WaveletDictDenoiser method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior.psi">(deepinv.optim.WaveletPrior method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.metric.PSNR.html#deepinv.loss.metric.PSNR">PSNR (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Ptychography.html#deepinv.physics.Ptychography">Ptychography (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator">PtychographyLinearOperator (class in deepinv.physics)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.metric.QNR.html#deepinv.loss.metric.QNR">QNR (class in deepinv.loss.metric)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss">R2RLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry">RadioInterferometry (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.Radon.html#deepinv.physics.functional.Radon">Radon (class in deepinv.physics.functional)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM">RAM (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.rand_like">rand_like() (deepinv.physics.NoiseModel method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.rand_like.html#deepinv.utils.rand_like">(in module deepinv.utils)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.randn_like">randn_like() (deepinv.physics.NoiseModel method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver.randn_like">(deepinv.sampling.BaseSDESolver method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.utils.randn_like.html#deepinv.utils.randn_like">(in module deepinv.utils)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.CSGMGenerator.html#deepinv.models.CSGMGenerator.random_latent">random_latent() (deepinv.models.CSGMGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.RandomLossScheduler.html#deepinv.loss.RandomLossScheduler">RandomLossScheduler (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator">RandomMaskGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.RandomNoise.html#deepinv.transform.RandomNoise">RandomNoise (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.RandomPatchSampler.html#deepinv.datasets.RandomPatchSampler">RandomPatchSampler (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.RandomPhaseError.html#deepinv.transform.RandomPhaseError">RandomPhaseError (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.RandomPhaseRetrieval.html#deepinv.physics.RandomPhaseRetrieval">RandomPhaseRetrieval (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.range_shape">range_shape (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM.realign_input">realign_input() (deepinv.models.RAM method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Reconstructor.html#deepinv.models.Reconstructor">Reconstructor (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.RED.html#deepinv.optim.RED">RED (class in deepinv.optim)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.loss.ReducedResolutionLoss.html#deepinv.loss.ReducedResolutionLoss">ReducedResolutionLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Reflect.html#deepinv.transform.Reflect">Reflect (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator.relaxation_step">relaxation_step() (deepinv.optim.OptimIterator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.repeat">repeat() (deepinv.utils.TimeMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.utils.Rescale.html#deepinv.datasets.utils.Rescale">Rescale (class in deepinv.datasets.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.AverageMeter.html#deepinv.utils.AverageMeter.reset">reset() (deepinv.utils.AverageMeter method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.reset_metrics">reset_metrics() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.reset_rng">reset_rng() (deepinv.physics.generator.PhysicsGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.reset_rng">(deepinv.physics.NoiseModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver.reset_rng">(deepinv.sampling.BaseSDESolver method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.reshape_ths">reshape_ths() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Restormer.html#deepinv.models.Restormer">Restormer (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.RicianNoise.html#deepinv.physics.RicianNoise">RicianNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.rng_manual_seed">rng_manual_seed() (deepinv.physics.generator.PhysicsGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.rng_manual_seed">(deepinv.physics.NoiseModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver.rng_manual_seed">(deepinv.sampling.BaseSDESolver method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.mri.RobustSplittingLoss.html#deepinv.loss.mri.RobustSplittingLoss">RobustSplittingLoss (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.RobustSplittingLoss.html#deepinv.loss.mri.RobustSplittingLoss.Noisier2NoiseMetric">RobustSplittingLoss.Noisier2NoiseMetric (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.ShiftTime.html#deepinv.transform.ShiftTime.roll_reflect_1d">roll_reflect_1d() (deepinv.transform.ShiftTime method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Rotate.html#deepinv.transform.Rotate">Rotate (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.rss">rss() (deepinv.utils.MRIMixin static method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise">SaltPepperNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.sample">sample() (deepinv.sampling.BaseSampling method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDE.html#deepinv.sampling.BaseSDE.sample">(deepinv.sampling.BaseSDE method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver.sample">(deepinv.sampling.BaseSDESolver method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSDE.html#deepinv.sampling.BaseSDE.sample_init">sample_init() (deepinv.sampling.BaseSDE method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion.sample_init">(deepinv.sampling.VarianceExplodingDiffusion method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion.sample_init">(deepinv.sampling.VariancePreservingDiffusion method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.sample_mask">sample_mask() (deepinv.physics.generator.BaseMaskGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.sampling_builder.html#deepinv.sampling.sampling_builder">sampling_builder() (in module deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.SamplingIterator.html#deepinv.sampling.SamplingIterator">SamplingIterator (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.save_best_model">save_best_model() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.save_model">save_model() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer.save_model">(deepinv.training.AdversarialTrainer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.save_simple_dataset">save_simple_dataset() (deepinv.datasets.FastMRISliceDataset method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.save_videos.html#deepinv.utils.save_videos">save_videos() (in module deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Scale.html#deepinv.transform.Scale">Scale (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE.scale_t">scale_t() (deepinv.sampling.DiffusionSDE method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier.scan_folder">scan_folder (deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.schedule">schedule() (deepinv.loss.BaseLossScheduler method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior.score">score() (deepinv.optim.ScorePrior method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE.score">(deepinv.sampling.DiffusionSDE method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion.score">(deepinv.sampling.PosteriorDiffusion method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss">ScoreLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.ScoreLoss.html#deepinv.loss.ScoreLoss.ScoreModel">ScoreLoss.ScoreModel (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior">ScorePrior (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.SCUNet.html#deepinv.models.SCUNet">SCUNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.SDEOutput.html#deepinv.sampling.SDEOutput">SDEOutput (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.sensor">sensor() (deepinv.physics.Physics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.sensor">(deepinv.physics.StackedPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.SequentialMRI.html#deepinv.physics.SequentialMRI">SequentialMRI (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.Client.html#deepinv.models.Client.serialize">serialize() (deepinv.models.Client static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.Set14HR.html#deepinv.datasets.Set14HR">Set14HR (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.set_cov">set_cov() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.set_cov_reg">set_cov_reg() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.set_ls_solver">set_ls_solver() (deepinv.physics.Physics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.set_noise_model">set_noise_model() (deepinv.physics.Physics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.set_noise_model">(deepinv.physics.StackedPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel.set_weights">set_weights() (deepinv.optim.utils.GaussianMixtureModel method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.setup_train">setup_train() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.training.AdversarialTrainer.html#deepinv.training.AdversarialTrainer.setup_train">(deepinv.training.AdversarialTrainer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.shear">shear() (deepinv.physics.CompressiveSpectralImaging method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Shift.html#deepinv.transform.Shift">Shift (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.PtychographyLinearOperator.html#deepinv.physics.PtychographyLinearOperator.shift">shift() (deepinv.physics.PtychographyLinearOperator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.ShiftTime.html#deepinv.transform.ShiftTime">ShiftTime (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE.sigma_t">sigma_t() (deepinv.sampling.DiffusionSDE method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.SigmaGenerator.html#deepinv.physics.generator.SigmaGenerator">SigmaGenerator (class in deepinv.physics.generator)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.projective.Similarity.html#deepinv.transform.projective.Similarity">Similarity (class in deepinv.transform.projective)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.SimpleFastMRISliceDataset.html#deepinv.datasets.SimpleFastMRISliceDataset">SimpleFastMRISliceDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.simulate_birdcage_csm">simulate_birdcage_csm() (deepinv.physics.MultiCoilMRI method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.blur.sinc_filter.html#deepinv.physics.blur.sinc_filter">sinc_filter() (in module deepinv.physics.blur)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.SinglePhotonLidar.html#deepinv.physics.SinglePhotonLidar">SinglePhotonLidar (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera">SinglePixelCamera (class in deepinv.physics)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.datasets.SKMTEASliceDataset.html#deepinv.datasets.SKMTEASliceDataset">SKMTEASliceDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.SKRock.html#deepinv.sampling.SKRock">SKRock (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.SKRockIterator.html#deepinv.sampling.SKRockIterator">SKRockIterator (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier.slice_fname">slice_fname (deepinv.datasets.LidcIdriSliceDataset.SliceSampleIdentifier attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.SliceSampleID.slice_ind">slice_ind (deepinv.datasets.FastMRISliceDataset.SliceSampleID attribute)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.optim_iterators.SMIteration.html#deepinv.optim.optim_iterators.SMIteration">SMIteration (class in deepinv.optim.optim_iterators)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.source_radius">source_radius (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur">SpaceVaryingBlur (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.SpatialUnwrapping.html#deepinv.physics.SpatialUnwrapping">SpatialUnwrapping (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.phase_retrieval.spectral_methods.html#deepinv.optim.phase_retrieval.spectral_methods">spectral_methods() (in module deepinv.optim.phase_retrieval)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.SpectralAngleMapper.html#deepinv.loss.metric.SpectralAngleMapper">SpectralAngleMapper (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.Phase2PhaseLoss.html#deepinv.loss.mri.Phase2PhaseLoss.split">split() (deepinv.loss.mri.Phase2PhaseLoss static method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.split">(deepinv.loss.SplittingLoss static method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel.split">(deepinv.loss.SplittingLoss.SplittingModel static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss">SplittingLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss.SplittingModel">SplittingLoss.SplittingModel (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.metric.SSIM.html#deepinv.loss.metric.SSIM">SSIM (class in deepinv.loss.metric)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.stack">stack() (deepinv.physics.LinearPhysics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.stack">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.stack.html#deepinv.physics.stack">(in module deepinv.physics)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.physics.StackedLinearPhysics.html#deepinv.physics.StackedLinearPhysics">StackedLinearPhysics (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics">StackedPhysics (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity">StackedPhysicsDataFidelity (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.StackedPhysicsLoss.html#deepinv.loss.StackedPhysicsLoss">StackedPhysicsLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.state_dict">state_dict() (deepinv.training.AdversarialOptimizer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator.step">step() (deepinv.physics.generator.BaseMaskGenerator method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator.step">(deepinv.physics.generator.BernoulliSplittingMaskGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.ConfocalBlurGenerator3D.html#deepinv.physics.generator.ConfocalBlurGenerator3D.step">(deepinv.physics.generator.ConfocalBlurGenerator3D method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.DiffractionBlurGenerator.html#deepinv.physics.generator.DiffractionBlurGenerator.step">(deepinv.physics.generator.DiffractionBlurGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html#deepinv.physics.generator.DiffractionBlurGenerator3D.step">(deepinv.physics.generator.DiffractionBlurGenerator3D method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator.step">(deepinv.physics.generator.DownsamplingGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.GainGenerator.html#deepinv.physics.generator.GainGenerator.step">(deepinv.physics.generator.GainGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.GeneratorMixture.html#deepinv.physics.generator.GeneratorMixture.step">(deepinv.physics.generator.GeneratorMixture method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator.step">(deepinv.physics.generator.MotionBlurGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.step">(deepinv.physics.generator.PhysicsGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html#deepinv.physics.generator.ProductConvolutionBlurGenerator.step">(deepinv.physics.generator.ProductConvolutionBlurGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.generator.SigmaGenerator.html#deepinv.physics.generator.SigmaGenerator.step">(deepinv.physics.generator.SigmaGenerator method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.sampling.BaseSDESolver.html#deepinv.sampling.BaseSDESolver.step">(deepinv.sampling.BaseSDESolver method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.step">(deepinv.Trainer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.loss.StepLossScheduler.html#deepinv.loss.StepLossScheduler">StepLossScheduler (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.stop_criterion">stop_criterion() (deepinv.Trainer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator.str2filter">str2filter() (deepinv.physics.generator.DownsamplingGenerator method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.StructuredRandom.html#deepinv.physics.StructuredRandom">StructuredRandom (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html#deepinv.physics.StructuredRandomPhaseRetrieval">StructuredRandomPhaseRetrieval (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss">SupAdversarialDiscriminatorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.SupAdversarialGeneratorLoss">SupAdversarialGeneratorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.SupLoss.html#deepinv.loss.SupLoss">SupLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.SureGaussianLoss.html#deepinv.loss.SureGaussianLoss">SureGaussianLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.SurePGLoss.html#deepinv.loss.SurePGLoss">SurePGLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.SurePoissonLoss.html#deepinv.loss.SurePoissonLoss">SurePoissonLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.SwinIR.html#deepinv.models.SwinIR">SwinIR (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.symmetrize">symmetrize() (deepinv.transform.Transform method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform.T">T (deepinv.physics.functional.XrayTransform property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.TensorDataset.html#deepinv.datasets.TensorDataset">TensorDataset (class in deepinv.datasets)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.TensorList.html#deepinv.utils.TensorList">TensorList (class in deepinv.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.test">test() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.test.html#deepinv.test">(in module deepinv)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.models.TGVDenoiser.html#deepinv.models.TGVDenoiser">TGVDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.threshold_3D">threshold_3D() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.threshold_ND">threshold_ND() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.thresold_2D">thresold_2D() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser.thresold_func">thresold_func() (deepinv.models.WaveletDenoiser method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov">Tikhonov (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.TimeAgnosticNet.html#deepinv.models.TimeAgnosticNet">TimeAgnosticNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.TimeAveragingNet.html#deepinv.models.TimeAveragingNet">TimeAveragingNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin">TimeMixin (class in deepinv.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.models.complex.to_complex_denoiser.html#deepinv.models.complex.to_complex_denoiser">to_complex_denoiser() (in module deepinv.models.complex)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI.to_static">to_static() (deepinv.physics.DynamicMRI method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.MRIMixin.html#deepinv.utils.MRIMixin.to_torch_complex">to_torch_complex() (deepinv.utils.MRIMixin static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.utils.ToComplex.html#deepinv.datasets.utils.ToComplex">ToComplex (class in deepinv.datasets.utils)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography">Tomography (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra">TomographyWithAstra (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.torch_shuffle">torch_shuffle() (deepinv.datasets.FastMRISliceDataset static method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.train">train() (deepinv.Trainer method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.train.html#deepinv.train">(in module deepinv)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.Trainer.html#deepinv.Trainer">Trainer (class in deepinv)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform">Transform (class in deepinv.transform)</a>
+</li>
+      <li><a href="api/stubs/deepinv.transform.Transform.html#deepinv.transform.Transform.transform">transform() (deepinv.transform.Transform method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.TVDenoiser.html#deepinv.models.TVDenoiser">TVDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.TVLoss.html#deepinv.loss.TVLoss">TVLoss (class in deepinv.loss)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior">TVPrior (class in deepinv.optim)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.U">U() (deepinv.physics.DecomposablePhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.U_adjoint">U_adjoint() (deepinv.physics.DecomposablePhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html#deepinv.loss.adversarial.UAIRGeneratorLoss">UAIRGeneratorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.ULA.html#deepinv.sampling.ULA">ULA (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.ULAIterator.html#deepinv.sampling.ULAIterator">ULAIterator (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.UNet.html#deepinv.models.UNet">UNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.CompressiveSpectralImaging.html#deepinv.physics.CompressiveSpectralImaging.unflatten">unflatten() (deepinv.physics.CompressiveSpectralImaging method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.unflatten">(deepinv.utils.TimeMixin static method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.unfolded.unfolded_builder.html#deepinv.unfolded.unfolded_builder">unfolded_builder() (in module deepinv.unfolded)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.UniformGaussianNoise.html#deepinv.physics.UniformGaussianNoise">UniformGaussianNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise">UniformNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html#deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss">UnsupAdversarialDiscriminatorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html#deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss">UnsupAdversarialGeneratorLoss (class in deepinv.loss.adversarial)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update">update() (deepinv.physics.Physics method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.utils.AverageMeter.html#deepinv.utils.AverageMeter.update">(deepinv.utils.AverageMeter method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_data_fidelity_fn">update_data_fidelity_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_metrics_fn">update_metrics_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.BlurFFT.html#deepinv.physics.BlurFFT.update_parameters">update_parameters() (deepinv.physics.BlurFFT method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling.update_parameters">(deepinv.physics.Downsampling method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.HyperSpectralUnmixing.html#deepinv.physics.HyperSpectralUnmixing.update_parameters">(deepinv.physics.HyperSpectralUnmixing method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MRI.html#deepinv.physics.MRI.update_parameters">(deepinv.physics.MRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.MultiCoilMRI.html#deepinv.physics.MultiCoilMRI.update_parameters">(deepinv.physics.MultiCoilMRI method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.NoiseModel.html#deepinv.physics.NoiseModel.update_parameters">(deepinv.physics.NoiseModel method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update_parameters">(deepinv.physics.Physics method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur.update_parameters">(deepinv.physics.SpaceVaryingBlur method)</a>
+</li>
+        <li><a href="api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics.update_parameters">(deepinv.physics.StackedPhysics method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_params_fn">update_params_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim.update_prior_fn">update_prior_fn() (deepinv.optim.BaseOptim method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.Upsampling.html#deepinv.physics.Upsampling">Upsampling (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR">Urban100HR (class in deepinv.datasets)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.V">V() (deepinv.physics.DecomposablePhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics.V_adjoint">V_adjoint() (deepinv.physics.DecomposablePhysics method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.BaseSampling.html#deepinv.sampling.BaseSampling.var_has_converged">var_has_converged (deepinv.sampling.BaseSampling property)</a>
+</li>
+      <li><a href="api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion">VarianceExplodingDiffusion (class in deepinv.sampling)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion">VariancePreservingDiffusion (class in deepinv.sampling)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.VarNet.html#deepinv.models.VarNet">VarNet (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.DIV2K.html#deepinv.datasets.DIV2K.verify_split_dataset_integrity">verify_split_dataset_integrity() (deepinv.datasets.DIV2K method)</a>
+
+      <ul>
+        <li><a href="api/stubs/deepinv.datasets.LsdirHR.html#deepinv.datasets.LsdirHR.verify_split_dataset_integrity">(deepinv.datasets.LsdirHR method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser">WaveletDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.models.WaveletDictDenoiser.html#deepinv.models.WaveletDictDenoiser">WaveletDictDenoiser (class in deepinv.models)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior">WaveletPrior (class in deepinv.optim)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity.WD">WD() (deepinv.optim.ItohFidelity method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html#deepinv.loss.mri.WeightedSplittingLoss">WeightedSplittingLoss (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html#deepinv.loss.mri.WeightedSplittingLoss.WeightedMetric">WeightedSplittingLoss.WeightedMetric (class in deepinv.loss.mri)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.TimeMixin.html#deepinv.utils.TimeMixin.wrap_flatten_C">wrap_flatten_C() (deepinv.utils.TimeMixin static method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.physics.functional.XrayTransform.html#deepinv.physics.functional.XrayTransform">XrayTransform (class in deepinv.physics.functional)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Z">Z</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.training.AdversarialOptimizer.html#deepinv.training.AdversarialOptimizer.zero_grad">zero_grad() (deepinv.training.AdversarialOptimizer method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.datasets.SKMTEASliceDataset.html#deepinv.datasets.SKMTEASliceDataset.zero_pad">zero_pad() (deepinv.datasets.SKMTEASliceDataset method)</a>
+</li>
+      <li><a href="api/stubs/deepinv.optim.ZeroDistance.html#deepinv.optim.ZeroDistance">ZeroDistance (class in deepinv.optim)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity">ZeroFidelity (class in deepinv.optim)</a>
+</li>
+      <li><a href="api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise">ZeroNoise (class in deepinv.physics)</a>
+</li>
+      <li><a href="api/stubs/deepinv.utils.zeros_like.html#deepinv.utils.zeros_like">zeros_like() (in module deepinv.utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,748 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.datasets.cmrxrecon &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/datasets/cmrxrecon';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/datasets/cmrxrecon.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.datasets.cmrxrecon</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.datasets.cmrxrecon</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndarray</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.fastmri</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMRISliceDataset</span><span class="p">,</span> <span class="n">MRISliceTransform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_mat</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">MRIMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.generator.mri</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMaskGenerator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span>
+
+
+<div class="viewcode-block" id="CMRxReconSliceDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.CMRxReconSliceDataset.html#deepinv.datasets.CMRxReconSliceDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CMRxReconSliceDataset</span><span class="p">(</span><span class="n">FastMRISliceDataset</span><span class="p">,</span> <span class="n">MRIMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CMRxRecon dynamic MRI dataset.</span>
+
+<span class="sd">    Wrapper for dynamic 2D+t MRI dataset from the `CMRxRecon 2023 challenge &lt;https://cmrxrecon.github.io/&gt;`_.</span>
+
+<span class="sd">    The dataset returns sequences of long axis (`lax`) views and short axis (`sax`) slices along with 2D+t acceleration masks.</span>
+
+<span class="sd">    Return tuples `(x, y)` of target (ground truth) and kspace (measurements).</span>
+
+<span class="sd">    Optionally apply mask to measurements to get undersampled measurements.</span>
+<span class="sd">    Then the dataset returns tuples `(x, y, params)` where `params` is a dict `{&#39;mask&#39;: mask}`.</span>
+<span class="sd">    This can be directly used with :class:`deepinv.Trainer` to train with undersampled measurements.</span>
+<span class="sd">    If masks are present in the data folders (in file format `cine_xax_mask.mat`) then these will be loaded.</span>
+<span class="sd">    If not, unique masks will be generated using a `mask_generator`, for example :class:`deepinv.physics.generator.RandomMaskGenerator`.</span>
+
+<span class="sd">    While the usual workflow in deepinv is for the dataset to return only ground truth ``x`` and the user</span>
+<span class="sd">    generates a measurement dataset using :meth:`deepinv.datasets.generate_dataset`, here we compute the</span>
+<span class="sd">    measurements inside the dataset (and return a triplet ``x, y, params`` where ``params`` contains the mask)</span>
+<span class="sd">    because of the variable size of the data before padding, in line with the original CMRxRecon code.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.</span>
+<span class="sd">        See :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py` for example using this dataset.</span>
+
+<span class="sd">    We provide one single downloadable demo sample, see example below on how to use this.</span>
+<span class="sd">    Otherwise, download the full dataset from the `challenge website &lt;https://cmrxrecon.github.io/&gt;`_.</span>
+
+<span class="sd">    **Raw data file structure:** ::</span>
+
+<span class="sd">        root_dir --- data_dir --- P001 --- cine_lax.mat</span>
+<span class="sd">                  |            |        |</span>
+<span class="sd">                  |            |        -- cine_sax.mat</span>
+<span class="sd">                  |            -- PXXX</span>
+<span class="sd">                  -- mask_dir --- P001 --- cine_lax_mask.mat</span>
+<span class="sd">                               |        |</span>
+<span class="sd">                               |        -- cine_sax_mask.mat</span>
+<span class="sd">                               -- PXXX</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; from deepinv.datasets import CMRxReconSliceDataset, download_archive</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.utils import get_image_url, get_data_home</span>
+<span class="sd">    &gt;&gt;&gt; from torch.utils.data import DataLoader</span>
+<span class="sd">    &gt;&gt;&gt; download_archive(</span>
+<span class="sd">    ...     get_image_url(&quot;CMRxRecon.zip&quot;),</span>
+<span class="sd">    ...     get_data_home() / &quot;CMRxRecon.zip&quot;,</span>
+<span class="sd">    ...     extract=True,</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; dataset = CMRxReconSliceDataset(get_data_home() / &quot;CMRxRecon&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; x, y, params = next(iter(DataLoader(dataset)))</span>
+<span class="sd">    &gt;&gt;&gt; x.shape # (B, C, T, H, W)</span>
+<span class="sd">    torch.Size([1, 2, 12, 512, 256])</span>
+<span class="sd">    &gt;&gt;&gt; y.shape # (B, C, T, H, W)</span>
+<span class="sd">    torch.Size([1, 2, 12, 512, 256])</span>
+<span class="sd">    &gt;&gt;&gt; 1 / params[&quot;mask&quot;].mean()  # Approx 4x acceleration</span>
+<span class="sd">    tensor(4.2402)</span>
+
+<span class="sd">    :param str, pathlib.Path root: path for dataset root folder.</span>
+<span class="sd">    :param str, pathlib.Path data_dir: directory containing target (ground truth) data, defaults to &#39;SingleCoil/Cine/TrainingSet/FullSample&#39; which is default CMRxRecon folder structure</span>
+<span class="sd">    :param bool load_metadata_from_cache: _description_, defaults to False</span>
+<span class="sd">    :param bool save_metadata_to_cache: _description_, defaults to False</span>
+<span class="sd">    :param str, pathlib.Path metadata_cache_file: _description_, defaults to &quot;dataset_cache.pkl&quot;</span>
+<span class="sd">    :param bool apply_mask: if ``True``, mask is applied to subsample the kspace using a mask either</span>
+<span class="sd">        loaded from `data_folder` or generated using `mask_generator`. If ``False``, the mask of ones is used.</span>
+<span class="sd">    :param str, pathlib.Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder</span>
+<span class="sd">        according to the CMRxRecon folder structure. To use masks, ``apply_mask`` must be ``True``.</span>
+<span class="sd">    :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator to randomly generate acceleration masks</span>
+<span class="sd">        to apply to unpadded kspace. If specified, ``mask_dir`` must be ``None`` and ``apply_mask`` must be ``True``.</span>
+<span class="sd">    :param Callable transform: optional transform to apply to the target image sequences before padding or physics is applied.</span>
+<span class="sd">    :param tuple pad_size: tuple of 2 ints (W, H) for all images to be padded to, if ``None``, no padding.</span>
+<span class="sd">    :param deepinv.physics.NoiseModel noise_model: optional noise model to apply to unpadded kspace.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="s2">&quot;SingleCoil/Cine/TrainingSet/FullSample&quot;</span><span class="p">,</span>
+        <span class="n">load_metadata_from_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">save_metadata_to_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">metadata_cache_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="s2">&quot;dataset_cache.pkl&quot;</span><span class="p">,</span>
+        <span class="n">apply_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="s2">&quot;SingleCoil/Cine/TrainingSet/AccFactor04&quot;</span><span class="p">,</span>
+        <span class="n">mask_generator</span><span class="p">:</span> <span class="n">BaseMaskGenerator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pad_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+        <span class="n">noise_model</span><span class="p">:</span> <span class="n">NoiseModel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span> <span class="o">=</span> <span class="n">mask_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="o">=</span> <span class="n">mask_generator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_mask</span> <span class="o">=</span> <span class="n">apply_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_metadata_from_cache</span> <span class="o">=</span> <span class="n">load_metadata_from_cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_metadata_to_cache</span> <span class="o">=</span> <span class="n">save_metadata_to_cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span> <span class="o">=</span> <span class="n">metadata_cache_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="o">=</span> <span class="n">pad_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise_model</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_mask</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;mask_generator or mask_dir specified but apply_mask is False. mask_generator or mask_dir will not be used.&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_mask</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Only one of mask_generator or mask_dir should be specified.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Data or mask folder does not exist. Please set root, data_dir and mask_dir properly.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">all_fnames</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span>
+            <span class="n">f</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">&quot;**/*.mat&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_mask.mat&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_manager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="p">[])</span> <span class="k">as</span> <span class="n">samples</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">all_fnames</span><span class="p">):</span>
+                    <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_metadata</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">slice_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;num_slices&quot;</span><span class="p">]):</span>
+                        <span class="n">samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SliceSampleID</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">slice_ind</span><span class="p">,</span> <span class="n">metadata</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_loadmat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load matrix from MATLAB 7.3 file and parse headers.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">mat73</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_retrieve_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open file and retrieve metadata</span>
+
+<span class="sd">        Metadata includes width, height, slices, coils (if multicoil) and timeframes.</span>
+
+<span class="sd">        :param str, pathlib.Path, os.PathLike fname: filename to open</span>
+<span class="sd">        :return: metadata dict of key-value pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadmat</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># WH(N)DT</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># W</span>
+            <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># H</span>
+            <span class="s2">&quot;num_slices&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span>  <span class="c1"># D (depth)</span>
+            <span class="s2">&quot;timeframes&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># T</span>
+        <span class="p">}</span> <span class="o">|</span> <span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;coils&quot;</span><span class="p">:</span> <span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>  <span class="c1"># N (coils)</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span>
+            <span class="k">else</span> <span class="p">{}</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get ith data sampe.</span>
+
+<span class="sd">        :param int i: dataset index to get</span>
+<span class="sd">        :return: tuple of ground truth ``x``, measurement ``y`` and params dict containing mask ``{&#39;mask&#39;: mask}``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fname</span><span class="p">,</span> <span class="n">slice_ind</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Load kspace data, take slice, remove coil dim,</span>
+        <span class="c1"># create complex dim, move time dim</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadmat</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>  <span class="c1"># shape WH(N)DT</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">slice_ind</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># shape WH(N)T</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># shape WHT</span>
+
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">kspace</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">kspace</span><span class="o">.</span><span class="n">imag</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># shape CTWH</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># TODO The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved</span>
+        <span class="c1"># to a separate CMRxReconTransform in future.</span>
+
+        <span class="c1"># Load mask</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loadmat</span><span class="p">(</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_dir</span><span class="p">)))</span>
+                        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.mat&quot;</span><span class="p">,</span> <span class="s2">&quot;_mask.mat&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">three_d</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># shape CTWH</span>
+                <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                        <span class="s2">&quot;Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">MRISliceTransform</span><span class="p">(</span>
+                    <span class="n">mask_generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_generator</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">generate_mask</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">slice_ind</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">kspace</span><span class="p">)</span>
+
+        <span class="c1"># Construct ground truth</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kspace_to_im</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># shape CTWH</span>
+        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="c1"># Apply target transform</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="c1"># Pad</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]),</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pad_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Normalize</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="p">(</span><span class="n">target</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-11</span><span class="p">)</span>
+
+        <span class="n">kspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">im_to_kspace</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">kspace</span><span class="p">)</span> <span class="o">*</span> <span class="n">mask</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span> <span class="o">*</span> <span class="n">mask</span> <span class="o">+</span> <span class="mf">0.0</span>
+            <span class="k">return</span> <span class="n">target</span><span class="p">,</span> <span class="n">kspace</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="p">{</span><span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="o">.</span><span class="n">float</span><span class="p">()}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">target</span><span class="p">,</span> <span class="n">kspace</span><span class="o">.</span><span class="n">float</span><span class="p">()</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

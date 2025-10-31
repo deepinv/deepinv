@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>Overview: module code &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/index';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/index.html" />
+    <link rel="icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Overview: module code</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>All modules for which code is available</h1>
+<ul><li><a href="deepinv/datasets/base.html">deepinv.datasets.base</a></li>
+<li><a href="deepinv/datasets/bsds500.html">deepinv.datasets.bsds500</a></li>
+<li><a href="deepinv/datasets/cbsd68.html">deepinv.datasets.cbsd68</a></li>
+<li><a href="deepinv/datasets/cmrxrecon.html">deepinv.datasets.cmrxrecon</a></li>
+<li><a href="deepinv/datasets/datagenerator.html">deepinv.datasets.datagenerator</a></li>
+<li><a href="deepinv/datasets/div2k.html">deepinv.datasets.div2k</a></li>
+<li><a href="deepinv/datasets/fastmri.html">deepinv.datasets.fastmri</a></li>
+<li><a href="deepinv/datasets/flickr2k.html">deepinv.datasets.flickr2k</a></li>
+<li><a href="deepinv/datasets/fmd.html">deepinv.datasets.fmd</a></li>
+<li><a href="deepinv/datasets/kohler.html">deepinv.datasets.kohler</a></li>
+<li><a href="deepinv/datasets/lidc_idri.html">deepinv.datasets.lidc_idri</a></li>
+<li><a href="deepinv/datasets/lsdir.html">deepinv.datasets.lsdir</a></li>
+<li><a href="deepinv/datasets/patch_dataset.html">deepinv.datasets.patch_dataset</a></li>
+<li><a href="deepinv/datasets/random_sampler.html">deepinv.datasets.random_sampler</a></li>
+<li><a href="deepinv/datasets/satellite.html">deepinv.datasets.satellite</a></li>
+<li><a href="deepinv/datasets/set14.html">deepinv.datasets.set14</a></li>
+<li><a href="deepinv/datasets/skmtea.html">deepinv.datasets.skmtea</a></li>
+<li><a href="deepinv/datasets/urban100.html">deepinv.datasets.urban100</a></li>
+<li><a href="deepinv/datasets/utils.html">deepinv.datasets.utils</a></li>
+<li><a href="deepinv/loss/adversarial/base.html">deepinv.loss.adversarial.base</a></li>
+<li><a href="deepinv/loss/adversarial/consistency.html">deepinv.loss.adversarial.consistency</a></li>
+<li><a href="deepinv/loss/adversarial/uair.html">deepinv.loss.adversarial.uair</a></li>
+<li><a href="deepinv/loss/augmentation.html">deepinv.loss.augmentation</a></li>
+<li><a href="deepinv/loss/ei.html">deepinv.loss.ei</a></li>
+<li><a href="deepinv/loss/loss.html">deepinv.loss.loss</a></li>
+<li><a href="deepinv/loss/mc.html">deepinv.loss.mc</a></li>
+<li><a href="deepinv/loss/measplit.html">deepinv.loss.measplit</a></li>
+<li><a href="deepinv/loss/metric/distortion.html">deepinv.loss.metric.distortion</a></li>
+<li><a href="deepinv/loss/metric/metric.html">deepinv.loss.metric.metric</a></li>
+<li><a href="deepinv/loss/metric/perceptual.html">deepinv.loss.metric.perceptual</a></li>
+<li><a href="deepinv/loss/moi.html">deepinv.loss.moi</a></li>
+<li><a href="deepinv/loss/mri/measplit.html">deepinv.loss.mri.measplit</a></li>
+<li><a href="deepinv/loss/mri/sure.html">deepinv.loss.mri.sure</a></li>
+<li><a href="deepinv/loss/r2r.html">deepinv.loss.r2r</a></li>
+<li><a href="deepinv/loss/regularisers.html">deepinv.loss.regularisers</a></li>
+<li><a href="deepinv/loss/scheduler.html">deepinv.loss.scheduler</a></li>
+<li><a href="deepinv/loss/score.html">deepinv.loss.score</a></li>
+<li><a href="deepinv/loss/sup.html">deepinv.loss.sup</a></li>
+<li><a href="deepinv/loss/sure.html">deepinv.loss.sure</a></li>
+<li><a href="deepinv/loss/tv.html">deepinv.loss.tv</a></li>
+<li><a href="deepinv/models/GSPnP.html">deepinv.models.GSPnP</a></li>
+<li><a href="deepinv/models/PDNet.html">deepinv.models.PDNet</a></li>
+<li><a href="deepinv/models/ae.html">deepinv.models.ae</a></li>
+<li><a href="deepinv/models/artifactremoval.html">deepinv.models.artifactremoval</a></li>
+<li><a href="deepinv/models/base.html">deepinv.models.base</a></li>
+<li><a href="deepinv/models/bm3d.html">deepinv.models.bm3d</a></li>
+<li><a href="deepinv/models/client.html">deepinv.models.client</a></li>
+<li><a href="deepinv/models/complex.html">deepinv.models.complex</a></li>
+<li><a href="deepinv/models/diffunet.html">deepinv.models.diffunet</a></li>
+<li><a href="deepinv/models/dip.html">deepinv.models.dip</a></li>
+<li><a href="deepinv/models/dncnn.html">deepinv.models.dncnn</a></li>
+<li><a href="deepinv/models/drunet.html">deepinv.models.drunet</a></li>
+<li><a href="deepinv/models/dsccp.html">deepinv.models.dsccp</a></li>
+<li><a href="deepinv/models/dynamic.html">deepinv.models.dynamic</a></li>
+<li><a href="deepinv/models/epll.html">deepinv.models.epll</a></li>
+<li><a href="deepinv/models/equivariant.html">deepinv.models.equivariant</a></li>
+<li><a href="deepinv/models/gan.html">deepinv.models.gan</a></li>
+<li><a href="deepinv/models/guided_diffusion.html">deepinv.models.guided_diffusion</a></li>
+<li><a href="deepinv/models/icnn.html">deepinv.models.icnn</a></li>
+<li><a href="deepinv/models/median.html">deepinv.models.median</a></li>
+<li><a href="deepinv/models/modl.html">deepinv.models.modl</a></li>
+<li><a href="deepinv/models/multispectral.html">deepinv.models.multispectral</a></li>
+<li><a href="deepinv/models/ncsnpp.html">deepinv.models.ncsnpp</a></li>
+<li><a href="deepinv/models/ram.html">deepinv.models.ram</a></li>
+<li><a href="deepinv/models/restormer.html">deepinv.models.restormer</a></li>
+<li><a href="deepinv/models/scunet.html">deepinv.models.scunet</a></li>
+<li><a href="deepinv/models/swinir.html">deepinv.models.swinir</a></li>
+<li><a href="deepinv/models/tgv.html">deepinv.models.tgv</a></li>
+<li><a href="deepinv/models/tv.html">deepinv.models.tv</a></li>
+<li><a href="deepinv/models/unet.html">deepinv.models.unet</a></li>
+<li><a href="deepinv/models/varnet.html">deepinv.models.varnet</a></li>
+<li><a href="deepinv/models/wavdict.html">deepinv.models.wavdict</a></li>
+<li><a href="deepinv/optim/bregman.html">deepinv.optim.bregman</a></li>
+<li><a href="deepinv/optim/data_fidelity.html">deepinv.optim.data_fidelity</a></li>
+<li><a href="deepinv/optim/distance.html">deepinv.optim.distance</a></li>
+<li><a href="deepinv/optim/dpir.html">deepinv.optim.dpir</a></li>
+<li><a href="deepinv/optim/epll.html">deepinv.optim.epll</a></li>
+<li><a href="deepinv/optim/fixed_point.html">deepinv.optim.fixed_point</a></li>
+<li><a href="deepinv/optim/optim_iterators/admm.html">deepinv.optim.optim_iterators.admm</a></li>
+<li><a href="deepinv/optim/optim_iterators/drs.html">deepinv.optim.optim_iterators.drs</a></li>
+<li><a href="deepinv/optim/optim_iterators/gradient_descent.html">deepinv.optim.optim_iterators.gradient_descent</a></li>
+<li><a href="deepinv/optim/optim_iterators/hqs.html">deepinv.optim.optim_iterators.hqs</a></li>
+<li><a href="deepinv/optim/optim_iterators/optim_iterator.html">deepinv.optim.optim_iterators.optim_iterator</a></li>
+<li><a href="deepinv/optim/optim_iterators/pgd.html">deepinv.optim.optim_iterators.pgd</a></li>
+<li><a href="deepinv/optim/optim_iterators/primal_dual_CP.html">deepinv.optim.optim_iterators.primal_dual_CP</a></li>
+<li><a href="deepinv/optim/optim_iterators/spectral_methods.html">deepinv.optim.optim_iterators.spectral_methods</a></li>
+<li><a href="deepinv/optim/optimizers.html">deepinv.optim.optimizers</a></li>
+<li><a href="deepinv/optim/phase_retrieval.html">deepinv.optim.phase_retrieval</a></li>
+<li><a href="deepinv/optim/potential.html">deepinv.optim.potential</a></li>
+<li><a href="deepinv/optim/prior.html">deepinv.optim.prior</a></li>
+<li><a href="deepinv/optim/utils.html">deepinv.optim.utils</a></li>
+<li><a href="deepinv/physics/blur.html">deepinv.physics.blur</a></li>
+<li><a href="deepinv/physics/cassi.html">deepinv.physics.cassi</a></li>
+<li><a href="deepinv/physics/compressed_sensing.html">deepinv.physics.compressed_sensing</a></li>
+<li><a href="deepinv/physics/forward.html">deepinv.physics.forward</a></li>
+<li><a href="deepinv/physics/functional/astra.html">deepinv.physics.functional.astra</a></li>
+<li><a href="deepinv/physics/functional/convolution.html">deepinv.physics.functional.convolution</a></li>
+<li><a href="deepinv/physics/functional/dct.html">deepinv.physics.functional.dct</a></li>
+<li><a href="deepinv/physics/functional/dst.html">deepinv.physics.functional.dst</a></li>
+<li><a href="deepinv/physics/functional/hist.html">deepinv.physics.functional.hist</a></li>
+<li><a href="deepinv/physics/functional/imresize.html">deepinv.physics.functional.imresize</a></li>
+<li><a href="deepinv/physics/functional/multiplier.html">deepinv.physics.functional.multiplier</a></li>
+<li><a href="deepinv/physics/functional/product_convolution.html">deepinv.physics.functional.product_convolution</a></li>
+<li><a href="deepinv/physics/functional/radon.html">deepinv.physics.functional.radon</a></li>
+<li><a href="deepinv/physics/generator/base.html">deepinv.physics.generator.base</a></li>
+<li><a href="deepinv/physics/generator/blur.html">deepinv.physics.generator.blur</a></li>
+<li><a href="deepinv/physics/generator/downsampling.html">deepinv.physics.generator.downsampling</a></li>
+<li><a href="deepinv/physics/generator/inpainting.html">deepinv.physics.generator.inpainting</a></li>
+<li><a href="deepinv/physics/generator/mri.html">deepinv.physics.generator.mri</a></li>
+<li><a href="deepinv/physics/generator/noise.html">deepinv.physics.generator.noise</a></li>
+<li><a href="deepinv/physics/haze.html">deepinv.physics.haze</a></li>
+<li><a href="deepinv/physics/inpainting.html">deepinv.physics.inpainting</a></li>
+<li><a href="deepinv/physics/lidar.html">deepinv.physics.lidar</a></li>
+<li><a href="deepinv/physics/mri.html">deepinv.physics.mri</a></li>
+<li><a href="deepinv/physics/noise.html">deepinv.physics.noise</a></li>
+<li><a href="deepinv/physics/phase_retrieval.html">deepinv.physics.phase_retrieval</a></li>
+<li><a href="deepinv/physics/radio.html">deepinv.physics.radio</a></li>
+<li><a href="deepinv/physics/range.html">deepinv.physics.range</a></li>
+<li><a href="deepinv/physics/remote_sensing.html">deepinv.physics.remote_sensing</a></li>
+<li><a href="deepinv/physics/singlepixel.html">deepinv.physics.singlepixel</a></li>
+<li><a href="deepinv/physics/spatial_unwrapping.html">deepinv.physics.spatial_unwrapping</a></li>
+<li><a href="deepinv/physics/structured_random.html">deepinv.physics.structured_random</a></li>
+<li><a href="deepinv/physics/tomography.html">deepinv.physics.tomography</a></li>
+<li><a href="deepinv/physics/unmixing.html">deepinv.physics.unmixing</a></li>
+<li><a href="deepinv/physics/wrappers.html">deepinv.physics.wrappers</a></li>
+<li><a href="deepinv/sampling/diffusion.html">deepinv.sampling.diffusion</a></li>
+<li><a href="deepinv/sampling/diffusion_sde.html">deepinv.sampling.diffusion_sde</a></li>
+<li><a href="deepinv/sampling/langevin.html">deepinv.sampling.langevin</a></li>
+<li><a href="deepinv/sampling/noisy_datafidelity.html">deepinv.sampling.noisy_datafidelity</a></li>
+<li><a href="deepinv/sampling/sampling.html">deepinv.sampling.sampling</a></li>
+<li><a href="deepinv/sampling/sampling_iterators/SKRock.html">deepinv.sampling.sampling_iterators.SKRock</a></li>
+<li><a href="deepinv/sampling/sampling_iterators/diffusion.html">deepinv.sampling.sampling_iterators.diffusion</a></li>
+<li><a href="deepinv/sampling/sampling_iterators/sampling_iterator.html">deepinv.sampling.sampling_iterators.sampling_iterator</a></li>
+<li><a href="deepinv/sampling/sampling_iterators/ula.html">deepinv.sampling.sampling_iterators.ula</a></li>
+<li><a href="deepinv/sampling/sde_solver.html">deepinv.sampling.sde_solver</a></li>
+<li><a href="deepinv/training/adversarial.html">deepinv.training.adversarial</a></li>
+<li><a href="deepinv/training/testing.html">deepinv.training.testing</a></li>
+<li><a href="deepinv/training/trainer.html">deepinv.training.trainer</a></li>
+<li><a href="deepinv/transform/augmentation.html">deepinv.transform.augmentation</a></li>
+<li><a href="deepinv/transform/base.html">deepinv.transform.base</a></li>
+<li><a href="deepinv/transform/diffeomorphism.html">deepinv.transform.diffeomorphism</a></li>
+<li><a href="deepinv/transform/projective.html">deepinv.transform.projective</a></li>
+<li><a href="deepinv/transform/reflect.html">deepinv.transform.reflect</a></li>
+<li><a href="deepinv/transform/rotate.html">deepinv.transform.rotate</a></li>
+<li><a href="deepinv/transform/scale.html">deepinv.transform.scale</a></li>
+<li><a href="deepinv/transform/shift.html">deepinv.transform.shift</a></li>
+<li><a href="deepinv/transform/temporal.html">deepinv.transform.temporal</a></li>
+<li><a href="deepinv/unfolded/deep_equilibrium.html">deepinv.unfolded.deep_equilibrium</a></li>
+<li><a href="deepinv/unfolded/unfolded.html">deepinv.unfolded.unfolded</a></li>
+<li><a href="deepinv/utils/demo.html">deepinv.utils.demo</a></li>
+<li><a href="deepinv/utils/io.html">deepinv.utils.io</a></li>
+<li><a href="deepinv/utils/logger.html">deepinv.utils.logger</a></li>
+<li><a href="deepinv/utils/mixins.html">deepinv.utils.mixins</a></li>
+<li><a href="deepinv/utils/nn.html">deepinv.utils.nn</a></li>
+<li><a href="deepinv/utils/plotting.html">deepinv.utils.plotting</a></li>
+<li><a href="deepinv/utils/tensorlist.html">deepinv.utils.tensorlist</a></li>
+</ul>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

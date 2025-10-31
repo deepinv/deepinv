@@ -1,0 +1,880 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.utils.io &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/utils/io';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/utils/io.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.utils.io</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.utils.io</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy.lib.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_memmap</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">MRIMixin</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">nibabel</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">blosc2</span>
+
+
+<div class="viewcode-block" id="load_np">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_np.html#deepinv.utils.load_np">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_np</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">as_memmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load numpy array from file as torch tensor.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: file to load.</span>
+<span class="sd">    :param bool, as_memmap: open this file as a memmap, which does not load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.</span>
+<span class="sd">    :param numpy.dtype, str dtype: data type to use when loading the numpy array. This is ignored if `as_memmap` is `True`.</span>
+<span class="sd">    :return: :class:`torch.Tensor` containing loaded numpy array. If `as_memmap` is `True`, returns a numpy `memmap` object instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">as_memmap</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">open_memmap</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="load_torch">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_torch.html#deepinv.utils.load_torch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_torch</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load torch tensor from file.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: file to load.</span>
+<span class="sd">    :param torch.device, str device: device to load onto.</span>
+<span class="sd">    :return: :class:`torch.Tensor` containing loaded torch tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_url">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_url.html#deepinv.utils.load_url">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BytesIO</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load URL to a buffer.</span>
+
+<span class="sd">    This can be used as the argument for other IO functions such as</span>
+<span class="sd">    :func:`deepinv.utils.load_torch`, :func:`deepinv.utils.load_np` etc.</span>
+<span class="sd">    to load data directly from a URL.</span>
+
+<span class="sd">    :param str url: URL of the file to load</span>
+<span class="sd">    :return: `BytesIO` buffer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_dicom">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_dicom.html#deepinv.utils.load_dicom">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_dicom</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">as_tensor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">apply_rescale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load image from DICOM file.</span>
+
+<span class="sd">    Requires `pydicom` to be installed. Install it with `pip install pydicom`.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: path to DICOM file or buffer.</span>
+<span class="sd">    :param bool as_tensor: if `True`, return as torch tensor (default), otherwise return as numpy array.</span>
+<span class="sd">    :param bool apply_rescale: if `True`, map the stored values (SV) to output values according to the pydicom `apply_rescale`, default False.</span>
+<span class="sd">        See `pydicom docs &lt;https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html&gt;`_</span>
+<span class="sd">        and `apply_rescale &lt;https://pydicom.github.io/pydicom/2.4/reference/generated/pydicom.pixel_data_handlers.apply_rescale.html&gt;`_ for details.</span>
+<span class="sd">        Note this is only useful when the appropriate dicom tags are present, for example in CT for :class:`deepinv.datasets.LidcIdriSliceDataset`</span>
+<span class="sd">        for converting to Hounsfield Units. For other applications such as SUV/PET, we recommend applying the rescaling yourself.</span>
+<span class="sd">    :param numpy.dtype, str dtype: data type to use when loading the nifti file.</span>
+<span class="sd">    :return: either numpy array of shape of raw data `(...)`, or torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;load_dicom requires pydicom, which is not installed. Please install it with `pip install pydicom`.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">fname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">Path</span><span class="p">)</span> <span class="k">else</span> <span class="n">fname</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pixel_array</span>
+
+    <span class="k">if</span> <span class="n">apply_rescale</span><span class="p">:</span>
+        <span class="c1"># Sources:</span>
+        <span class="c1"># * https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html</span>
+        <span class="c1"># * https://pydicom.github.io/pydicom/3.0/release_notes/v3.0.0.html</span>
+        <span class="c1"># * https://pydicom.github.io/pydicom/2.4/reference/generated/pydicom.pixel_data_handlers.apply_rescale.html</span>
+        <span class="c1"># NOTE: This function is deprecated in pydicom 3.0.0 in favor of</span>
+        <span class="c1"># the new function pydicom.pixels.apply_rescale. It is currently</span>
+        <span class="c1"># kept for compatibility with Python 3.9 which is only compatible</span>
+        <span class="c1"># with versions of pydicom older than version 3.0.0.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pydicom</span><span class="p">,</span> <span class="s2">&quot;pixel_data_handlers&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
+            <span class="n">pydicom</span><span class="o">.</span><span class="n">pixel_data_handlers</span><span class="p">,</span> <span class="s2">&quot;apply_rescale&quot;</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;pydicom version is unsupported. Please install a version of pydicom ≥ 2.0.0 and &lt; 4.0.0&quot;</span>
+            <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">pixel_data_handlers</span><span class="o">.</span><span class="n">apply_rescale</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># NOTE: apply_rescale returns float64 arrays. Most</span>
+        <span class="c1"># applications do not need double precision so we cast it back to</span>
+        <span class="c1"># float32 for improved memory efficiency.</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">as_tensor</span> <span class="k">else</span> <span class="n">x</span></div>
+
+
+
+<div class="viewcode-block" id="load_ismrmd">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_ismrmd.html#deepinv.utils.load_ismrmd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_ismrmd</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">data_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;kspace&quot;</span><span class="p">,</span>
+    <span class="n">data_slice</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load complex MRI data from ISMRMD format.</span>
+
+<span class="sd">    Uses `h5py` to load data specified by `data_name` key. The data is assumed to be stored in complex type.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        To speed up loading, slice/index the data before converting to tensor.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: file to load.</span>
+<span class="sd">    :param str data_name: key of data in file, defaults to &quot;kspace&quot;.</span>
+<span class="sd">    :param tuple data_slice: slice or index to use before converting to tensor, such as `int`, `slice` or `tuple` of these.</span>
+<span class="sd">    :return: data loaded in :class:`torch.Tensor` of shape `(2, ...)` containing real and imaginary parts,</span>
+<span class="sd">        where `...` are dimensions of the raw data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;The h5py package is not installed. Please install it with `pip install h5py`.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">hf</span><span class="p">[</span><span class="n">data_name</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[()]</span> <span class="k">if</span> <span class="n">data_slice</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">data</span><span class="p">[</span><span class="n">data_slice</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">MRIMixin</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+            <span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="load_mat">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_mat.html#deepinv.utils.load_mat">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_mat</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mat73</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load MATLAB array from file.</span>
+
+<span class="sd">    This function depends on the ``scipy`` package. You can install it with ``pip install scipy``.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: filename to load</span>
+<span class="sd">    :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires</span>
+<span class="sd">        ``mat73``, install with ``pip install mat73``.</span>
+<span class="sd">    :return: dict with str keys and numpy array values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mat73</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">mat73</span><span class="w"> </span><span class="kn">import</span> <span class="n">loadmat</span> <span class="k">as</span> <span class="n">loadmat73</span>
+
+            <span class="k">return</span> <span class="n">loadmat73</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;mat73 is required, install with &#39;pip install mat73&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Array is incompatible with MATLAB 7.3 loader. Using scipy loader instead...&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">loadmat</span> <span class="k">as</span> <span class="n">scipy_loadmat</span>
+
+        <span class="k">return</span> <span class="n">scipy_loadmat</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;load_mat requires scipy, which is not installed. Install it with `pip install scipy`.&quot;</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_raster">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_raster.html#deepinv.utils.load_raster">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_raster</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">patch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">patch_start</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="n">transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load a raster image and return patches as tensors using `rasterio`.</span>
+
+<span class="sd">    This function allows you to stream patches from large rasters e.g. satellite imagery, SAR etc.</span>
+<span class="sd">    and supports all file formats supported by `rasterio`.</span>
+
+<span class="sd">    This function requires `rasterio`, and should not rely on external GDAL dependencies. Install it with `pip install rasterio`.</span>
+
+<span class="sd">    :param str fname: Path to the raster file, such as `.geotiff`, `.tiff`, `.cos` etc., or buffer.</span>
+<span class="sd">    :param bool, int, tuple[int, int], patch: Patch extraction mode. If ``False`` (default), return the entire image as a</span>
+<span class="sd">        :class:`torch.Tensor` of shape `(C, H, W)` where C are bands.</span>
+<span class="sd">        If ``True``, yield patches based on the raster&#39;s internal block windows</span>
+<span class="sd">        (if no block windows are available, raises error; if any block has a dimension of 1 (strip layout), raise warning).</span>
+<span class="sd">        If ``int`` or ``(int, int)``, yield patches of the manually specified size `h, w`.</span>
+<span class="sd">    :param tuple[int, int] patch_start: h and w indices from which to start taking patches. Defaults to `0,0`.</span>
+<span class="sd">    :param Callable, None transform: Optional transform applied to each patch.</span>
+
+<span class="sd">    :return: Either (where C is the band dimension)</span>
+<span class="sd">        * a full image :class:`torch.Tensor` of shape `(C, H, W)`, if ``patch=False``, or</span>
+<span class="sd">        * an iterator of torch tensors over patches of shape `(C, h, w)`, if ``patch=True`` or a size is specified, where `h,w` is the patch size.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">    &gt;&gt;&gt; from deepinv.utils.io import load_raster, load_url</span>
+<span class="sd">    &gt;&gt;&gt; file = load_url(&quot;https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; x = load_raster(file, patch=False) # Load whole image</span>
+<span class="sd">    &gt;&gt;&gt; x.shape</span>
+<span class="sd">    torch.Size([1, 929, 699])</span>
+<span class="sd">    &gt;&gt;&gt; x = load_raster(file, patch=True) # Patch via internal block size</span>
+<span class="sd">    &gt;&gt;&gt; next(x).shape</span>
+<span class="sd">    torch.Size([1, 11, 699])</span>
+<span class="sd">    &gt;&gt;&gt; all_patches = list(x) # Load all patches into memory</span>
+<span class="sd">    &gt;&gt;&gt; len(all_patches)</span>
+<span class="sd">    84</span>
+<span class="sd">    &gt;&gt;&gt; from torch.utils.data import DataLoader</span>
+<span class="sd">    &gt;&gt;&gt; dataloader = DataLoader(all_patches, batch_size=2) # You can use this for training</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; x = load_raster(file, patch=128, patch_start=(200, 200)) # Patch via manual size, pick away from origin</span>
+<span class="sd">    &gt;&gt;&gt; next(x).shape</span>
+<span class="sd">    torch.Size([1, 128, 128])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;load_raster requires rasterio, which is not installed. Install it with `pip install rasterio`.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_array</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate, normalize dimensions, handle complex data, and apply transform.&quot;&quot;&quot;</span>
+        <span class="n">arr</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+            <span class="mi">0</span>
+        <span class="p">)</span>  <span class="c1"># Remove single-band dimension if exists</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">is_complex</span><span class="p">():</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">MRIMixin</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+                    <span class="mi">0</span>
+                <span class="p">)</span>  <span class="c1"># (2, H, W)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># (1, H, W)</span>
+        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">is_complex</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;If array is complex, it cannot have a band dimension.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Array should have band, x and y dimensions.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">transform</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>  <span class="c1"># (C, H, W)</span>
+
+    <span class="k">if</span> <span class="n">patch</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_process_array</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_patch_generator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">patch</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">block_windows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">block_windows</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># use band 1 as representative</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">block_windows</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No block windows available for this raster.&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">window</span> <span class="ow">in</span> <span class="n">block_windows</span><span class="p">:</span>
+                    <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">height</span>
+                    <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">h</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">warn</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Block window </span><span class="si">{</span><span class="n">window</span><span class="si">}</span><span class="s2"> returns patches of width or height 1. Consider manually setting a patch size.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">_process_array</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">))</span>
+                <span class="k">return</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">src</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span> <span class="o">=</span> <span class="n">patch</span><span class="p">,</span> <span class="n">patch</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span> <span class="o">=</span> <span class="n">patch</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid value for patch: </span><span class="si">{</span><span class="n">patch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">patch_start</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">patch_start</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="n">patch_w</span><span class="p">):</span>
+                    <span class="n">window</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">Window</span><span class="p">(</span>
+                        <span class="n">x</span><span class="p">,</span>
+                        <span class="n">y</span><span class="p">,</span>
+                        <span class="nb">min</span><span class="p">(</span><span class="n">patch_w</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="n">x</span><span class="p">),</span>
+                        <span class="nb">min</span><span class="p">(</span><span class="n">patch_h</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="n">y</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">_process_array</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">))</span>
+            <span class="k">return</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">src</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">_patch_generator</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="load_nifti">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.utils.load_nifti.html#deepinv.utils.load_nifti">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_nifti</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">as_memmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">nib</span><span class="o">.</span><span class="n">arrayproxy</span><span class="o">.</span><span class="n">ArrayProxy</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load volume from nifti file as torch tensor.</span>
+
+<span class="sd">    We assume that the data contains a channel dimension. If not, unsqueeze the output to</span>
+<span class="sd">    add a channel dimension `x = load_nifti(...).unsqueeze(0)`.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        When loading zipped nifti files (e.g., .nii.gz), it is recommended to install indexed_gzip (`pip install indexed-gzip`) to speed up loading times.</span>
+
+<span class="sd">    .. warning:</span>
+
+<span class="sd">        Set the `dtype` correctly to load double or complex data.</span>
+<span class="sd">        You can also inspect the `nibabel` image object headers (result of `nib.load`) prior to calling `get_fdata` or `dataobj`,</span>
+<span class="sd">        to get the intended `dtype` and other metadata.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: file to load.</span>
+<span class="sd">    :param bool, as_memmap: open this file as a proxy array, which does not eagerly load the entire array into memory. This is useful when extracting patches from large arrays or to quickly infer dtype and shape.</span>
+<span class="sd">    :param numpy.dtype, str dtype: data type to use when loading the nifti file. This is ignored if `as_memmap` is `True`.</span>
+<span class="sd">    :return: :class:`torch.Tensor` containing nifti image. If `as_memmap` is `True`, returns a proxy array instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">nibabel</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nib</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;load_nifti requires nibabel, which is not installed. Please install it with `pip install nibabel`.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">im</span> <span class="o">=</span> <span class="n">nib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">as_memmap</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">im</span><span class="o">.</span><span class="n">dataobj</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">get_fdata</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_blosc2</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">as_memmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">blosc2</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">NDArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load volume from blosc2 file as torch tensor.</span>
+
+<span class="sd">    :param str, pathlib.Path fname: file to load.</span>
+<span class="sd">    :param bool, as_memmap: open this file as a memory-mapped array (which does not load the entire array into memory). This is useful when extracting patches from large arrays or to quickly infer dtype and shape.</span>
+<span class="sd">    :param numpy.dtype, str dtype: data type to use when loading the blosc2 file. This is ignored if `as_memmap` is `True`.</span>
+<span class="sd">    :return: :class:`torch.Tensor` containing loaded numpy array. If `as_memmap` is `True`, returns a blosc2 array object instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">blosc2</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;load_blosc2 requires blosc2, which is not installed. Please install it with `pip install blosc2`.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">blosc2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">as_memmap</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">arr</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">arr</span><span class="p">[:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

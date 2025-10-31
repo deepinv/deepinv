@@ -1,0 +1,1197 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.sampling.diffusion &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/sampling/diffusion';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/sampling/diffusion.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.sampling.diffusion</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.sampling.diffusion</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv.physics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSampling</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.sampling_iterators</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiffusionIterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+
+
+<div class="viewcode-block" id="DiffusionSampler">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffusionSampler</span><span class="p">(</span><span class="n">BaseSampling</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Turns a diffusion method into a Monte Carlo sampler</span>
+
+<span class="sd">    Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution</span>
+<span class="sd">    by running the diffusion multiple times.</span>
+
+<span class="sd">    See the docs for :class:`deepinv.sampling.BaseSampling` for more information. It uses the helper class :class:`deepinv.sampling.DiffusionIterator`.</span>
+
+<span class="sd">    :param torch.nn.Module diffusion: a diffusion model</span>
+<span class="sd">    :param int max_iter: the number of samples to generate</span>
+<span class="sd">    :param tuple clip: the clip range</span>
+<span class="sd">    :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.</span>
+<span class="sd">    :param float thres_conv: the convergence threshold for the mean and variance</span>
+<span class="sd">    :param bool verbose: whether to print the progress</span>
+<span class="sd">    :param bool save_chain: whether to save the chain</span>
+<span class="sd">    :param int thinning: the thinning factor</span>
+<span class="sd">    :param float burnin_ratio: the burnin ratio</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">diffusion</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e2</span><span class="p">,</span>
+        <span class="n">clip</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">thres_conv</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span>
+        <span class="n">g_statistic</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save_chain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># generate an iterator</span>
+        <span class="c1"># set the params of the base class</span>
+        <span class="n">data_fidelity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">diffusion</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">prior</span> <span class="o">=</span> <span class="n">diffusion</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">DiffusionIterator</span><span class="p">(</span><span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">iterator</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">prior</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">thinning</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">thresh_conv</span><span class="o">=</span><span class="n">thres_conv</span><span class="p">,</span>
+            <span class="n">history_size</span><span class="o">=</span><span class="n">save_chain</span><span class="p">,</span>
+            <span class="n">burnin_ratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="c1"># thresh_conv=thres_conv,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_statistics</span> <span class="o">=</span> <span class="p">[</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">g_statistic</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">])]</span>
+
+<div class="viewcode-block" id="DiffusionSampler.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs the diffusion model to obtain the posterior mean and variance of the reconstruction of the measurements y.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements</span>
+<span class="sd">        :param float seed: Random seed for generating the samples</span>
+<span class="sd">        :return: (tuple of torch.tensor) containing the posterior mean and variance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">g_statistics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_statistics</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DDRM">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DDRM</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Denoising Diffusion Restoration Models (DDRM).</span>
+
+<span class="sd">    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.</span>
+
+<span class="sd">    The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.</span>
+
+<span class="sd">    It requires that the physics operator has a singular value decomposition, i.e.,</span>
+<span class="sd">    it is :class:`deepinv.physics.DecomposablePhysics` class.</span>
+
+<span class="sd">    :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.</span>
+<span class="sd">    :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing</span>
+<span class="sd">        order from 1 to 0. Defaults to ``np.linspace(1, 0, 100)``, i.e., 100 equally spaced noise levels from 1 to 0.</span>
+<span class="sd">    :param float eta: hyperparameter</span>
+<span class="sd">    :param float etab: hyperparameter</span>
+<span class="sd">    :param bool verbose: if True, print progress</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Denoising diffusion restoration model using a pretrained DRUNet denoiser:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else &#39;cpu&#39;</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU</span>
+<span class="sd">        &gt;&gt;&gt; x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Inpainting(</span>
+<span class="sd">        ...   mask=0.5, img_size=(3, 32, 32),</span>
+<span class="sd">        ...   noise_model=dinv.physics.GaussianNoise(0.1),</span>
+<span class="sd">        ...   device=device,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x) # measurements</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = dinv.models.DRUNet(pretrained=&quot;download&quot;).to(device)  # doctest: +IGNORE_RESULT</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model</span>
+<span class="sd">        &gt;&gt;&gt; xhat = model(y, physics) # sample from the posterior distribution</span>
+<span class="sd">        &gt;&gt;&gt; (dinv.metric.PSNR()(xhat, x) &gt; dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original</span>
+<span class="sd">        tensor([True])</span>
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">,</span>
+        <span class="n">sigmas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eta</span><span class="o">=</span><span class="mf">0.85</span><span class="p">,</span>
+        <span class="n">etab</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">sigmas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sigmas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DDRM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span> <span class="o">=</span> <span class="n">sigmas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigmas</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">etab</span> <span class="o">=</span> <span class="n">etab</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+
+<div class="viewcode-block" id="DDRM.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">DecomposablePhysics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs the diffusion to obtain a random sample of the posterior distribution.</span>
+
+<span class="sd">        :param torch.Tensor y: the measurements.</span>
+<span class="sd">        :param deepinv.physics.DecomposablePhysics physics: the physics operator, which must have a singular value</span>
+<span class="sd">            decomposition.</span>
+<span class="sd">        :param int seed: the seed for the random number generator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">seed</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">):</span>
+                <span class="n">sigma_noise</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sigma_noise</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+            <span class="k">if</span> <span class="n">physics</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Denoising</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span>
+                    <span class="n">y</span>
+                <span class="p">)</span>  <span class="c1"># TODO: fix for economic SVD decompositions (eg. Decolorize)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">physics</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">abs</span><span class="p">()]</span> <span class="o">*</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">y_bar</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">case</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">&gt;</span> <span class="n">sigma_noise</span>
+            <span class="n">y_bar</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_bar</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+            <span class="n">nsr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">nsr</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">=</span> <span class="n">sigma_noise</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+
+            <span class="c1"># iteration 1</span>
+            <span class="c1"># compute init noise</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y_bar</span><span class="p">)</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_bar</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">mean</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_bar</span><span class="p">[</span><span class="n">case</span><span class="p">]</span>
+            <span class="n">std</span><span class="p">[</span><span class="n">case</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">nsr</span><span class="p">[</span><span class="n">case</span><span class="p">]</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+            <span class="n">x_bar</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">y_bar</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+            <span class="n">x_bar_prev</span> <span class="o">=</span> <span class="n">x_bar</span>
+
+            <span class="c1"># denoise</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="n">x_bar</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)):</span>
+                <span class="c1"># add noise in transformed domain</span>
+                <span class="n">x_bar</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+                <span class="n">case2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">case</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">nsr</span><span class="p">))</span>
+                <span class="n">case3</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">case</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">nsr</span><span class="p">))</span>
+
+                <span class="n">mean</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">x_bar</span>
+                    <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_bar_prev</span> <span class="o">-</span> <span class="n">x_bar</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">mean</span><span class="p">[</span><span class="n">case2</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_bar</span><span class="p">[</span><span class="n">case2</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">y_bar</span><span class="p">[</span><span class="n">case2</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_bar</span><span class="p">[</span><span class="n">case2</span><span class="p">]</span>
+                <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">nsr</span><span class="p">[</span><span class="n">case2</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+                <span class="n">mean</span><span class="p">[</span><span class="n">case3</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">etab</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_bar</span><span class="p">[</span><span class="n">case3</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">etab</span> <span class="o">*</span> <span class="n">y_bar</span><span class="p">[</span>
+                    <span class="n">case3</span>
+                <span class="p">]</span>
+
+                <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x_bar</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">std</span><span class="p">[</span><span class="n">case3</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="n">nsr</span><span class="p">[</span><span class="n">case3</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">etab</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+                    <span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+                <span class="p">)</span>
+
+                <span class="n">x_bar</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x_bar</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+                <span class="n">x_bar_prev</span> <span class="o">=</span> <span class="n">x_bar</span>
+                <span class="c1"># denoise</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="n">x_bar</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DiffPIR">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffPIR</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Diffusion PnP Image Restoration (DiffPIR).</span>
+
+<span class="sd">    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.</span>
+
+<span class="sd">    The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser</span>
+<span class="sd">    is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,</span>
+<span class="sd">    for :math:`t` decreasing from :math:`T` to :math:`1`:</span>
+
+<span class="sd">     .. math::</span>
+<span class="sd">             \begin{equation*}</span>
+<span class="sd">             \begin{aligned}</span>
+<span class="sd">             x_{0}^{t} &amp;= D_{\theta}(x_t, \frac{\sqrt{1-\overline{\alpha}_t}}{\sqrt{\overline{\alpha}_t}}) \\</span>
+<span class="sd">             \widehat{x}_{0}^{t} &amp;= \operatorname{prox}_{2 f(y, \cdot) /{\rho_t}}(x_{0}^{t}) \\</span>
+<span class="sd">             \widehat{\varepsilon} &amp;= \left(x_t - \sqrt{\overline{\alpha}_t} \,\,</span>
+<span class="sd">             \widehat{x}_{0}^t\right)/\sqrt{1-\overline{\alpha}_t} \\</span>
+<span class="sd">             \varepsilon_t &amp;= \mathcal{N}(0, \mathbf{I}) \\</span>
+<span class="sd">             x_{t-1} &amp;= \sqrt{\overline{\alpha}_t} \,\, \widehat{x}_{0}^t + \sqrt{1-\overline{\alpha}_t}</span>
+<span class="sd">             \left(\sqrt{1-\zeta} \,\, \widehat{\varepsilon} + \sqrt{\zeta} \,\, \varepsilon_t\right),</span>
+<span class="sd">             \end{aligned}</span>
+<span class="sd">             \end{equation*}</span>
+
+<span class="sd">    where :math:`D_\theta(\cdot,\sigma)` is a Gaussian denoiser network with noise level :math:`\sigma`</span>
+<span class="sd">    and :math:`f(y, \cdot)` is the data fidelity</span>
+<span class="sd">    term.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">            The algorithm might require careful tunning of the hyperparameters :math:`\lambda` and :math:`\zeta` to</span>
+<span class="sd">            obtain optimal results.</span>
+
+<span class="sd">    :param torch.nn.Module model: a conditional noise estimation model</span>
+<span class="sd">    :param float sigma: the noise level of the data</span>
+<span class="sd">    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator</span>
+<span class="sd">    :param int max_iter: the number of iterations to run the algorithm (default: 100)</span>
+<span class="sd">    :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1). Default: 1.0.</span>
+<span class="sd">    :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step</span>
+<span class="sd">        (:math:`\rho_t = \lambda \frac{\sigma_n^2}{\bar{\sigma}_t^2}` in the paper where the optimal value range</span>
+<span class="sd">        between 3.0 and 25.0 depending on the problem). Default: ``7.0``.</span>
+<span class="sd">    :param bool verbose: if ``True``, print progress</span>
+<span class="sd">    :param str device: the device to use for the computations</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Denoising diffusion restoration model using a pretrained DRUNet denoiser:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else &#39;cpu&#39;</span>
+<span class="sd">        &gt;&gt;&gt; x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Inpainting(</span>
+<span class="sd">        ...   mask=0.5, img_size=(3, 32, 32),</span>
+<span class="sd">        ...   noise_model=dinv.physics.GaussianNoise(0.1),</span>
+<span class="sd">        ...   device=device</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x) # Measurements</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = dinv.models.DRUNet(pretrained=&quot;download&quot;).to(device)</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.sampling.DiffPIR(</span>
+<span class="sd">        ...   model=denoiser,</span>
+<span class="sd">        ...   data_fidelity=dinv.optim.data_fidelity.L2(),</span>
+<span class="sd">        ...   device=device,</span>
+<span class="sd">        ... ) # Define the DiffPIR model</span>
+<span class="sd">        &gt;&gt;&gt; xhat = model(y, physics) # Run the DiffPIR algorithm</span>
+<span class="sd">        &gt;&gt;&gt; (dinv.metric.PSNR()(xhat, x) &gt; dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original</span>
+<span class="sd">        tensor([True])</span>
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">zeta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">lambda_</span><span class="o">=</span><span class="mf">7.0</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span> <span class="o">=</span> <span class="n">zeta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_end</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduced_alpha_cumprod</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_alphas_cumprod</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_recipm1_alphas_cumprod</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">betas</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_alpha_beta</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_noise_schedule</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DiffPIR.get_alpha_beta">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_alpha_beta">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alpha_beta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the alpha and beta sequences for the algorithm. This is necessary for mapping noise levels to timesteps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beta_start</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beta_end</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span>
+        <span class="n">alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># This is \overline{\alpha}_t</span>
+
+        <span class="c1"># Useful sequences deriving from alphas_cumprod</span>
+        <span class="n">sqrt_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_1m_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">reduced_alpha_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+            <span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span> <span class="n">sqrt_alphas_cumprod</span>
+        <span class="p">)</span>  <span class="c1"># equivalent noise sigma on image</span>
+        <span class="n">sqrt_recip_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_recipm1_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">sqrt_1m_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">reduced_alpha_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recipm1_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">betas</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffPIR.get_noise_schedule">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_noise_schedule">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_noise_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the noise schedule for the algorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lambda_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span>
+        <span class="n">sigmas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">sigma_ks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">rhos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="p">):</span>
+            <span class="n">sigmas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_alpha_cumprod</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">])</span>
+            <span class="n">sigma_ks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_alphas_cumprod</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="n">rhos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lambda_</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sigma_ks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">rhos</span><span class="p">,</span> <span class="n">sigmas</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rhos</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">sigmas</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+                <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">seq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">rhos</span><span class="p">,</span> <span class="n">sigmas</span><span class="p">,</span> <span class="n">seq</span></div>
+
+
+<div class="viewcode-block" id="DiffPIR.find_nearest">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.find_nearest">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the argmin of the nearest value in an array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">array</span> <span class="o">-</span> <span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">idx</span></div>
+
+
+<div class="viewcode-block" id="DiffPIR.compute_alpha">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.compute_alpha">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">betas</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the alpha sequence from the beta sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span>
+        <span class="n">alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">at</span> <span class="o">=</span> <span class="n">alphas_cumprod</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">at</span></div>
+
+
+<div class="viewcode-block" id="DiffPIR.get_alpha_prod">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.get_alpha_prod">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alpha_prod</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">beta_start</span><span class="o">=</span><span class="mf">0.1</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">beta_end</span><span class="o">=</span><span class="mi">20</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">num_train_timesteps</span><span class="o">=</span><span class="mi">1000</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="n">beta_start</span><span class="p">,</span>
+            <span class="n">beta_end</span><span class="p">,</span>
+            <span class="n">num_train_timesteps</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span>
+        <span class="n">alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># This is \overline{\alpha}_t</span>
+
+        <span class="c1"># Useful sequences deriving from alphas_cumprod</span>
+        <span class="n">sqrt_recip_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span><span class="p">)</span>
+        <span class="n">sqrt_recipm1_alphas_cumprod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">alphas_cumprod</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span>
+            <span class="n">sqrt_recipm1_alphas_cumprod</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DiffPIR.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">x_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs the diffusion to obtain a random sample of the posterior distribution.</span>
+
+<span class="sd">        :param torch.Tensor y: the measurements.</span>
+<span class="sd">        :param deepinv.physics.LinearPhysics physics: the physics operator.</span>
+<span class="sd">        :param float sigma: the noise level of the data.</span>
+<span class="sd">        :param int seed: the seed for the random number generator.</span>
+<span class="sd">        :param torch.Tensor x_init: the initial guess for the reconstruction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">seed</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">):</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>  <span class="c1"># Then we overwrite the default values</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_noise_schedule</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+
+        <span class="c1"># Initialization</span>
+        <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Necessary when x and y don&#39;t live in the same space</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x_init</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">,</span> <span class="n">sqrt_recipm1_alphas_cumprod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_alpha_prod</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="p">)),</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)):</span>
+
+                <span class="c1"># Current noise level</span>
+                <span class="n">curr_sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+
+                <span class="c1"># time step associated with the noise level sigmas[i]</span>
+                <span class="n">t_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reduced_alpha_cumprod</span><span class="p">,</span> <span class="n">curr_sigma</span><span class="p">)</span>
+                <span class="n">at</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">[</span><span class="n">t_i</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="p">):</span>  <span class="c1"># Initialization (simpler than the original code, may be suboptimal)</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">x</span>
+                        <span class="o">+</span> <span class="p">(</span><span class="n">curr_sigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+                        <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="p">)</span> <span class="o">/</span> <span class="n">sqrt_recip_alphas_cumprod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="n">sigma_cur</span> <span class="o">=</span> <span class="n">curr_sigma</span>
+
+                <span class="c1"># Denoising step</span>
+                <span class="n">x_aux</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">at</span><span class="o">.</span><span class="n">sqrt</span><span class="p">())</span> <span class="o">+</span> <span class="mf">0.5</span>  <span class="c1"># renormalize in [0, 1]</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x_aux</span><span class="p">,</span> <span class="n">sigma_cur</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">denoised</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">out</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">x0</span> <span class="o">=</span> <span class="n">denoised</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="c1"># Data fidelity step</span>
+                    <span class="n">x0_p</span> <span class="o">=</span> <span class="n">x0</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span>
+                    <span class="n">x0_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="o">.</span><span class="n">prox</span><span class="p">(</span>
+                        <span class="n">x0_p</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rhos</span><span class="p">[</span><span class="n">t_i</span><span class="p">])</span>
+                    <span class="p">)</span>
+                    <span class="n">x0</span> <span class="o">=</span> <span class="n">x0_p</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+
+                    <span class="c1"># Sampling step</span>
+                    <span class="n">t_im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_nearest</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">reduced_alpha_cumprod</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]],</span>
+                    <span class="p">)</span>  <span class="c1"># time step associated with the next noise level</span>
+
+                    <span class="n">eps</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_alphas_cumprod</span><span class="p">[</span><span class="n">t_i</span><span class="p">]</span> <span class="o">*</span> <span class="n">x0</span>
+                    <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">[</span>
+                        <span class="n">t_i</span>
+                    <span class="p">]</span>  <span class="c1"># effective noise</span>
+
+                    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_alphas_cumprod</span><span class="p">[</span><span class="n">t_im1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x0</span>
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">[</span><span class="n">t_im1</span><span class="p">]</span>
+                        <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+                        <span class="o">*</span> <span class="n">eps</span>
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sqrt_1m_alphas_cumprod</span><span class="p">[</span><span class="n">t_im1</span><span class="p">]</span>
+                        <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span><span class="o">**</span><span class="mf">0.5</span>
+                        <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="p">)</span>  <span class="c1"># sampling</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span>  <span class="c1"># back to [0, 1] range</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DPS">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DPS</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Diffusion Posterior Sampling (DPS).</span>
+
+<span class="sd">    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.</span>
+
+<span class="sd">    DPS is an approximation of a gradient-based posterior sampling algorithm,</span>
+<span class="sd">    which has minimal assumptions on the forward model. The only restriction is that</span>
+<span class="sd">    the measurement model has to be differentiable, which is generally the case.</span>
+
+<span class="sd">    The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">            \begin{equation*}</span>
+<span class="sd">            \begin{aligned}</span>
+<span class="sd">            \widehat{\mathbf{x}}_{t} &amp;= D_{\theta}(\mathbf{x}_t, \sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t})</span>
+<span class="sd">            \\</span>
+<span class="sd">            \mathbf{g}_t &amp;= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\</span>
+<span class="sd">            \mathbf{\varepsilon}_t &amp;= \mathcal{N}(0, \mathbf{I}) \\</span>
+<span class="sd">            \mathbf{x}_{t-1} &amp;= a_t \,\, \mathbf{x}_t</span>
+<span class="sd">            + b_t \, \, \widehat{\mathbf{x}}_t</span>
+<span class="sd">            + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,</span>
+<span class="sd">            \end{aligned}</span>
+<span class="sd">            \end{equation*}</span>
+
+<span class="sd">    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,</span>
+<span class="sd">    :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">            \begin{equation*}</span>
+<span class="sd">            \begin{aligned}</span>
+<span class="sd">              \tilde{\sigma}_t &amp;= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})</span>
+<span class="sd">              \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\</span>
+<span class="sd">              a_t &amp;= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\</span>
+<span class="sd">              b_t &amp;= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}</span>
+<span class="sd">              \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}.</span>
+<span class="sd">            \end{aligned}</span>
+<span class="sd">            \end{equation*}</span>
+
+<span class="sd">    :param torch.nn.Module model: a denoiser network that can handle different noise levels</span>
+<span class="sd">    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator</span>
+<span class="sd">    :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)</span>
+<span class="sd">    :param float eta: DDIM hyperparameter which controls the stochasticity</span>
+<span class="sd">    :param bool verbose: if True, print progress</span>
+<span class="sd">    :param str device: the device to use for the computations</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">eta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">save_iterates</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DPS</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_end</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">20</span> <span class="o">/</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_iterates</span> <span class="o">=</span> <span class="n">save_iterates</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">betas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha_cumprod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_alpha_betas</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DPS.compute_alpha_betas">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS.compute_alpha_betas">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_alpha_betas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beta_start</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beta_end</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">alpha_cumprod</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">betas</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">betas</span><span class="p">,</span> <span class="n">alpha_cumprod</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha_cumprod</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">alpha_cumprod</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">deepinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">seed</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">skip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">seq</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_train_timesteps</span><span class="p">,</span> <span class="n">skip</span><span class="p">)</span>
+        <span class="n">seq_next</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">seq</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">time_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">zip_strict</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">seq_next</span><span class="p">)))</span>
+
+        <span class="c1"># Initial sample from x_T</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">x_init</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x_init</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_iterates</span><span class="p">:</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span>
+
+        <span class="n">xt</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">time_pairs</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">)):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="n">i</span>
+            <span class="n">next_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="n">j</span>
+
+            <span class="n">at</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_alpha</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha_cumprod</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">long</span><span class="p">())</span>
+            <span class="n">at_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_alpha</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha_cumprod</span><span class="p">,</span> <span class="n">next_t</span><span class="o">.</span><span class="n">long</span><span class="p">())</span>
+
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
+                <span class="n">xt</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="c1"># 1. Denoising step</span>
+                <span class="n">aux_x</span> <span class="o">=</span> <span class="n">xt</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">at</span><span class="o">.</span><span class="n">sqrt</span><span class="p">())</span> <span class="o">+</span> <span class="mf">0.5</span>  <span class="c1"># renormalize in [0, 1]</span>
+                <span class="n">sigma_cur</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">/</span> <span class="n">at</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>  <span class="c1"># sigma_t</span>
+
+                <span class="n">x0_t</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">aux_x</span><span class="p">,</span> <span class="n">sigma_cur</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">x0_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x0_t</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+                <span class="c1"># 2. Likelihood gradient approximation</span>
+                <span class="n">l2_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fidelity</span><span class="p">(</span><span class="n">x0_t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="n">norm_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">l2_loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">xt</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">norm_grad</span> <span class="o">=</span> <span class="n">norm_grad</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+            <span class="n">sigma_tilde</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at</span> <span class="o">/</span> <span class="n">at_next</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at_next</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at_next</span><span class="p">)</span> <span class="o">-</span> <span class="n">sigma_tilde</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+
+            <span class="c1"># 3. Noise step</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+
+            <span class="c1"># 4. DDPM(IM) step</span>
+            <span class="n">xt_next</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">at_next</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">-</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">at</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">())</span> <span class="o">*</span> <span class="n">x0_t</span>
+                <span class="o">+</span> <span class="n">sigma_tilde</span> <span class="o">*</span> <span class="n">epsilon</span>
+                <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">xt</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">at</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+                <span class="o">-</span> <span class="n">norm_grad</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_iterates</span><span class="p">:</span>
+                <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xt_next</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+            <span class="n">xt</span> <span class="o">=</span> <span class="n">xt_next</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_iterates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xt</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

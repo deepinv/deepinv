@@ -1,0 +1,81 @@
+
+
+.. _sphx_glr_auto_examples_models:
+
+Models
+-------------------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to perform inference on and fine-tune the Reconstruct Anything Model (RAM) foundation model :footciteterris2025reconstruct to solve inverse problems.">
+
+.. only:: html
+
+  .. image:: /auto_examples/models/images/thumb/sphx_glr_demo_foundation_model_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_models_demo_foundation_model.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inference and fine-tune a foundation model</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a very simple quick start introduction to training reconstruction networks with DeepInverse for solving imaging inverse problems.">
+
+.. only:: html
+
+  .. image:: /auto_examples/models/images/thumb/sphx_glr_demo_training_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_models_demo_training.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Training a reconstruction model</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of the denoisers in DeepInverse. A denoiser is a model that takes in a noisy image and outputs a denoised version of it. Basically, it solves the following problem:">
+
+.. only:: html
+
+  .. image:: /auto_examples/models/images/thumb/sphx_glr_demo_denoiser_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_models_demo_denoiser_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Benchmarking pretrained denoisers</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/models/demo_foundation_model
+   /auto_examples/models/demo_training
+   /auto_examples/models/demo_denoiser_tour
+

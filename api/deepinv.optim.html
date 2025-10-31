@@ -1,0 +1,1236 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>deepinv.optim &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/deepinv.optim';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/api/deepinv.optim.html" />
+    <link rel="icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="optim_builder" href="stubs/deepinv.optim.optim_builder.html" />
+    <link rel="prev" title="QNR" href="stubs/deepinv.loss.metric.QNR.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.datasets.html">deepinv.datasets</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.ImageDataset.html">ImageDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.ImageFolder.html">ImageFolder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.TensorDataset.html">TensorDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.check_dataset.html">check_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.HDF5Dataset.html">HDF5Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.generate_dataset.html">generate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.DIV2K.html">DIV2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.Urban100HR.html">Urban100HR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.Set14HR.html">Set14HR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.BSDS500.html">BSDS500</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.CBSD68.html">CBSD68</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.FastMRISliceDataset.html">FastMRISliceDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.SimpleFastMRISliceDataset.html">SimpleFastMRISliceDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.CMRxReconSliceDataset.html">CMRxReconSliceDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.SKMTEASliceDataset.html">SKMTEASliceDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.LidcIdriSliceDataset.html">LidcIdriSliceDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.Flickr2kHR.html">Flickr2kHR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.LsdirHR.html">LsdirHR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.FMD.html">FMD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.Kohler.html">Kohler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.NBUDataset.html">NBUDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.PatchDataset.html">PatchDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.RandomPatchSampler.html">RandomPatchSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.utils.PlaceholderDataset.html">PlaceholderDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.utils.Rescale.html">Rescale</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.utils.ToComplex.html">ToComplex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.utils.Crop.html">Crop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.datasets.MRISliceTransform.html">MRISliceTransform</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.loss.html">deepinv.loss</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.Loss.html">Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.StackedPhysicsLoss.html">StackedPhysicsLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.SupLoss.html">SupLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.MCLoss.html">MCLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.EILoss.html">EILoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.MOILoss.html">MOILoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.MOEILoss.html">MOEILoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.Neighbor2Neighbor.html">Neighbor2Neighbor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.SplittingLoss.html">SplittingLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.SureGaussianLoss.html">SureGaussianLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.SurePoissonLoss.html">SurePoissonLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.SurePGLoss.html">SurePGLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.TVLoss.html">TVLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.R2RLoss.html">R2RLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.ScoreLoss.html">ScoreLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.AugmentConsistencyLoss.html">AugmentConsistencyLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.ReducedResolutionLoss.html">ReducedResolutionLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.mri.WeightedSplittingLoss.html">WeightedSplittingLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.mri.RobustSplittingLoss.html">RobustSplittingLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.mri.Phase2PhaseLoss.html">Phase2PhaseLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.mri.Artifact2ArtifactLoss.html">Artifact2ArtifactLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.mri.ENSURELoss.html">ENSURELoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.DiscriminatorMetric.html">DiscriminatorMetric</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.GeneratorLoss.html">GeneratorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.DiscriminatorLoss.html">DiscriminatorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html">SupAdversarialGeneratorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html">SupAdversarialDiscriminatorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html">UnsupAdversarialGeneratorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html">UnsupAdversarialDiscriminatorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html">UAIRGeneratorLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.JacobianSpectralNorm.html">JacobianSpectralNorm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.FNEJacobianSpectralNorm.html">FNEJacobianSpectralNorm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.BaseLossScheduler.html">BaseLossScheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.RandomLossScheduler.html">RandomLossScheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.InterleavedLossScheduler.html">InterleavedLossScheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.InterleavedEpochLossScheduler.html">InterleavedEpochLossScheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.StepLossScheduler.html">StepLossScheduler</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.models.html">deepinv.models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.Denoiser.html">Denoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.Reconstructor.html">Reconstructor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.BM3D.html">BM3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.MedianFilter.html">MedianFilter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.TVDenoiser.html">TVDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.TGVDenoiser.html">TGVDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.WaveletDenoiser.html">WaveletDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.WaveletDictDenoiser.html">WaveletDictDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.EPLLDenoiser.html">EPLLDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.AutoEncoder.html">AutoEncoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.UNet.html">UNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DnCNN.html">DnCNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DRUNet.html">DRUNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.SCUNet.html">SCUNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.GSDRUNet.html">GSDRUNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.SwinIR.html">SwinIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DiffUNet.html">DiffUNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.Restormer.html">Restormer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.ICNN.html">ICNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.VarNet.html">VarNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.MoDL.html">MoDL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.PanNet.html">PanNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.ADMUNet.html">ADMUNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.NCSNpp.html">NCSNpp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DScCP.html">DScCP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.RAM.html">RAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.ArtifactRemoval.html">ArtifactRemoval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.EquivariantDenoiser.html">EquivariantDenoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.TimeAgnosticNet.html">TimeAgnosticNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.TimeAveragingNet.html">TimeAveragingNet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.Client.html">Client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.complex.to_complex_denoiser.html">to_complex_denoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DeepImagePrior.html">DeepImagePrior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.ConvDecoder.html">ConvDecoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.PatchGANDiscriminator.html">PatchGANDiscriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.ESRGANDiscriminator.html">ESRGANDiscriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DCGANGenerator.html">DCGANGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.DCGANDiscriminator.html">DCGANDiscriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.CSGMGenerator.html">CSGMGenerator</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.metric.html">deepinv.metric</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.Metric.html">Metric</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.MSE.html">MSE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.NMSE.html">NMSE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.MAE.html">MAE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.PSNR.html">PSNR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.SSIM.html">SSIM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.L1L2.html">L1L2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.LpNorm.html">LpNorm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.LPIPS.html">LPIPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.SpectralAngleMapper.html">SpectralAngleMapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.ERGAS.html">ERGAS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.HaarPSI.html">HaarPSI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.NIQE.html">NIQE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.loss.metric.QNR.html">QNR</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">deepinv.optim</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_builder.html">optim_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html">BaseOptim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Potential.html">Potential</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html">DataFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.StackedPhysicsDataFidelity.html">StackedPhysicsDataFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L1.html">L1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L2.html">L2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2.html">IndicatorL2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihood.html">PoissonLikelihood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihood.html">LogPoissonLikelihood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLoss.html">AmplitudeLoss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.ZeroFidelity.html">ZeroFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.ItohFidelity.html">ItohFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Prior.html">Prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.PnP.html">PnP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.RED.html">RED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html">ScorePrior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Tikhonov.html">Tikhonov</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L1Prior.html">L1Prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.WaveletPrior.html">WaveletPrior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.TVPrior.html">TVPrior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.PatchPrior.html">PatchPrior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.PatchNR.html">PatchNR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L12Prior.html">L12Prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.DPIR.html">DPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.EPLL.html">EPLL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Bregman.html">Bregman</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.BregmanL2.html">BregmanL2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.BurgEntropy.html">BurgEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.NegEntropy.html">NegEntropy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Bregman_ICNN.html">Bregman_ICNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.Distance.html">Distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L2Distance.html">L2Distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2Distance.html">IndicatorL2Distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihoodDistance.html">PoissonLikelihoodDistance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.L1Distance.html">L1Distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLossDistance.html">AmplitudeLossDistance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihoodDistance.html">LogPoissonLikelihoodDistance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.ZeroDistance.html">ZeroDistance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.FixedPoint.html">FixedPoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.OptimIterator.html">OptimIterator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.fStep.html">fStep</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.gStep.html">gStep</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.GDIteration.html">GDIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.PGDIteration.html">PGDIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.FISTAIteration.html">FISTAIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.CPIteration.html">CPIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.ADMMIteration.html">ADMMIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.DRSIteration.html">DRSIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.HQSIteration.html">HQSIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.MDIteration.html">MDIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.SMIteration.html">SMIteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.least_squares.html">least_squares</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.least_squares_implicit_backward.html">least_squares_implicit_backward</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.lsqr.html">lsqr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.bicgstab.html">bicgstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.minres.html">minres</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.conjugate_gradient.html">conjugate_gradient</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.gradient_descent.html">gradient_descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.phase_retrieval.correct_global_phase.html">correct_global_phase</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.phase_retrieval.spectral_methods.html">spectral_methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.optim.utils.GaussianMixtureModel.html">GaussianMixtureModel</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.physics.html">deepinv.physics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Physics.html">Physics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html">LinearPhysics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.DecomposablePhysics.html">DecomposablePhysics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.StackedPhysics.html">StackedPhysics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.StackedLinearPhysics.html">StackedLinearPhysics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PhysicsMultiScaler.html">PhysicsMultiScaler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.LinearPhysicsMultiScaler.html">LinearPhysicsMultiScaler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PhysicsCropper.html">PhysicsCropper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Denoising.html">Denoising</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Inpainting.html">Inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Decolorize.html">Decolorize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Demosaicing.html">Demosaicing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Blur.html">Blur</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.BlurFFT.html">BlurFFT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SpaceVaryingBlur.html">SpaceVaryingBlur</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Downsampling.html">Downsampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Upsampling.html">Upsampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.DownsamplingMatlab.html">DownsamplingMatlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.MRI.html">MRI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.DynamicMRI.html">DynamicMRI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.MultiCoilMRI.html">MultiCoilMRI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SequentialMRI.html">SequentialMRI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Tomography.html">Tomography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.TomographyWithAstra.html">TomographyWithAstra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Pansharpen.html">Pansharpen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.CompressiveSpectralImaging.html">CompressiveSpectralImaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.HyperSpectralUnmixing.html">HyperSpectralUnmixing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.CompressedSensing.html">CompressedSensing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.StructuredRandom.html">StructuredRandom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SinglePixelCamera.html">SinglePixelCamera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.RadioInterferometry.html">RadioInterferometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SinglePhotonLidar.html">SinglePhotonLidar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Haze.html">Haze</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html">PhaseRetrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.RandomPhaseRetrieval.html">RandomPhaseRetrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SpatialUnwrapping.html">SpatialUnwrapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html">StructuredRandomPhaseRetrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.Ptychography.html">Ptychography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PtychographyLinearOperator.html">PtychographyLinearOperator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.PhysicsGenerator.html">PhysicsGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.GeneratorMixture.html">GeneratorMixture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html">BernoulliSplittingMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html">GaussianSplittingMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.html">MultiplicativeSplittingMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html">Phase2PhaseSplittingMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html">Artifact2ArtifactSplittingMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.PSFGenerator.html">PSFGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.MotionBlurGenerator.html">MotionBlurGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.DownsamplingGenerator.html">DownsamplingGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator.html">DiffractionBlurGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html">DiffractionBlurGenerator3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html">ProductConvolutionBlurGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.ConfocalBlurGenerator3D.html">ConfocalBlurGenerator3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.BaseMaskGenerator.html">BaseMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianMaskGenerator.html">GaussianMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.RandomMaskGenerator.html">RandomMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.EquispacedMaskGenerator.html">EquispacedMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.PolyOrderMaskGenerator.html">PolyOrderMaskGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.blur.gaussian_blur.html">gaussian_blur</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.blur.bilinear_filter.html">bilinear_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.blur.bicubic_filter.html">bicubic_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.blur.sinc_filter.html">sinc_filter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.phase_retrieval.build_probe.html">build_probe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.phase_retrieval.generate_shifts.html">generate_shifts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.ZeroNoise.html">ZeroNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.GaussianNoise.html">GaussianNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.LogPoissonNoise.html">LogPoissonNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PoissonNoise.html">PoissonNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.PoissonGaussianNoise.html">PoissonGaussianNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.UniformNoise.html">UniformNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.UniformGaussianNoise.html">UniformGaussianNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.GammaNoise.html">GammaNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.SaltPepperNoise.html">SaltPepperNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.FisherTippettNoise.html">FisherTippettNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.RicianNoise.html">RicianNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.SigmaGenerator.html">SigmaGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.generator.GainGenerator.html">GainGenerator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.adjoint_function.html">adjoint_function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.stack.html">stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d.html">conv2d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d.html">conv_transpose2d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d_fft.html">conv2d_fft</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d_fft.html">conv_transpose2d_fft</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv3d_fft.html">conv3d_fft</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose3d_fft.html">conv_transpose3d_fft</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.product_convolution2d.html">product_convolution2d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier.html">multiplier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier_adjoint.html">multiplier_adjoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.histogramdd.html">histogramdd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.histogram.html">histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.dst1.html">dst1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.dct.html">dct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.idct.html">idct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.dct_2d.html">dct_2d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.idct_2d.html">idct_2d</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.imresize_matlab.html">imresize_matlab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.Radon.html">Radon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.IRadon.html">IRadon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.physics.functional.XrayTransform.html">XrayTransform</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.sampling.html">deepinv.sampling</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.BaseSDE.html">BaseSDE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DiffusionSDE.html">DiffusionSDE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.VarianceExplodingDiffusion.html">VarianceExplodingDiffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.VariancePreservingDiffusion.html">VariancePreservingDiffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.PosteriorDiffusion.html">PosteriorDiffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.NoisyDataFidelity.html">NoisyDataFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DPSDataFidelity.html">DPSDataFidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.BaseSDESolver.html">BaseSDESolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.EulerSolver.html">EulerSolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.HeunSolver.html">HeunSolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.SDEOutput.html">SDEOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DDRM.html">DDRM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DiffPIR.html">DiffPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DPS.html">DPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DiffusionSampler.html">DiffusionSampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.sampling_builder.html">sampling_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.BaseSampling.html">BaseSampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.ULA.html">ULA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.SKRock.html">SKRock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.SamplingIterator.html">SamplingIterator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.SKRockIterator.html">SKRockIterator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.ULAIterator.html">ULAIterator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.sampling.DiffusionIterator.html">DiffusionIterator</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.transform.html">deepinv.transform</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Transform.html">Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Rotate.html">Rotate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Shift.html">Shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Scale.html">Scale</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Reflect.html">Reflect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Identity.html">Identity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Homography.html">Homography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.projective.Euclidean.html">Euclidean</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.projective.Similarity.html">Similarity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.projective.Affine.html">Affine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.projective.PanTiltRotate.html">PanTiltRotate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.CPABDiffeomorphism.html">CPABDiffeomorphism</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.ShiftTime.html">ShiftTime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.RandomNoise.html">RandomNoise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.RandomPhaseError.html">RandomPhaseError</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.training.html">deepinv.training</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.Trainer.html">Trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.train.html">train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.test.html">test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.training.AdversarialTrainer.html">AdversarialTrainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.training.AdversarialOptimizer.html">AdversarialOptimizer</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.unfolded.html">deepinv.unfolded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.unfolded.unfolded_builder.html">unfolded_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.unfolded.BaseUnfold.html">BaseUnfold</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.unfolded.DEQ_builder.html">DEQ_builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.unfolded.BaseDEQ.html">BaseDEQ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.PDNet_PrimalBlock.html">PDNet_PrimalBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.models.PDNet_DualBlock.html">PDNet_DualBlock</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="deepinv.utils.html">deepinv.utils</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot.html">plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot_curves.html">plot_curves</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot_parameters.html">plot_parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot_inset.html">plot_inset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot_videos.html">plot_videos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.save_videos.html">save_videos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.plot_ortho3D.html">plot_ortho3D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.disable_tex.html">disable_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.enable_tex.html">enable_tex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.TensorList.html">deepinv.utils.TensorList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.zeros_like.html">zeros_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.ones_like.html">ones_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.randn_like.html">randn_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.rand_like.html">rand_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.AverageMeter.html">AverageMeter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.ProgressMeter.html">ProgressMeter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.get_timestamp.html">get_timestamp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.MRIMixin.html">MRIMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.TimeMixin.html">TimeMixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_dicom.html">load_dicom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_nifti.html">load_nifti</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_url.html">load_url</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_np.html">load_np</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_torch.html">load_torch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_mat.html">load_mat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_raster.html">load_raster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_ismrmd.html">load_ismrmd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_image.html">load_image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_url_image.html">load_url_image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_np_url.html">load_np_url</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_torch_url.html">load_torch_url</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_example.html">load_example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.download_example.html">download_example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.get_data_home.html">get_data_home</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.get_image_url.html">get_image_url</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.get_degradation_url.html">get_degradation_url</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_dataset.html">load_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.load_degradation.html">load_degradation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.get_freer_gpu.html">get_freer_gpu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.utils.dirac_like.html">dirac_like</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../API.html" class="nav-link">API</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.optim</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="deepinv-optim">
+<h1>deepinv.optim<a class="headerlink" href="#deepinv-optim" title="Link to this heading">#</a></h1>
+<p>This module provides optimization utils for constructing reconstruction models based on optimization algorithms.
+Please refer to the <a class="reference internal" href="../user_guide/reconstruction/optimization.html#optim"><span class="std std-ref">user guide</span></a> for more details.</p>
+<section id="base-class">
+<h2>Base Class<a class="headerlink" href="#base-class" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#optim"><span class="std std-ref">Optimization</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_builder.html#deepinv.optim.optim_builder" title="deepinv.optim.optim_builder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_builder</span></code></a></p></td>
+<td><p>Helper function for building an instance of the <a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a> class.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a></p></td>
+<td><p>Class for optimization algorithms, consists in iterating a fixed-point operator.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="potentials">
+<h2>Potentials<a class="headerlink" href="#potentials" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#potentials"><span class="std std-ref">Potentials</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Potential.html#deepinv.optim.Potential" title="deepinv.optim.Potential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Potential</span></code></a></p></td>
+<td><p>Base class for a potential <span class="math notranslate nohighlight">\(h : \xset \to \mathbb{R}\)</span> to be used in an optimization problem.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="data-fidelity">
+<h2>Data Fidelity<a class="headerlink" href="#data-fidelity" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#data-fidelity"><span class="std std-ref">Data Fidelity</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.DataFidelity.html#deepinv.optim.DataFidelity" title="deepinv.optim.DataFidelity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.DataFidelity</span></code></a></p></td>
+<td><p>Base class for the data fidelity term <span class="math notranslate nohighlight">\(\distance{A(x)}{y}\)</span> where <span class="math notranslate nohighlight">\(A\)</span> is the forward operator, <span class="math notranslate nohighlight">\(x\in\xset\)</span> is a variable and <span class="math notranslate nohighlight">\(y\in\yset\)</span> is the data, and where <span class="math notranslate nohighlight">\(d\)</span> is a distance function, from the class <a class="reference internal" href="stubs/deepinv.optim.Distance.html#deepinv.optim.Distance" title="deepinv.optim.Distance"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.Distance</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.StackedPhysicsDataFidelity.html#deepinv.optim.StackedPhysicsDataFidelity" title="deepinv.optim.StackedPhysicsDataFidelity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.StackedPhysicsDataFidelity</span></code></a></p></td>
+<td><p>Stacked data fidelity term <span class="math notranslate nohighlight">\(\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.L1.html#deepinv.optim.L1" title="deepinv.optim.L1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L1</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_1\)</span> data fidelity term.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.L2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L2</span></code></a></p></td>
+<td><p>Implementation of the data-fidelity as the normalized <span class="math notranslate nohighlight">\(\ell_2\)</span> norm</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2.html#deepinv.optim.IndicatorL2" title="deepinv.optim.IndicatorL2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.IndicatorL2</span></code></a></p></td>
+<td><p>Data-fidelity as the indicator of <span class="math notranslate nohighlight">\(\ell_2\)</span> ball with radius <span class="math notranslate nohighlight">\(r\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihood.html#deepinv.optim.PoissonLikelihood" title="deepinv.optim.PoissonLikelihood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PoissonLikelihood</span></code></a></p></td>
+<td><p>Poisson negative log-likelihood.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihood.html#deepinv.optim.LogPoissonLikelihood" title="deepinv.optim.LogPoissonLikelihood"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.LogPoissonLikelihood</span></code></a></p></td>
+<td><p>Log-Poisson negative log-likelihood.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLoss.html#deepinv.optim.AmplitudeLoss" title="deepinv.optim.AmplitudeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.AmplitudeLoss</span></code></a></p></td>
+<td><p>Amplitude loss as the data fidelity term for <a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval()</span></code></a> reconstrunction.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity" title="deepinv.optim.ZeroFidelity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.ZeroFidelity</span></code></a></p></td>
+<td><p>Zero data fidelity term <span class="math notranslate nohighlight">\(\datafid{x}{y} = 0\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.ItohFidelity.html#deepinv.optim.ItohFidelity" title="deepinv.optim.ItohFidelity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.ItohFidelity</span></code></a></p></td>
+<td><p>Itoh data-fidelity term for spatial unwrapping problems.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="priors">
+<h2>Priors<a class="headerlink" href="#priors" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#priors"><span class="std std-ref">Priors</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Prior.html#deepinv.optim.Prior" title="deepinv.optim.Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Prior</span></code></a></p></td>
+<td><p>Prior term <span class="math notranslate nohighlight">\(\reg{x}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PnP.html#deepinv.optim.PnP" title="deepinv.optim.PnP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PnP</span></code></a></p></td>
+<td><p>Plug-and-play prior <span class="math notranslate nohighlight">\(\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.RED.html#deepinv.optim.RED" title="deepinv.optim.RED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.RED</span></code></a></p></td>
+<td><p>Regularization-by-Denoising (RED) prior <span class="math notranslate nohighlight">\(\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.ScorePrior.html#deepinv.optim.ScorePrior" title="deepinv.optim.ScorePrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.ScorePrior</span></code></a></p></td>
+<td><p>Score via MMSE denoiser <span class="math notranslate nohighlight">\(\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Tikhonov.html#deepinv.optim.Tikhonov" title="deepinv.optim.Tikhonov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Tikhonov</span></code></a></p></td>
+<td><p>Tikhonov regularizer <span class="math notranslate nohighlight">\(\reg{x} = \frac{1}{2}\| x \|_2^2\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.L1Prior.html#deepinv.optim.L1Prior" title="deepinv.optim.L1Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L1Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_1\)</span> prior <span class="math notranslate nohighlight">\(\reg{x} = \| x \|_1\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior" title="deepinv.optim.WaveletPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.WaveletPrior</span></code></a></p></td>
+<td><p>Wavelet prior <span class="math notranslate nohighlight">\(\reg{x} = \|\Psi x\|_{p}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.TVPrior.html#deepinv.optim.TVPrior" title="deepinv.optim.TVPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.TVPrior</span></code></a></p></td>
+<td><p>Total variation (TV) prior <span class="math notranslate nohighlight">\(\reg{x} = \| D x \|_{1,2}\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.PatchPrior.html#deepinv.optim.PatchPrior" title="deepinv.optim.PatchPrior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PatchPrior</span></code></a></p></td>
+<td><p>Patch prior <span class="math notranslate nohighlight">\(g(x) = \sum_i h(P_i x)\)</span> for some prior <span class="math notranslate nohighlight">\(h(x)\)</span> on the space of patches.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PatchNR.html#deepinv.optim.PatchNR" title="deepinv.optim.PatchNR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PatchNR</span></code></a></p></td>
+<td><p>Patch prior via normalizing flows.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.L12Prior.html#deepinv.optim.L12Prior" title="deepinv.optim.L12Prior"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L12Prior</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_{1,2}\)</span> prior <span class="math notranslate nohighlight">\(\reg{x} = \sum_i\| x_i \|_2\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="predefined-models">
+<h2>Predefined models<a class="headerlink" href="#predefined-models" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/iterative.html#predefined-iterative"><span class="std std-ref">Predefined Iterative Algorithms</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.DPIR.html#deepinv.optim.DPIR" title="deepinv.optim.DPIR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.DPIR</span></code></a></p></td>
+<td><p>Deep Plug-and-Play (DPIR) algorithm for image restoration.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.EPLL.html#deepinv.optim.EPLL" title="deepinv.optim.EPLL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.EPLL</span></code></a></p></td>
+<td><p>Expected Patch Log Likelihood reconstruction method.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="bregman">
+<h2>Bregman<a class="headerlink" href="#bregman" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#bregman"><span class="std std-ref">Bregman</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Bregman.html#deepinv.optim.Bregman" title="deepinv.optim.Bregman"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Bregman</span></code></a></p></td>
+<td><p>Module for the Bregman framework with convex Bregman potential <span class="math notranslate nohighlight">\(\phi\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.BregmanL2.html#deepinv.optim.BregmanL2" title="deepinv.optim.BregmanL2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.BregmanL2</span></code></a></p></td>
+<td><p>Module for the L2 norm as Bregman potential <span class="math notranslate nohighlight">\(\phi(x) = \frac{1}{2} \|x\|_2^2\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.BurgEntropy.html#deepinv.optim.BurgEntropy" title="deepinv.optim.BurgEntropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.BurgEntropy</span></code></a></p></td>
+<td><p>Module for the using Burg's entropy as Bregman potential <span class="math notranslate nohighlight">\(\phi(x) = - \sum_i \log x_i\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.NegEntropy.html#deepinv.optim.NegEntropy" title="deepinv.optim.NegEntropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.NegEntropy</span></code></a></p></td>
+<td><p>Module for the using negative entropy as Bregman potential <span class="math notranslate nohighlight">\(\phi(x) = \sum_i x_i \log x_i\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Bregman_ICNN.html#deepinv.optim.Bregman_ICNN" title="deepinv.optim.Bregman_ICNN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Bregman_ICNN</span></code></a></p></td>
+<td><p>Module for the using a deep ICNN as Bregman potential.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="distance">
+<h2>Distance<a class="headerlink" href="#distance" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#potentials"><span class="std std-ref">Potentials</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.Distance.html#deepinv.optim.Distance" title="deepinv.optim.Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.Distance</span></code></a></p></td>
+<td><p>Distance <span class="math notranslate nohighlight">\(\distance{x}{y}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.L2Distance.html#deepinv.optim.L2Distance" title="deepinv.optim.L2Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L2Distance</span></code></a></p></td>
+<td><p>Implementation of <span class="math notranslate nohighlight">\(\distancename\)</span> as the normalized <span class="math notranslate nohighlight">\(\ell_2\)</span> norm</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.IndicatorL2Distance.html#deepinv.optim.IndicatorL2Distance" title="deepinv.optim.IndicatorL2Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.IndicatorL2Distance</span></code></a></p></td>
+<td><p>Indicator of <span class="math notranslate nohighlight">\(\ell_2\)</span> ball with radius <span class="math notranslate nohighlight">\(r\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.PoissonLikelihoodDistance.html#deepinv.optim.PoissonLikelihoodDistance" title="deepinv.optim.PoissonLikelihoodDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.PoissonLikelihoodDistance</span></code></a></p></td>
+<td><p>(Negative) Log-likelihood of the Poisson distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.L1Distance.html#deepinv.optim.L1Distance" title="deepinv.optim.L1Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.L1Distance</span></code></a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\ell_1\)</span> distance</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.AmplitudeLossDistance.html#deepinv.optim.AmplitudeLossDistance" title="deepinv.optim.AmplitudeLossDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.AmplitudeLossDistance</span></code></a></p></td>
+<td><p>Amplitude loss for <a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval</span></code></a> reconstruction, defined as</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.LogPoissonLikelihoodDistance.html#deepinv.optim.LogPoissonLikelihoodDistance" title="deepinv.optim.LogPoissonLikelihoodDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.LogPoissonLikelihoodDistance</span></code></a></p></td>
+<td><p>Log-Poisson negative log-likelihood.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.ZeroDistance.html#deepinv.optim.ZeroDistance" title="deepinv.optim.ZeroDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.ZeroDistance</span></code></a></p></td>
+<td><p>Zero distance <span class="math notranslate nohighlight">\(\distance{z}{y} = 0\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="iterators">
+<h2>Iterators<a class="headerlink" href="#iterators" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#id5"><span class="std std-ref">Iterators</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.FixedPoint.html#deepinv.optim.FixedPoint" title="deepinv.optim.FixedPoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.FixedPoint</span></code></a></p></td>
+<td><p>Fixed-point iterations module.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.OptimIterator.html#deepinv.optim.OptimIterator" title="deepinv.optim.OptimIterator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.OptimIterator</span></code></a></p></td>
+<td><p>Base class for optimization iterators.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.fStep.html#deepinv.optim.optim_iterators.fStep" title="deepinv.optim.optim_iterators.fStep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.fStep</span></code></a></p></td>
+<td><p>Module for the single iteration steps on the data-fidelity term <span class="math notranslate nohighlight">\(f\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.gStep.html#deepinv.optim.optim_iterators.gStep" title="deepinv.optim.optim_iterators.gStep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.gStep</span></code></a></p></td>
+<td><p>Module for the single iteration steps on the prior term <span class="math notranslate nohighlight">\(\lambda \regname\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.GDIteration.html#deepinv.optim.optim_iterators.GDIteration" title="deepinv.optim.optim_iterators.GDIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.GDIteration</span></code></a></p></td>
+<td><p>Iterator for Gradient Descent.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.PGDIteration.html#deepinv.optim.optim_iterators.PGDIteration" title="deepinv.optim.optim_iterators.PGDIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.PGDIteration</span></code></a></p></td>
+<td><p>Iterator for proximal gradient descent.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.FISTAIteration.html#deepinv.optim.optim_iterators.FISTAIteration" title="deepinv.optim.optim_iterators.FISTAIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.FISTAIteration</span></code></a></p></td>
+<td><p>Iterator for fast iterative soft-thresholding (FISTA).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.CPIteration.html#deepinv.optim.optim_iterators.CPIteration" title="deepinv.optim.optim_iterators.CPIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.CPIteration</span></code></a></p></td>
+<td><p>Iterator for Chambolle-Pock.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration" title="deepinv.optim.optim_iterators.ADMMIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.ADMMIteration</span></code></a></p></td>
+<td><p>Iterator for alternating direction method of multipliers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.DRSIteration.html#deepinv.optim.optim_iterators.DRSIteration" title="deepinv.optim.optim_iterators.DRSIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.DRSIteration</span></code></a></p></td>
+<td><p>Iterator for Douglas-Rachford Splitting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.HQSIteration.html#deepinv.optim.optim_iterators.HQSIteration" title="deepinv.optim.optim_iterators.HQSIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.HQSIteration</span></code></a></p></td>
+<td><p>Single iteration of half-quadratic splitting.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.MDIteration.html#deepinv.optim.optim_iterators.MDIteration" title="deepinv.optim.optim_iterators.MDIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.MDIteration</span></code></a></p></td>
+<td><p>Iterator for Mirror Descent.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.optim_iterators.SMIteration.html#deepinv.optim.optim_iterators.SMIteration" title="deepinv.optim.optim_iterators.SMIteration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.optim_iterators.SMIteration</span></code></a></p></td>
+<td><p>Iterator for Spectral Methods for <a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval</span></code></a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="utils">
+<h2>Utils<a class="headerlink" href="#utils" title="Link to this heading">#</a></h2>
+<p><strong>User Guide: </strong>refer to <a class="reference internal" href="../user_guide/reconstruction/optimization.html#optim-utils"><span class="std std-ref">Utils</span></a> for more information.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.least_squares.html#deepinv.optim.utils.least_squares" title="deepinv.optim.utils.least_squares"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.least_squares</span></code></a></p></td>
+<td><p>Solves <span class="math notranslate nohighlight">\(\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2\)</span> using the specified solver.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.least_squares_implicit_backward.html#deepinv.optim.utils.least_squares_implicit_backward" title="deepinv.optim.utils.least_squares_implicit_backward"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.least_squares_implicit_backward</span></code></a></p></td>
+<td><p>Least squares solver with O(1) memory backward propagation using implicit differentiation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.lsqr.html#deepinv.optim.utils.lsqr" title="deepinv.optim.utils.lsqr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.lsqr</span></code></a></p></td>
+<td><p>LSQR algorithm for solving linear systems.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.bicgstab.html#deepinv.optim.utils.bicgstab" title="deepinv.optim.utils.bicgstab"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.bicgstab</span></code></a></p></td>
+<td><p>Biconjugate gradient stabilized algorithm.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.minres.html#deepinv.optim.utils.minres" title="deepinv.optim.utils.minres"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.minres</span></code></a></p></td>
+<td><p>Minimal Residual Method for solving symmetric equations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.conjugate_gradient.html#deepinv.optim.utils.conjugate_gradient" title="deepinv.optim.utils.conjugate_gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.conjugate_gradient</span></code></a></p></td>
+<td><p>Standard conjugate gradient algorithm.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.gradient_descent.html#deepinv.optim.utils.gradient_descent" title="deepinv.optim.utils.gradient_descent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.gradient_descent</span></code></a></p></td>
+<td><p>Standard gradient descent algorithm`.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.optim.phase_retrieval.correct_global_phase.html#deepinv.optim.phase_retrieval.correct_global_phase" title="deepinv.optim.phase_retrieval.correct_global_phase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.phase_retrieval.correct_global_phase</span></code></a></p></td>
+<td><p>Corrects the global phase of the reconstructed image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.phase_retrieval.spectral_methods.html#deepinv.optim.phase_retrieval.spectral_methods" title="deepinv.optim.phase_retrieval.spectral_methods"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.phase_retrieval.spectral_methods</span></code></a></p></td>
+<td><p>Utility function for spectral methods.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.optim.utils.GaussianMixtureModel.html#deepinv.optim.utils.GaussianMixtureModel" title="deepinv.optim.utils.GaussianMixtureModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.optim.utils.GaussianMixtureModel</span></code></a></p></td>
+<td><p>Gaussian mixture model including parameter estimation.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="stubs/deepinv.loss.metric.QNR.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">QNR</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="stubs/deepinv.optim.optim_builder.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">optim_builder</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#base-class">Base Class</a><ul class="nav section-nav flex-column">
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#potentials">Potentials</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-fidelity">Data Fidelity</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#priors">Priors</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#predefined-models">Predefined models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#bregman">Bregman</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#distance">Distance</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#iterators">Iterators</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#utils">Utils</a><ul class="nav section-nav flex-column">
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/deepinv.optim.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,660 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.datasets.satellite &#8212; deepinv 0.3.5 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=ba50482b"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/datasets/satellite';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/datasets/satellite.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.5 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.5 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.datasets.satellite</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.datasets.satellite</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToTensor</span><span class="p">,</span> <span class="n">Compose</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">download_archive</span><span class="p">,</span>
+    <span class="n">extract_zipfile</span><span class="p">,</span>
+    <span class="n">calculate_md5_for_folder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.demo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_image_url</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorList</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_mat</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageDataset</span>
+
+
+<div class="viewcode-block" id="NBUDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.NBUDataset.html#deepinv.datasets.NBUDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NBUDataset</span><span class="p">(</span><span class="n">ImageDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;NBU remote sensing multispectral satellite imagery dataset.</span>
+
+<span class="sd">    Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.</span>
+<span class="sd">    with ``C=4`` for ``&quot;gaofen-1&quot;`` and ``C=8`` for the rest.</span>
+
+<span class="sd">    For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,</span>
+<span class="sd">    outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.</span>
+
+<span class="sd">    This dataset was compiled in :footcite:t:`meng2020large` and downloaded from `this drive &lt;https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets&gt;`_.</span>
+<span class="sd">    We perform no other processing other than to take the &quot;Urban&quot; subset and provide each satellite&#39;s data separately, which you can choose using the ``satellite`` argument:</span>
+
+<span class="sd">    - ``&quot;gaofen-1&quot;``: 5 images</span>
+<span class="sd">    - ``&quot;ikonos&quot;``: 60 images</span>
+<span class="sd">    - ``&quot;quickbird&quot;``: 150 images</span>
+<span class="sd">    - ``&quot;worldview-2&quot;``: 150 images</span>
+<span class="sd">    - ``&quot;worldview-3&quot;``: 55 images</span>
+<span class="sd">    - ``&quot;worldview-4&quot;``: 90 images</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Returns images as :class:`torch.Tensor` normalized to 0-1 over the whole dataset.</span>
+
+<span class="sd">    See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using</span>
+<span class="sd">    this dataset with remote sensing inverse problems.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Instantiate dataset and download raw data from the Internet ::</span>
+
+<span class="sd">            from deepinv.datasets import NBUDataset</span>
+<span class="sd">            dataset = NBUDataset(</span>
+<span class="sd">                root_dir=&quot;.&quot;,            # root directory</span>
+<span class="sd">                satellite=&quot;worldview-2&quot;, # choose satellite</span>
+<span class="sd">                download=True,           # download dataset</span>
+<span class="sd">                return_pan=True          # return panchromatic image too as pair (MS, PAN)</span>
+<span class="sd">            )</span>
+<span class="sd">            print(dataset.check_dataset_exists())</span>
+<span class="sd">            print(len(dataset))</span>
+
+<span class="sd">    :param str, pathlib.Path root_dir: NBU dataset root directory</span>
+<span class="sd">    :param str satellite: satellite name, choose from the options above, defaults to &quot;gaofen-1&quot;.</span>
+<span class="sd">    :param bool return_pan: if ``True``, return panchromatic images as TensorList of (MS, PAN), if ``False``, just return multispectral images.</span>
+<span class="sd">    :param Callable transform_ms: optional transform for multispectral images</span>
+<span class="sd">    :param Callable transform_pan: optional transform for panchromatic images</span>
+<span class="sd">    :param bool download: whether to download dataset</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_satellites</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;ikonos&quot;</span><span class="p">:</span> <span class="s2">&quot;cf6fdb64ca5fbbf7050b8e27b2f9399d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gaofen-1&quot;</span><span class="p">:</span> <span class="s2">&quot;ea1525b7bd5342f0177d898e3c44bb51&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;quickbird&quot;</span><span class="p">:</span> <span class="s2">&quot;47163aec0a0be2c98ee267166d8aa5d3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;worldview-2&quot;</span><span class="p">:</span> <span class="s2">&quot;11310cee5a8dd5ee0dc3b79b6b3c3203&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;worldview-3&quot;</span><span class="p">:</span> <span class="s2">&quot;85e5f7027fb7bde8592284b060fe145e&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;worldview-4&quot;</span><span class="p">:</span> <span class="s2">&quot;3a3ade874e0095978648132501edfc01&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">satellite</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gaofen-1&quot;</span><span class="p">,</span>
+        <span class="n">return_pan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">transform_ms</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transform_pan</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">download</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">satellite</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_satellites</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;satellite must be &quot;ikonos&quot;, &quot;gaofen-1&quot;, &quot;quickbird&quot;, &quot;worldview-2&quot;, &quot;worldview-3&quot;, or &quot;worldview-4&quot;.&#39;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root_dir</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;nbu&quot;</span> <span class="o">/</span> <span class="n">satellite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1023</span> <span class="k">if</span> <span class="n">satellite</span> <span class="o">==</span> <span class="s2">&quot;gaofen-1&quot;</span> <span class="k">else</span> <span class="mi">2047</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_ms</span> <span class="o">=</span> <span class="n">transform_ms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_pan</span> <span class="o">=</span> <span class="n">transform_pan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">return_pan</span> <span class="o">=</span> <span class="n">return_pan</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_dataset_exists</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">download</span><span class="p">:</span>
+                <span class="n">dl_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.zip&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Downloading </span><span class="si">{</span><span class="n">dl_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">download_archive</span><span class="p">(</span><span class="n">get_image_url</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;nbu_</span><span class="si">{</span><span class="n">satellite</span><span class="si">}</span><span class="s2">.zip&quot;</span><span class="p">),</span> <span class="n">dl_file</span><span class="p">)</span>
+                <span class="n">extract_zipfile</span><span class="p">(</span><span class="n">dl_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">dl_file</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_dataset_exists</span><span class="p">():</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dataset has been successfully downloaded.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is an issue with the data downloaded.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                    <span class="s2">&quot;Local dataset not downloaded or root set incorrectly. Download by setting download=True.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms_paths</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;MS_256/*.mat&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pan_paths</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;PAN_1024/*.mat&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">zip_strict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ms_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pan_paths</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">_ms</span><span class="p">,</span> <span class="n">_pan</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">_ms</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">_pan</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;MS and PAN filenames do not match.&quot;</span>
+
+<div class="viewcode-block" id="NBUDataset.check_dataset_exists">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.NBUDataset.html#deepinv.datasets.NBUDataset.check_dataset_exists">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_dataset_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify that the image folders exist and contain all the images.</span>
+
+<span class="sd">        ``root_dir`` should have the following structure: ::</span>
+
+<span class="sd">            root_dir --- nbu --- &lt;satellite&gt; --- 1.mat</span>
+<span class="sd">                      |       |               |</span>
+<span class="sd">                      |       |               -- x.mat</span>
+<span class="sd">                      |       -- &lt;satellite&gt;</span>
+<span class="sd">                      -- xxx</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;MS_256/*.mat&quot;</span><span class="p">)))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="n">calculate_md5_for_folder</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">&quot;MS_256&quot;</span><span class="p">))</span>
+            <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_satellites</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">stem</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load satellite image and convert to tensor.</span>
+
+<span class="sd">        :param int idx: image index</span>
+<span class="sd">        :return: torch.Tensor: normalized image to the range [0,1]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_paths</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">ms</span><span class="p">,</span> <span class="n">pan</span> <span class="o">=</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="s2">&quot;imgMS&quot;</span><span class="p">],</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="s2">&quot;imgPAN&quot;</span><span class="p">]</span>
+
+        <span class="n">transform_ms</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">,</span> <span class="n">ToTensor</span><span class="p">()]</span>
+            <span class="o">+</span> <span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_ms</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_ms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="p">)</span>
+        <span class="n">transform_pan</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">,</span> <span class="n">ToTensor</span><span class="p">()]</span>
+            <span class="o">+</span> <span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_pan</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_pan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="p">)</span>
+
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">transform_ms</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+        <span class="n">pan</span> <span class="o">=</span> <span class="n">transform_pan</span><span class="p">(</span><span class="n">pan</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">TensorList</span><span class="p">([</span><span class="n">ms</span><span class="p">,</span> <span class="n">pan</span><span class="p">])</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_pan</span> <span class="k">else</span> <span class="n">ms</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
