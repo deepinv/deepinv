@@ -357,7 +357,9 @@ class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
 
 def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
     r"""
-    This function creates the proper MultiScaler (see :class:`PhysicsMultiScaler` for details) object associated with the provided physics.
+    This function creates the proper MultiScaler object associated with the provided physics.
+
+    See :class:`LinearPhysicsMultiScaler` for details.
 
     :param physics: physics that should be converted to a MultiScaler
     :param img_shape: shape of the image in the fine scale
