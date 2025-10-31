@@ -74,7 +74,10 @@ def load_dicom(
     :param str, pathlib.Path fname: path to DICOM file or buffer.
     :param bool as_tensor: if `True`, return as torch tensor (default), otherwise return as numpy array.
     :param bool apply_rescale: if `True`, map the stored values (SV) to output values according to the pydicom `apply_rescale`, default False.
-        See `pydicom docs <https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html>`_ for details.
+        See `pydicom docs <https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html>`_
+        and `apply_rescale <https://pydicom.github.io/pydicom/2.4/reference/generated/pydicom.pixel_data_handlers.apply_rescale.html>`_ for details.
+        Note this is only useful when the appropriate dicom tags are present, for example in CT for :class:`deepinv.datasets.LidcIdriSliceDataset`
+        for converting to Hounsfield Units. For other applications such as SUV/PET, we recommend applying the rescaling yourself.
     :param numpy.dtype, str dtype: data type to use when loading the nifti file.
     :return: either numpy array of shape of raw data `(...)`, or torch float tensor of shape `(1, ...)` where `...` are the DICOM image dimensions.
     """
