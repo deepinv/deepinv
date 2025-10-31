@@ -29,11 +29,11 @@ as input and returns a denoised image:
 Deep denoisers
 ~~~~~~~~~~~~~~
 We provide the following list of deep denoising architectures,
-which are based on CNN, Transformer or hybrid CNN-Transformer modules.
+which are based on CNN, Transformer or hybrid CNN-Transformer modules. Several denoisers accept an optional `dim` keyword at initialization, allowing to build the 2D or 3D variant.
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Deep denoisers
-   :widths: 15 25 15 15 10
+   :widths: 15 25 15 15 10 10
    :header-rows: 1
 
    * - Model
@@ -41,9 +41,11 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Tensor Size (C, H, W)
      - Pretrained Weights
      - Noise level aware
+     - 3D variant
    * - :class:`deepinv.models.AutoEncoder`
      - Fully connected
      - Any
+     - No
      - No
      - No
    * - :class:`deepinv.models.UNet`
@@ -51,24 +53,29 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C; H,W>8
      - No
      - No
+     - Yes
    * - :class:`deepinv.models.DnCNN`
      - CNN
      - Any C, H, W
      - RGB, grayscale
      - No
+     - Yes
    * - :class:`deepinv.models.DRUNet`
      - CNN-UNet
      - Any C; H,W>8
      - RGB, grayscale
+     - Yes
      - Yes
    * - :class:`deepinv.models.GSDRUNet`
      - CNN-UNet
      - Any C; H,W>8
      - RGB, grayscale
      - Yes
+     - No
    * - :class:`deepinv.models.SCUNet`
      - CNN-Transformer
      - Any C, H, W
+     - No
      - No
      - No
    * - :class:`deepinv.models.SwinIR`
@@ -76,41 +83,49 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - RGB
      - No
+     - No
    * - :class:`deepinv.models.DiffUNet`
      - Transformer
      - Any C; H,W = 64, 128, 256, ...
      - RGB
      - Yes
+     - No
    * - :class:`deepinv.models.Restormer`
      - CNN-Transformer
      - Any C, H, W
      - RGB, grayscale, deraining, deblurring
+     - No
      - No
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
      - No
      - No
+     - Yes
    * - :class:`deepinv.models.NCSNpp`
      - CNN-Transformer
      - Any C, H, W
      - RGB, diffusion
      - Yes
+     - No
    * - :class:`deepinv.models.ADMUNet`
      - CNN-Transformer
      - Any C, H, W
      - RGB, diffusion
      - Yes
+     - No
    * - :class:`deepinv.models.DScCP`
      - Unrolled
      - Any C, H, W
      - RGB
+     - Yes
      - Yes
    * - :class:`deepinv.models.RAM`
      - CNN-UNet
      - C=1, 2, 3; H,W>8
      - C=1, 2, 3
      - Yes
+     - No
 
 .. _non-learned-denoisers:
 
