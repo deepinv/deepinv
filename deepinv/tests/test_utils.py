@@ -1163,3 +1163,24 @@ def test_io_raster():
 
     # Test transform
     assert deepinv.io.load_raster(file, patch=True, transform=lambda x: x)
+
+
+def test_io_blosc2():
+    pytest.importorskip(
+        "blosc2",
+        reason="This test requires blosc2. It should be "
+        "installed with `pip install blosc2`",
+    )
+    fake_array = np.random.rand(2, 2).astype(np.float32)
+
+    with patch("blosc2.open") as mock_open, patch("importlib.import_module"):
+        mock_arr = mock.MagicMock()
+        mock_arr.__getitem__.return_value = fake_array
+        mock_open.return_value = mock_arr
+
+        out = deepinv.io.load_blosc2(pathlib.Path("fake.b2"))
+        assert torch.is_tensor(out)
+        assert out.shape == torch.from_numpy(fake_array).shape
+
+        out_memmap = deepinv.io.load_blosc2(pathlib.Path("fake.b2"), as_memmap=True)
+        assert out_memmap is mock_arr
