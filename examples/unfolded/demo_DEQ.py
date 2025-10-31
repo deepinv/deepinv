@@ -9,6 +9,7 @@ For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -75,8 +76,8 @@ noise_level_img = 0.03
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
 kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
-kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
-    0
+kernel_torch = (
+    kernel_torch.unsqueeze(0).unsqueeze(0).to(torch.float32)
 )  # add batch and channel dimensions
 
 # Generate the gaussian blur downsampling operator.
