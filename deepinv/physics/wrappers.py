@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import math
 
 from deepinv.physics import Physics, LinearPhysics, Inpainting
 from deepinv.physics.blur import Upsampling, Blur, BlurFFT
@@ -257,9 +258,12 @@ class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
         self.scaled_physics = []
         for upsampling in self.Upsamplings:
             factor = upsampling.factor
-            filt = coarse_blur_filter(self.filter, upsampling.filter, factor)
-            coarse_shape = [int(torch.ceil(s / factor)) for s in self.img_size]
-            coarse_shape[0] = self.img_size[0]  # keep the same nb of channels
+            filt = coarse_blur_filter(physics.filter, upsampling.filter, factor)
+            coarse_shape = (
+                img_shape[0],
+                math.ceil(img_shape[1] / factor),
+                math.ceil(img_shape[2] / factor),
+            )
             p = BlurFFT(
                 filter=filt, img_size=coarse_shape, device=physics.filter.device
             )
