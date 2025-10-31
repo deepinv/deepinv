@@ -34,18 +34,26 @@ class OptimIterator(nn.Module):
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_{\regname}` are the steps on f and g respectively.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
+    :param cost_fn: function that returns the function F to be minimized at each iteration. Default: None.
     :param bool has_cost: If True, the cost function :math:`D` is computed at each iteration. Default: True.
     """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=True, **kwargs):
+    def __init__(self, g_first=False, cost_fn=None, has_cost=True, **kwargs):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
         self.has_cost = has_cost
-        if F_fn is None and self.has_cost:
-            self.F_fn = objective_function
+        if "F_fn" in kwargs:
+            F_fn = kwargs.pop("F_fn")
+            warnings.warn(
+                "`F_fn` is deprecated and will be removed in a future release. "
+                "Use `cost_fn` instead.",
+                DeprecationWarning,
+            )
+            cost_fn = F_fn
+        if cost_fn is None and self.has_cost:
+            self.cost_fn = objective_function
         else:
-            self.F_fn = F_fn
+            self.cost_fn = cost_fn
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
 
@@ -90,8 +98,8 @@ class OptimIterator(nn.Module):
             )
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.F_fn is not None
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.cost_fn is not None
             and self.has_cost
             and cur_data_fidelity is not None
             and cur_prior is not None

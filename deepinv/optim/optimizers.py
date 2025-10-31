@@ -495,7 +495,7 @@ class BaseOptim(Reconstructor):
             | torch.Tensor
             | dict
         ) = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -527,8 +527,8 @@ class BaseOptim(Reconstructor):
             - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
             - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
-        :param Callable F_fn:  function that computes the cost function.
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+        :param Callable cost_fn:  function that computes the cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -555,7 +555,7 @@ class BaseOptim(Reconstructor):
             x_init, z_init = physics.A_adjoint(y), physics.A_adjoint(y)
             init_X = {"est": (x_init, z_init)}
         F = (
-            F_fn(
+            cost_fn(
                 init_X["est"][0],
                 self.update_data_fidelity_fn(0),
                 self.update_prior_fn(0),
@@ -563,7 +563,7 @@ class BaseOptim(Reconstructor):
                 y,
                 physics,
             )
-            if self.has_cost and F_fn is not None
+            if self.has_cost and cost_fn is not None
             else None
         )
         init_X["cost"] = F
@@ -768,7 +768,7 @@ class BaseOptim(Reconstructor):
                         }
 
                 # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, init=None, F_fn=None):
+                def init_iterate_fn(y, physics, init=None, cost_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
                 if self.DEQ_config.anderson_acceleration_backward:
@@ -857,12 +857,13 @@ class BaseOptim(Reconstructor):
 def create_iterator(
     iteration: OptimIterator,
     prior: Prior | list[Prior] = None,
-    F_fn: Callable[
+    cost_fn: Callable[
         [torch.Tensor, DataFidelity, Prior, dict[str, float], torch.Tensor, Physics],
         torch.Tensor,
     ] = None,
     g_first: bool = False,
     bregman_potential: Bregman = None,
+    **kwargs,
 ) -> OptimIterator:
     r"""
     Helper function for creating an iterator, instance of the :class:`deepinv.optim.OptimIterator` class,
@@ -875,24 +876,32 @@ def create_iterator(
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function.
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     """
+    if "F_fn" in kwargs:
+        F_fn = kwargs.pop("F_fn")
+        warnings.warn(
+            "`F_fn` is deprecated and will be removed in a future release. "
+            "Use `cost_fn` instead.",
+            DeprecationWarning,
+        )
+        cost_fn = F_fn
     # If no prior is given, we set it to a zero prior.
     if prior is None:
         prior = Zero()
-    # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
+    # If no custom objective function cost_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
         prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
     )
-    if F_fn is None and explicit_prior:
+    if cost_fn is None and explicit_prior:
 
-        def F_fn(x, data_fidelity, prior, cur_params, y, physics):
+        def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
             prior_value = prior(x, cur_params["g_param"], reduce=False)
             if prior_value.dim() == 0:
                 reg_value = cur_params["lambda"] * prior_value
@@ -916,7 +925,7 @@ def create_iterator(
         iterator_fn = str_to_class(iteration + "Iteration")
         return iterator_fn(
             g_first=g_first,
-            F_fn=F_fn,
+            cost_fn=cost_fn,
             has_cost=has_cost,
             bregman_potential=bregman_potential,
         )
@@ -933,7 +942,7 @@ def optim_builder(
     ),
     data_fidelity: DataFidelity | list[DataFidelity] = None,
     prior: Prior | list[Prior] = None,
-    F_fn: Callable[
+    cost_fn: Callable[
         [
             torch.Tensor,
             DataFidelity,
@@ -971,8 +980,8 @@ def optim_builder(
      :param list, deepinv.optim.Prior prior: regularization prior.
                              Either a single instance (same prior for each iteration) or a list of instances of
                              deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-     :param Callable F_fn: Custom user input cost function.
-             ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+     :param Callable cost_fn: Custom user input cost function.
+             ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
              the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
              the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
              Default: ``None``.
@@ -982,13 +991,22 @@ def optim_builder(
      :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
+    if "F_fn" in kwargs:
+        F_fn = kwargs.pop("F_fn")
+        warnings.warn(
+            "`F_fn` is deprecated and will be removed in a future release. "
+            "Use `cost_fn` instead.",
+            DeprecationWarning,
+        )
+        cost_fn = F_fn
+
     if isinstance(params_algo, MappingProxyType):
         params_algo = params_algo.copy()
 
     iterator = create_iterator(
         iteration,
         prior=prior,
-        F_fn=F_fn,
+        cost_fn=cost_fn,
         g_first=g_first,
         bregman_potential=bregman_potential,
     )
@@ -1071,8 +1089,8 @@ class ADMM(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1098,7 +1116,7 @@ class ADMM(BaseOptim):
         unfold: bool = False,
         trainable_params: list[str] = None,
         g_first: bool = False,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1126,7 +1144,7 @@ class ADMM(BaseOptim):
             }
 
         super(ADMM, self).__init__(
-            ADMMIteration(g_first=g_first, F_fn=F_fn),
+            ADMMIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1206,8 +1224,8 @@ class DRS(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1233,7 +1251,7 @@ class DRS(BaseOptim):
         unfold: bool = False,
         trainable_params: list[str] = None,
         g_first: bool = False,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1259,7 +1277,7 @@ class DRS(BaseOptim):
                 "beta": beta,
             }
         super(DRS, self).__init__(
-            DRSIteration(g_first=g_first, F_fn=F_fn),
+            DRSIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1347,8 +1365,8 @@ class GD(BaseOptim):
         If ``None`` (default) or ``False``, Anderson acceleration is disabled.
         Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
         If ``True``, the default ``AndersonAccelerationConfig`` is used.
-    :param Callable F_fn: Custom user input cost function.
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1375,7 +1393,7 @@ class GD(BaseOptim):
         trainable_params: list[str] = None,
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1400,7 +1418,7 @@ class GD(BaseOptim):
                 "g_param": g_param,
             }
         super(GD, self).__init__(
-            GDIteration(F_fn=F_fn),
+            GDIteration(cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1491,8 +1509,8 @@ class HQS(BaseOptim):
         If ``None`` (default) or ``False``, Anderson acceleration is disabled.
         Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
         If ``True``, the default ``AndersonAccelerationConfig`` is used.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1519,7 +1537,7 @@ class HQS(BaseOptim):
         trainable_params: list[str] = None,
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1544,7 +1562,7 @@ class HQS(BaseOptim):
                 "g_param": g_param,
             }
         super(HQS, self).__init__(
-            HQSIteration(g_first=g_first, F_fn=F_fn),
+            HQSIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1634,8 +1652,8 @@ class PGD(BaseOptim):
         If ``None`` (default) or ``False``, Anderson acceleration is disabled.
         Otherwise, ``anderson_acceleration`` must be an instance of :class:`deepinv.optim.AndersonAccelerationConfig`, which defines the parameters for Anderson acceleration.
         If ``True``, the default ``AndersonAccelerationConfig`` is used.
-    :param Callable F_fn: Custom user input cost function.
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
+    :param Callable cost_fn: Custom user input cost function.
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`),
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1663,7 +1681,7 @@ class PGD(BaseOptim):
         trainable_params: list[str] = None,
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1688,7 +1706,7 @@ class PGD(BaseOptim):
                 "g_param": g_param,
             }
         super(PGD, self).__init__(
-            PGDIteration(g_first=g_first, F_fn=F_fn),
+            PGDIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1765,8 +1783,8 @@ class FISTA(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1792,7 +1810,7 @@ class FISTA(BaseOptim):
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1818,7 +1836,7 @@ class FISTA(BaseOptim):
                 "a": a,
             }
         super(FISTA, self).__init__(
-            FISTAIteration(g_first=g_first, F_fn=F_fn),
+            FISTAIteration(g_first=g_first, cost_fn=cost_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -1887,8 +1905,8 @@ class MD(BaseOptim):
         and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -1913,7 +1931,7 @@ class MD(BaseOptim):
         custom_init: Callable[[torch.Tensor, Physics], dict] = None,
         unfold: bool = False,
         trainable_params: list[str] = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -1938,7 +1956,7 @@ class MD(BaseOptim):
                 "g_param": g_param,
             }
         super(MD, self).__init__(
-            MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            MDIteration(cost_fn=cost_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -2009,8 +2027,8 @@ class PMD(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -2036,7 +2054,7 @@ class PMD(BaseOptim):
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -2061,7 +2079,7 @@ class PMD(BaseOptim):
             }
         super(PMD, self).__init__(
             PMDIteration(
-                F_fn=F_fn, g_first=g_first, bregman_potential=bregman_potential
+                cost_fn=cost_fn, g_first=g_first, bregman_potential=bregman_potential
             ),
             data_fidelity=data_fidelity,
             prior=prior,
@@ -2156,8 +2174,8 @@ class PDCP(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
-    :param Callable F_fn: Custom user input cost function.    
-            ``F_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
+    :param Callable cost_fn: Custom user input cost function.    
+            ``cost_fn(x, data_fidelity, prior, cur_params, y, physics)`` takes as input 
             the current primal variable (:class:`torch.Tensor`), the current data-fidelity (:class:`deepinv.optim.DataFidelity`), 
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
@@ -2186,7 +2204,7 @@ class PDCP(BaseOptim):
         g_first: bool = False,
         unfold: bool = False,
         trainable_params: list[str] = None,
-        F_fn: Callable[
+        cost_fn: Callable[
             [
                 torch.Tensor,
                 DataFidelity,
@@ -2229,7 +2247,7 @@ class PDCP(BaseOptim):
                 return {"est": (x_init, x_init, u_init)}
 
         super(PDCP, self).__init__(
-            CPIteration(g_first=g_first, F_fn=F_fn),
+            CPIteration(g_first=g_first, cost_fn=cost_fn),
             custom_init=custom_init,
             data_fidelity=data_fidelity,
             prior=prior,

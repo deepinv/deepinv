@@ -75,9 +75,9 @@ class CPIteration(OptimIterator):
             x = self.g_step(x_prev, K_adjoint(u), cur_prior, cur_params)
         z = x + cur_params["beta"] * (x - x_prev)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
-            and self.F_fn is not None
+            and self.cost_fn is not None
             and cur_data_fidelity is not None
             and cur_prior is not None
             else None

@@ -124,7 +124,7 @@ class BaseDEQ(BaseUnfold):
                         }
 
                 # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, F_fn=None):
+                def init_iterate_fn(y, physics, cost_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
                 backward_FP = FixedPoint(
@@ -154,7 +154,7 @@ def DEQ_builder(
     params_algo: dict | None = None,
     data_fidelity: DataFidelity | None = None,
     prior=None,
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     bregman_potential=None,
     **kwargs,
@@ -187,11 +187,19 @@ def DEQ_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. default: None.
+    :param Callable cost_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
+    if "F_fn" in kwargs:
+        F_fn = kwargs.pop("F_fn")
+        warnings.warn(
+            "`F_fn` is deprecated and will be removed in a future release. "
+            "Use `cost_fn` instead.",
+            DeprecationWarning,
+        )
+        cost_fn = F_fn
     if params_algo is None:
         params_algo = {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.03}
     if data_fidelity is None:
@@ -199,7 +207,7 @@ def DEQ_builder(
     iterator = create_iterator(
         iteration,
         prior=prior,
-        F_fn=F_fn,
+        cost_fn=cost_fn,
         g_first=g_first,
         bregman_potential=bregman_potential,
     )

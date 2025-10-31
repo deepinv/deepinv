@@ -224,12 +224,9 @@ def test_optim_algo(name_algo, imsize, device):
     # define which parameters are trainable
     trainable_params = ["g_param", "stepsize"]
 
-    stepsize_dual = 1.0  # for Primal-Dual CP.
-
     model_unfolded = getattr(dinv.optim, name_algo)(
         unfold=True,
         stepsize=stepsize,
-        stepsize_dual=stepsize_dual,
         g_param=sigma_denoiser,
         lambda_reg=lamb,
         trainable_params=trainable_params,

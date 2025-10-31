@@ -133,7 +133,7 @@ def unfolded_builder(
     max_iter=5,
     trainable_params=("lambda", "stepsize"),
     device=torch.device("cpu"),
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     bregman_potential=None,
     **kwargs,
@@ -168,7 +168,7 @@ def unfolded_builder(
     :param Sequence trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
-    :param Callable F_fn: Custom user input cost function. default: None.
+    :param Callable cost_fn: Custom user input cost function. default: None.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, comes back to standard Euclidean optimization.
@@ -200,13 +200,21 @@ def unfolded_builder(
 
 
     """
+    if "F_fn" in kwargs:
+        F_fn = kwargs.pop("F_fn")
+        warnings.warn(
+            "`F_fn` is deprecated and will be removed in a future release. "
+            "Use `cost_fn` instead.",
+            DeprecationWarning,
+        )
+        cost_fn = F_fn
     if isinstance(params_algo, MappingProxyType):
         params_algo = params_algo.copy()
 
     iterator = create_iterator(
         iteration,
         prior=prior,
-        F_fn=F_fn,
+        cost_fn=cost_fn,
         g_first=g_first,
         bregman_potential=bregman_potential,
     )

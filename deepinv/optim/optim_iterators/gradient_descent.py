@@ -50,9 +50,9 @@ class GDIteration(OptimIterator):
         )
         x = x_prev - grad
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
-            and self.F_fn is not None
+            and self.cost_fn is not None
             and cur_data_fidelity is not None
             and cur_prior is not None
             else None
@@ -113,9 +113,9 @@ class MDIteration(OptimIterator):
         )
         x = self.bregman_potential.grad_conj(self.bregman_potential.grad(x_prev) - grad)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
-            and self.F_fn is not None
+            and self.cost_fn is not None
             and cur_data_fidelity is not None
             and cur_prior is not None
             else None

@@ -688,6 +688,10 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
     data_fidelity = L2()
 
     prior = RED(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
+    kwargs = {}
+
+    if red_algo in ("PGD", "FISTA"):
+        kwargs["g_first"] = True
 
     red = getattr(dinv.optim, red_algo)(
         prior=prior,
@@ -699,6 +703,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_param=sigma_denoiser,
         lambda_reg=lambda_reg,
         early_stop=True,
+        **kwargs,
     )
 
     red(y, physics)

@@ -202,8 +202,8 @@ class FixedPoint(nn.Module):
         )  # Anderson acceleration step.
         x = x.view(x_prev.shape)
         F = (
-            self.iterator.F_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
-            if self.iterator.F_fn is not None
+            self.iterator.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, *args)
+            if self.iterator.cost_fn is not None
             and cur_data_fidelity is not None
             and cur_prior is not None
             else None
@@ -254,7 +254,7 @@ class FixedPoint(nn.Module):
                     otherwise.
         """
         X = (
-            self.init_iterate_fn(*args, init, F_fn=self.iterator.F_fn)
+            self.init_iterate_fn(*args, init, cost_fn=self.iterator.cost_fn)
             if self.init_iterate_fn
             else None
         )
