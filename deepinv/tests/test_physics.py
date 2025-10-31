@@ -2188,6 +2188,100 @@ def test_physics_warn_extra_kwargs():
         dinv.physics.Denoising(sigma=0.5)
 
 
+MULTISCALE_EXCLUSION = [
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "DynamicMRI",
+    "fast_singlepixel",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_old_sequency",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_xy",
+]
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_coarse_physics_adjointness(name, device):
+    if (
+        "MRI" in name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multiscale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.wrappers.to_multiscale(
+        physics, imsize, dtype=dtype, factors=(2,)
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+    error = p_coarse.adjointness_test(x_coarse).abs()
+    assert error < 1e-3
+
+
+@pytest.mark.parametrize(
+    "name", [op for op in OPERATORS if op not in MULTISCALE_EXCLUSION]
+)
+def test_multiscale_A_adjoint_A(name, device):
+    if (
+        "MRI" in name
+        or "ptychography_linear" == name
+        or "hyperspectral_unmixing" == name
+        or "composition2" == name
+    ):
+        physics, imsize, _, dtype = find_operator(name, device)
+    else:
+        # make sure the imsize is large enough for multiscale tests
+        imsize = (3, 16, 16)
+        physics, imsize, _, dtype = find_operator(name, device, imsize=imsize)
+
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+
+    p_coarse = dinv.physics.wrappers.to_multiscale(
+        physics, imsize, dtype=dtype, factors=(2,)
+    )
+    p_coarse.set_scale(1)
+
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = p_coarse.downsample(x)
+
+    A = p_coarse.A
+    A_adj = p_coarse.A_adjoint
+    A_adj_A = p_coarse.A_adjoint_A
+
+    def op_cmp(xc):
+        return A_adj(A(xc)) - A_adj_A(xc)
+
+    physics_cmp = dinv.physics.LinearPhysics(
+        img_size=imsize, A=op_cmp, A_adjoint=op_cmp
+    )
+
+    error = physics_cmp.compute_norm(x_coarse).abs()
+    assert error < 0.2
+
+
 def test_automatic_A_adjoint(device):
     x = torch.randn((2, 3, 8, 8), device=device)
     physics = dinv.physics.LinearPhysics(

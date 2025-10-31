@@ -1,7 +1,9 @@
 import torch
+import torch.nn.functional as F
+import math
 
-from deepinv.physics import Physics, LinearPhysics
-from deepinv.physics.blur import Upsampling
+from deepinv.physics import Physics, LinearPhysics, Inpainting
+from deepinv.physics.blur import Upsampling, Blur, BlurFFT
 from typing import Sequence  # noqa: F401
 
 
@@ -27,6 +29,7 @@ class PhysicsMultiScaler(Physics):
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
     :param Sequence[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    :param torch.dtype, dtype: type to be associated with the signal.
     """
 
     def __init__(
@@ -36,16 +39,22 @@ class PhysicsMultiScaler(Physics):
         filter="sinc",
         factors=(2, 4, 8),
         device="cpu",
+        dtype=None,
         **kwargs,
     ):
         super().__init__(noise_model=physics.noise_model, **kwargs)
         self.base = physics
         self.factors = factors
         self.img_shape = img_shape
-        self.Upsamplings = [
-            Upsampling(img_size=img_shape, filter=filter, factor=factor, device=device)
-            for factor in factors
-        ]
+        self.Upsamplings = []
+        for factor in factors:
+            upsampling = Upsampling(
+                img_size=img_shape, filter=filter, factor=factor, device=device
+            )
+            if dtype is not None:
+                upsampling.filter = upsampling.filter.to(dtype=dtype)
+            self.Upsamplings.append(upsampling)
+
         self.scale = 0
 
     def set_scale(self, scale=None):
@@ -128,6 +137,248 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
             return y
         else:
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
+
+
+def coarse_blur_filter(in_filter, downsampling_filter, scale=2):
+    r"""
+    Used to compute the blur filter associated with a coarse scale.
+
+    :param in_filter: fine scale blur filter
+    :param downsampling_filter: downsampling antialiasing filter (e.g. sinc)
+    :param scale: scale factor using for downsampling
+    :return: coarse blur filter
+    """
+
+    # pad in_filter to make sure it is at least as big as downsampling_filter
+    diff_h = max(downsampling_filter.shape[-2] - in_filter.shape[-2], 0)
+    diff_w = max(downsampling_filter.shape[-1] - in_filter.shape[-1], 0)
+
+    pad_left = diff_w // 2
+    pad_top = diff_h // 2
+    new_filt = F.pad(
+        in_filter, (pad_left, diff_w - pad_left, pad_top, diff_h - pad_top)
+    )
+
+    # pad in_filter in order to perform a "valid" convolution
+    df_shape = downsampling_filter.shape
+    pad_size = (df_shape[-1] // 2,) * 2 + (df_shape[-2] // 2,) * 2
+    new_filt = torch.nn.functional.pad(new_filt, pad_size)
+
+    # downsample the blur filter
+    df_groups = downsampling_filter.repeat(
+        [new_filt.shape[1]] + [1] * (len(new_filt.shape) - 1)
+    )
+    coarse_filter = torch.nn.functional.conv2d(
+        new_filt, df_groups, groups=new_filt.shape[1], stride=scale, padding="valid"
+    )
+    coarse_filter = coarse_filter / torch.sum(coarse_filter) * torch.sum(new_filt)
+
+    return coarse_filter
+
+
+class BlurMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+    r"""
+    Multi-scale wrapper for blur physics operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
+
+    See :class:`LinearPhysicsMultiScaler` for details.
+
+    :param deepinv.physics.Physics physics: blur physics operator.
+    :param tuple img_shape: shape of the input image (C, H, W).
+    :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
+    :param list[int] factors: list of factors to use for upsampling.
+    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    """
+
+    def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
+        super().__init__(
+            physics=physics,
+            img_shape=img_shape,
+            filter=filter,
+            factors=factors,
+            **kwargs,
+        )
+
+        self.scaled_physics = []
+        for upsampling in self.Upsamplings:
+            filt = coarse_blur_filter(
+                physics.filter, upsampling.filter, upsampling.factor
+            )
+            p = Blur(filter=filt, padding=physics.padding, device=physics.filter.device)
+            self.scaled_physics.append(p)
+
+    def downsample_measurement(self, y, scale=None):
+        r"""
+        Since the observation `y` lives in image space, it can be passed to a coarse scale.
+        :param y: fine scale observation
+        :param scale: target scale in which express `y`
+        :return: downsampled observation `y`
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            return y
+        else:
+            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+
+    def A_adjoint_A(self, x, scale=None, **kwargs):
+        r"""
+        Less computationnaly expensive version than parent class :class:`LinearPhysicsMultiScaler`
+
+        :param x: input signal
+        :param scale: scale in which to apply :math:`U_{scale}^* U_{scale}`
+        :return: `U_{scale}^* U_{scale} x`
+        """
+        self.set_scale(scale)
+        physics = self.scaled_physics[self.scale - 1]
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
+
+
+class BlurFFTMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+    r"""
+    Multi-scale wrapper for BlurFFT operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
+
+    See :class:`LinearPhysicsMultiScaler` for details.
+
+    :param deepinv.physics.Physics physics: BlurFFT physics operator.
+    :param tuple img_shape: shape of the input image (C, H, W).
+    :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
+    :param list[int] factors: list of factors to use for upsampling.
+    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    """
+
+    def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
+        super().__init__(
+            physics=physics,
+            img_shape=img_shape,
+            filter=filter,
+            factors=factors,
+            **kwargs,
+        )
+
+        self.scaled_physics = []
+        for upsampling in self.Upsamplings:
+            factor = upsampling.factor
+            filt = coarse_blur_filter(physics.filter, upsampling.filter, factor)
+            coarse_shape = (
+                img_shape[0],
+                math.ceil(img_shape[1] / factor),
+                math.ceil(img_shape[2] / factor),
+            )
+            p = BlurFFT(
+                filter=filt, img_size=coarse_shape, device=physics.filter.device
+            )
+            self.scaled_physics.append(p)
+
+    def downsample_measurement(self, y, scale=None):
+        r"""
+        Since the observation `y` lives in image space, it can be passed to a coarse scale.
+        :param y: fine scale observation
+        :param scale: target scale in which express `y`
+        :return: downsampled observation `y`
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            return y
+        else:
+            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+
+    def A_adjoint_A(self, x, scale=None, **kwargs):
+        r"""
+        Less computationnaly expensive version than parent class :class:`LinearPhysicsMultiScaler`
+
+        :param x: input signal
+        :param scale: scale in which to apply :math:`U_{scale}^* U_{scale}`
+        :return: `U_{scale}^* U_{scale} x`
+        """
+        self.set_scale(scale)
+        physics = self.scaled_physics[self.scale - 1]
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
+
+
+class InpaintingMultiScaler(LinearPhysicsMultiScaler, LinearPhysics):
+    r"""
+    Multi-scale wrapper for inpainting/demosaicing operators. This particular class handles A_adjoint_A with a particular implementation for each scale.
+
+    See :class:`LinearPhysicsMultiScaler` for details.
+
+    :param deepinv.physics.Physics physics: inpainting or demosaicing physics operator.
+    :param tuple img_shape: shape of the input image (C, H, W).
+    :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
+    :param list[int] factors: list of factors to use for upsampling.
+    :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
+    """
+
+    def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
+        super().__init__(
+            physics=physics,
+            img_shape=img_shape,
+            filter=filter,
+            factors=factors,
+            **kwargs,
+        )
+
+        self.scaled_physics = []
+        for upsampling in self.Upsamplings:
+            coarse_data = upsampling.A_adjoint(physics.mask.data)
+            p = Inpainting(
+                tensor_size=coarse_data.shape[1:],
+                mask=coarse_data,
+                device=physics.mask.device,
+            )
+            self.scaled_physics.append(p)
+
+    def downsample_measurement(self, y, scale=None):
+        r"""
+        Since the observation `y` lives in image space, it can be passed to a coarse scale.
+        :param y: fine scale observation
+        :param scale: target scale in which express `y`
+        :return: downsampled observation `y`
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            return y
+        else:
+            return self.Upsamplings[self.scale - 1].A_adjoint(y)
+
+    def A_adjoint_A(self, x, scale=None, **kwargs):
+        r"""
+        Less computationnaly expensive version than parent class :class:`LinearPhysicsMultiScaler`
+
+        :param x: input signal
+        :param scale: scale in which to apply :math:`U_{scale}^* U_{scale}`
+        :return: `U_{scale}^* U_{scale} x`
+        """
+        self.set_scale(scale)
+        physics = self.scaled_physics[self.scale - 1]
+        factor = self.factors[self.scale - 1]
+        return physics.A_adjoint_A(x) / factor**2
+
+
+def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
+    r"""
+    This function creates the proper MultiScaler object associated with the provided physics.
+
+    See :class:`LinearPhysicsMultiScaler` for details.
+
+    :param physics: physics that should be converted to a MultiScaler
+    :param img_shape: shape of the image in the fine scale
+    :param torch.dtype, dtype: type to be associated with the signal
+    :param factors: downsampling factors used to get in coarser scales
+    :return: a MultiScaler version of the provided physics
+    """
+    if isinstance(physics, Blur):
+        return BlurMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+    if isinstance(physics, BlurFFT):
+        return BlurFFTMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+    if isinstance(physics, Inpainting):
+        return InpaintingMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
+    elif isinstance(physics, LinearPhysics):
+        return LinearPhysicsMultiScaler(
+            physics, img_shape, dtype=dtype, factors=factors
+        )
+    else:
+        return PhysicsMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
 
 
 class PhysicsCropper(LinearPhysics):

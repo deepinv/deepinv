@@ -63,6 +63,17 @@ Operators
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
+   deepinv.physics.BlurMultiScaler
+   deepinv.physics.BlurFFTMultiScaler
+   deepinv.physics.InpaintingMultiScaler
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.physics.to_multiscale
 
 
 Generators
