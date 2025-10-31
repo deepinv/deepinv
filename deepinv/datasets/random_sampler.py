@@ -222,15 +222,15 @@ class RandomPatchSampler(ImageDataset):
 
     def _get_loader(self, file_format: str):
         if file_format.endswith(".npy"):
-            from deepinv.utils.io_utils import load_np
+            from deepinv.utils.io import load_np
 
             return load_np
         elif file_format.endswith(".nii") or file_format.endswith(".nii.gz"):
-            from deepinv.utils.io_utils import load_nifti
+            from deepinv.utils.io import load_nifti
 
             return load_nifti
         elif file_format.endswith(".b2nd"):
-            from deepinv.utils.io_utils import load_blosc2
+            from deepinv.utils.io import load_blosc2
 
             return load_blosc2
         else:  # pragma: no cover
