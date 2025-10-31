@@ -363,7 +363,7 @@ def to_multiscale(physics, img_shape, dtype=None, factors=(2, 4, 8)):
     """
     if isinstance(physics, Blur):
         return BlurMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
-    if isinstance(physics, Blur):
+    if isinstance(physics, BlurFFT):
         return BlurFFTMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
     if isinstance(physics, Inpainting):
         return InpaintingMultiScaler(physics, img_shape, dtype=dtype, factors=factors)
