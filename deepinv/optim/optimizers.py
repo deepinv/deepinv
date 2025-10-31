@@ -32,6 +32,7 @@ class DEQConfig:
     :param: float eps_backward: Regularization parameter for Anderson acceleration in the backward pass.
     :param: int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
     """
+
     jacobian_free: bool = False
     anderson_acceleration_backward: bool = False
     history_size_backward: int = 5
@@ -48,6 +49,7 @@ class AndersonAccelerationConfig:
     :param: float beta: Momentum coefficient in Anderson acceleration.
     :param: float eps: Regularization parameter for Anderson acceleration.
     """
+
     history_size: float = 0.1
     beta: float = 0.9
     eps: int = 20
@@ -61,6 +63,7 @@ class BacktrackingConfig:
     :param: float eta: Step reduction factor (e.g. multiply step by eta on failure).
     :param: int max_iter: Maximum number of backtracking steps.
     """
+
     gamma: float = 0.1
     eta: float = 0.9
     max_iter: int = 20
@@ -431,7 +434,7 @@ class BaseOptim(Reconstructor):
             max_iter=max_iter,
             early_stop=early_stop,
             anderson_acceleration_config=self.anderson_acceleration_config,
-            backtracking_config = self.backtracking_config,
+            backtracking_config=self.backtracking_config,
             verbose=self.verbose,
             show_progress_bar=self.show_progress_bar,
         )
@@ -783,7 +786,7 @@ class BaseOptim(Reconstructor):
                     init_iterate_fn=init_iterate_fn,
                     max_iter=self.DEQ_config.max_iter_backward,
                     check_conv_fn=self.check_conv_fn,
-                    anderson_acceleration_config=self.anderson_acceleration_config
+                    anderson_acceleration_config=self.anderson_acceleration_config,
                 )
                 g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
                 return g

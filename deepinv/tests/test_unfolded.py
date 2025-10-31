@@ -178,13 +178,13 @@ def test_DEQ(
         kwargs["data_fidelity"] = data_fidelity
 
     DEQ_config = dinv.optim.DEQConfig(
-                jacobian_free = jac_free,
-                anderson_acceleration_backward=and_acc,
-                history_size_backward=2,
-                beta_backward=1.0,
-                eps_backward=1e-4,
-                max_iter_backward=5
-                    )
+        jacobian_free=jac_free,
+        anderson_acceleration_backward=and_acc,
+        history_size_backward=2,
+        beta_backward=1.0,
+        eps_backward=1e-4,
+        max_iter_backward=5,
+    )
 
     # Define the unfolded trainable model.
     # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable

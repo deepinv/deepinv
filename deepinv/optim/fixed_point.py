@@ -76,12 +76,14 @@ class FixedPoint(nn.Module):
     def __init__(
         self,
         iterator: deepinv.optim.OptimIterator = None,
-        update_params_fn: Callable[int,dict[str, float | Iterable]] = None,
+        update_params_fn: Callable[int, dict[str, float | Iterable]] = None,
         update_data_fidelity_fn: Callable[int, deepinv.optim.DataFidelity] = None,
         update_prior_fn: Callable[int, deepinv.optim.Prior] = None,
         init_iterate_fn: Callable[..., dict] = None,
         init_metrics_fn: Callable[[dict, torch.Tensor], dict[str, list]] = None,
-        update_metrics_fn: Callable[[dict[str, list], dict, dict, torch.Tensor], dict[str, list]] = None,
+        update_metrics_fn: Callable[
+            [dict[str, list], dict, dict, torch.Tensor], dict[str, list]
+        ] = None,
         backtraking_check_fn: Callable[[dict, dict], bool] = None,
         check_conv_fn: Callable[[int, dict, dict], bool] = None,
         max_iter: int = 50,
@@ -146,13 +148,13 @@ class FixedPoint(nn.Module):
     def anderson_acceleration_step(
         self,
         it: int,
-        X_prev : dict,
+        X_prev: dict,
         TX_prev: dict,
-        x_hist: torch.Tensor, 
+        x_hist: torch.Tensor,
         T_hist: torch.Tensor,
         H: torch.Tensor,
         q: torch.Tensor,
-        cur_data_fidelity : deepinv.optim.DataFidelity,
+        cur_data_fidelity: deepinv.optim.DataFidelity,
         cur_prior: deepinv.optim.Prior,
         cur_params: dict,
         *args,
@@ -195,7 +197,8 @@ class FixedPoint(nn.Module):
         ]  # solve the linear system H p = q.
         x = (
             self.anderson_acceleration_config.beta * (p[:, None] @ T_hist[:, :m])[:, 0]
-            + (1 - self.anderson_acceleration_config.beta) * (p[:, None] @ x_hist[:, :m])[:, 0]
+            + (1 - self.anderson_acceleration_config.beta)
+            * (p[:, None] @ x_hist[:, :m])[:, 0]
         )  # Anderson acceleration step.
         x = x.view(x_prev.shape)
         F = (
@@ -210,8 +213,8 @@ class FixedPoint(nn.Module):
         return {"est": est, "cost": F}
 
     def forward(
-        self, 
-        *args, 
+        self,
+        *args,
         init: (
             Callable[
                 [torch.Tensor, Physics], Iterable[torch.Tensor] | torch.Tensor | dict
@@ -220,9 +223,10 @@ class FixedPoint(nn.Module):
             | torch.Tensor
             | dict
         ) = None,
-        compute_metrics: bool = False, 
-        x_gt: torch.Tensor = None, 
-        **kwargs):
+        compute_metrics: bool = False,
+        x_gt: torch.Tensor = None,
+        **kwargs,
+    ):
         r"""
         Loops over the fixed-point iterator as (1) and returns the fixed point.
 
@@ -307,7 +311,7 @@ class FixedPoint(nn.Module):
 
         return X, metrics
 
-    def single_iteration(self, X : dict, it : int, *args, **kwargs):
+    def single_iteration(self, X: dict, it: int, *args, **kwargs):
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None

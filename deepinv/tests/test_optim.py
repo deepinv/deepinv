@@ -372,7 +372,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         lambda_reg = 0.9
         max_iter = 1000
-        if name_algo in ('GD', 'MD'):
+        if name_algo in ("GD", "MD"):
             optimalgo = getattr(dinv.optim, name_algo)(
                 prior=prior,
                 data_fidelity=data_fidelity,
@@ -383,7 +383,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
                 stepsize=stepsize,
                 lambda_reg=lambda_reg,
                 g_param=sigma,
-                early_stop=True
+                early_stop=True,
             )
         else:
             optimalgo = getattr(dinv.optim, name_algo)(
@@ -532,8 +532,6 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
             early_stop=True,
         )
 
-    
-
     x = pnp(y, physics, init=init)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
@@ -646,8 +644,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 lambda_reg=lambda_reg,
                 early_stop=True,
             )
-
-        
 
         x = opt_algo(y, physics, init=init)
 
