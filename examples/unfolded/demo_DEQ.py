@@ -17,7 +17,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim import PGD
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 
 # %%

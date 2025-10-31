@@ -14,11 +14,11 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
     calculate_md5_for_folder,
-    loadmat,
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
+from deepinv.utils.io import load_mat
 from deepinv.datasets.base import ImageDataset
 
 
@@ -158,7 +158,7 @@ class NBUDataset(ImageDataset):
         :return: torch.Tensor: normalized image to the range [0,1]
         """
         paths = self.image_paths[idx]
-        ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
+        ms, pan = load_mat(paths[0])["imgMS"], load_mat(paths[1])["imgPAN"]
 
         transform_ms = Compose(
             [self.normalize, ToTensor()]

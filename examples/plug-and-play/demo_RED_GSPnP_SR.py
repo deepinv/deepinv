@@ -16,7 +16,7 @@ from deepinv.optim import PGD
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 
 # %%

@@ -13,7 +13,7 @@ from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import PGD
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%

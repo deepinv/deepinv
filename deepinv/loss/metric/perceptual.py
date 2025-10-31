@@ -16,7 +16,7 @@ class LPIPS(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import load_example
+    >>> from deepinv.utils import load_example
     >>> from deepinv.loss.metric import LPIPS
     >>> m = LPIPS() # doctest: +IGNORE_RESULT
     >>> x = load_example("celeba_example.jpg", img_size=128)
@@ -59,7 +59,7 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import load_example
+    >>> from deepinv.utils import load_example
     >>> from deepinv.loss.metric import NIQE
     >>> m = NIQE() # doctest: +IGNORE_RESULT
     (...)

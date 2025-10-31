@@ -27,7 +27,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import deepinv as dinv
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
 from deepinv.optim import PDCP

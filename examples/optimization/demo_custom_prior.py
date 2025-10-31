@@ -17,7 +17,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim import ADMM
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 
 
 # %%

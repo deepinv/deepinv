@@ -16,7 +16,7 @@ from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim import DRS
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%

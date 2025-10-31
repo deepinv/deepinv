@@ -24,7 +24,7 @@ from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
 from deepinv.optim import MD
 from deepinv.optim.bregman import BurgEntropy
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%

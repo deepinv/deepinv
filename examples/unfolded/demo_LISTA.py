@@ -17,7 +17,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim import PGD
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 # %%

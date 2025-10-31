@@ -1,4 +1,5 @@
 from __future__ import annotations
+from warnings import warn
 from typing import Callable, TYPE_CHECKING
 import os, shutil, zipfile, requests
 from io import BytesIO
@@ -10,6 +11,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torchvision import transforms
+from deepinv.utils.io import load_np, load_torch, load_url as _load_url
 
 if TYPE_CHECKING:
     from deepinv.datasets.base import ImageFolder
@@ -54,15 +56,18 @@ def get_data_home() -> Path:
 
     :return: pathlib Path for data home
     """
-    data_home = os.environ.get("DEEPINV_DATA", None)
+    data_home = os.environ.get("DEEPINV_DATA")
     if data_home is not None:
-        return Path(data_home)
+        path = Path(data_home)
+    else:
+        data_home = os.environ.get("XDG_DATA_HOME")
+        if data_home is not None:
+            path = Path(data_home) / "deepinv"
+        else:
+            path = Path(".") / "datasets"
 
-    data_home = os.environ.get("XDG_DATA_HOME", None)
-    if data_home is not None:
-        return Path(data_home) / "deepinv"
-
-    return Path(".") / "datasets"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def load_dataset(
@@ -196,13 +201,10 @@ def load_image(
 
 
 def load_url(url: str) -> BytesIO:
-    """Load URL to a buffer.
-
-    :param str url: URL of the file to load
-    """
-    response = requests.get(url)
-    response.raise_for_status()
-    return BytesIO(response.content)
+    warn(
+        "deepinv.utils.demo.load_url is deprecated. Use deepinv.utils.load_url instead."
+    )
+    return _load_url(url)
 
 
 def load_url_image(
@@ -223,27 +225,24 @@ def load_url_image(
     :param str device: Device on which to load the image (gpu or cpu).
     :return: :class:`torch.Tensor` containing the image.
     """
-
-    img = Image.open(load_url(url))
-    transform_list = []
-    if img_size is not None:
-        if resize_mode == "crop":
-            transform_list.append(transforms.CenterCrop(img_size))
-        elif resize_mode == "resize":
-            transform_list.append(transforms.Resize(img_size))
-        else:
-            raise ValueError(
-                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
-            )
-    if grayscale:
-        transform_list.append(transforms.Grayscale())
-    transform_list.append(transforms.ToTensor())
-    transform = transforms.Compose(transform_list)
-    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
-    return x
+    return load_image(
+        _load_url(url),
+        img_size=img_size,
+        grayscale=grayscale,
+        resize_mode=resize_mode,
+        device=device,
+        dtype=dtype,
+    )
 
 
-def load_example(name, **kwargs):
+def load_example(
+    name,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
+):
     r"""
     Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using
     :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
@@ -313,17 +312,28 @@ def load_example(name, **kwargs):
 
 
     :param str name: filename of the image from the HuggingFace dataset.
-    :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param torch.device, str device: Device on which to load the image (gpu or cpu).
+    :param torch.dtype dtype: torch dtype to cast the image to.
     :return: :class:`torch.Tensor` containing the image.
     """
     url = get_image_url(name)
 
     if name.split(".")[-1].lower() == "pt":
-        return load_torch_url(url, **kwargs)
+        return load_torch_url(url, device=device)
     elif name.split(".")[-1].lower() in ("npy", "npz"):
-        return load_np_url(url, **kwargs)
+        return load_np_url(url)
 
-    return load_url_image(url, **kwargs)
+    return load_url_image(
+        url,
+        img_size=img_size,
+        grayscale=grayscale,
+        resize_mode=resize_mode,
+        device=device,
+        dtype=dtype,
+    )
 
 
 def download_example(name: str, save_dir: str | Path):
@@ -341,22 +351,22 @@ def download_example(name: str, save_dir: str | Path):
         f.write(data)
 
 
-def load_torch_url(url, device="cpu", **kwargs):
+def load_torch_url(url: str, device="cpu", **kwargs) -> torch.Tensor:
     r"""
     Load an array from url and read it by torch.load.
 
     :param str url: URL of the image file.
     :param str, torch.device device: Device on which to load the tensor.
-    :return: whatever is pickled in the file.
+    :return: weights or tensors contained in file.
     """
-    return torch.load(load_url(url), weights_only=True, map_location=device)
+    return load_torch(_load_url(url), device=device)
 
 
-def load_np_url(url=None, **kwargs):
+def load_np_url(url: str, **kwargs) -> torch.Tensor:
     r"""
-    Load a numpy array from url.
+    Load a numpy array from url and convert to tensor.
 
     :param str url: URL of the image file.
-    :return: numpy ndarray containing the data.
+    :return: torch rensor containing the data.
     """
-    return np.load(load_url(url), allow_pickle=False)
+    return load_np(_load_url(url))
