@@ -138,15 +138,10 @@ model = PGD(
     trainable_params=trainable_params,
     stepsize=stepsize,
     sigma_denoiser=sigma_denoiser,
-    n_channels=n_channels,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
     anderson_acceleration=True,
-    anderson_acceleration_backward=True,
-    history_size_backward=3,
-    history_size=3,
-    max_iter_backward=20,
     jacobian_free=jacobian_free,
 )
 

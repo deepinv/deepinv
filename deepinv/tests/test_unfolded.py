@@ -5,7 +5,6 @@ import deepinv as dinv
 from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
 from deepinv import optim
-from dataclasses import dataclass
 
 UNFOLDED_ALGO = [
     "PGD",

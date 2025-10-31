@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from collections.abc import Iterable
-from types import MappingProxyType
 import torch
 import torch.nn as nn
 import warnings
@@ -9,7 +8,6 @@ from tqdm import tqdm
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
-    from deepinv.loss.metric import Metric
 
 
 class FixedPoint(nn.Module):

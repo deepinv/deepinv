@@ -230,7 +230,6 @@ model = PGD(
     stepsize=stepsize,
     sigma_denoiser=0.05,
     max_iter=max_iter,
-    custom_init=custom_init,
 )
 
 x_hat = model(y, physics, init=tv_algo(y, physics))

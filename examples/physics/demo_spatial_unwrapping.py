@@ -174,7 +174,6 @@ fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 x_est = fidelity.D_dagger(wrapped_phase)
 
 model = ADMM(
-    iteration="ADMM",
     prior=prior,
     data_fidelity=fidelity,
     max_iter=10,
