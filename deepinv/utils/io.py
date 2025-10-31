@@ -314,7 +314,7 @@ def load_nifti(
     as_memmap: bool = False,
     dtype: np.dtype | str = np.float32,
     **kwargs,
-) -> torch.Tensor | "nib.arrayproxy.ArrayProxy":
+) -> torch.Tensor | nib.arrayproxy.ArrayProxy:
     """Load volume from nifti file as torch tensor.
 
     We assume that the data contains a channel dimension. If not, unsqueeze the output to
