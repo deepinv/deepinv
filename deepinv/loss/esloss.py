@@ -254,6 +254,7 @@ class ESLoss(dinv.loss.Loss):
         eval_n_samples=10,
         train_transform,
         eval_transform=None,
+        equivariant_model=False,
     ):
         super().__init__()
         self._splitting_loss = dinv.loss.SplittingLoss()
@@ -272,6 +273,7 @@ class ESLoss(dinv.loss.Loss):
         self._split_r2r_loss = split_r2r_loss
         self._train_transform = train_transform
         self._eval_transform = eval_transform
+        self._equivariant_model = equivariant_model
 
     def forward(self, x_net, y, physics, model, **kwargs):
         loss_value = self._splitting_loss(
@@ -292,11 +294,13 @@ class ESLoss(dinv.loss.Loss):
         return loss_value
 
     def adapt_model(self, model):
-        model = _EquivariantReconstructor(
-            model=model,
-            train_transform=self._train_transform,
-            eval_transform=self._eval_transform,
-        )
+        # if the model is not already equivariant, we make it so using Reynolds averaging
+        if not self._equivariant_model:
+            model = _EquivariantReconstructor(
+                model=model,
+                train_transform=self._train_transform,
+                eval_transform=self._eval_transform,
+            )
         if self._split_r2r_loss is not None:
             model = self._split_r2r_loss.adapt_model(model)
         else:
