@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .base import Denoiser
 from deepinv.utils.compat import zip_strict
-
+import math
 
 class DiffUNet(Denoiser):
     r"""
@@ -56,11 +56,11 @@ class DiffUNet(Denoiser):
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        large_model=False,
-        use_fp16=False,
-        pretrained="download",
+        in_channels: int = 3,
+        out_channels: int=3,
+        large_model:bool=False,
+        use_fp16:bool=False,
+        pretrained:str="download",
     ):
         super().__init__()
 
@@ -108,7 +108,7 @@ class DiffUNet(Denoiser):
         self.conv_resample = conv_resample
         self.num_classes = num_classes
         self.use_checkpoint = use_checkpoint
-        self.dtype = th.float16 if use_fp16 else th.float32
+        self.dtype = torch.float16 if use_fp16 else torch.float32
         self.num_heads = num_heads
         self.num_head_channels = num_head_channels
         self.num_heads_upsample = num_heads_upsample
@@ -281,7 +281,7 @@ class DiffUNet(Denoiser):
             self.load_state_dict(ckpt, strict=True)
             self.eval()
 
-    def forward(self, x, t, y=None, type_t="noise_level"):
+    def forward(self, x: torch.Tensor, t: torch.Tensor, y: torch.Tensor = None, type_t: str = "noise_level") -> torch.Tensor:
         r"""
         Apply the model to an input batch.
 
@@ -301,7 +301,7 @@ class DiffUNet(Denoiser):
         """
         if x.shape[-2] < 520 and x.shape[-1] < 520:
             pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
-            x = torch.nn.functional.pad(x, pad, mode="circular")
+            x = F.pad(x, pad, mode="circular")
             if type_t == "timestep":
                 out = self.forward_diffusion(x, t, y=y)
             elif type_t == "noise_level":
@@ -312,7 +312,7 @@ class DiffUNet(Denoiser):
         else:
             return self.patch_forward(x, t, y=y, type_t=type_t, patch_size=512)
 
-    def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
+    def patch_forward(self, x: torch.Tensor, t: torch.Tensor, y: torch.Tensor = None, type_t: str = "noise_level", patch_size: int = 512) -> torch.Tensor:
         r"""
         Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
@@ -325,7 +325,7 @@ class DiffUNet(Denoiser):
         """
 
         pad_input = (-x.size(-1) % patch_size, 0, -x.size(-2) % patch_size, 0)
-        x = torch.nn.functional.pad(x, pad_input, mode="circular")
+        x = F.pad(x, pad_input, mode="circular")
 
         B, C, H, W = x.shape
 
@@ -380,7 +380,7 @@ class DiffUNet(Denoiser):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward_diffusion(self, x, timesteps, y=None):
+    def forward_diffusion(self, x: torch.Tensor, timesteps: torch.Tensor, y: torch.Tensor = None) -> torch.Tensor:
         r"""
         Apply the model to an input batch.
 
@@ -413,14 +413,14 @@ class DiffUNet(Denoiser):
             hs.append(h)
         h = self.middle_block(h, emb)
         for module in self.output_blocks:
-            h = th.cat([h, hs.pop()], dim=1)
+            h = torch.cat([h, hs.pop()], dim=1)
             h = module(h, emb)
         h = h.type(x.dtype)
         return self.out(h)
 
     def get_alpha_prod(
-        self, beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=1000
-    ):
+        self, beta_start: float = 0.1 / 1000, beta_end: float = 20 / 1000, num_train_timesteps: int = 1000
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
         """
@@ -452,7 +452,7 @@ class DiffUNet(Denoiser):
         idx = (torch.abs(array[:, None] - value[None, :])).argmin(dim=0)
         return idx
 
-    def forward_denoise(self, x, sigma, y=None):
+    def forward_denoise(self, x: torch.Tensor, sigma: float | torch.Tensor, y: torch.Tensor = None) -> torch.Tensor:
         r"""
         Applies the denoising model to an input batch.
 
@@ -467,7 +467,7 @@ class DiffUNet(Denoiser):
             a mean shift by correction by :math:`0.5 - \sqrt{\alpha_t} 0.5`.
 
         :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.
-        :param torch.Tensor sigma: a 1-D batch of noise levels.
+        :param float, torch.Tensor sigma: a 1-D batch of noise levels.
         :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
         :return: an `(N, C, ...)` Tensor of outputs.
         """
@@ -514,17 +514,17 @@ class AttentionPool2d(nn.Module):
     ):
         super().__init__()
         self.positional_embedding = nn.Parameter(
-            th.randn(embed_dim, spacial_dim**2 + 1) / embed_dim**0.5
+            torch.randn(embed_dim, spacial_dim**2 + 1) / embed_dim**0.5
         )
         self.qkv_proj = conv_nd(1, embed_dim, 3 * embed_dim, 1)
         self.c_proj = conv_nd(1, embed_dim, output_dim or embed_dim, 1)
         self.num_heads = embed_dim // num_heads_channels
         self.attention = QKVAttention(self.num_heads)
 
-    def forward(self, x):
-        b, c, *_spatial = x.shape
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, c = x.shape[:2]
         x = x.reshape(b, c, -1)  # NC(HW)
-        x = th.cat([x.mean(dim=-1, keepdim=True), x], dim=-1)  # NC(HW+1)
+        x = torch.cat([x.mean(dim=-1, keepdim=True), x], dim=-1)  # NC(HW+1)
         x = x + self.positional_embedding[None, :, :].to(x.dtype)  # NC(HW+1)
         x = self.qkv_proj(x)
         x = self.attention(x)
@@ -538,7 +538,7 @@ class TimestepBlock(nn.Module):
     """
 
     @abstractmethod
-    def forward(self, x, emb):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
         """
         Apply the module to `x` given `emb` timestep embeddings.
         """
@@ -550,7 +550,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     support it as an extra input.
     """
 
-    def forward(self, x, emb):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
         for layer in self:
             if isinstance(layer, TimestepBlock):
                 x = layer(x, emb)
@@ -728,7 +728,7 @@ class ResBlock(TimestepBlock):
             emb_out = emb_out[..., None]
         if self.use_scale_shift_norm:
             out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
-            scale, shift = th.chunk(emb_out, 2, dim=1)
+            scale, shift = torch.chunk(emb_out, 2, dim=1)
             h = out_norm(h) * (1 + scale) + shift
             h = out_rest(h)
         else:
@@ -803,7 +803,7 @@ def count_flops_attn(model, _x, y):
     # The first computes the weight matrix, the second computes
     # the combination of the value vectors.
     matmul_ops = 2 * b * (num_spatial**2) * c
-    model.total_ops += th.DoubleTensor([matmul_ops])
+    model.total_ops += torch.DoubleTensor([matmul_ops])
 
 
 class QKVAttentionLegacy(nn.Module):
@@ -826,13 +826,26 @@ class QKVAttentionLegacy(nn.Module):
         assert width % (3 * self.n_heads) == 0
         ch = width // (3 * self.n_heads)
         q, k, v = qkv.reshape(bs * self.n_heads, ch * 3, length).split(ch, dim=1)
-        scale = 1 / math.sqrt(math.sqrt(ch))
-        weight = th.einsum(
-            "bct,bcs->bts", q * scale, k * scale
-        )  # More stable with f16 than dividing afterwards
-        weight = th.softmax(weight.float(), dim=-1).type(weight.dtype)
-        a = th.einsum("bts,bcs->bct", weight, v)
-        return a.reshape(bs, -1, length)
+        # scale = 1 / math.sqrt(math.sqrt(ch))
+        # weight = torch.einsum(
+        #     "bct,bcs->bts", q * scale, k * scale
+        # )  # More stable with f16 than dividing afterwards
+        # weight = torch.softmax(weight.float(), dim=-1).type(weight.dtype)
+        # a = torch.einsum("bts,bcs->bct", weight, v)
+        # return a.reshape(bs, -1, length)
+        
+        
+        # Transpose to [B, H, T, C] for scaled_dot_product_attention
+        q = q.transpose(-2, -1)
+        k = k.transpose(-2, -1)
+        v = v.transpose(-2, -1)
+
+        # PyTorch fused SDPA (handles scaling, softmax, etc.)
+        out = F.scaled_dot_product_attention(q, k, v)  # [B, H, T, C]
+
+        # Back to [B, H*C, T]
+        out = out.transpose(-2, -1).reshape(bs, -1, length)
+        return out
 
     @staticmethod
     def count_flops(model, _x, y):
@@ -855,19 +868,29 @@ class QKVAttention(nn.Module):
         :param qkv: an [N x (3 * H * C) x T] tensor of Qs, Ks, and Vs.
         :return: an [N x (H * C) x T] tensor after attention.
         """
-        bs, width, length = qkv.shape
+        b, width, length = qkv.shape
         assert width % (3 * self.n_heads) == 0
-        ch = width // (3 * self.n_heads)
+        c = width // (3 * self.n_heads)
+    
+        
         q, k, v = qkv.chunk(3, dim=1)
-        scale = 1 / math.sqrt(math.sqrt(ch))
-        weight = th.einsum(
-            "bct,bcs->bts",
-            (q * scale).view(bs * self.n_heads, ch, length),
-            (k * scale).view(bs * self.n_heads, ch, length),
-        )  # More stable with f16 than dividing afterwards
-        weight = th.softmax(weight.float(), dim=-1).type(weight.dtype)
-        a = th.einsum("bts,bcs->bct", weight, v.reshape(bs * self.n_heads, ch, length))
-        return a.reshape(bs, -1, length)
+        # scale = 1 / math.sqrt(math.sqrt(ch))
+        # weight = torch.einsum(
+        #     "bct,bcs->bts",
+        #     (q * scale).view(bs * self.n_heads, ch, length),
+        #     (k * scale).view(bs * self.n_heads, ch, length),
+        # )  # More stable with f16 than dividing afterwards
+        # weight = torch.softmax(weight.float(), dim=-1).type(weight.dtype)
+        # a = torch.einsum("bts,bcs->bct", weight, v.reshape(bs * self.n_heads, ch, length))
+        # return a.reshape(bs, -1, length)
+
+        q = q.view(b, self.n_heads, c, length).transpose(-2, -1)
+        k = k.view(b, self.n_heads, c, length).transpose(-2, -1)
+        v = v.view(b, self.n_heads, c, length).transpose(-2, -1)
+
+        # PyTorch fused scaled dot-product attention
+        out = F.scaled_dot_product_attention(q, k, v)
+        return out.transpose(-2, -1).reshape(b, -1, length)
 
     @staticmethod
     def count_flops(model, _x, y):
@@ -877,17 +900,6 @@ class QKVAttention(nn.Module):
 """
 Various utilities for neural networks.
 """
-
-import math
-
-import torch as th
-import torch.nn as nn
-
-
-# PyTorch 1.7 has SiLU, but we support PyTorch 1.5.
-class SiLU(nn.Module):
-    def forward(self, x):
-        return x * th.sigmoid(x)
 
 
 class GroupNorm32(nn.GroupNorm):
@@ -987,13 +999,13 @@ def timestep_embedding(timesteps, dim, max_period=10000):
     :return: an [N x dim] Tensor of positional embeddings.
     """
     half = dim // 2
-    freqs = th.exp(
-        -math.log(max_period) * th.arange(start=0, end=half, dtype=th.float32) / half
+    freqs = torch.exp(
+        -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
     ).to(device=timesteps.device)
     args = timesteps[:, None].float() * freqs[None]
-    embedding = th.cat([th.cos(args), th.sin(args)], dim=-1)
+    embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
     if dim % 2:
-        embedding = th.cat([embedding, th.zeros_like(embedding[:, :1])], dim=-1)
+        embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
     return embedding
 
 
@@ -1015,26 +1027,26 @@ def checkpoint(func, inputs, params, flag):
         return func(*inputs)
 
 
-class CheckpointFunction(th.autograd.Function):
+class CheckpointFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, run_function, length, *args):
         ctx.run_function = run_function
         ctx.input_tensors = list(args[:length])
         ctx.input_params = list(args[length:])
-        with th.no_grad():
+        with torch.no_grad():
             output_tensors = ctx.run_function(*ctx.input_tensors)
         return output_tensors
 
     @staticmethod
     def backward(ctx, *output_grads):
         ctx.input_tensors = [x.detach().requires_grad_(True) for x in ctx.input_tensors]
-        with th.enable_grad():
+        with torch.enable_grad():
             # Fixes a bug where the first op in run_function modifies the
             # Tensor storage in place, which is not allowed for detach()'d
             # Tensors.
             shallow_copies = [x.view_as(x) for x in ctx.input_tensors]
             output_tensors = ctx.run_function(*shallow_copies)
-        input_grads = th.autograd.grad(
+        input_grads = torch.autograd.grad(
             output_tensors,
             ctx.input_tensors + ctx.input_params,
             output_grads,

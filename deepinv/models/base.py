@@ -1,7 +1,8 @@
 from __future__ import annotations
 import torch
 import numpy as np
-
+from torch import Tensor
+from deepinv.physics.forward import Physics
 
 class Denoiser(torch.nn.Module):
     r"""
@@ -25,7 +26,7 @@ class Denoiser(torch.nn.Module):
         super().__init__()
         self.to(device)
 
-    def forward(self, x, sigma, **kwargs):
+    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
 
@@ -44,7 +45,7 @@ class Denoiser(torch.nn.Module):
         dtype: torch.dtype = torch.float32,
         *args,
         **kwarg,
-    ):
+    ) -> Tensor:
         r"""
         Convert various noise level types to the appropriate format for batch processing.
             If `sigma` is a single float or int, the same value will be used for each sample in the batch.
@@ -120,11 +121,11 @@ class Reconstructor(torch.nn.Module):
 
     """
 
-    def __init__(self, device="cpu"):
+    def __init__(self, device: str | torch.device = "cpu"):
         super().__init__()
         self.to(device)
 
-    def forward(self, y, physics, **kwargs):
+    def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
         r"""
         Applies reconstruction model :math:`\inversef{y}{A}`.
 

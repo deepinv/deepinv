@@ -17,6 +17,21 @@ def tensor2array(img):
 def array2tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1)
 
+def tensor2array(img: Tensor) -> np.ndarray:
+    img = img.cpu().detach().numpy()
+    if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
+    else:  # Grayscale case: cast to numpy format (W,H)
+        img = img[0]
+    return img
+
+def array2tensor(img: np.ndarray) -> Tensor:
+    if len(img.shape) == 3:  # Color case: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
+    else:  # Grayscale case: back to (1,W,H)
+        out = torch.from_numpy(img).unsqueeze(0)
+    return out
+
 
 def get_weights_url(model_name, file_name):
     return (

@@ -1,7 +1,8 @@
 import numpy as np
 import torch
+from torch import Tensor
 from .base import Denoiser
-
+from .utils import array2tensor, tensor2array
 
 class BM3D(Denoiser):
     r"""
@@ -22,14 +23,19 @@ class BM3D(Denoiser):
 
     """
 
-    def forward(self, x, sigma, **kwargs):
+    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
         r"""
         Run the denoiser on image with noise level :math:`\sigma`.
 
         :param torch.Tensor x: noisy image
         :param float sigma: noise level
         """
-        import bm3d
+        try:
+            import bm3d
+        except ImportError: # pragma: no cover
+            raise ImportError(
+                "bm3d package not found. Please install it with `pip install bm3d`."
+            )
 
         out = torch.zeros_like(x)
 
@@ -42,18 +48,3 @@ class BM3D(Denoiser):
         return out
 
 
-def tensor2array(img):
-    img = img.cpu().detach().numpy()
-    if img.shape[0] == 3:  # Color case: cast to BM3D format (W,H,C)
-        img = np.transpose(img, (1, 2, 0))
-    else:  # Grayscale case: cast to BM3D format (W,H)
-        img = img[0]
-    return img
-
-
-def array2tensor(img):
-    if len(img.shape) == 3:  # Color case: back to (C,W,H)
-        out = torch.from_numpy(img).permute(2, 0, 1)
-    else:  # Grayscale case: back to (1,W,H)
-        out = torch.from_numpy(img).unsqueeze(0)
-    return out
