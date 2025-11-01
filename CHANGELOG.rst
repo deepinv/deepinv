@@ -19,6 +19,7 @@ Changed
 - load_np_url now returns tensors, load_url helper function moved to io (:gh:`768` by `Andrew Wang`_)
 - utils/signal.py renamed to signals.py to avoid stdlib conflict (:gh:`768` by `Andrew Wang`_)
 - utils.get_data_home now creates folder if not exist (:gh:`768` by `Andrew Wang`_)
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
@@ -498,3 +499,4 @@ Authors
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
+.. _Alexander Skorikov: https://github.com/askorikov
