@@ -1,6 +1,6 @@
 # This file is a concatenation of DiffPIR codes available here: https://github.com/yuanzhi-zhu/DiffPIR/tree/main
 # This code is taken (with minor modifications) from https://github.com/yuanzhi-zhu/DiffPIR/tree/main
-
+from __future__ import annotations
 import torch
 from torch import Tensor
 import torch.nn as nn
