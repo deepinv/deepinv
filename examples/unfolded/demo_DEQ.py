@@ -141,8 +141,7 @@ model = PGD(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    anderson_acceleration=True,
-    jacobian_free=jacobian_free,
+    anderson_acceleration=True
 )
 
 # %%
