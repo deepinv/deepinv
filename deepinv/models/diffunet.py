@@ -283,6 +283,14 @@ class DiffUNet(Denoiser):
             self.load_state_dict(ckpt, strict=True)
             self.eval()
 
+        if use_fp16:
+            self.convert_to_fp16()
+
+        # Precompute alpha products for denoising
+        sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod = self.get_alpha_prod()[-2:]
+        self.register_buffer("sqrt_1m_alphas_cumprod", sqrt_1m_alphas_cumprod)
+        self.register_buffer("sqrt_alphas_cumprod", sqrt_alphas_cumprod)
+
     def forward(
         self,
         x: torch.Tensor,
@@ -309,7 +317,7 @@ class DiffUNet(Denoiser):
         """
         if x.shape[-2] < 520 and x.shape[-1] < 520:
             pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
-            x = torch.nn.functional.pad(x, pad, mode="circular")
+            x = F.pad(x, pad, mode="circular")
             if type_t == "timestep":
                 out = self.forward_diffusion(x, t, y=y)
             elif type_t == "noise_level":
@@ -502,13 +510,8 @@ class DiffUNet(Denoiser):
         alpha = 1 / (1 + 4 * sigma**2)
         x = alpha.sqrt() * (2 * x - 1)
         sigma = sigma * alpha.sqrt()
-        (
-            reduced_alpha_cumprod,
-            sqrt_recip_alphas_cumprod,
-            sqrt_recipm1_alphas_cumprod,
-            sqrt_1m_alphas_cumprod,
-            sqrt_alphas_cumprod,
-        ) = self.get_alpha_prod()
+        sqrt_1m_alphas_cumprod = self.sqrt_1m_alphas_cumprod
+        sqrt_alphas_cumprod = self.sqrt_alphas_cumprod
 
         timesteps = self.find_nearest(
             sqrt_1m_alphas_cumprod.to(x.device), sigma.squeeze(dim=(1, 2, 3)) * 2
