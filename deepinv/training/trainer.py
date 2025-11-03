@@ -332,6 +332,17 @@ class Trainer:
         ):
             if loader is not None and isinstance(loader, torch.utils.data.DataLoader):
                 check_dataset(loader.dataset)
+                # Suggest enabling pinned memory to make non-blocking H2D copies effective on CUDA
+                if (
+                    self.non_blocking_transfers
+                    and torch.cuda.is_available()
+                    and hasattr(loader, "pin_memory")
+                    and not loader.pin_memory
+                ):
+                    warnings.warn(
+                        "non_blocking_transfers=True but DataLoader.pin_memory=False; set pin_memory=True to overlap host-device copies with compute.",
+                        stacklevel=2,
+                    )
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -764,9 +775,8 @@ class Trainer:
         :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.
         :returns: The network reconstruction.
         """
-        y = y.to(self.device)
 
-        kwargs = {}
+        kwargs = dict(kwargs) 
 
         # check if the forward has 'update_parameters' method (cached), and if so, update the parameters
         if self._model_accepts_update_parameters:
@@ -774,17 +784,19 @@ class Trainer:
 
         if train:
             self.model.train()
-            x_net = self.model(y, physics, **kwargs)
+            return self.model(y, physics, **kwargs)
         else:
             self.model.eval()
             with torch.no_grad():
-                x_net = self.model(
+                out = self.model(
                         y, physics, x_gt=x, compute_metrics=self.plot_convergence_metrics, **kwargs
                     )
                 if self.plot_convergence_metrics:
-                    x_net, self.conv_metrics = x_net
+                    x_net, self.conv_metrics = out
+                else:
+                    x_net = out
         
-        return x_net
+            return x_net
 
     def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
         r"""
