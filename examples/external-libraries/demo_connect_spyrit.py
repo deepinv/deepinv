@@ -16,31 +16,20 @@ import os
 import torchvision
 import torch.nn
 
-from spyrit.misc.disp import imagesc
-from spyrit.misc.statistics import transform_gray_norm
-
+from deepinv.utils import plot
 import deepinv as dinv
 
-spyritPath = os.getcwd()
-imgs_path = os.path.join(spyritPath, "images/")
-
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-# Grayscale images of size (32, 32), no normalization to keep values in (0,1)
-transform = transform_gray_norm(img_size=32, normalize=False)
-
-# Create dataset and loader (expects class folder 'images/test/')
-dataset = torchvision.datasets.ImageFolder(root=imgs_path, transform=transform)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=7)
-
-x, _ = next(iter(dataloader))
+im_size = 64
+x = dinv.utils.load_example(
+    "butterfly.png", device=device, img_size=(im_size, im_size), grayscale=True
+)
 print(f"Ground-truth images: {x.shape}")
 
 ###############################################################################
 # We select the second image in the batch and plot it.
 
-i_plot = 1
-imagesc(x[i_plot, 0, :, :], r"$32\times 32$ image $X$")
+plot(x, r"$32\times 32$ image $X$")
 
 # %%
 # Basic example
@@ -52,21 +41,18 @@ from spyrit.core.meas import HadamSplit2d
 import spyrit.core.noise as noise
 from spyrit.core.prep import UnsplitRescale
 
-meas_spyrit = HadamSplit2d(32, 512, device=device, reshape_output=True)
-alpha = 50  # image intensity
-meas_spyrit.noise_model = noise.Poisson(alpha)
-y = meas_spyrit(x)
+physics_spyrit = HadamSplit2d(im_size, 512, device=device, reshape_output=True)
+y_spyrit = physics_spyrit(x)
 
 # preprocess
-prep = UnsplitRescale(alpha)
-m_spyrit = prep(y)
+prep = UnsplitRescale(alpha=1.0)
+y_spyrit = prep(y_spyrit)
 
-print(y.shape)
-
+print(y_spyrit.shape)
 
 ######################################################################
 # The norm has to be computed to be passed to deepinv. We need to use the max singular value of the linear operator.
-norm = torch.linalg.norm(meas_spyrit.H, ord=2)
+norm = torch.linalg.norm(physics_spyrit.H, ord=2)
 print(norm)
 
 
@@ -76,14 +62,12 @@ print(norm)
 
 ###############################################################################
 # You can direcly give the forward operator to deepinv. You can also add noise using deepinv model or spyrit model.
-meas_deepinv = dinv.physics.LinearPhysics(
-    lambda y: meas_spyrit.measure_H(y) / norm,
-    A_adjoint=lambda y: meas_spyrit.unvectorize(meas_spyrit.adjoint_H(y) / norm),
+physics_deepinv = dinv.physics.LinearPhysics(
+    lambda y: physics_spyrit.measure_H(y) / norm,
+    A_adjoint=lambda y: physics_spyrit.unvectorize(physics_spyrit.adjoint_H(y) / norm),
 )
-# meas_deepinv.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
-m_deepinv = meas_deepinv(x)
-print("diff:", torch.linalg.norm(m_spyrit / norm - m_deepinv))
-
+y_deepinv = physics_deepinv(x)
+print("diff:", torch.linalg.norm(y_spyrit / norm - y_deepinv))
 
 # %%
 # Reconstruction with deepinverse
@@ -91,12 +75,9 @@ print("diff:", torch.linalg.norm(m_spyrit / norm - m_deepinv))
 
 ######################################################################
 # First, use the adjoint and dagger (pseudo-inverse) operators to reconstruct the image.
-x_adj = meas_deepinv.A_adjoint(m_spyrit / norm)
-imagesc(x_adj[1, 0, :, :].cpu(), "Adjoint")
+x_adj = physics_deepinv.A_adjoint(y_spyrit / norm)
 
-x_pinv = meas_deepinv.A_dagger(m_spyrit / norm)
-imagesc(x_pinv[1, 0, :, :].cpu(), "Pinv")
-
+x_pinv = physics_deepinv.A_dagger(y_spyrit / norm)
 
 ######################################################################
 # You can also use optimization-based methods from deepinv. Here, we use Total Variation (TV) regularization with a projected gradient descent (PGD) algorithm. You can note the use of the custom_init parameter to initialize the algorithm with the dagger operator.
@@ -109,9 +90,9 @@ model_tv = dinv.optim.optim_builder(
     custom_init=lambda y, Physics: {"est": (Physics.A_dagger(y),)},
 )
 
-x_tv, metrics_TV = model_tv(m_spyrit / norm, meas_deepinv, compute_metrics=True, x_gt=x)
-dinv.utils.plot_curves(metrics_TV)
-imagesc(x_tv[1, 0, :, :].cpu(), "TV recon")
+x_tv, metrics_TV = model_tv(
+    y_spyrit / norm, physics_deepinv, compute_metrics=True, x_gt=x
+)
 
 ######################################################################
 # Deep Plug and Play (DPIR) algorithm can also be used with a pretrained denoiser. Here, we use the DRUNet denoiser.
@@ -119,13 +100,36 @@ denoiser = dinv.models.DRUNet(in_channels=1, out_channels=1, device=device)
 model_dpir = dinv.optim.DPIR(sigma=1e-1, device=device, denoiser=denoiser)
 model_dpir.custom_init = lambda y, Physics: {"est": (Physics.A_dagger(y),)}
 with torch.no_grad():
-    x_dpir = model_dpir(m_spyrit / norm, meas_deepinv)
-imagesc(x_dpir[1, 0, :, :].cpu(), "DIPR recon")
+    x_dpir = model_dpir(y_spyrit / norm, physics_deepinv)
 
 ######################################################################
 # Reconstruct Anything Model (RAM) can also be used.
 model_ram = dinv.models.RAM(pretrained=True, device=device)
 model_ram.sigma_threshold = 1e-1
 with torch.no_grad():
-    x_ram = model_ram(m_spyrit / norm, meas_deepinv)
-imagesc(x_ram[1, 0, :, :].cpu(), "RAM recon")
+    x_ram = model_ram(y_spyrit / norm, physics_deepinv)
+
+metric = dinv.metric.PSNR()
+
+psnr_y = 0
+psnr_pinv = metric(x_pinv, x).item()
+psnr_tv = metric(x_tv, x).item()
+psnr_dpir = metric(x_dpir, x).item()
+psnr_ram = metric(x_ram, x).item()
+
+dinv.utils.plot(
+    {
+        "Ground Truth": x,
+        "Pseudo-Inverse": x_pinv,
+        "TV": x_tv,
+        "DPIR": x_dpir,
+        "RAM": x_ram,
+    },
+    subtitles=[
+        "PSNR (dB):",
+        f"{psnr_pinv:.2f}",
+        f"{psnr_tv:.2f}",
+        f"{psnr_dpir:.2f}",
+        f"{psnr_ram:.2f}",
+    ],
+)
