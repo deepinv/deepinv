@@ -244,7 +244,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # %%
 # Set up the PnP algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------
-# We build the PnP model using our custom :func:`deepinv.optim.CV` function.
+# We build the PnP model using our custom :func:`deepinv.optim.PDCP` function.
 #
 # The primal dual stepsizes :math:`\tau` corresponds to the ``stepsize`` key and :math:`\sigma` to the ``sigma`` key.
 # The ``g_param`` key corresponds to the noise level of the denoiser.

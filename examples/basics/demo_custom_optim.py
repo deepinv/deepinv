@@ -219,7 +219,7 @@ dinv.utils.plot(
 # For example, the above PnP algorithm can be defined as follows:
 #
 # .. seealso::
-#     For more examples with other predefined algorithms, see the :ref:`ADMM example <sphx_glr_auto_examples_optimization_demo_custom_prior.py>` and the :ref:`DRS example <sphx_glr_auto_examples_optimization_demo_wevelet_prior.py>`.
+#     For more examples with other predefined algorithms, see the :ref:`ADMM example <sphx_glr_auto_examples_optimization_demo_custom_prior.py>` and the :ref:`DRS example <sphx_glr_auto_examples_optimization_demo_wavelet_prior.py>`.
 
 prior = dinv.optim.PnP(denoiser=denoiser)  # prior with prox via denoising step
 
@@ -252,4 +252,4 @@ dinv.utils.plot(
 # * Check out diffusion and MCMC iterative algorithms in the :ref:`sampling user guide <sampling>`.
 # * Check out more :ref:`iterative algorithms examples <sphx_glr_auto_examples_optimization>`.
 # * Check out how to try the algorithm on a whole dataset by following the :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>` tutorial.
-# * Check out how to train your plug-and-play algorithm by unfolding its iterations in the :ref:`vanilla unfolded <sphx_glr_auto_examples_basics_demo_vanilla_unfolded.py>` tutorial.
+# * Check out how to train your plug-and-play algorithm by unfolding its iterations in the :ref:`vanilla unfolded <sphx_glr_auto_examples_unfolded_demo_vanilla_unfolded.py>` tutorial.

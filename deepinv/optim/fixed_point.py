@@ -66,7 +66,7 @@ class FixedPoint(nn.Module):
     :param int max_iter: maximum number of iterations. Default: ``50``.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
     :param deepinv.optim.AndersonAccelerationConfig anderson_acceleration_config: parameters for Anderson acceleration of the fixed-point iterations.
-    :param deepinv.optim.BacktrakingConfig backtracking_config: parameters for backtracking line-search stepsize strategy.
+    :param deepinv.optim.BacktrackingConfig backtracking_config: parameters for backtracking line-search stepsize strategy.
     :param bool verbose: if True, various convergence information are printed during the iterations. Default: ``False``.
     :param bool show_progress_bar: if True, a progress bar is displayed during the iterations. Default: ``False``.
     """

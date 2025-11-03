@@ -13,6 +13,7 @@ from .data_fidelity import (
 from .optimizers import (
     BacktrackingConfig,
     DEQConfig,
+    AndersonAccelerationConfig,
     optim_builder,
     BaseOptim,
     ADMM,
