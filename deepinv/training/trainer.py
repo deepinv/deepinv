@@ -297,6 +297,8 @@ class Trainer:
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
+    # Use non-blocking H2D transfers when DataLoader has pin_memory=True
+    non_blocking_transfers: bool = True
 
     def __post_init__(self):
         if self.display_losses_eval is not None:
@@ -642,7 +644,7 @@ class Trainer:
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
-        x = x.to(self.device)
+        x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
@@ -705,9 +707,9 @@ class Trainer:
         if torch.isnan(x).all() and x.ndim <= 1:
             x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
-            x = x.to(self.device)
+            x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
-        y = y.to(self.device)
+        y = y.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if params is not None:
@@ -762,20 +764,16 @@ class Trainer:
 
         if train:
             self.model.train()
+            x_net = self.model(y, physics, **kwargs)
         else:
             self.model.eval()
-
-        if not train:
             with torch.no_grad():
-                if self.plot_convergence_metrics:
-                    x_net, self.conv_metrics = self.model(
-                        y, physics, x_gt=x, compute_metrics=True, **kwargs
+                x_net = self.model(
+                        y, physics, x_gt=x, compute_metrics=self.plot_convergence_metrics, **kwargs
                     )
-                else:
-                    x_net = self.model(y, physics, **kwargs)
-        else:
-            x_net = self.model(y, physics, **kwargs)
-
+                if self.plot_convergence_metrics:
+                    x_net, self.conv_metrics = x_net
+        
         return x_net
 
     def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
@@ -796,7 +794,8 @@ class Trainer:
         logs = {}
 
         if train and step:
-            self.optimizer.zero_grad()
+            # set_to_none=True can slightly reduce overhead vs. zeroing memory
+            self.optimizer.zero_grad(set_to_none=True)
 
         if train or self.compute_eval_losses:
             # Evaluate reconstruction network
@@ -970,7 +969,7 @@ class Trainer:
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.zero_grad()  # Clear stored gradients
+            self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
@@ -1335,9 +1334,9 @@ class Trainer:
 
                 if self.log_train_batch or last_batch:
                     # store losses history
-                    for l in self.losses:
+                    for idx, l in enumerate(self.losses):
                         self.loss_history[l.__class__.__name__].append(
-                            self.logs_losses_train[self.losses.index(l)].avg
+                            self.logs_losses_train[idx].avg
                         )
 
                 perform_eval = self.eval_dataloader and (
@@ -1390,21 +1389,21 @@ class Trainer:
 
                     # store losses history
                     if self.compute_eval_losses:
-                        for l in self.losses:
+                        for idx, l in enumerate(self.losses):
                             self.eval_loss_history[l.__class__.__name__].append(
-                                self.logs_losses_eval[self.losses.index(l)].avg
+                                self.logs_losses_eval[idx].avg
                             )
 
                     if self.compute_train_metrics:
-                        for m in self.metrics:
+                        for midx, m in enumerate(self.metrics):
                             self.train_metrics_history[m.__class__.__name__].append(
-                                self.logs_metrics_train[self.metrics.index(m)].avg
+                                self.logs_metrics_train[midx].avg
                             )
 
                     # store metrics history
-                    for m in self.metrics:
+                    for midx, m in enumerate(self.metrics):
                         self.eval_metrics_history[m.__class__.__name__].append(
-                            self.logs_metrics_eval[self.metrics.index(m)].avg
+                            self.logs_metrics_eval[midx].avg
                         )
 
                     self.save_best_model(epoch, train_ite)
