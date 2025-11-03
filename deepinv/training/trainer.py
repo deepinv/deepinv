@@ -309,6 +309,8 @@ class Trainer:
                 stacklevel=2,
             )
             self.compute_eval_losses = self.display_losses_eval
+        # Cache flag for whether model.forward accepts 'update_parameters'
+        self._model_accepts_update_parameters = False
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -520,6 +522,14 @@ class Trainer:
             )
 
         _ = self.load_model()
+        # Cache whether model.forward accepts 'update_parameters' to avoid per-call inspect
+        try:
+            sig = inspect.signature(self.model.forward)
+            self._model_accepts_update_parameters = (
+                "update_parameters" in sig.parameters
+            )
+        except Exception:
+            self._model_accepts_update_parameters = False
 
     def load_model(
         self, ckpt_pretrained: str | Path = None, strict: bool = True
@@ -758,8 +768,8 @@ class Trainer:
 
         kwargs = {}
 
-        # check if the forward has 'update_parameters' method, and if so, update the parameters
-        if "update_parameters" in inspect.signature(self.model.forward).parameters:
+        # check if the forward has 'update_parameters' method (cached), and if so, update the parameters
+        if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
 
         if train:
