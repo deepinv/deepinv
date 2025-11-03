@@ -7,6 +7,7 @@ In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion
 
 """
 
+# %%
 import torch
 
 import deepinv as dinv
@@ -157,7 +158,7 @@ plot(
 # %%
 # Other options, such as the regularity and length of the blur trajectory can also be specified:
 motion_generator = MotionBlurGenerator(
-    (psf_size, psf_size), l=0.6, sigma=1, device=device, dtype=dtype
+    (psf_size, psf_size), length=0.6, sigma=1, device=device, dtype=dtype
 )
 filters = motion_generator.step(batch_size=3)
 plot([f for f in filters["filter"]], suptitle="Different length and regularity")
@@ -302,3 +303,5 @@ dirac_comb = torch.zeros(
 dirac_comb[0, 0, ::delta, ::delta] = 1
 psf_grid = physics(dirac_comb)
 plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip")
+
+# %%

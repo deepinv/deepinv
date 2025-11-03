@@ -83,7 +83,7 @@ physics = dinv.physics.BlurFFT(
 
 # fmt: off
 physics_generator = ( 
-    dinv.physics.generator.MotionBlurGenerator((31, 31), l=2.0, sigma=2.4, device=device) +
+    dinv.physics.generator.MotionBlurGenerator((31, 31), length=2.0, sigma=2.4, device=device) +
     dinv.physics.generator.SigmaGenerator(sigma_min=0.001, sigma_max=0.2, device=device)
 )
 # fmt: on
