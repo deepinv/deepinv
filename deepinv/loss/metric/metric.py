@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from deepinv.loss.metric.functional import norm
-from deepinv.utils.signal import normalize_signal, complex_abs
+from deepinv.utils.signals import normalize_signal, complex_abs
 
 
 def import_pyiqa() -> ModuleType:

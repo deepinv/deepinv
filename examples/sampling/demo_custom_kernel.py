@@ -14,7 +14,7 @@ import torch
 from typing import Any
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet

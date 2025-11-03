@@ -99,6 +99,7 @@ dataset = [
     "mat73",
     "scipy",
     "nibabel",
+    "rasterio",
     "blosc2",
 ]
 
