@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
 from deepinv.unfolded import unfolded_builder
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.training import LocalLogger
 
 # %%

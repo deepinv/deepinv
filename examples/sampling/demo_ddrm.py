@@ -16,7 +16,7 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
 import numpy as np
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Load example image from the internet

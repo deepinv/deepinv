@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 from deepinv.training.run_logger import LocalLogger
 
