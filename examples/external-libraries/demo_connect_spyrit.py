@@ -12,8 +12,6 @@ Here we use the HadamSplit2d linear model from Spyrit.
 
 ###############################################################################
 # We load a batch of images from the :attr:`/images/` folder with values in (0,1).
-import os
-import torchvision
 import torch.nn
 
 from deepinv.utils import plot
@@ -38,7 +36,6 @@ plot(x, r"$32\times 32$ image $X$")
 ######################################################################
 # We instantiate an HadamSplit2d object and simulate the 2D hadamard transform of the input images. Reshape output is necesary for deepinv. We also add Poisson noise.
 from spyrit.core.meas import HadamSplit2d
-import spyrit.core.noise as noise
 from spyrit.core.prep import UnsplitRescale
 
 physics_spyrit = HadamSplit2d(im_size, 512, device=device, reshape_output=True)
