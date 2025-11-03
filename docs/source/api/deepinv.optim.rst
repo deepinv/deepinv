@@ -23,6 +23,7 @@ Base Class
 
    deepinv.optim.BaseOptim
    deepinv.optim.BacktrackingConfig
+   deepinv.optim.AndersonAccelerationConfig
    deepinv.optim.DEQConfig
    deepinv.optim.GD
    deepinv.optim.PGD
