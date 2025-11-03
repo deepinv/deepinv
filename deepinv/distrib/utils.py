@@ -62,12 +62,14 @@ class TilingConfig:
     :param int receptive_field_size: size of receptive field for overlap calculations
     :param bool overlap: whether to use overlapping patches
     :param str strategy: tiling strategy name. Options are `'basic'` and `'smart_tiling'`.
+    :param None, int max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to 1 for sequential processing (recommended for large 3D volumes).
     """
 
     patch_size: int = 256
     receptive_field_size: int = 64
     overlap: bool = False
     strategy: str = "smart_tiling"
+    max_batch_size: Optional[int] = None
 
 
 @dataclass
@@ -285,6 +287,7 @@ def make_distrib_bundle(
                 "receptive_field_size": tiling.receptive_field_size,
                 "overlap": tiling.overlap,
             },
+            max_batch_size=tiling.max_batch_size,
         )
 
     return DistributedBundle(

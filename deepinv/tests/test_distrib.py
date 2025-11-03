@@ -47,6 +47,7 @@ from deepinv.distrib import (
 from deepinv.distrib.distribution_strategies.strategies import (
     BasicStrategy,
     SmartTilingStrategy,
+    SmartTiling3DStrategy,
     create_strategy,
 )
 
@@ -729,7 +730,7 @@ class TestDistributionStrategies:
         assert patch.shape[-2] >= 64 or patch.shape[-1] >= 64
 
     def test_smart_tiling_strategy_batching(self):
-        """Test SmartTilingStrategy batching."""
+        """Test SmartTilingStrategy batching with max_batch_size parameter."""
         signal_shape = (1, 3, 128, 128)
         strategy = SmartTilingStrategy(
             signal_shape, patch_size=64, receptive_field_size=16
@@ -742,11 +743,22 @@ class TestDistributionStrategies:
         # Extract just the patch tensors
         patch_tensors = [p[1] for p in patches]
 
-        # Apply batching
-        batched = strategy.apply_batching(patch_tensors)
-
-        assert isinstance(batched, list)
-        assert len(batched) > 0
+        # Test default batching (all patches in one batch)
+        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
+        assert isinstance(batched_all, list)
+        assert len(batched_all) == 1  # Single batch with all patches
+        
+        # Test sequential batching (max_batch_size=1)
+        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
+        assert isinstance(batched_seq, list)
+        assert len(batched_seq) == len(patch_tensors)  # One batch per patch
+        
+        # Test partial batching (max_batch_size=2)
+        if len(patch_tensors) > 1:
+            batched_partial = strategy.apply_batching(patch_tensors, max_batch_size=2)
+            assert isinstance(batched_partial, list)
+            expected_batches = (len(patch_tensors) + 1) // 2
+            assert len(batched_partial) == expected_batches
 
     def test_smart_tiling_oversized_patch(self):
         """Test SmartTilingStrategy with patch larger than image."""
@@ -773,8 +785,144 @@ class TestDistributionStrategies:
         smart = create_strategy("smart_tiling", signal_shape, patch_size=32)
         assert isinstance(smart, SmartTilingStrategy)
 
+        # Test 3D strategy
+        signal_shape_3d = (1, 1, 32, 32, 32)
+        smart_3d = create_strategy("smart_tiling_3d", signal_shape_3d, patch_size=16)
+        assert isinstance(smart_3d, SmartTiling3DStrategy)
+
         with pytest.raises(ValueError):
             create_strategy("unknown_strategy", signal_shape)
+
+    def test_smart_tiling_3d_strategy_initialization(self):
+        """Test SmartTiling3DStrategy initialization."""
+        signal_shape = (1, 1, 64, 64, 64)
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=32, receptive_field_size=8
+        )
+
+        assert strategy.signal_shape == torch.Size(signal_shape)
+        assert strategy.patch_size == 32
+        assert strategy.receptive_field_size == 8
+        assert strategy.get_num_patches() > 0
+
+    def test_smart_tiling_3d_strategy_get_local_patches(self):
+        """Test SmartTiling3DStrategy patch extraction with padding."""
+        signal_shape = (1, 1, 64, 64, 64)
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=32, receptive_field_size=8
+        )
+
+        X = torch.randn(*signal_shape)
+        local_indices = [0]
+        patches = strategy.get_local_patches(X, local_indices)
+
+        assert len(patches) == 1
+        idx, patch = patches[0]
+        # Patch should be larger than patch_size due to receptive field padding
+        assert (
+            patch.shape[-3] >= 32 or patch.shape[-2] >= 32 or patch.shape[-1] >= 32
+        )
+
+    def test_smart_tiling_3d_strategy_batching(self):
+        """Test SmartTiling3DStrategy batching with max_batch_size parameter."""
+        signal_shape = (1, 1, 64, 64, 64)
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=32, receptive_field_size=8
+        )
+
+        X = torch.randn(*signal_shape)
+        num_patches = strategy.get_num_patches()
+        patches = strategy.get_local_patches(X, list(range(num_patches)))
+
+        # Extract just the patch tensors
+        patch_tensors = [p[1] for p in patches]
+
+        # Test default batching (all patches in one batch)
+        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
+        assert isinstance(batched_all, list)
+        assert len(batched_all) == 1  # Single batch with all patches
+        
+        # Test sequential batching (max_batch_size=1) - critical for 3D memory management
+        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
+        assert isinstance(batched_seq, list)
+        assert len(batched_seq) == len(patch_tensors)  # One batch per patch
+        
+        # Test partial batching (max_batch_size=2)
+        if len(patch_tensors) > 1:
+            batched_partial = strategy.apply_batching(patch_tensors, max_batch_size=2)
+            assert isinstance(batched_partial, list)
+            expected_batches = (len(patch_tensors) + 1) // 2
+            assert len(batched_partial) == expected_batches
+
+    def test_smart_tiling_3d_oversized_patch(self):
+        """Test SmartTiling3DStrategy with patch larger than volume."""
+        signal_shape = (1, 1, 16, 16, 16)
+        # Patch size larger than volume
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=64, receptive_field_size=8
+        )
+
+        # Should handle gracefully and create at least one patch
+        assert strategy.get_num_patches() > 0
+
+        X = torch.randn(*signal_shape)
+        patches = strategy.get_local_patches(X, [0])
+        assert len(patches) > 0
+
+    def test_smart_tiling_3d_strategy_reduce_patches(self):
+        """Test SmartTiling3DStrategy patch reduction with different batch sizes."""
+        signal_shape = (1, 1, 64, 64, 64)
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=32, receptive_field_size=8
+        )
+
+        X = torch.randn(*signal_shape)
+        local_indices = list(range(strategy.get_num_patches()))
+        patches = strategy.get_local_patches(X, local_indices)
+
+        # Extract patch tensors
+        patch_tensors = [p[1] for p in patches]
+
+        # Test with default batching (all in one batch)
+        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
+        processed_batches_all = batched_all  # Identity processing
+        unpacked_all = strategy.unpack_batched_results(processed_batches_all, len(patch_tensors))
+        processed_patches_all = [(patches[i][0], unpacked_all[i]) for i in range(len(patches))]
+        
+        out_all = torch.zeros_like(X)
+        strategy.reduce_patches(out_all, processed_patches_all)
+        assert out_all.shape == X.shape
+        assert torch.allclose(out_all, X, atol=1e-5)
+
+        # Test with sequential batching (max_batch_size=1) - the 3D default
+        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
+        processed_batches_seq = batched_seq  # Identity processing
+        unpacked_seq = strategy.unpack_batched_results(processed_batches_seq, len(patch_tensors))
+        processed_patches_seq = [(patches[i][0], unpacked_seq[i]) for i in range(len(patches))]
+        
+        out_seq = torch.zeros_like(X)
+        strategy.reduce_patches(out_seq, processed_patches_seq)
+        assert out_seq.shape == X.shape
+        assert torch.allclose(out_seq, X, atol=1e-5)
+        
+        # Both methods should give same result
+        assert torch.allclose(out_all, out_seq, atol=1e-5)
+
+    def test_smart_tiling_3d_non_overlapping(self):
+        """Test SmartTiling3DStrategy with non-overlapping patches."""
+        signal_shape = (1, 1, 64, 64, 64)
+        strategy = SmartTiling3DStrategy(
+            signal_shape, patch_size=32, receptive_field_size=8, non_overlap=True
+        )
+
+        X = torch.randn(*signal_shape)
+        num_patches = strategy.get_num_patches()
+
+        # For a 64^3 volume with 32^3 patches, we expect 8 patches (2x2x2)
+        assert num_patches == 8
+
+        patches = strategy.get_local_patches(X, list(range(num_patches)))
+        assert len(patches) == num_patches
 
 
 # =============================================================================
@@ -814,6 +962,43 @@ def _test_prior_prox_operation(rank, world_size, args):
         return {"result_norm": result.norm().item()}
 
 
+def _test_prior_prox_operation_3d(rank, world_size, args):
+    """Test 3D prior prox operation in distributed context."""
+    with DistributedContext(seed=42, device_mode="cpu") as ctx:
+
+        class SimplePrior3D(Prior):
+            def forward(self, x, *args, **kwargs):
+                return x * 0.9
+
+        prior = SimplePrior3D()
+        signal_shape = (1, 1, 32, 32, 32)
+
+        dprior = DistributedPrior(
+            ctx,
+            prior=prior,
+            signal_shape=signal_shape,
+            strategy="smart_tiling_3d",
+            strategy_kwargs={
+                "patch_size": 16,
+                "receptive_field_size": 4,
+                "non_overlap": True,
+            },
+        )
+
+        dsignal = DistributedSignal(ctx, shape=signal_shape)
+        torch.manual_seed(42)
+        x = torch.randn(*signal_shape, device=ctx.device)
+        dsignal.update_(x)
+
+        # Apply prox
+        result = dprior.prox(dsignal)
+
+        assert result.shape == signal_shape
+        assert result.device == ctx.device
+
+        return {"result_norm": result.norm().item(), "rank": rank}
+
+
 # =============================================================================
 # Test DistributedPrior
 # =============================================================================
@@ -828,6 +1013,15 @@ class TestDistributedPrior:
 
         # All ranks should have same result (after all_reduce)
         norms = [r["result_norm"] for r in results]
+        assert all(abs(n - norms[0]) < 1e-4 for n in norms)
+
+    def test_prox_operation_3d(self, dist_config):
+        """Test prox operation with distributed 3D prior."""
+        results = run_distributed_test(_test_prior_prox_operation_3d, dist_config)
+
+        # All ranks should have same result (after all_reduce)
+        norms = [r["result_norm"] for r in results]
+        assert all(abs(n - norms[0]) < 1e-4 for n in norms)
         assert all(abs(n - norms[0]) < 1e-4 for n in norms)
 
 

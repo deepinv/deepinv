@@ -762,6 +762,7 @@ class DistributedPrior:
         strategy: Union[str, DistributedSignalStrategy] = "smart_tiling",
         signal_shape: Sequence[int],
         strategy_kwargs: Optional[dict] = None,
+        max_batch_size: Optional[int] = None,
         **kwargs,
     ):
         r"""
@@ -772,9 +773,11 @@ class DistributedPrior:
         :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy. Either a strategy name (`'basic'`, `'smart_tiling'`) or a custom strategy instance.
         :param Sequence[int] signal_shape: full tensor shape of the signal to be processed (e.g. BCHW).
         :param None, dict strategy_kwargs: extra arguments for the strategy (when using string strategy names).
+        :param None, int max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to 1 for sequential processing.
         """
         self.ctx = ctx
         self.prior = prior
+        self.max_batch_size = max_batch_size
 
         if hasattr(prior, "to"):
             self.prior.to(ctx.device)
@@ -860,8 +863,8 @@ class DistributedPrior:
         local_pairs = self.strategy.get_local_patches(X.tensor, self.local_indices)
         patches = [patch for _, patch in local_pairs]
 
-        # 2. Apply batching strategy
-        batched_patches = self.strategy.apply_batching(patches)
+        # 2. Apply batching strategy with max_batch_size
+        batched_patches = self.strategy.apply_batching(patches, max_batch_size=self.max_batch_size)
 
         # 3. Apply prior to each batch
         processed_batches = []
