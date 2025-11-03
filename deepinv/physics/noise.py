@@ -522,7 +522,7 @@ class GammaNoise(NoiseModel):
         super().__init__(rng=None)
         if isinstance(noise_level, int):
             noise_level = float(noise_level)
-        self.register_buffer("l", self._float_to_tensor(noise_level))
+        self.register_buffer("noise_level", self._float_to_tensor(noise_level))
 
     def forward(self, x, noise_level=None, seed: int = None, **kwargs):
         r"""
