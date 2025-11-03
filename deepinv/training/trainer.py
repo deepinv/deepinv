@@ -867,7 +867,7 @@ class Trainer:
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, metric in enumerate(self.metrics):
-                metric = metric(
+                metric_value = metric(
                     x=x,
                     x_net=x_net,
                     y=y,
@@ -878,16 +878,18 @@ class Trainer:
                 current_log = (
                     self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
                 )
-                current_log.update(metric.detach().cpu().numpy())
+                current_log.update(metric_value.detach().cpu().numpy())
                 logs[metric.__class__.__name__] = current_log.avg
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
                     no_learning_model = self._NoLearningModel(trainer=self)
-                    res = metric(
+                    metric_value = metric(
                         x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
                     )
-                    self.logs_metrics_no_learning[k].update(res.detach().cpu().numpy())
+                    self.logs_metrics_no_learning[k].update(
+                        metric_value.detach().cpu().numpy()
+                    )
                     logs[f"{metric.__class__.__name__} no learning"] = (
                         self.logs_metrics_no_learning[k].avg
                     )
