@@ -820,6 +820,7 @@ def test_loss_logging(
     tmpdir,
     compute_eval_losses,
     compute_train_metrics,
+    logger,
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
