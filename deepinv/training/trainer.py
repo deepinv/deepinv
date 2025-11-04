@@ -296,9 +296,10 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
-    freq_update_progress_bar: int = 1
-    # Use non-blocking H2D transfers when DataLoader has pin_memory=True
-    non_blocking_transfers: bool = True
+    freq_update_progress_bar: int = 10
+    non_blocking_transfers: bool = (
+        True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
+    )
 
     def __post_init__(self):
         if self.display_losses_eval is not None:
@@ -321,10 +322,12 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if type(self.train_dataloader) is not list:
+        if not isinstance(self.train_dataloader, list):
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
+        if self.eval_dataloader is not None and not isinstance(
+            self.eval_dataloader, list
+        ):
             self.eval_dataloader = [self.eval_dataloader]
 
         for loader in self.train_dataloader + (
@@ -343,6 +346,7 @@ class Trainer:
                         "non_blocking_transfers=True but DataLoader.pin_memory=False; set pin_memory=True to overlap host-device copies with compute.",
                         stacklevel=2,
                     )
+                    # See: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html#conclusion
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -482,12 +486,11 @@ class Trainer:
             print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
-        if type(self.physics) is not list:
+        if not isinstance(self.physics, (list, tuple)):
             self.physics = [self.physics]
 
-        if (
-            self.physics_generator is not None
-            and type(self.physics_generator) is not list
+        if self.physics_generator is not None and not isinstance(
+            self.physics_generator, (list, tuple)
         ):
             self.physics_generator = [self.physics_generator]
 
@@ -617,23 +620,23 @@ class Trainer:
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-        out = None
-
+        grad_norm = None
         if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            # Total norm as a single vector over all parameters
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.grad_clip
+            )
 
         if self.check_grad:
-            # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.model.parameters()
-                if param.grad is not None
-            ]
-            norm_grads = torch.cat(grads).norm()
-            out = norm_grads.item()
-            self.check_grad_val.update(norm_grads.item())
+            if grad_norm is not None:
+                grad_norm = grad_norm.norm().item()
+            else:
+                grad_norm = (
+                    torch.nn.utils.get_total_norm(self.model.parameters()).norm().item()
+                )
+            self.check_grad_val.update(grad_norm)
 
-        return out
+        return grad_norm
 
     def get_samples_online(self, iterators, g):
         r"""
@@ -675,9 +678,9 @@ class Trainer:
                 )
             params = self.physics_generator[g].step(batch_size=x.size(0))
 
-        # Update parameters both via update and, if implemented in physics, via forward pass
+        # Update parameters via update
         physics.update(**params)
-        y = physics(x, **params)
+        y = physics(x)
 
         return x, y, physics
 
@@ -735,7 +738,11 @@ class Trainer:
 
         if params is not None:
             params = {
-                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                k: (
+                    p.to(self.device, non_blocking=self.non_blocking_transfers)
+                    if isinstance(p, torch.Tensor)
+                    else p
+                )
                 for k, p in params.items()
             }
             physics.update(**params)
@@ -776,8 +783,6 @@ class Trainer:
         :returns: The network reconstruction.
         """
 
-        kwargs = dict(kwargs) 
-
         # check if the forward has 'update_parameters' method (cached), and if so, update the parameters
         if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
@@ -789,13 +794,17 @@ class Trainer:
             self.model.eval()
             with torch.no_grad():
                 out = self.model(
-                        y, physics, x_gt=x, compute_metrics=self.plot_convergence_metrics, **kwargs
-                    )
+                    y,
+                    physics,
+                    x_gt=x,
+                    compute_metrics=self.plot_convergence_metrics,
+                    **kwargs,
+                )
                 if self.plot_convergence_metrics:
                     x_net, self.conv_metrics = out
                 else:
                     x_net = out
-        
+
             return x_net
 
     def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
@@ -993,7 +1002,7 @@ class Trainer:
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
-        # random permulation of the dataloaders
+        # random permutation of the dataloaders
         G_perm = np.random.permutation(self.G)
         loss = 0
 
