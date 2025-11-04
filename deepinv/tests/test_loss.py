@@ -460,7 +460,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             physics.noise_model = dinv.physics.GaussianNoise(0.1)
         backbone = DummyModel()
 
-    f = dinv.models.ArtifactRemoval(backbone)
+    dummy_model = dinv.models.ArtifactRemoval(backbone)
 
     batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
@@ -468,7 +468,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
 
     # Dummy metric to get both outputs before metric
     def test_metric(x, y):
-        return x, y
+        return torch.stack([x, y], dim=0)
 
     if loss_name == "n2n":
         loss = dinv.loss.Neighbor2Neighbor()
@@ -528,28 +528,29 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     else:
         raise ValueError("Loss name invalid.")
 
-    f = loss.adapt_model(f)
+    dummy_model = loss.adapt_model(dummy_model)
 
-    x_net = f(y, physics, update_parameters=True)
-    loss_value = loss(x_net=x_net, y=y, physics=physics, model=f)
+    x_net = dummy_model(y, physics, update_parameters=True)
+    loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
     # Training recon + loss
     if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
-        assert loss_value > 0
+        assert loss_val > 0
     elif "splitting" in loss_name:
         y1 = x_net
-        y2_hat, y2 = loss_value.clamp(0, 1)  # remove normalisation
-        # Splitting mask 1 has more samples than mask 2
-        assert y2.mean() < y1.mean() < y.mean()
-        # Union of splitting masks is original mask
-        assert torch.all(y1 + y2 == y)
-        # Splitting mask 1 and 2 are disjoint
-        assert torch.all(y2_hat == 0)
+        y2_hat, y2 = loss_val.clamp(0, 1)  # remove normalisation
+        if physics_name == "Inpainting":
+            # Splitting mask 1 has more samples than mask 2
+            assert y2.mean() < y1.mean() < y.mean()
+            # Union of splitting masks is original mask
+            assert torch.all(y1 + y2 == y)
+            # Splitting mask 1 and 2 are disjoint
+            assert torch.all(y2_hat == 0)
     else:
         raise ValueError("Incorrect loss name.")
 
-    f.eval()
-    x_net = f(y, physics, update_parameters=True)
+    dummy_model.eval()
+    x_net = dummy_model(y, physics, update_parameters=True)
     y1_eval = x_net
 
     # Eval recon
@@ -592,7 +593,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             y = torch.ones(
                 *y.shape[:-1], y.shape[-1] + 1, dtype=y.dtype, device=y.device
             )
-            loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
     # Test loss works even after updating new x shape
     x = torch.ones((batch_size, 2, 68, 70), device=device)
@@ -609,11 +610,11 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         pass
 
     y = physics(x)
-    f.train()
-    x_net = f(y, physics, update_parameters=True)
+    dummy_model.train()
+    x_net = dummy_model(y, physics, update_parameters=True)
     if loss_name in ("weighted-splitting", "robust-splitting"):
         with pytest.warns(UserWarning, match="Recalculating weight"):
-            loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
         # Revert shape, shouldn't recalculate again
         x = torch.ones((batch_size, *imsize), device=device)
@@ -623,17 +624,17 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         )
         physics.update(mask=new_mask, coil_maps=new_maps)
         y = physics(x)
-        x_net = f(y, physics, update_parameters=True)
+        x_net = dummy_model(y, physics, update_parameters=True)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "error", message=".*Recalculating.*", category=UserWarning
             )
-            _ = loss(x_net=x_net, y=y, physics=physics, model=f)
+            _ = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
         assert len(loss.metric.weights) == 2  # weight cache
     else:
         loss.metric = torch.nn.MSELoss()
-        loss_val = loss(x_net=x_net, y=y, physics=physics, model=f)
+        loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
     assert loss_val >= 0.0
 

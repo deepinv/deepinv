@@ -176,16 +176,16 @@ class XrayTransform:
 
         return out
 
+    # To avoid accessing a private method in _Adjoint
+    def backproject(
+        self, x: torch.Tensor, out: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        return self._backprojection(x, out)
+
     @property
     def T(self):
         """Implements and returns the adjoint of the transform operator."""
         parent = self
-
-        # To avoid accessing a private method in _Adjoint
-        def backproject(
-            self, x: torch.Tensor, out: torch.Tensor | None = None
-        ) -> torch.Tensor:
-            return self._backprojection(x, out)
 
         class _Adjoint:
             def __init__(self):
