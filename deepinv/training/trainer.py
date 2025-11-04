@@ -629,11 +629,14 @@ class Trainer:
 
         if self.check_grad:
             if grad_norm is not None:
-                grad_norm = grad_norm.norm().item()
+                grad_norm = grad_norm.pow(2).sum().sqrt().item()
             else:
-                grad_norm = (
-                    torch.nn.utils.get_total_norm(self.model.parameters()).norm().item()
-                )
+                grads = [
+                    param.grad.detach().flatten()
+                    for param in self.model.parameters()
+                    if param.grad is not None
+                ]
+                grad_norm = torch.cat(grads).norm().item()
             self.check_grad_val.update(grad_norm)
 
         return grad_norm
@@ -680,7 +683,7 @@ class Trainer:
 
         # Update parameters via update
         physics.update(**params)
-        y = physics(x)
+        y = physics(x, **params)
 
         return x, y, physics
 
