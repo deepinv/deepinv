@@ -99,6 +99,7 @@ sde = VarianceExplodingDiffusion(
 # When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
+denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),
     sde=sde,
@@ -111,7 +112,7 @@ model = PosteriorDiffusion(
 x, trajectory = model(
     y=None,
     physics=None,
-    x_init=(1, 3, 64, 64),
+    x_init=(1, 3, 256, 256),
     seed=1,
     get_trajectory=True,
 )

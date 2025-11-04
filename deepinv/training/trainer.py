@@ -796,17 +796,16 @@ class Trainer:
         else:
             self.model.eval()
             with torch.no_grad():
-                out = self.model(
-                    y,
-                    physics,
-                    x_gt=x,
-                    compute_metrics=self.plot_convergence_metrics,
-                    **kwargs,
-                )
                 if self.plot_convergence_metrics:
-                    x_net, self.conv_metrics = out
+                    x_net, self.conv_metrics = self.model(
+                        y,
+                        physics,
+                        x_gt=x,
+                        compute_metrics=self.plot_convergence_metrics,
+                        **kwargs,
+                    )
                 else:
-                    x_net = out
+                    x_net = self.model(y, physics, **kwargs)
 
             return x_net
 
