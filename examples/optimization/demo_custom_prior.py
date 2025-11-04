@@ -172,7 +172,6 @@ model = optim_builder(
 
 batch_size = 1
 plot_images = True  # plot results
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
 dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
@@ -187,7 +186,6 @@ test(
     device=device,
     plot_images=plot_images,
     loggers=LocalLogger(log_dir=RESULTS_DIR / method / operation / "test"),
-    plot_convergence_metrics=plot_convergence_metrics,
     verbose=verbose,
 )
 

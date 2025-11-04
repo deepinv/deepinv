@@ -304,12 +304,16 @@ class Trainer:
         Set up the monitoring before running an experience..
         """
         # losses processing
+        if self.losses is None:
+            self.losses = []
         if not isinstance(self.losses, list):
             self.losses = [self.losses]
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
         # metrics processing
+        if self.metrics is None:
+            self.metrics = []
         if not isinstance(self.metrics, list):
             self.metrics = [self.metrics]
 
@@ -1046,7 +1050,7 @@ class Trainer:
                 "the last 2 epochs, disable it with early_stop=False"
             )
 
-        return stop
+        return early_stop
 
     def train(
         self,
@@ -1174,6 +1178,7 @@ class Trainer:
         loggers: RunLogger | list[RunLogger] | None = field(
             default_factory=lambda: [LocalLogger("./logs")]
         ),
+        metrics: Metric | list[Metric] | None = None,
     ) -> dict:
         r"""
         Test the model, compute metrics and plot images.
@@ -1190,6 +1195,9 @@ class Trainer:
         if test_dataloader is not None:
             self.test_dataloader = test_dataloader
         self.compare_no_learning = compare_no_learning
+        if metrics is not None:
+            self.metrics = metrics
+
         self.setup_run()
 
         # useful when testing on multiple dataset

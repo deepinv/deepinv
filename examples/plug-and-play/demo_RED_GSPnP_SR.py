@@ -182,7 +182,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    loggers=dinv.loggers.LocalLogger(log_dir=save_folder),
+    loggers=dinv.training.run_logger.LocalLogger(log_dir=save_folder),
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )

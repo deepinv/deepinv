@@ -203,9 +203,10 @@ trainer = dinv.Trainer(
 CKPT_DIR = trainer.loggers.checkpoints_dir
 
 trainer.train()
-model = trainer.load_ckpt(
+trainer.load_ckpt(
     CKPT_DIR / "ckpt_best.pth.tar"
 )  # load model with best validation PSNR
+model = trainer.model
 # %%
 # Test the network
 # --------------------------------------------

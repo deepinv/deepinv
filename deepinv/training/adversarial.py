@@ -16,6 +16,7 @@ from torch.nn import Module
 from deepinv.training.trainer import Trainer
 from deepinv.loss import Loss, BaseLossScheduler
 from deepinv.utils import AverageMeter
+from deepinv.physics import Physics
 
 
 class AdversarialOptimizer:
@@ -309,7 +310,7 @@ class AdversarialTrainer(Trainer):
         y_hat = physics.A(x_net)
 
         ### Train Generator
-        if train or self.compute_eval_losses:
+        if train:
             loss_total = 0
             for l in losses:
                 loss = l(
