@@ -129,9 +129,7 @@ model = dinv.Trainer(
     physics=physics,
     online_measurements=True,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    val_dataloader=test_dataloader,
     epochs=1,
     losses=losses,
     metrics=None,  # no supervised metrics
@@ -139,7 +137,7 @@ model = dinv.Trainer(
     optimizer=optimizer,
     verbose=True,
     show_progress_bar=False,
-    save_path=None,
+    loggers=None,
     device=device,
 ).train()
 

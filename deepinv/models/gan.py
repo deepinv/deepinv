@@ -404,7 +404,7 @@ class CSGMGenerator(Reconstructor):
         """
         z = self.random_latent(y.device)
 
-        if not self.training:
+        if kwargs.get("train", False):
             z = self.optimize_z(z, y, physics)
 
         return self.backbone_generator(z)

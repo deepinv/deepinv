@@ -1,5 +1,7 @@
+from __future__ import annotations
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
+from deepinv.training.run_logger import RunLogger
 
 
 def test(
@@ -11,8 +13,7 @@ def test(
     physics_generator=None,
     device="cpu",
     plot_images=False,
-    save_folder=None,
-    plot_convergence_metrics=False,
+    loggers: RunLogger | list[RunLogger] | None = None,
     verbose=True,
     rescale_mode="clip",
     show_progress_bar=True,
@@ -44,7 +45,6 @@ def test(
     :param bool plot_images: Plot the ground-truth and estimated images.
     :param str save_folder: Directory in which to save plotted reconstructions.
         Images are saved in the ``save_folder/images`` directory
-    :param bool plot_convergence_metrics: plot the metrics to be plotted w.r.t iteration.
     :param bool verbose: Output training progress information in the console.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool show_progress_bar: Show progress bar.
@@ -61,22 +61,19 @@ def test(
         model,
         physics=physics,
         train_dataloader=None,
-        eval_dataloader=None,
+        val_dataloader=None,
         optimizer=None,
         metrics=metrics,
         online_measurements=online_measurements,
         physics_generator=physics_generator,
         device=device,
-        plot_images=plot_images,
-        plot_convergence_metrics=plot_convergence_metrics,
+        log_images=plot_images,
         verbose=verbose,
         rescale_mode=rescale_mode,
         compare_no_learning=compare_no_learning,
         no_learning_method=no_learning_method,
         show_progress_bar=show_progress_bar,
-        save_path=save_folder,
+        loggers=loggers,
         **kwargs,
     )
-    return trainer.test(
-        test_dataloader, save_path=save_folder, compare_no_learning=compare_no_learning
-    )
+    return trainer.test(test_dataloader, compare_no_learning=compare_no_learning)
