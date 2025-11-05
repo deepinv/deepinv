@@ -8,14 +8,29 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.5
+------
+New Features
+^^^^^^^^^^^^
 - Add statistics for SAR imaging + fix variance of :class:`deepinv.physics.GammaNoise` in doc (:gh:`740` by `Louise Friot Giroux`_)
 - Add imshow kwargs to plot (:gh:`791` by `Andrew Wang`_)
 - Add :class:`deepinv.physics.RicianNoise` model (:gh:`805` by `Vicky De Ridder`_)
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
+- Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Make :class:`deepinv.datasets.HDF5Dataset` similar to :class:`deepinv.Trainer` in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- Make tqdm progress bar auto-resize (:gh:`835` by `Andrew Wang`_)
+- (Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to ``True`` for both CT operators (:gh:`715` by `Romain Vo`_)
 
 Fixed
 ^^^^^
@@ -27,6 +42,9 @@ Fixed
 - Fix scaling issue in :class:`deepinv.sampling.DiffusionSDE` (:gh:`772` by `Minh Hai Nguyen`_)
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
 - :class:`deepinv.Trainer` treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
+- Fix docstring formatting in BDSDS500 dataset (:gh:`816` by `Brayan Monroy`_)
+- Remove unnecessary tensor cloning from DDRM and DPS (:gh:`834` by `Vicky De Ridder`_)
+
 
 
 v0.3.4
