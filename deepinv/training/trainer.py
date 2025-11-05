@@ -142,7 +142,7 @@ class Trainer:
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
+        This is useful for visualizing train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
     :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``. This is useful
         when using self-supervised losses for evaluation and early-stopping or to make sure that the model is performing
@@ -249,6 +249,8 @@ class Trainer:
 
     :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
     :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
+    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True``.
+        It is advised to enable pinned memory in the dataloader when using this option for best performance.
 
     """
 
@@ -296,7 +298,7 @@ class Trainer:
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
-    freq_update_progress_bar: int = 10
+    freq_update_progress_bar: int = 1
     non_blocking_transfers: bool = (
         True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
     )
@@ -313,7 +315,7 @@ class Trainer:
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
 
-    def setup_train(self, train=True, **kwargs):
+    def setup_train(self, train: bool = True, **kwargs):
         r"""
         Set up the training process.
 
@@ -322,11 +324,11 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if not isinstance(self.train_dataloader, list):
+        if not isinstance(self.train_dataloader, (list, tuple)):
             self.train_dataloader = [self.train_dataloader]
 
         if self.eval_dataloader is not None and not isinstance(
-            self.eval_dataloader, list
+            self.eval_dataloader, (list, tuple)
         ):
             self.eval_dataloader = [self.eval_dataloader]
 
@@ -542,7 +544,7 @@ class Trainer:
             self._model_accepts_update_parameters = (
                 "update_parameters" in sig.parameters
             )
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             self._model_accepts_update_parameters = False
 
     def load_model(
@@ -681,7 +683,7 @@ class Trainer:
                 )
             params = self.physics_generator[g].step(batch_size=x.size(0))
 
-        # Update parameters via update
+        # Update parameters both via update and, if implemented in physics, via forward pass
         physics.update(**params)
         y = physics(x, **params)
 
@@ -801,7 +803,7 @@ class Trainer:
                         y,
                         physics,
                         x_gt=x,
-                        compute_metrics=self.plot_convergence_metrics,
+                        compute_metrics=True,
                         **kwargs,
                     )
                 else:
@@ -1516,7 +1518,7 @@ class Trainer:
 
         self.reset_metrics()
 
-        if not isinstance(test_dataloader, list):
+        if not isinstance(test_dataloader, (list, tuple)):
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
