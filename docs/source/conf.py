@@ -50,7 +50,6 @@ extensions = [
     "sphinxcontrib.bibtex",
 ]
 
-# Define your GitHub PR/issue "macro"
 extlinks = {
     'gh': ('https://github.com/deepinv/deepinv/pull/%s', '#%s'),
 }
