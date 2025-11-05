@@ -22,6 +22,8 @@ Plotting
         deepinv.utils.plot_ortho3D
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
+        deepinv.utils.normalize_signal
+        deepinv.utils.plotting.config_matplotlib
 
 
 TensorList

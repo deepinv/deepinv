@@ -15,18 +15,18 @@ New Features
 
 Changed
 ^^^^^^^
-- (Breaking) Make :class:`deepinv.datasets.HDF5Dataset` similar to :class:`deepinv.training.Trainer` in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
+- (Breaking) Make :class:`deepinv.datasets.HDF5Dataset` similar to :class:`deepinv.Trainer` in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (:gh:`761` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
-- Use the learning-free model for learning-free metrics in :class:`deepinv.training.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
+- Use the learning-free model for learning-free metrics in :class:`deepinv.Trainer` (:gh:`788` by `Jérémy Scanvic`_)
 - Fix device :func:`deepinv.utils.dirac_like` and :func:`deepinv.physics.blur.bilinear_filter`, :func:`deepinv.physics.blur.bicubic_filter` and :func:`deepinv.physics.blur.gaussian_blur` filters (:gh:`785` by `Julian Tachella`_)
 - Fix positivity + batching gamma least squares solvers (:gh:`785` by `Julian Tachella`_ and `Minh Hai Nguyen`_)
 - Fix and test :class:`deepinv.models.RAM` scaling issues (:gh:`785` by `Julian Tachella`_)
 - Reduced CI python version tests (:gh:`746` by `Matthieu Terris`_)
 - Fix scaling issue in :class:`deepinv.sampling.DiffusionSDE` (:gh:`772` by `Minh Hai Nguyen`_)
 - All splitting losses fixed to work with changing image sizes and with multicoil MRI (:gh:`778` by `Andrew Wang`_)
-- :class:`deepinv.training.Trainer` treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
+- :class:`deepinv.Trainer` treats batch of nans as no ground truth (:gh:`793` by `Andrew Wang`_)
 
 
 v0.3.4
@@ -71,7 +71,7 @@ New Features
 
 Changed
 ^^^^^^^
-- Rename the normalizing function :func:`deepinv.utils.normalize_signal` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
+- Rename the normalizing function `deepinv.utils.rescale_img` to :func:`deepinv.utils.normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
 - Changed default linear solver from `CG` to :func:`deepinv.optim.utils.lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in :class:`deepinv.physics.PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
@@ -121,7 +121,7 @@ New Features
 - Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
 - Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
 - Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
-- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- Make :class:`deepinv.physics.generator.PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
 - MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
 - Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
 - Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
@@ -151,7 +151,7 @@ v0.3
 
 New Features
 ^^^^^^^^^^^^
-- Added early-stopping callback for Trainer and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
+- Added early-stopping callback for :class:`deepinv.Trainer` and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
 - Add various generators for the physics module (downsampling, variable masks for inpainting, PoissonGaussian generators etc) (:gh:`384` by `Matthieu Terris`_)
 - Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
@@ -167,10 +167,10 @@ New Features
 - Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
-- Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
+- :class:`deepinv.Trainer` now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
-- Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- :class:`deepinv.Trainer` test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
 - Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
 - Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_ and `Julian Tachella`_ )
@@ -186,7 +186,7 @@ Fixed
 - Fixed device bug (:gh:`415` by Dongdong Chen)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
-- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
+- :class:`deepinv.Trainer` discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
@@ -201,8 +201,8 @@ Changed
 - Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Changed the R2R loss to handle multiple noise distributions (:gh:`380` by `Brayan Monroy`_)
-- `Trainer.get_samples_online` using physics generator now updates physics params via both :meth:`deepinv.physics.Physics.update_parameters` and forward pass (:gh:`386` by `Andrew Wang`_)
-- Deprecate Trainer freq_plot in favour of plot_interval (:gh:`388` by `Andrew Wang`_)
+- :func:`deepinv.Trainer.get_samples_online` using physics generator now updates physics params via both :meth:`deepinv.physics.Physics.update_parameters` and forward pass (:gh:`386` by `Andrew Wang`_)
+- Deprecate :class:`deepinv.Trainer` `freq_plot` in favour of plot_interval (:gh:`388` by `Andrew Wang`_)
 
 v0.2.2
 ----------------
@@ -237,7 +237,7 @@ Fixed
 ^^^^^
 - Fixed sphinx warnings (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
-- Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
+- Fixed prox_l2 no learning option in :class:`deepinv.Trainer` (:gh:`304` by `Julian Tachella`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
@@ -288,8 +288,8 @@ Fixed
 - SURE improvements (:gh:`280` by `Julian Tachella`_)
 - Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, Paul Escande, `Minh Hai Nguyen`_) - 12/07/2024
 - Fixed the gradient stopping in EILoss (:gh:`263` by `Jérémy Scanvic`_) - 27/06/2024
-- Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
-- Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
+- Fixed averaging loss over epochs :class:`deepinv.Trainer` (:gh:`241` by Julian Tachella) - 11/06/2024
+- Fixed :class:`deepinv.Trainer` save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
 - Fixed the :class:`deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`_)
 
@@ -328,7 +328,7 @@ New Features
 - Added pytests and examples for all the new features
 - A few speed ups by carefully profiling the training codes
 - made sigma in drunet trainable
-- Added :class:`deepinv.training.Trainer`, :class:`deepinv.loss.Loss` class and eval metric (LPIPS, NIQE, SSIM) (:gh:`181` by `Julian Tachella`_) - 02/04/2024
+- Added :class:`deepinv.Trainer`, :class:`deepinv.loss.Loss` class and eval metric (LPIPS, NIQE, SSIM) (:gh:`181` by `Julian Tachella`_) - 02/04/2024
 - PhaseRetrieval class (:gh:`176` by `Zhiyuan Hu`_) - 20/03/2024
 - Added 3D wavelets (:gh:`164` by `Matthieu Terris`_) - 07/03/2024
 - Added patch priors loss (:gh:`164` by `Johannes Hertrich`_) - 07/03/2024
