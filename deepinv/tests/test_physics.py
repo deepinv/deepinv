@@ -1791,7 +1791,7 @@ def test_physics_state_dict(name, device):
         for name in dir(module):
             try:
                 attr = getattr(module, name)
-            except (AttributeError, RuntimeError, TypeError):
+            except (AttributeError, RuntimeError, NotImplementedError):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
