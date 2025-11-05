@@ -1,8 +1,8 @@
 r"""
-Solving inverse problems with sinusoidal representation networks (SIRENs)
+Implicit neural representations for inverse problems
 =========================================================================
 
-This notebook presents several examples of inverse problems solved using the framework of Implicit Neural Representation (INR). It is based on the paper "SIREN" of :footcite:t:`sitzmann2020implicit`.
+This notebook presents several examples of inverse problems solved using the framework of Implicit Neural Representation (INR), based on the paper "sinusoidal representation networks (SIRENs)" of :footcite:t:`sitzmann2020implicit`. INR enables a continuous representation of images and exact derivatives, which allows for more efficient optimization.
 
 The method reconstructs an image by minimizing the loss function
 
@@ -11,16 +11,16 @@ The method reconstructs an image by minimizing the loss function
 
 where
 
-- :math:`f_{\theta} : \mathbb{R}^d \to \mathbb{R}` is a SIREN network with parameter :math:`\theta`;
+- :math:`f_{\theta} : \mathbb{R}^d \to \mathbb{R}` is a neural network which parameterizes the reconstructed image with :math:`\theta`;
 - :math:`z` is an input grid of coordinates of shape :math:`n\times d`, where :math:`d` is the number of dimensions of the input (e.g. :math:`d=2` for an image) and :math:`n` is the total number of pixels. This means that :math:`f_\theta` is applied pixelwise;
 - :math:`\lambda > 0` is a regularization parameter;
-- :math:`\mathcal{R}(f_\theta)` is a regularizer applied on the SIREN network.
+- :math:`\mathcal{R}(f_\theta)` is a regularizer applied on the neural network.
 
 In this notebook, we will use the TV regularizer defined as :math:`\mathcal{R}(f_\theta) = \|\nabla f_{\theta}(z)\|_{1}.`
 
 Note that :math:`\nabla` is here the continuous nabla operator implemented with autograd.
 
-A SIREN is a neural network composed of 2 parts: the positional encoding followed by an MLP with sine activation functions. Formally, it reads as
+We use the implementation from SIREN in this example for the network :math:`f_{\theta}` of the INR framework. A SIREN is composed of 2 parts: the positional encoding followed by an MLP with sine activation functions. Formally, it reads as
 
 .. math::
     f_\theta(z) = \text{MLP} \circ \text{PosEnc}(z) :=  \phi^{(L)} (\cdots \phi^{(0)}(\sin(\omega_0 W z + b)) \cdots), \quad \phi^{(i)}(z) = \sin(\omega_0' W^{(i)} z + b^{(i)}).
@@ -32,21 +32,15 @@ For more information about INRs, we refer to :footcite:t:`sitzmann2020implicit, 
 """
 
 # %%
-import deepinv as dinv
-from deepinv.utils.plotting import plot
-import torch
-from deepinv.models.siren import get_mgrid
 from pathlib import Path
+
+import torch
 from torchvision import transforms
+
+import deepinv as dinv
+from deepinv.models.siren import get_mgrid
 from deepinv.utils.demo import load_dataset, load_degradation
-
-# Set the global random seed from pytorch to ensure reproducibility of the example.
-torch.manual_seed(0)
-
-# %%
-# Load dataset
-# ------------
-# For simplicity, we perform all the experiments on the same dataset 'set3c'.
+from deepinv.utils.plotting import plot
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
@@ -54,38 +48,40 @@ RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# Set the global random seed from pytorch to ensure reproducibility of the example.
+rng = torch.Generator(device=device)
+rng.manual_seed(0)
 
 # %%
-# Set up the variable to fetch dataset and operators.
-# ---------------------------------------------------
+# Load dataset
+# ------------
+# For simplicity, we perform all the experiments on the same dataset 'set3c'.
 dataset_name = "set3c"
-img_size = 256 if torch.cuda.is_available() else 64
-val_transform = transforms.Compose(
-    [transforms.CenterCrop(img_size), transforms.ToTensor()]
-)
+img_size = 256 if torch.cuda.is_available() else 64  # small sizes for speed if no GPU
+transform = transforms.Compose([transforms.CenterCrop(img_size), transforms.ToTensor()])
+dataset = load_dataset(dataset_name, transform=transform)
 
+# %%
+# 1. Image processing tasks
+# -------------------------
+# We demonstrate INR/SIREN on three examples of image processing tasks: deblurring, inpainting, and super-resolution.
+#
+# 1.1 Image deblurring
+# --------------------
+# In this part, we perform image deblurring using SIREN by reconstructing from a motion-blurred and noisy measurement from the ground truth.
+noise_level_img = 0.01  # Gaussian Noise standard deviation for the degradation
+n_channels = 1  # 3 for color images, 1 for gray-scale images
 # Generate a motion blur operator.
 kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
 kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
-dataset = load_dataset(dataset_name, transform=val_transform)
-
-# %%
-# 1. Image processing tasks
-# -------------------------
-# In the first part of the notebook, we propose three examples of image processing tasks: debluring, inpainting, and super-resolution.
-#
-# 1.1 Image deblurring
-# --------------------
-noise_level_img = 0.01  # Gaussian Noise standard deviation for the degradation
-n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
     filter=kernel_torch,
     device=device,
-    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img, rng=rng),
 )
 
 # Select the first image from the dataset
@@ -97,6 +93,7 @@ y = physics(x)
 # %%
 iterations = 1000
 lr = 1e-2
+
 # Define the SIREN architecture and the hyperparameters
 siren_net = dinv.models.SIREN(
     input_dim=2,
@@ -106,8 +103,9 @@ siren_net = dinv.models.SIREN(
     omega0={"encoding": 30.0, "siren": 2.0},
     device=device,
 ).to(device)
+
 # Define the Siren Reconstructor with the SIREN network
-f = dinv.models.SirenReconstructor(
+model = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -117,24 +115,29 @@ f = dinv.models.SirenReconstructor(
 ).to(device)
 
 # %%
-x_siren = f(y, physics)
+x_siren = model(y, physics)
 
 # %%
-# Compute PSNR
-print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
-print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
-
 # plot results
-plot([y, x, x_siren], titles=["measurements", "ground truth", "reconstruction"])
+plot(
+    [y, x, x_siren],
+    titles=["measurements", "ground truth", "reconstruction"],
+    subtitles=[
+        f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB",
+        "",
+        f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB",
+    ],
+)
 
 # %%
 # 1.2 Image inpainting
 # --------------------
-
+# In this part, we perform image inpainting using SIREN by randomly removing 50% of the pixels from the ground truth image.
 # %%
 sigma = 0.05  # noise level
 physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
-physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
+# add noise to the measurements
+physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma, rng=rng)
 y = physics(x)
 
 # %%
@@ -149,7 +152,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.SirenReconstructor(
+model = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -159,21 +162,25 @@ f = dinv.models.SirenReconstructor(
 ).to(device)
 
 # %%
-x_siren = f(y, physics)
+x_siren = model(y, physics)
 
 # %%
-# Compute PSNR
-print(f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB")
-print(f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB")
-
 # plot results
 plot(
-    [y, x, x_siren.clip(0, 1)], titles=["measurement", "ground truth", "reconstruction"]
+    [y, x, x_siren],
+    titles=["measurement", "ground truth", "reconstruction"],
+    subtitles=[
+        f"Init PSNR: {dinv.metric.PSNR()(x, y).item():.2f} dB",
+        "",
+        f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB",
+    ],
+    rescale_mode="clip",
 )
 
 # %%
 # 1.3 Super-resolution
 # --------------------
+# In this part, we perform the super-resolution task using SIREN by first solving a low-resolution denoising problem and then evaluating the trained network at a finer grid.
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
@@ -183,7 +190,7 @@ physics = dinv.physics.Downsampling(
     img_size=x.shape[1:],
     factor=factor,
     device=device,
-    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img, rng=rng),
 )
 
 # Apply the degradation to the image
@@ -197,11 +204,12 @@ siren_net = dinv.models.SIREN(
     encoding_dim=32,
     siren_dims=[32] * 3,
     out_channels=1,
+    # TODO: explain why we need this additional omega0 param
     omega0={"encoding": 30.0, "siren": 1.5},
     device=device,
 ).to(device)
 
-f = dinv.models.SirenReconstructor(
+model = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -213,27 +221,32 @@ f = dinv.models.SirenReconstructor(
 
 # %%
 # Define an identity physics with zero noise to perform the reconstruction at the low resolution
-physics_f = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=0.0))
-x_siren = f(y, physics_f)
+physics_f = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=0.0, rng=rng))
+x_siren = model(y, physics_f)
 
 # %%
+# TODO: explain more
 # Super-resolution by evaluating the trained network at a finer grid
-x_siren_super_resolved = f.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:])
-print(f"SIREN PSNR: {dinv.metric.PSNR()(y, x_siren).item():.2f} dB")
-print(
-    f"super-resolved SIREN PSNR: {dinv.metric.PSNR()(x, x_siren_super_resolved.clip(0,1)).item():.2f} dB"
-)
+x_siren_super_resolved = model.siren_net(get_mgrid(x.shape[2:])).view(x.shape[1:])
 
 # plot results
 plot(
-    [y, x, x_siren, x_siren_super_resolved.clip(0, 1)],
+    [y, x, x_siren, x_siren_super_resolved],
     titles=["measurement", "ground truth", "SIREN", "SIREN super-res"],
+    subtitles=[
+        "",
+        "",
+        f"SIREN PSNR: {dinv.metric.PSNR()(x, x_siren).item():.2f} dB",
+        f"SIREN super-res PSNR: {dinv.metric.PSNR()(x, x_siren_super_resolved.clip(0, 1)).item():.2f} dB",
+    ],
+    rescale_mode="clip",
 )
 
 # %%
-# 2 Gradient supervised reconstruction
+# 2. Gradient supervised reconstruction
 # ------------------------------------
-# In the second part, we exploit the fact that INRs are intrisicly smooth continuous models; their gradient can be computed exactly with autograd. We show an example of an image recontruction problem where the forward operator :math:`A` is a gradient operator.
+# TODO: why are we interested in this? for mathematical interest?
+# In the second part, we exploit the fact that INRs are intrisically smooth continuous models; their gradient can be computed exactly with autograd. We show an example of an image recontruction problem where the forward operator :math:`A` is a gradient operator.
 
 # %%
 # We aim at solving the problem:
@@ -249,7 +262,7 @@ plot(
 # using the ADAM optimizer to train :math:`\theta`. Finally, we evaluate :math:`f_\theta(z)` and compare it with the ground truth :math:`\Phi(z)`.
 
 # %%
-
+# TODO: explain more
 y = dinv.models.TVDenoiser.nabla(x).view(x.shape[2] * x.shape[3], 2)
 
 
@@ -268,7 +281,7 @@ class Gradient(dinv.physics.Physics):
         return dinv.models.siren.nabla(x, self.z)
 
 
-physics_f = Gradient()
+physics = Gradient()
 
 # %%
 iterations = 1000
@@ -282,7 +295,7 @@ siren_net = dinv.models.SIREN(
     device=device,
 ).to(device)
 
-f = dinv.models.SirenReconstructor(
+model = dinv.models.SirenReconstructor(
     siren_net,
     learning_rate=lr,
     iterations=iterations,
@@ -292,11 +305,11 @@ f = dinv.models.SirenReconstructor(
 ).to(device)
 
 # %%
-x_siren = f(y, physics_f)
+x_siren = model(y, physics)
 
 # %%
 print(
-    f"SIREN PSNR: {dinv.metric.PSNR()(x, (x_siren-x_siren.min()) / (x_siren.max()-x_siren.min())).item():.2f} dB"
+    f"SIREN PSNR: {dinv.metric.PSNR()(x, (x_siren - x_siren.min()) / (x_siren.max() - x_siren.min())).item():.2f} dB"
 )
 
 # plot results
