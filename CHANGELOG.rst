@@ -13,6 +13,7 @@ New Features
 - Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`TODO` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^

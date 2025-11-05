@@ -1202,6 +1202,12 @@ def test_denoiser_perf(device):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.DiffusersDenoiserWrapper(
+                mode_id="google/ddpm-ema-celebahq-256"
+            ).to(device),
+            (2.5, 7, 7),
+        ),
     ]
 
     for denoiser, expected_perf in learned_denoisers:
