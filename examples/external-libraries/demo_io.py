@@ -21,9 +21,12 @@ import deepinv as dinv
 #
 # This function requires `pydicom`. Install it with `pip install pydicom`.
 #
+# .. note::
+#     You can also call the `io` functions directly as `dinv.io.load_...`
+#
 
-x = dinv.io.load_dicom(
-    dinv.io.load_url(
+x = dinv.utils.io.load_dicom(
+    dinv.utils.io.load_url(
         "https://github.com/robyoung/dicom-test-files/raw/refs/heads/master/data/pydicom/693_J2KI.dcm"
     )
 )  # (1,H,W)
@@ -49,7 +52,7 @@ with open(save_path, "wb") as f:
         ).content
     )
 
-x = dinv.io.load_nifti(save_path).unsqueeze(0)  # (1, H, W, D)
+x = dinv.utils.io.load_nifti(save_path).unsqueeze(0)  # (1, H, W, D)
 
 x = x[..., x.shape[-1] // 2]  # take central slice, (1,H,W)
 
@@ -62,8 +65,10 @@ dinv.utils.plot({"nifti slice": x.unsqueeze(0)})
 # ISMRMRD is a standard raw MRI k-space format. We load a k-space slice using :func:`deepinv.utils.load_ismrmd`
 # and compute a root-sum-of-squares reconstruction.
 
-y = dinv.io.load_ismrmd(
-    dinv.io.load_url(dinv.utils.demo.get_image_url("demo_fastmri_brain_multicoil.h5")),
+y = dinv.utils.io.load_ismrmd(
+    dinv.utils.io.load_url(
+        dinv.utils.demo.get_image_url("demo_fastmri_brain_multicoil.h5")
+    ),
     data_name="kspace",
     data_slice=0,
 )  # (2,N,H,W) where N is coils
@@ -81,11 +86,11 @@ dinv.utils.plot({"ismrmrd rss": rss})
 # We provide helper functions for loading tensors and arrays directly, for example provided
 # in the `DeepInverse HuggingFace demo repository <https://huggingface.co/datasets/deepinv/images>`.
 
-x = dinv.io.load_torch(
+x = dinv.utils.io.load_torch(
     dinv.utils.load_url(dinv.utils.demo.get_image_url("CT100_256x256_0.pt"))
 )  # (1,1,H,W)
 
-y = dinv.io.load_np(
+y = dinv.utils.io.load_np(
     dinv.utils.load_url(
         dinv.utils.demo.get_image_url("brainweb_t1_ICBM_1mm_subject_0_slice_0.npy")
     )
@@ -102,8 +107,8 @@ dinv.utils.plot({"torch": x, "numpy": y.unsqueeze(0).unsqueeze(0)})
 #
 # This function requires `rasterio`. Install it with `pip install rasterio`.
 
-patches = dinv.io.load_raster(
-    dinv.io.load_url(
+patches = dinv.utils.io.load_raster(
+    dinv.utils.io.load_url(
         "https://download.osgeo.org/geotiff/samples/spot/chicago/SP27GTIF.TIF"
     ),
     patch=500,
