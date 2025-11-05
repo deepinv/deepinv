@@ -162,6 +162,7 @@ Functional
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.random_choice
 
 
 .. autosummary::

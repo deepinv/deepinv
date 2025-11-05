@@ -65,7 +65,7 @@ jobs:
       - name: Update changelog
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
+          python .github/scripts/get_latest_changelog.py docs/sourcs/changelog.rst pyproject.toml ${{github.event.inputs.bump_type}}
 
       - name: Bump version
         id: bump
