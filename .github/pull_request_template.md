@@ -12,4 +12,4 @@ Once the GitHub tests have been approved by a maintainer (only required for firs
 - [ ] `black .` runs successfully.
 - [ ] `make html` runs successfully (in the `docs/` directory).
 - [ ] Updated docstrings related to the changes (as applicable).
-- [ ] Added an entry to the [CHANGELOG.rst](../CHANGELOG.rst).
+- [ ] Added an entry to the [changelog.rst](../docs/source/changelog.rst).

@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.extlinks",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
@@ -48,6 +49,11 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
 ]
+
+# Define your GitHub PR/issue "macro"
+extlinks = {
+    'gh': ('https://github.com/deepinv/deepinv/pull/%s', '#%s'),
+}
 
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
@@ -379,6 +385,7 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
+    "CHANGELOG": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
@@ -398,6 +405,10 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "announcement": (
+        "🎉 We are part of "
+        "<a href='https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse'> official pytorch ecosystem!</a> 🎉"
+    ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
