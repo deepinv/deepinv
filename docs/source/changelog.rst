@@ -142,7 +142,6 @@ Fixed
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
 - Changed :class:`deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 - Improved code coverage by mocking datasets (:gh:`490` by `Jérémy Scanvic`_)
-
 - Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 - Upgrade deprecated typing.T types in the code base (:gh:`501` by `Jérémy Scanvic`_)
 

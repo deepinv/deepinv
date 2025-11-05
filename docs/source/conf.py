@@ -385,7 +385,7 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
-    "CHANGELOG": [],
+    "changelog": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
@@ -407,7 +407,7 @@ html_theme_options = {
     },
     "announcement": (
         "🎉 We are part of "
-        "<a href='https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse'> official pytorch ecosystem!</a> 🎉"
+        "<a href='https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
