@@ -17,7 +17,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 
 
 # %%
@@ -121,7 +121,9 @@ class L2Prior(Prior):
         self.explicit_prior = True
 
     def fn(self, x, args, **kwargs):
-        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return (
+            0.5 * torch.linalg.vector_norm(x, dim=tuple(range(1, x.dim())), ord=2) ** 2
+        )
 
 
 # Specify the custom prior
