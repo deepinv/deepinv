@@ -51,7 +51,7 @@ extensions = [
 ]
 
 extlinks = {
-    'gh': ('https://github.com/deepinv/deepinv/pull/%s', '#%s'),
+    "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
 }
 
 bibtex_bibfiles = ["refs.bib"]
