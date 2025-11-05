@@ -68,7 +68,7 @@ Or, for updating an existing installation:
 Contributing
 ------------
 
-DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>` and we encourage contributions of all forms.
+DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
