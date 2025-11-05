@@ -886,7 +886,7 @@ def test_decomposable(name, device, rng):
         x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
         def proj(u):
-            return physics.A_adjoint(physics.A(u))
+            return physics.V(physics.V_adjoint(u))
 
         r = proj(x)  # project
         assert (
