@@ -140,11 +140,6 @@ class Trainer:
             forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode,
             and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <deepinv.loss.ReducedResolutionLoss>`).
 
-    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
-        the model on the evaluation set. Default is ``1``.
-    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualizing train progress inside an epoch, not just over epochs.
-        If ``False`` (default), log average over dataset per epoch (standard training).
     :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``. This is useful
         when using self-supervised losses for evaluation and early-stopping or to make sure that the model is performing
         similarly on losses on the train and eval sets.
@@ -155,7 +150,7 @@ class Trainer:
         using a self-supervised loss or when ground truth is unavailable. Default is ``False``.
         If `True`, requires `compute_eval_losses` to be `True`.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
+        This is useful for visualizing train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
 
 
