@@ -391,7 +391,7 @@ class DiffUNet(Denoiser):
 
     def convert_to_fp16(self):
         """
-        Convert the torso of the model to float16.
+        Convert the tensor of the model to float16.
         """
         self.input_blocks.apply(convert_module_to_f16)
         self.middle_block.apply(convert_module_to_f16)
@@ -399,7 +399,7 @@ class DiffUNet(Denoiser):
 
     def convert_to_fp32(self):
         """
-        Convert the torso of the model to float32.
+        Convert the tensor of the model to float32.
         """
         self.input_blocks.apply(convert_module_to_f32)
         self.middle_block.apply(convert_module_to_f32)

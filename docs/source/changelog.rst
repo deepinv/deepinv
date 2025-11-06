@@ -18,6 +18,7 @@ Changed
 - load_np_url now returns tensors, load_url helper function moved to io (:gh:`768` by `Andrew Wang`_)
 - utils/signal.py renamed to signals.py to avoid stdlib conflict (:gh:`768` by `Andrew Wang`_)
 - utils.get_data_home now creates folder if not exist (:gh:`768` by `Andrew Wang`_)
+- Update attention computation to use :func:`torch.nn.functional.scaled_dot_product_attention` (:gh:`883` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
