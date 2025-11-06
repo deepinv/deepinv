@@ -423,6 +423,7 @@ napoleon_custom_sections = [
 ]
 
 nitpick_ignore = [
-    # This one generates a warning for some reason.
+    # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
+    ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]

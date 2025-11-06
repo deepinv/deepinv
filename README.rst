@@ -25,7 +25,7 @@ Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. 
 ``deepinv`` features
 
 * A large framework of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`_
-* Many `state-of-the-art deep neural networks <https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html>`_, including pretrained out-of-the-box `reconstruction models <https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html#pretrained-models>`_ and `denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/denoisers.html>`_ 
+* Many `state-of-the-art deep neural networks <https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html>`_, including pretrained out-of-the-box `reconstruction models <https://deepinv.github.io/deepinv/user_guide/reconstruction/pretrained-models.html>`_ and `denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/denoisers.html>`_ 
 * Comprehensive frameworks for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_, `optimization <https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html>`_ and `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_
 * `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems
 * `Sampling algorithms and diffusion models <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
@@ -40,11 +40,15 @@ Install the latest stable release of ``deepinv``:
 
    pip install deepinv
 
-   # Or:
+Or, use `uv` for a faster install:
 
-   uv pip install deepinv # faster
+.. code-block:: bash
 
-   # Or, for additional dependencies:
+   uv pip install deepinv
+
+Or, to also install optional dependencies:
+
+.. code-block:: bash
 
    pip install deepinv[dataset,denoisers]
 
@@ -54,7 +58,9 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 
    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-   # Or, for updating:
+Or, for updating an existing installation:
+
+.. code-block:: bash
 
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
@@ -62,7 +68,7 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 Contributing
 ------------
 
-DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>` and we encourage contributions of all forms.
+DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 

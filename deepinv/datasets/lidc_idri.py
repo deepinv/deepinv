@@ -8,15 +8,7 @@ import os
 
 import numpy as np
 from deepinv.datasets.base import ImageDataset
-
-error_import = None
-try:
-    import pydicom
-    from pydicom import dcmread
-except ImportError:  # pragma: no cover
-    error_import = ImportError(
-        "pydicom is not available. Please install the pydicom package with `pip install pydicom`."
-    )  # pragma: no cover
+from deepinv.utils.io import load_dicom
 
 
 class LidcIdriSliceDataset(ImageDataset):
@@ -69,7 +61,7 @@ class LidcIdriSliceDataset(ImageDataset):
 
     .. note::
 
-        This class requires the ``pandas`` package to be installed. Install with ``pip install pandas``.
+        This class requires the `pandas` and `pydicom` packages to be installed. Install them with `pip install pandas` and `pip install pydicom`.
 
     """
 
@@ -95,9 +87,6 @@ class LidcIdriSliceDataset(ImageDataset):
         hounsfield_units: bool = False,
     ) -> None:
         import pandas as pd
-
-        if error_import is not None and isinstance(error_import, ImportError):
-            raise error_import
 
         self.root = root
         self.transform = transform
@@ -157,38 +146,12 @@ class LidcIdriSliceDataset(ImageDataset):
         slice_fname, scan_folder_path, _ = self.sample_identifiers[idx]
         slice_path = os.path.join(scan_folder_path, slice_fname)
 
-        slice_data = dcmread(slice_path)
-
         if self.hounsfield_units:
             # Raw CT values -> Hounsfield Units (HUs)
-            # Sources:
-            # * https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html
-            # * https://pydicom.github.io/pydicom/3.0/release_notes/v3.0.0.html
-            # * https://pydicom.github.io/pydicom/2.4/reference/generated/pydicom.pixel_data_handlers.apply_rescale.html
-            # NOTE: This function is deprecated in pydicom 3.0.0 in favor of
-            # the new function pydicom.pixels.apply_rescale. It is currently
-            # kept for compatibility with Python 3.9 which is only compatible
-            # with versions of pydicom older than version 3.0.0.
-            if not hasattr(pydicom, "pixel_data_handlers") or not hasattr(
-                pydicom.pixel_data_handlers, "apply_rescale"
-            ):
-                raise ImportError(
-                    "pydicom version is unsupported. Please install a version of pydicom ≥ 2.0.0 and < 4.0.0"
-                )
-            slice_array = pydicom.pixel_data_handlers.apply_rescale(
-                slice_data.pixel_array, slice_data
-            )
-
-            # NOTE: apply_rescale returns float64 arrays. Most
-            # applications do not need double precision so we cast it back to
-            # float32 for improved memory efficiency.
-
-            # float64 -> float32
-
             # type: numpy.ndarray
             # dtype: float32
             # shape: (512, 512)
-            slice_array = slice_array.astype(np.float32)
+            slice_array = load_dicom(slice_path, as_tensor=False, apply_rescale=True)
         else:
             # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
             # It is obtained from the associated DICOM (.dcm) file, and it is often
@@ -198,8 +161,9 @@ class LidcIdriSliceDataset(ImageDataset):
             # type: numpy.ndarray
             # dtype: int16
             # shape: (512, 512)
-            slice_array = slice_data.pixel_array
-            slice_array = slice_array.astype(np.int16)
+            slice_array = load_dicom(
+                slice_path, as_tensor=False, apply_rescale=False, dtype=np.int16
+            )
 
         if self.transform is not None:
             slice_array = self.transform(slice_array)
