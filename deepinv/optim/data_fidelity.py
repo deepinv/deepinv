@@ -14,6 +14,8 @@ from deepinv.optim.distance import (
     ZeroDistance,
 )
 
+import deepinv as dinv
+
 from deepinv.optim.potential import Potential
 from deepinv.physics.functional import dct_2d, idct_2d
 
@@ -306,6 +308,28 @@ class L2(DataFidelity):
         :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
         """
         return physics.prox_l2(x, y, self.norm * gamma)
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is either computed using the chain rule, or using specific implementation of deepinv.physics.LinearPhysics.A_adjoint_A in the case of a LinearPhysics:
+
+        .. math::
+
+            \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
+
+        where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
+        if isinstance(physics, dinv.physics.LinearPhysics):
+            return self.norm * (physics.A_adjoint_A(x) - physics.A_adjoint(y))
+        else:
+            return super().grad(x, y, physics, *args, **kwargs)
 
 
 class ItohFidelity(L2):
