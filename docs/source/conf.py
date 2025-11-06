@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.extlinks",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
@@ -48,6 +49,10 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
 ]
+
+extlinks = {
+    "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
+}
 
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
@@ -386,6 +391,7 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
+    "changelog": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
@@ -405,6 +411,10 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "announcement": (
+        "🎉 We are part of "
+        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
+    ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
@@ -423,6 +433,7 @@ napoleon_custom_sections = [
 ]
 
 nitpick_ignore = [
-    # This one generates a warning for some reason.
+    # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
+    ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]

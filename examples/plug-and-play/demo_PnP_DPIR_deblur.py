@@ -17,7 +17,7 @@ from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.

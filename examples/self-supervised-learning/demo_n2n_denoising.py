@@ -24,7 +24,7 @@ from torchvision import transforms, datasets
 
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -143,8 +143,14 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
 #
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+
 
 verbose = True  # print training information
 
@@ -166,6 +172,10 @@ trainer = dinv.Trainer(
     device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    metrics=None,  # no supervised metrics
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
@@ -177,10 +187,11 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-#
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

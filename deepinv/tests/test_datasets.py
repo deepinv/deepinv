@@ -9,6 +9,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import ToTensor
+from deepinv.loss import Metric
 import numpy as np
 
 from deepinv.datasets import (
@@ -37,11 +38,11 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.utils import (
     download_archive,
-    loadmat,
     Crop,
     Rescale,
     ToComplex,
 )
+from deepinv.utils.io import load_mat
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
@@ -125,8 +126,15 @@ def check_dataset_format(
                     online_measurements=True,
                     save_path=None,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=None,
                 ).setup_train(train=True)
+
+                class DummyMetric(Metric):
+                    def __init__(self):
+                        super().__init__("dummy")
+
+                    def forward(self, x_net, x, **kwargs):
+                        return torch.tensor(0.0, device=x.device)
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
@@ -136,7 +144,7 @@ def check_dataset_format(
                     physics,
                     online_measurements=True,
                     compare_no_learning=False,
-                    metrics=[],
+                    metrics=DummyMetric(),
                 )
 
             except ValueError as e:
@@ -665,7 +673,7 @@ def mock_lidc_idri():
             patch.object(pd, "read_csv", return_value=dummy_df),
             patch.object(os, "listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
             # We use patch instead of patch.object to avoid cluttering the namespace.
-            patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
+            patch("pydicom.dcmread", return_value=dummy_dicom),
         ):
             yield "/dummy"
     else:
@@ -735,7 +743,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         x_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
 
@@ -743,7 +751,7 @@ def test_load_nbu_dataset(download_nbu):
         download_nbu,
         y_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
-        loader=lambda f: loadmat(f)["imgMS"],
+        loader=lambda f: load_mat(f)["imgMS"],
     )
     check_dataset_format(dataset, length=5, dtype=tuple, allow_non_tensor=True)
     x, y = dataset[0]
