@@ -36,7 +36,7 @@ def rst_to_md(rst_text):
     return "\n".join(md_lines).strip()
 
 
-def update_changelog(changelog_path, increment="patch"):
+def update_changelog(changelog_path, pyproject_path, increment="patch"):
     r"""
     Function for automatic release changelog generation.
     """
@@ -57,9 +57,6 @@ def update_changelog(changelog_path, increment="patch"):
 
     header = match.group("header")
     body = match.group("body").rstrip()
-
-    # get path from changelog path
-    pyproject_path = changelog_path.replace("CHANGELOG.rst", "pyproject.toml")
 
     # Extract current version from pyproject.toml or bump script
     version = get_version_from_toml(pyproject_path)
@@ -90,10 +87,10 @@ def update_changelog(changelog_path, increment="patch"):
 
 if __name__ == "__main__":
     if len(sys.argv) not in [2, 3]:
-        print("Usage: python get_latest_changelog.py path/to/CHANGELOG.rst patch")
+        print("Usage: python get_latest_changelog.py path/to/changelog.rst patch")
         sys.exit(1)
     file_path = sys.argv[1]
     increment = sys.argv[2] if len(sys.argv) > 2 else "patch"
 
     update_changelog(sys.argv[1], increment)
-    print("CHANGELOG.rst updated.")
+    print("changelog.rst updated.")
