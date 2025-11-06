@@ -12,6 +12,7 @@ New Features
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Implement/extend functional for 2D/3D convolution with spatial and FFT, support all padding modes (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
