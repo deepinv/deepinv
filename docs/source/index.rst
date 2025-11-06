@@ -16,6 +16,7 @@ DeepInverse: a Python library for imaging with deep learning
    finding_help
    contributing
    community
+   changelog
 
 DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
@@ -50,11 +51,15 @@ Install the latest stable release of ``deepinv``:
 
    pip install deepinv
 
-   # Or:
+Or, use `uv` for a faster install:
 
-   uv pip install deepinv # faster
+.. code-block:: bash
 
-   # Or, for additional dependencies:
+   uv pip install deepinv
+
+Or, to also install optional dependencies:
+
+.. code-block:: bash
 
    pip install deepinv[dataset,denoisers]
 
@@ -64,15 +69,16 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 
    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-   # Or, for updating:
+Or, for updating an existing installation:
+
+.. code-block:: bash
 
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
 
 Contributing
 ------------
 
-DeepInverse is a community-driven project and we encourage contributions of all forms.
+DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
