@@ -13,7 +13,7 @@ New Features
 - Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
-- Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -29,7 +29,7 @@ Fixed
 - Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
-
+- Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 v0.3.5
 ------
 New Features
