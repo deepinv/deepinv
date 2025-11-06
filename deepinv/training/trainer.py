@@ -545,7 +545,7 @@ class Trainer:
                 ckpt_pretrained, map_location=self.device, weights_only=False
             )
             self.model.load_state_dict(checkpoint["state_dict"], strict=strict)
-            print(f"✅ Checkpoint successfully loaded from: {ckpt_pretrained}")
+            print(f"Checkpoint successfully loaded from: {ckpt_pretrained}")
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             if "scheduler" in checkpoint and self.scheduler is not None:
@@ -558,9 +558,6 @@ class Trainer:
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
-        else:
-        print("⚠️ No checkpoint provided or found. Model not loaded.")
-        return None
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
