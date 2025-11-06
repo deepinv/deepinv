@@ -79,10 +79,6 @@ class Trainer:
     :param int max_batch_steps: Number of gradient steps per iteration.
         Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param None, int early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
-        after `early_stop` passes over the eval dataset. Default is ``None`` (no early stopping).
-        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
-    :param bool early_stop_on_losses: Early stop using losses computed on the eval set instead of metrics. Default is ``False``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`.
@@ -116,20 +112,25 @@ class Trainer:
         - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
           still possible to validate using:
 
-          - i) :ref:`no reference metrics <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`
-          - ii) :ref:`self-supervised losses <self-supervised-losses>` with
-            ``compute_eval_losses=True`` and ``metrics=None``. If self-supervised losses
-            are used, we recommend setting ``compute_train_metrics=False`` to avoid computing
-            metrics in ``model.train()`` mode. This is required by many self-supervised losses,
-            such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>` or
-            :class:`R2RLoss <deepinv.loss.R2RLoss>`, which behave differently in
-            ``model.train()`` and ``model.eval()`` modes.
+          #. :ref:`no reference metrics <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`
+          #. :ref:`self-supervised losses <self-supervised-losses>` with
+             ``compute_eval_losses=True`` and ``metrics=None``.
+
+             Additionally, in this case, we recommend setting ``compute_train_metrics=False`` to avoid computing
+             metrics in ``model.train()`` mode. This is required by many self-supervised losses,
+             such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>` or
+             :class:`R2RLoss <deepinv.loss.R2RLoss>`, which behave differently in
+             ``model.train()`` and ``model.eval()`` modes.
+
+             For early-stopping with self-supervised losses, `early_stop_on_losses` must also be `True`.
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
     :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
+        the model on the evaluation set. Default is ``1``.
     :param bool compute_train_metrics: If `False`, do not compute metrics during training on train set.
         If `True` (default), during training all metrics are computed on the training dataloader.
 
@@ -139,14 +140,19 @@ class Trainer:
             forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode,
             and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <deepinv.loss.ReducedResolutionLoss>`).
 
-    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
-        the model on the evaluation set. Default is ``1``.
-    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
-        If ``False`` (default), log average over dataset per epoch (standard training).
     :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``. This is useful
         when using self-supervised losses for evaluation and early-stopping or to make sure that the model is performing
         similarly on losses on the train and eval sets.
+    :param None, int early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
+        after `early_stop` passes over the eval dataset. Default is ``None`` (no early stopping).
+        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+    :param bool early_stop_on_losses: Early stop using losses computed on the eval set instead of metrics: useful for stopping when
+        using a self-supervised loss or when ground truth is unavailable. Default is ``False``.
+        If `True`, requires `compute_eval_losses` to be `True`.
+    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
+        This is useful for visualising train progress inside an epoch, not just over epochs.
+        If ``False`` (default), log average over dataset per epoch (standard training).
+
 
     .. tip::
         If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
