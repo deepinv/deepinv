@@ -298,7 +298,7 @@ New Features
 - Add sinc filter (:gh:`280` by `Julian Tachella`_)
 - Add Noise2Score method (:gh:`280` by `Julian Tachella`_)
 - Add Gamma Noise (:gh:`280` by `Julian Tachella`_)
-- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (:gh: `277` by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`, `Minh Hai Nguyen`_) - 12/07/2024
+- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (:gh:`277` by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`, `Minh Hai Nguyen`_) - 12/07/2024
 - Add ICNN model (:gh:`281` by `Samuel Hurault`_)
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
@@ -448,9 +448,9 @@ Fixed
 - Log epoch loss instead of batch loss (:gh:`73` by `Jérémy Scanvic`_) - 21/07/2023
 - Automatically disable backtracking is no explicit cost (:gh:`68` by `Samuel Hurault`_) - 12/07/2023
 - Added missing indent (:gh:`63` by `Jérémy Scanvic`_) - 12/07/2023
-- Fixed get_freer_gpu grep statement to work for different versions of nvidia-smi (:gh: `82` by `Alexander Mehta`_) - 20/09/2023
-- Fixed get_freer_gpu to work on different operating systems (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
-- Fixed Discord server and contributiong links  (:gh: `87` by `Andrea Sebastiani`_) - 10/10/2023
+- Fixed get_freer_gpu grep statement to work for different versions of nvidia-smi (:gh:`82` by `Alexander Mehta`_) - 20/09/2023
+- Fixed get_freer_gpu to work on different operating systems (:gh:`87` by `Andrea Sebastiani`_) - 10/10/2023
+- Fixed Discord server and contributiong links  (:gh:`87` by `Andrea Sebastiani`_) - 10/10/2023
 
 
 Changed
