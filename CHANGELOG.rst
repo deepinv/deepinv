@@ -13,6 +13,7 @@ New Features
 - Add support for 3D CNNs (:gh: `869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
