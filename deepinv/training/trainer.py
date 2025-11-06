@@ -1288,6 +1288,11 @@ class Trainer:
     def train(
         self,
     ):
+        if self.epochs <= self.epoch_start:
+        import warnings
+        warnings.warn(
+            f"No training will be done because epochs ({self.epochs}) <= epoch_start ({self.epoch_start})"
+        )
         r"""
         Train the model.
 
