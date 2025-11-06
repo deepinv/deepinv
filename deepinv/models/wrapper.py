@@ -14,6 +14,13 @@ class DiffusersDenoiserWrapper(Denoiser):
     :param bool clip_output: Whether to clip the output to the model range. Default is `True`.
     :param device: Device to load the model on. Default is 'cpu'.
 
+    .. note::
+        Currently, only models trained with `DDPMScheduler` are supported.
+
+    .. warning::
+        This wrapper requires the `diffusers` and `transformers` packages.
+        You can install them via `pip install diffusers transformers`.
+
     |sep|
 
     :Examples:

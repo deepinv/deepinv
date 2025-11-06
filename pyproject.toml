@@ -89,6 +89,8 @@ denoisers = [
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "diffusers", 
+    "transformers",
 ]
 
 # optional dependencies for specific datasets
