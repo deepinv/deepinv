@@ -30,11 +30,11 @@ class DiffusersDenoiserWrapper(Denoiser):
         >>> import torch
         >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
-        >>> dinv.utils.load_example(
-        ...        "cat.jpg",
-        ...        img_size=256,
-        ...        resize_mode="resize",
-        ...    ).to(device)
+        >>> x = dinv.utils.load_example(
+        ...         "cat.jpg",
+        ...         img_size=256,
+        ...         resize_mode="resize",
+        ...     ).to(device)
 
 
         >>> sigma = 0.1
