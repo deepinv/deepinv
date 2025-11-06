@@ -257,7 +257,7 @@ class Poisson2Sparse(Denoiser):
 
     .. note::
 
-        This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics model can be omitted when calling the :meth:`forward` method and specifying it will have no effect.
+        This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics object can be omitted when calling the model and specifying it will have no effect.
 
     :param torch.nn.Module | None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.
     :param float lr: Learning rate of the AdamW optimizer (default: 1e-4).
