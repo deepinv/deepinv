@@ -130,6 +130,7 @@ class AdversarialTrainer(Trainer):
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
         ...     verbose = False,
+        ...     device = "cpu",
         ...     optimizer_step_multi_dataset = False
         ... )
         >>>
@@ -218,7 +219,7 @@ class AdversarialTrainer(Trainer):
         y_hat = physics.A(x_net)
 
         ### Train Generator
-        if train or self.display_losses_eval:
+        if train or self.compute_eval_losses:
             loss_total = 0
             for k, l in enumerate(self.losses):
                 loss = l(
@@ -261,7 +262,7 @@ class AdversarialTrainer(Trainer):
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
-            if train or self.display_losses_eval:
+            if train or self.compute_eval_losses:
 
                 self.optimizer.D.zero_grad()
 

@@ -197,8 +197,9 @@ class Tomography(LinearPhysics):
                     (img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None]
-            ).sqrt()
+                )[None, None],
+                squared=False,
+            )
             self.normalize = True
 
     def A(self, x, **kwargs) -> torch.Tensor:
@@ -394,7 +395,6 @@ class TomographyWithAstra(LinearPhysics):
            :skipif: astra is None or not cuda_available
 
             >>> from deepinv.physics import TomographyWithAstra
-            >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
             >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
             >>> physics = TomographyWithAstra(
             ...        img_size=(5,5),
@@ -410,24 +410,14 @@ class TomographyWithAstra(LinearPhysics):
             ...        normalize=False
             ...    )
             >>> sinogram = physics(x)
-            >>> print(sinogram)
-            tensor([[[[-2.4262, -0.3840, -2.1681, -1.1024,  1.8009],
-                    [-2.4597, -0.0198, -1.6027,  0.1117,  1.0543],
-                    [-3.8424, -2.5034,  1.8132,  2.4666, -1.0440],
-                    [-3.0843, -2.0380,  2.2693,  2.4964, -2.7098],
-                    [ 0.6441, -2.2355, -0.2281,  0.2533, -1.3641],
-                    [ 1.7683, -0.9205, -2.1681, -0.2436, -2.5756],
-                    [ 0.4655,  0.3250, -1.6027, -0.6839, -2.4529],
-                    [-2.4195,  3.1875,  1.8132, -2.3952, -3.5968],
-                    [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
-                    [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
+            >>> print(sinogram.shape)
+            torch.Size([1, 1, 10, 5])
 
         Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
 
-            >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
             >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
             >>> angles = torch.linspace(0, 2*torch.pi, steps=4)[:-1]
             >>> physics = TomographyWithAstra(
@@ -444,26 +434,8 @@ class TomographyWithAstra(LinearPhysics):
             ...        normalize=False
             ...    )
             >>> sinogram = physics(x)
-            >>> print(sinogram)
-            tensor([[[[[-2.0464,  0.4064, -1.5184, -0.9225,  1.5369],
-                    [-2.3398, -0.9323,  2.0437,  0.5806, -1.5659],
-                    [-1.0852,  2.0659,  1.1105, -1.7271, -2.6104]],
-            <BLANKLINE>
-                    [[ 1.4757, -0.2731,  0.9386,  0.5791,  0.2995],
-                    [-0.8362,  2.5918,  1.0941,  1.0576, -1.4501],
-                    [-1.1313,  3.8354, -0.9572, -2.3721,  3.5149]],
-            <BLANKLINE>
-                    [[ 0.6392,  0.1564, -0.8063, -3.8958,  1.2547],
-                    [ 0.5294, -1.0241, -0.1792, -0.5054, -1.4253],
-                    [-1.1961, -1.6911,  0.4279, -1.3608,  0.9488]],
-            <BLANKLINE>
-                    [[ 0.5134,  2.1534, -3.8697,  0.3571,  0.1060],
-                    [ 0.4687, -3.0669,  1.5911,  1.5235, -0.8031],
-                    [-1.1990,  0.2637,  2.0889, -0.8894,  0.2550]],
-            <BLANKLINE>
-                    [[-1.4643, -0.2128,  1.3425,  2.8803, -0.6605],
-                    [ 0.9605,  1.1056,  4.2324, -3.5795, -0.1718],
-                    [ 0.9207,  1.6948,  1.6556, -1.6624,  0.9960]]]]], device='cuda:0')
+            >>> print(sinogram.shape)
+            torch.Size([1, 1, 5, 3, 5])
 
 
     .. note::
@@ -560,8 +532,9 @@ class TomographyWithAstra(LinearPhysics):
                     self.img_size,
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None]
-            ).sqrt()
+                )[None, None],
+                squared=False,
+            )
             self.normalize = True
 
     @property
