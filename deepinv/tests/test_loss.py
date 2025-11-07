@@ -132,19 +132,21 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
             (1, *imsize), split_generator, device=device
         )
-        train_transform = dinv.transform.Rotate(n_trans=1, multiples=90, positive=True) * dinv.transform.Reflect(
-            n_trans=1, dim=[-1]
-        )
+        train_transform = dinv.transform.Rotate(
+            n_trans=1, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
 
-        loss.append(dinv.loss.ESLoss(
-            mask_generator=mask_generator,
-            noise_model=dinv.physics.ZeroNoise(),
-            alpha=0.2,
-            weight=1.0,
-            eval_n_samples=10,
-            train_transform=train_transform,
-            eval_transform=None,  # use same as train
-        ))
+        loss.append(
+            dinv.loss.ESLoss(
+                mask_generator=mask_generator,
+                noise_model=dinv.physics.ZeroNoise(),
+                alpha=0.2,
+                weight=1.0,
+                eval_n_samples=10,
+                train_transform=train_transform,
+                eval_transform=None,  # use same as train
+            )
+        )
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())

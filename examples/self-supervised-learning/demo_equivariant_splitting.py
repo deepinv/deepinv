@@ -16,7 +16,6 @@ from torchvision import transforms
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
 from deepinv.utils import get_data_home, load_degradation
-from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 
 # %%
@@ -148,18 +147,20 @@ mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
     (1, img_size, img_size), split_generator, device=device
 )
 # A random transformation from the group D4
-train_transform = dinv.transform.Rotate(n_trans=1, multiples=90, positive=True) * dinv.transform.Reflect(
-    n_trans=1, dim=[-1]
-)
+train_transform = dinv.transform.Rotate(
+    n_trans=1, multiples=90, positive=True
+) * dinv.transform.Reflect(n_trans=1, dim=[-1])
 # # All of the transformations from the group D4
 eval_transform = None  # use same as train
 
-losses = [dinv.loss.ESLoss(
-    mask_generator=mask_generator,
-    noise_model=physics.noise_model,
-    train_transform=train_transform,
-    eval_transform=eval_transform,
-)]
+losses = [
+    dinv.loss.ESLoss(
+        mask_generator=mask_generator,
+        noise_model=physics.noise_model,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
+]
 
 # choose optimizer and scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-8)

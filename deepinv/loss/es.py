@@ -384,7 +384,7 @@ if __name__ == "__main__":
             model = dinv.models.ArtifactRemoval(backbone_net=backbone, mode="adjoint")
             model = loss[-1].adapt_model(model)
         else:
-            loss = [ SplittingLoss() ]
+            loss = [SplittingLoss()]
             if not isinstance(physics.noise_model, dinv.physics.ZeroNoise):
                 loss.append(
                     _SplitR2RLoss(
