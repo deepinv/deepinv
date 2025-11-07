@@ -100,7 +100,7 @@ with torch.no_grad():
     x_dpir = model_dpir(y_spyrit / norm, physics_deepinv)
 
 ######################################################################
-# Reconstruct Anything Model (RAM) can also be used.
+# Including reconstruction with :class:`deepinv.models.RAM`:
 model_ram = dinv.models.RAM(pretrained=True, device=device)
 model_ram.sigma_threshold = 1e-1
 with torch.no_grad():
