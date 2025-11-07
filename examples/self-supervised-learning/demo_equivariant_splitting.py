@@ -130,9 +130,9 @@ model = MoDL().to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 150 epochs using a larger knee dataset of ~1000 images.
 
-epochs = 2  # choose training epochs
-learning_rate = 5e-4
-batch_size = 16 if torch.cuda.is_available() else 1
+epochs = 10  # choose training epochs
+learning_rate = 1e-4
+batch_size = 4 if torch.cuda.is_available() else 1
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
@@ -200,7 +200,7 @@ trainer = dinv.Trainer(
     early_stop_on_losses=True,  # stop using self-supervised eval loss
     metrics=None,  # no supervised metrics
     early_stop=2,  # early stop using the self-supervised loss on the test set
-    plot_images=True,
+    plot_images=False,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
