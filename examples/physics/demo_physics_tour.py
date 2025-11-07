@@ -4,7 +4,7 @@ Tour of forward sensing operators
 
 This example provides a tour of some of the forward operators implemented in DeepInverse.
 We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in
-`here <physics>`_.
+:ref:`here <physics>`.
 
 """
 
