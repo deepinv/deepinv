@@ -25,7 +25,7 @@ x = dinv.utils.load_example(
 print(f"Ground-truth images: {x.shape}")
 
 ###############################################################################
-# We select the second image in the batch and plot it.
+# Then we plot it:
 
 plot(x, r"$32\times 32$ image $X$")
 
