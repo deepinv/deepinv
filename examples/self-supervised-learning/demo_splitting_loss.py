@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
@@ -146,7 +146,13 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train and test network
 # ----------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 trainer = dinv.Trainer(
     model=model,
@@ -156,6 +162,11 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # we can use early stopping as we have a validation loss
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=False,
     save_path=None,
     verbose=True,
@@ -173,7 +184,7 @@ model = trainer.train()
 #
 
 trainer.plot_images = True
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 
 # %%
@@ -183,7 +194,7 @@ trainer.test(test_dataloader)
 #
 
 model.eval_n_samples = 1
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 
 # %%
@@ -194,7 +205,7 @@ trainer.test(test_dataloader)
 #
 
 model.eval_split_input = False
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

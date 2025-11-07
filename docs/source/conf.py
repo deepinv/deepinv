@@ -50,9 +50,8 @@ extensions = [
     "sphinxcontrib.bibtex",
 ]
 
-# Define your GitHub PR/issue "macro"
 extlinks = {
-    'gh': ('https://github.com/deepinv/deepinv/pull/%s', '#%s'),
+    "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
 }
 
 bibtex_bibfiles = ["refs.bib"]
@@ -236,6 +235,13 @@ add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Only add extra exclusions during doctest runs
+if os.environ.get("SPHINX_DOCTEST") == "1":
+    exclude_patterns.extend(
+        ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
+    )
+
 add_module_names = True  # include the module path in the function name
 
 from sphinx_gallery import gen_rst
@@ -407,7 +413,7 @@ html_theme_options = {
     },
     "announcement": (
         "🎉 We are part of "
-        "<a href='https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
+        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
@@ -427,6 +433,7 @@ napoleon_custom_sections = [
 ]
 
 nitpick_ignore = [
-    # This one generates a warning for some reason.
+    # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
+    ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]

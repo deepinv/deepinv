@@ -3,7 +3,7 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
+|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
 
 .. toctree::
    :maxdepth: 3
@@ -51,11 +51,15 @@ Install the latest stable release of ``deepinv``:
 
    pip install deepinv
 
-   # Or:
+Or, use `uv` for a faster install:
 
-   uv pip install deepinv # faster
+.. code-block:: bash
 
-   # Or, for additional dependencies:
+   uv pip install deepinv
+
+Or, to also install optional dependencies:
+
+.. code-block:: bash
 
    pip install deepinv[dataset,denoisers]
 
@@ -65,15 +69,16 @@ Since ``deepinv`` is under active development, you can install the latest nightl
 
    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-   # Or, for updating:
+Or, for updating an existing installation:
+
+.. code-block:: bash
 
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
 
 Contributing
 ------------
 
-DeepInverse is a community-driven project and we encourage contributions of all forms.
+DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
@@ -125,8 +130,12 @@ unfolded, deep equilibrium models
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh

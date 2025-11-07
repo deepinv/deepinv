@@ -77,7 +77,7 @@ class DDRM(Reconstructor):
     r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`zhu2023denoising`.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -178,7 +178,7 @@ class DDRM(Reconstructor):
             mean[case] = y_bar[case]
             std[case] = (self.sigmas[0] ** 2 - nsr[case].pow(2)).sqrt()
             x_bar = mean + std * torch.randn_like(y_bar) / np.sqrt(2.0)
-            x_bar_prev = x_bar.clone()
+            x_bar_prev = x_bar
 
             # denoise
             x = self.denoiser(physics.V(x_bar), self.sigmas[0])
@@ -209,7 +209,7 @@ class DDRM(Reconstructor):
                 )
 
                 x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
-                x_bar_prev = x_bar.clone()
+                x_bar_prev = x_bar
                 # denoise
                 x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
@@ -671,7 +671,7 @@ class DPS(Reconstructor):
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))
-            xt = xt_next.clone()
+            xt = xt_next
 
         if self.save_iterates:
             return xs

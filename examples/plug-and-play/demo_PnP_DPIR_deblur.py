@@ -17,7 +17,7 @@ from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.
@@ -105,7 +105,7 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 #    We provide a wrapper for rapidly creating the DPIR algorithm in :class:`deepinv.optim.DPIR`.
 
 # load specific parameters for DPIR
-sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
+sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img, device=device)
 params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
 early_stop = False  # Do not stop algorithm with convergence criteria
 

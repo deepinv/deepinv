@@ -24,7 +24,8 @@ class Rotate(Transform):
     :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
         When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
-    :param torchvision.transforms.InterpolationMode interpolation_mode: interpolation mode used for rotation, defaults to ``torchvision.transforms.InterpolationMode.NEAREST``.
+    :param str, torchvision.transforms.InterpolationMode interpolation_mode: interpolation mode or equivalent string used for rotation,
+        defaults to `nearest`. See :class:`torchvision.transforms.InterpolationMode` for options.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     """
@@ -35,7 +36,7 @@ class Rotate(Transform):
         limits: float = 360.0,
         multiples: float = 1.0,
         positive: bool = False,
-        interpolation_mode: InterpolationMode | None = None,
+        interpolation_mode: str | InterpolationMode | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -44,12 +45,17 @@ class Rotate(Transform):
         self.positive = positive
         if interpolation_mode is None:
             interpolation_mode = InterpolationMode.NEAREST
-            warn(
-                "The default interpolation mode will be changed to bilinear "
-                "interpolation in the near future. Please specify the interpolation "
-                "mode explicitly if you plan to keep using nearest interpolation."
-            )
-        self.interpolation_mode = interpolation_mode
+            if multiples % 90 != 0:
+                warn(
+                    "The default interpolation mode will be changed to bilinear "
+                    "interpolation in the near future. Please specify the interpolation "
+                    "mode explicitly if you plan to keep using nearest interpolation."
+                )
+        self.interpolation_mode = (
+            InterpolationMode(interpolation_mode)
+            if isinstance(interpolation_mode, str)
+            else interpolation_mode
+        )
 
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate rotation parameters.

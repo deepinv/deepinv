@@ -8,6 +8,39 @@ from natsort import natsorted
 
 
 class BSDS500(ImageDataset):
+    """Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
+
+    BSDS500 dataset for image restoration benchmarks. BSDS stands for The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
+    Originally, BSDS500 was used for image segmentation. However, this dataset only loads the ground truth images.
+    The dataset consists of RGB color images of size 481 x 321 or 321 x 481 and is divided into three splits:
+
+    - "train": contains 200 training images
+    - "val": contains 100 validation images
+    - "test": contains 200 test images
+
+    Despite the name, the "val" split is often used for testing (e.g., it is a superset of CBSD68), while the "train" and "test" splits are used for training.
+
+    This dataset uses the file structure from the github repository `https://github.com/BIDS/BSDS500 <https://github.com/BIDS/BSDS500>`_
+    from the institute which published the dataset.
+
+    **Raw data file structure:** ::
+
+            self.root --- BSDS500-master --- (all files from the github repo)
+
+
+    :param str, pathlib.Path root: Root directory of dataset. Directory path from where we load and save the dataset.
+    :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
+        If dataset is already downloaded, it is not downloaded again. Default at False.
+    :param bool train: If ``True``, the standard training dataset (containing the splits "train" and "test") will be loaded. If ``False``,
+        the standard test set (containing the "val" split) is loaded (which is a superset of CBSD68). Default at True
+    :param list of str splits: Alternatively to the `train` parameter, the precise splits used can be defined. E.g., pass `["train", "val"]`
+        to load the "train" and "val" splits. None for using the splits defined by the `train` parameter. Default None.
+    :param Callable transform: (optional) A function/transform that takes in a PIL image
+        and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``.
+    :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
+        Default at False.
+    """
+
     def __init__(
         self,
         root,
@@ -17,38 +50,6 @@ class BSDS500(ImageDataset):
         transform=None,
         rotate=False,
     ):
-        r"""Dataset for `BSDS500 <https://github.com/BIDS/BSDS500>`_.
-
-        BSDS500 dataset for image restoration benchmarks. BSDS stands for The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
-        Originally, BSDS500 was used for image segmentation. However, this dataset only loads the ground truth images.
-        The dataset consists of RGB color images of size 481 x 321 or 321 x 481 and is divided into three splits:
-
-        - "train": contains 200 training images
-        - "val": contains 100 validation images
-        - "test": contains 200 test images
-
-        Despite the name, the "val" split is often used for testing (e.g., it is a superset of CBSD68), while the "train" and "test" splits are used for training.
-
-        This dataset uses the file structure from the github repository `https://github.com/BIDS/BSDS500 <https://github.com/BIDS/BSDS500>`_
-        from the institute which published the dataset.
-
-        **Raw data file structure:** ::
-
-                self.root --- BSDS500-master --- (all files from the github repo)
-
-
-        :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-        :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
-            If dataset is already downloaded, it is not downloaded again. Default at False.
-        :param bool train: If ``True``, the standard training dataset (containing the splits "train" and "test") will be loaded. If ``False``,
-            the standard test set (containing the "val" split) is loaded (which is a superset of CBSD68). Default at True
-        :param list of str splits: Alternatively to the `train` parameter, the precise splits used can be defined. E.g., pass `["train", "val"]`
-            to load the "train" and "val" splits. None for using the splits defined by the `train` parameter. Default None.
-        :param Callable transform: (optional) A function/transform that takes in a PIL image
-            and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``.
-        :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
-            Default at False.
-        """
         checksum = "7bfe17302a219367694200a61ce8256c"
         if splits is None:
             if train:
