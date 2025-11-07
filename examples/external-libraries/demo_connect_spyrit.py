@@ -11,7 +11,7 @@ Here we use the HadamSplit2d linear model from Spyrit.
 # -----------------------------------------------------------------------------
 
 ###############################################################################
-# We first load the butterfly image using deepinv's load_example utility.
+# We start by loading the butterfly image using `func`:`deepinv.utils.load_example`:
 import torch.nn
 
 from deepinv.utils import plot
