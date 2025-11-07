@@ -253,7 +253,7 @@ class SirenReconstructor(Reconstructor):
 
     .. note::
 
-        To use this method, you need to instanciate the SIREN model :math:`f_\theta(z)` independently.
+        To use this method, you need to instantiate the SIREN model :math:`f_\theta(z)` independently.
 
 
     .. note::
