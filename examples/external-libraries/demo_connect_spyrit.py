@@ -2,7 +2,7 @@
 Using Spyrit with DeepInverse
 ====================================================================================================
 
-This example shows how to use Spyrit linear models and measurements with DeepInverse
+This example shows how to use Spyrit linear models and measurements with DeepInverse.
 Here we use the HadamSplit2d linear model from Spyrit.
 """
 
