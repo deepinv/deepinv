@@ -71,7 +71,7 @@ print("diff:", torch.linalg.norm(y_spyrit / norm - y_deepinv))
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################################
-# First, use the adjoint and dagger (pseudo-inverse) operators to reconstruct the image.
+# All of the usual solvers work out of the box and we showcase some of them here starting with simple linear reconstructions using :meth:`deepinv.physics.LinearPhysics.A_adjoint` and :meth:`deepinv.physics.LinearPhysics.A_dagger`:
 x_adj = physics_deepinv.A_adjoint(y_spyrit / norm)
 
 x_pinv = physics_deepinv.A_dagger(y_spyrit / norm)
