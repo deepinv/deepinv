@@ -139,6 +139,7 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = [
+    "A005",
     "UP006", "F401", "B905", "B006", "RUF008", "RUF012",
     "SLF001", "BLE001", "N805", "PLE0101", "PLW0120", "F404", "PLW0603", "S102", "E721", # "PLR6301" # From Python anti-patterns
     "TID253", "UP004", "UP007", "UP045", "FA100", "FA102", "TID251",
