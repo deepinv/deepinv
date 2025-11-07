@@ -1,5 +1,5 @@
 """
-Using Spyrit with DeepInverse
+Single-pixel imaging with Spyrit
 ====================================================================================================
 
 This example shows how to use Spyrit linear models and measurements with DeepInverse.
