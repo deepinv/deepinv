@@ -1,5 +1,6 @@
 from .mc import MCLoss
 from .ei import EILoss
+from .es import ESLoss
 from .moi import MOILoss, MOEILoss
 from .sup import SupLoss, ReducedResolutionLoss
 from .score import ScoreLoss
