@@ -4,10 +4,12 @@ import torchvision
 import math
 import torch
 import deepinv as dinv
-from deepinv.loss import SplittingLoss
 
 from deepinv.transform import Rotate, Reflect
 from deepinv.models.base import Reconstructor
+from deepinv.loss.loss import Loss
+from deepinv.loss.measplit import SplittingLoss
+from deepinv.loss.r2r import R2RLoss
 
 from typing import Callable, Any
 import torch
@@ -176,7 +178,7 @@ class _EquivariantReconstructor(Reconstructor):
 
 
 # A R2R-like loss to be used in conjunction with the splitting loss
-class _SplitR2RLoss(dinv.loss.R2RLoss):
+class _SplitR2RLoss(R2RLoss):
 
     def __init__(
         self,
@@ -242,22 +244,22 @@ class _SplitR2RLoss(dinv.loss.R2RLoss):
             return self.corruption
 
 
-class ESLoss(dinv.loss.Loss):
+class ESLoss(Loss):
 
     def __init__(
         self,
         *,
         mask_generator,
         noise_model,
-        alpha=0.2,
-        weight,
-        eval_n_samples=10,
+        alpha: float = 0.2,
+        weight: float = 1.0,
+        eval_n_samples: int = 10,
         train_transform,
         eval_transform=None,
-        equivariant_model=False,
+        equivariant_model: bool = False,
     ):
         super().__init__()
-        self._splitting_loss = dinv.loss.SplittingLoss()
+        self._splitting_loss = SplittingLoss()
         if not isinstance(noise_model, dinv.physics.ZeroNoise):
             # Use R2R Splitting loss
             split_r2r_loss = _SplitR2RLoss(
@@ -382,9 +384,7 @@ if __name__ == "__main__":
             model = dinv.models.ArtifactRemoval(backbone_net=backbone, mode="adjoint")
             model = loss[-1].adapt_model(model)
         else:
-            loss = [
-                dinv.loss.SplittingLoss(),
-            ]
+            loss = [ SplittingLoss() ]
             if not isinstance(physics.noise_model, dinv.physics.ZeroNoise):
                 loss.append(
                     _SplitR2RLoss(

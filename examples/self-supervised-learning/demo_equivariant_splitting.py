@@ -130,23 +130,31 @@ model = MoDL().to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 150 epochs using a larger knee dataset of ~1000 images.
 
-epochs = 1  # choose training epochs
+epochs = 2  # choose training epochs
 learning_rate = 5e-4
 batch_size = 16 if torch.cuda.is_available() else 1
 
 # choose self-supervised training losses
 # generates 4 random rotations per image in the batch
+rng = torch.Generator(device).manual_seed(0)
+split_generator = dinv.physics.generator.GaussianMaskGenerator(
+    img_size=(img_size, img_size),
+    acceleration=2,
+    center_fraction=0.0,
+    rng=rng,
+    device=device,
+)
 mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-    (1, *img_size), split_generator, device=device
+    (1, img_size, img_size), split_generator, device=device
 )
 # A random transformation from the group D4
-train_transform = Rotate(n_trans=1, multiples=90, positive=True) * Reflect(
+train_transform = dinv.transform.Rotate(n_trans=1, multiples=90, positive=True) * dinv.transform.Reflect(
     n_trans=1, dim=[-1]
 )
 # # All of the transformations from the group D4
 eval_transform = None  # use same as train
 
-losses = [dinv.loss.MCLoss(), dinv.loss.ESLoss(
+losses = [dinv.loss.ESLoss(
     mask_generator=mask_generator,
     noise_model=physics.noise_model,
     train_transform=train_transform,
@@ -154,7 +162,7 @@ losses = [dinv.loss.MCLoss(), dinv.loss.ESLoss(
 )]
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # %%
