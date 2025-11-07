@@ -22,7 +22,7 @@ im_size = 64
 x = dinv.utils.load_example(
     "butterfly.png", device=device, img_size=(im_size, im_size), grayscale=True
 )
-print(f"Ground-truth images: {x.shape}")
+print(f"Ground-truth image: {x.shape}")
 
 ###############################################################################
 # Then we plot it:
