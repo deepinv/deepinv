@@ -92,7 +92,7 @@ x_tv, metrics_TV = model_tv(
 )
 
 ######################################################################
-# Deep Plug and Play (DPIR) algorithm can also be used with a pretrained denoiser. Here, we use the DRUNet denoiser.
+# And so do deep learning methods:
 denoiser = dinv.models.DRUNet(in_channels=1, out_channels=1, device=device)
 model_dpir = dinv.optim.DPIR(sigma=1e-1, device=device, denoiser=denoiser)
 model_dpir.custom_init = lambda y, Physics: {"est": (Physics.A_dagger(y),)}
