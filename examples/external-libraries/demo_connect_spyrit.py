@@ -67,7 +67,7 @@ y_deepinv = physics_deepinv(x)
 print("diff:", torch.linalg.norm(y_spyrit / norm - y_deepinv))
 
 # %%
-# Reconstruction with deepinverse
+# Computing the reconstructions
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################################
