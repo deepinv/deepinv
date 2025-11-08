@@ -97,6 +97,7 @@ class NIQE(Metric):
         self.patch_size = 96
         self.device = device
         self.n_scales = 2
+        self.patch_overlap = 0
 
         resp = requests.get(
             "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
@@ -203,7 +204,7 @@ class NIQE(Metric):
             )
             structdis = (x_net - mu) / (sigma + 1)
             k = max(1, self.patch_size // scale)
-            ov = getattr(self, "patch_overlap", 0) // scale
+            ov = self.patch_overlap// scale
             strd = max(1, k - ov)
 
             feats = self._patch_features(structdis, k, strd)  # (B, L, 18)
@@ -254,8 +255,11 @@ class NIQE(Metric):
                 f"NIQE expects batched, 2D data, but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})"
             )
 
-        b, c, h, w = x_net.shape
-        if c == 3:
+        _, C, H, W = x_net.shape
+
+        assert C // 
+
+        if C == 3:
             luminance_weights = torch.tensor(
                 [0.2126, 0.7152, 0.0722], dtype=x_net.dtype, device=x_net.device
             ).view(1, 3, 1, 1)
