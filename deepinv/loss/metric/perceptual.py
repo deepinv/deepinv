@@ -5,7 +5,6 @@ import math
 import torch
 import torch.nn.functional as F
 import torch.nn.functional as F
-from scipy.io import loadmat
 
 from deepinv.loss.metric.metric import Metric, import_pyiqa
 from deepinv.physics.functional.convolution import conv2d
@@ -154,7 +153,10 @@ class NIQE(Metric):
         #     "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
         #     timeout=2.5,
         # )
-
+        try:
+            from scipy.io import loadmat
+        except:  # pragma: no cover
+            raise ImportError("NIQE requires scipy. Please install it")
         resp = requests.get(
             "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_matlab_params.mat",
             timeout=2.5,
