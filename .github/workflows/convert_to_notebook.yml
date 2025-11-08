@@ -5,7 +5,9 @@ on:
     branches: [ main ]
     paths:
       - 'examples/**/*.py'
-
+  pull_request:
+    branches:
+    - main
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
