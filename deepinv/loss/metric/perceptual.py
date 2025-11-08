@@ -1,8 +1,10 @@
+from __future__ import annotations
+import torch
 import sys, io
 import math
 import torch
 import torch.nn.functional as F
-from deepinv.loss.metric.metric import import_pyiqa, Metric
+from deepinv.loss.metric.metric import Metric
 
 
 class LPIPS(Metric):
@@ -97,7 +99,6 @@ class NIQE(Metric):
     Lower values indicate better perceptual quality.
 
     It is a no-reference image quality metric that estimates the quality of images.
-    Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
     .. note::
 
@@ -115,7 +116,7 @@ class NIQE(Metric):
         m(x_net)
         tensor([...])
 
-    :param str device: device to use for the metric computation. Default: 'cpu'.
+    :param torch.device, str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
@@ -127,15 +128,18 @@ class NIQE(Metric):
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, device="cpu", check_input_range=False, **kwargs):
+    def __init__(self, device : str | torch.device = "cpu", check_input_range=False, **kwargs):
         super().__init__(**kwargs)
-        pyiqa = import_pyiqa()
-        self.niqe = pyiqa.create_metric(
-            "niqe", check_input_range=check_input_range, device=device
-        ).to(device)
+        self.check_range = check_input_range
         self.lower_better = self.niqe.lower_better
+        self.patch_size = 96
 
-    def metric(self, x_net, *args, **kwargs):
+    def 
+
+    def metric(self, x_net : torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        if x_net.ndim != 4: # pragma: no cover
+            raise RuntimeError(f"NIQE expects batched, 2D data, but got tensor with {x_net.ndim} dimensions (shape: {x_net.shape})")
+        h, w = x_net.shape[2:]
         n = self.niqe(x_net).float()
         return n.unsqueeze(0) if n.dim() == 0 else n
 
