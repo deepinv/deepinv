@@ -1,5 +1,5 @@
 import torch
-from deepinv.models.base import Denoiser
+from .base import Denoiser
 
 
 class TVDenoiser(Denoiser):

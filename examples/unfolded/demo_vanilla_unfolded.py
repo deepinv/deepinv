@@ -6,7 +6,7 @@ This is a simple example to show how to use vanilla unfolded Plug-and-Play.
 The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly.
 For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
 """
-# %%
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
