@@ -98,15 +98,15 @@ class NIQE(Metric):
         self.device = device
         self.n_scales = 2
 
-        # resp = requests.get(
-        #     "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
-        #     timeout=2.5,
-        # )
-
         resp = requests.get(
-            "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_matlab_params.mat",
+            "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_modelparameters.mat",
             timeout=2.5,
         )
+
+        # resp = requests.get(
+        #     "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/niqe_matlab_params.mat",
+        #     timeout=2.5,
+        # )
         resp.raise_for_status()
 
         params = loadmat(io.BytesIO(resp.content))
