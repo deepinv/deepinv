@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .base import Denoiser
 from deepinv.utils.compat import zip_strict
+import math
 
 
 class DiffUNet(Denoiser):
@@ -877,11 +878,6 @@ class QKVAttention(nn.Module):
 """
 Various utilities for neural networks.
 """
-
-import math
-
-import torch as th
-import torch.nn as nn
 
 
 # PyTorch 1.7 has SiLU, but we support PyTorch 1.5.

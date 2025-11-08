@@ -5,20 +5,23 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
-from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from sphinx.util import logging
 import doctest
 from importlib.metadata import metadata as importlib_metadata
+from docutils import nodes
+from docutils.parsers.rst import Directive
+from sphinx.util import logging
+from sphinx.addnodes import pending_xref
+from sphinx_gallery import gen_rst
+from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
+from sphinx_gallery.directives import ImageSg
 
 logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-from deepinv.utils.plotting import set_default_plot_fontsize
 
 set_default_plot_fontsize(12)
 
@@ -91,10 +94,6 @@ html_copy_source = True
 sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
-from docutils import nodes
-from docutils.parsers.rst import Directive
-from sphinx.addnodes import pending_xref
-
 default_role = "code"  # default role for single backticks
 
 
@@ -167,6 +166,7 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
+    from deepinv.utils.plotting import set_default_plot_fontsize
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
@@ -244,7 +244,6 @@ if os.environ.get("SPHINX_DOCTEST") == "1":
 
 add_module_names = True  # include the module path in the function name
 
-from sphinx_gallery import gen_rst
 
 gen_rst.EXAMPLE_HEADER = """
 .. DO NOT EDIT.
