@@ -12,7 +12,7 @@ New Features
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
-- Add `Open in Colab` button to examples (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
