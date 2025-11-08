@@ -273,7 +273,7 @@ class NIQE(Metric):
             x_net = F.conv2d(x_net, luminance_weights)
         if x_net.shape[1] != 1:  # pragma: no cover
             raise RuntimeError(
-                f"NIQE only operates on single channel images. 3 channel (RGB) gets converted to relative luminance, but got {c}-channel input"
+                f"NIQE only operates on single channel images. 3 channel (RGB) gets converted to relative luminance, but got {C}-channel input"
             )
         if self.round:
             x_net = x_net.round()
