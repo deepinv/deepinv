@@ -22,49 +22,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+            fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+            python-version: '3.12'
+            cache: 'pip'
 
       - name: Install jupytext
         run: |
-          python -m pip install --upgrade pip
-          pip install jupytext
+            python -m pip install --upgrade pip
+            pip install jupytext
 
       - name: Convert example .py scripts to .ipynb with Jupytext
         run: |
-          set -euo pipefail
-          echo "Converting Python examples to notebooks in examples/_notebooks..."
-          mkdir -p examples/_notebooks
-          find examples -type f -name '*.py' | while read -r f; do
+            set -euo pipefail
+            echo "Converting Python examples to notebooks in examples/_notebooks..."
+            mkdir -p examples/_notebooks
+            find examples -type f -name '*.py' | while read -r f; do
             rel="${f#examples/}"
-            # Preserve subdirectory structure inside _notebooks
             out_dir="examples/_notebooks/$(dirname "$rel")"
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            # Convert using jupytext
             jupytext --to ipynb "$f" --output "$out_path"
+            done
 
       - name: Commit notebooks to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if [ "$(cat /tmp/commit_needed)" != "commit" ]; then
-            echo "Skipping commit; nothing to update."
-            exit 0
-          fi
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Auto-convert examples to notebooks [skip ci]"
-            git push origin HEAD:main
+            if [ "$(cat /tmp/commit_needed)" != "commit" ]; then
+                echo "Skipping commit; nothing to update."
+                exit 0
+            fi
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+                git commit -m "Auto-convert examples to notebooks [skip ci]"
+                git push origin HEAD:main
 
       - name: Summary
         run: |
-          if [ -f /tmp/commit_needed ] && [ "$(cat /tmp/commit_needed)" = "commit" ]; then
-            echo "Notebooks updated and pushed."
-          else
-            echo "No updates were necessary."
+            if [ -f /tmp/commit_needed ] && [ "$(cat /tmp/commit_needed)" = "commit" ]; then
+                echo "Notebooks updated and pushed."
+            else
+                echo "No updates were necessary."
