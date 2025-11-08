@@ -1,12 +1,6 @@
-"""
+r"""
 Learned iterative custom prior
 ==============================
-
-.. raw:: html
-
-   <a href="https://colab.research.google.com/github/deepinv/deepinv/blob/main/examples/unfolded/demo_custom_prior_unfolded.py" target="_blank">
-     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
-   </a>
 
 This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
 The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
