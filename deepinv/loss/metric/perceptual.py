@@ -4,7 +4,7 @@ import sys, io
 import math
 import torch
 import torch.nn.functional as F
-from deepinv.loss.metric.metric import Metric
+from deepinv.loss.metric.metric import Metric, import_pyiqa
 
 
 class LPIPS(Metric):
