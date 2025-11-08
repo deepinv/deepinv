@@ -13,10 +13,10 @@ def to_complex_denoiser(denoiser: Denoiser, mode="real_imag") -> ComplexDenoiser
     :param str mode: the mode by which the complex inputs are processed. Can be either `'real_imag'` or `'abs_angle'`.
     :return: (torch.nn.Module) the denoiser which takes in complex-valued inputs.
     """
-    return ComplexDenoiserWrapper(denoiser, mode)
+    return ComplexDenoiser(denoiser, mode)
 
 
-class ComplexDenoiserWrapper(Denoiser):
+class ComplexDenoiser(Denoiser):
     r"""
     A wrapper class to convert a real-valued denoiser into a complex-valued denoiser.
     It processes complex inputs by splitting them into real and imaginary parts or into absolute value and phase parts, applying the real-valued denoiser separately, and then recombining the results. 
