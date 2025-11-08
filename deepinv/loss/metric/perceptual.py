@@ -5,7 +5,6 @@ from scipy.io import loadmat
 
 from deepinv.loss.metric.metric import Metric, import_pyiqa
 from deepinv.physics.functional.convolution import conv2d
-from deepinv.datasets.utils import download_archive
 
 import io
 import requests
