@@ -10,17 +10,6 @@ from deepinv.loss.metric.functional import norm
 from deepinv.utils.signals import normalize_signal, complex_abs
 
 
-def import_pyiqa() -> ModuleType:
-    try:
-        import pyiqa
-
-        return pyiqa
-    except ImportError:
-        raise ImportError(
-            "Metric not available. Please install the pyiqa package with `pip install pyiqa`."
-        )
-
-
 class Metric(Module):
     r"""
     Base class for metrics.
@@ -128,7 +117,7 @@ class Metric(Module):
         """
         return self._metric(x_net, x, *args, **kwargs)
 
-    def invert_metric(self, m: Tensor):
+    def invert_metric(self, m: Tensor) -> Tensor:
         """Invert metric. Used where a higher=better metric is to be used in a training loss.
 
         :param torch.Tensor m: calculated metric
