@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from .base import Denoiser
 from deepinv.utils.compat import zip_strict
 import math
+import torch as th
 
 
 class DiffUNet(Denoiser):
