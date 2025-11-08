@@ -204,7 +204,7 @@ class NIQE(Metric):
             )
             structdis = (x_net - mu) / (sigma + 1)
             k = max(1, self.patch_size // scale)
-            ov = self.patch_overlap// scale
+            ov = self.patch_overlap // scale
             strd = max(1, k - ov)
 
             feats = self._patch_features(structdis, k, strd)  # (B, L, 18)
@@ -257,14 +257,17 @@ class NIQE(Metric):
 
         _, C, H, W = x_net.shape
 
-        assert C // 
+        if H < self.patch_size or W < self.patch_size:  # pragma: no cover
+            raise RuntimeError(
+                f"NIQE requires images to have height and width larger than or equal to its patch size {self.patch_size}, but got batch of shape {x_net.shape}"
+            )
 
         if C == 3:
             luminance_weights = torch.tensor(
                 [0.2126, 0.7152, 0.0722], dtype=x_net.dtype, device=x_net.device
             ).view(1, 3, 1, 1)
             x_net = F.conv2d(x_net, luminance_weights)
-        if x_net.shape[1] != 1:
+        if x_net.shape[1] != 1:  # pragma: no cover
             raise RuntimeError(
                 f"NIQE only operates on single channel images. 3 channel (RGB) gets converted to relative luminance, but got {c}-channel input"
             )
