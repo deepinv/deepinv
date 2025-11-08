@@ -6,8 +6,7 @@ from scipy.io import loadmat
 from deepinv.loss.metric.metric import Metric, import_pyiqa
 from deepinv.physics.functional.convolution import conv2d
 
-import io
-import requests
+import io, requests
 
 
 class LPIPS(Metric):
