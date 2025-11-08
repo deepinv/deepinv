@@ -86,6 +86,7 @@ denoisers = [
     "ptwt",
     "FrEIA",
     "pyiqa",
+    "scipy",
     "kornia",
     "torchkbnufft",
     "libcpab",
