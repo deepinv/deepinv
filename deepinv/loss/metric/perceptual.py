@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from deepinv.loss.metric.metric import Metric
+from deepinv.loss.metric.metric import Metric, import_pyiqa
 
 
 class LPIPS(Metric):
