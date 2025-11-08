@@ -49,28 +49,6 @@ jobs:
             out_path="$out_dir/$base.ipynb"
             # Convert using jupytext
             jupytext --to ipynb "$f" --output "$out_path"
-          on:
-            push:
-              branches: [ main ]
-              paths:
-                - 'examples/**/*.py'
-                - '.github/workflows/generate_notebook.yml'
-            pull_request:
-              branches: [ main ]
-              paths:
-                - 'examples/**/*.py'
-                - '.github/workflows/generate_notebook.yml'
-            workflow_dispatch:
-            schedule:
-              - cron: '0 3 * * 0'  # Weekly Sunday 03:00 UTC refresh
-          if [ ${#files[@]} -gt 0 ]; then
-            git add "${files[@]}"
-          fi
-          if git diff --cached --quiet; then
-            echo "No notebook changes detected." > /tmp/commit_needed
-          else
-            echo "commit" > /tmp/commit_needed
-          fi
 
       - name: Commit notebooks to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
