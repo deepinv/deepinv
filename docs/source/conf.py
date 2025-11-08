@@ -16,6 +16,7 @@ from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
+from deepinv.utils.plotting import set_default_plot_fontsize
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,6 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
-    from deepinv.utils.plotting import set_default_plot_fontsize
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
