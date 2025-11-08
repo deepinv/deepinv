@@ -143,6 +143,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
 "__init__.py" = ["F401"]
+"deepinv/__init__.py" = ["E402"]
 "examples/**/*" = ["TID253", "E402"]
 
 [tool.ruff.lint.flake8-tidy-imports]
