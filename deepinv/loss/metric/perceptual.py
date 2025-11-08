@@ -214,7 +214,11 @@ class NIQE(Metric):
                 newH = x_net.shape[2] // 2
                 newW = x_net.shape[3] // 2
                 x_net = F.interpolate(
-                    x_net, size=(newH, newW), mode="bilinear", align_corners=False
+                    x_net,
+                    size=(newH, newW),
+                    mode="bilinear",
+                    align_corners=False,
+                    antialias=True,
                 )
 
         X = torch.cat(all_feats, dim=2)  # (B, L, 36)
