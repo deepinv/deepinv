@@ -47,14 +47,20 @@ jobs:
             out_path="$out_dir/$base.ipynb"
             # Convert using jupytext
             jupytext --to ipynb "$f" --output "$out_path"
-          done
-          echo "Notebook conversion done."
-
-      - name: Stage generated notebooks
-        run: |
-          set -euo pipefail
-          # Stage only .ipynb files under examples/_notebooks
-          mapfile -t files < <(find examples/_notebooks -type f -name '*.ipynb')
+          on:
+            push:
+              branches: [ main ]
+              paths:
+                - 'examples/**/*.py'
+                - '.github/workflows/generate_notebook.yml'
+            pull_request:
+              branches: [ main ]
+              paths:
+                - 'examples/**/*.py'
+                - '.github/workflows/generate_notebook.yml'
+            workflow_dispatch:
+            schedule:
+              - cron: '0 3 * * 0'  # Weekly Sunday 03:00 UTC refresh
           if [ ${#files[@]} -gt 0 ]; then
             git add "${files[@]}"
           fi
@@ -65,7 +71,7 @@ jobs:
           fi
 
       - name: Commit notebooks to main
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           if [ "$(cat /tmp/commit_needed)" != "commit" ]; then
             echo "Skipping commit; nothing to update."
