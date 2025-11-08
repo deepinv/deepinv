@@ -52,7 +52,9 @@ class OldNIQE(Metric):
 
 
 if __name__ == "__main__":
-    n = NIQE(round_tensor=True)
+    # https://quality.nfdi4ing.de/en/latest/image_quality/NIQE.html
+
+    n = NIQE()
     old_n = OldNIQE()
     url = "https://quality.nfdi4ing.de/en/latest/_images/Reference_Image.png"
 
