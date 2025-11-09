@@ -4,7 +4,8 @@
   of the current example.
 #}
 
-{% if pagename.startswith('auto_examples/') %}
+{% if pagename.startswith('auto_examples/') and not pagename.endswith('/index') and pagename != 'auto_examples/index' %}
+
 {#
   Derive the source .py path from the example page path.
   Gallery pages live at auto_examples/<section>/<name> and source scripts at examples/<section>/<name>.py
@@ -17,8 +18,9 @@
     <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2">Run this example</p>
 
     {# Primary: open the source .py on Colab (Colab can render scripts; install instructions are in first cell) #}
-    <a class="sd-btn sd-btn-primary sd-mr-2" href="https://colab.research.google.com/github/{{ repo_owner }}/{{ repo_name }}/blob/{{ repo_source_ref }}/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
-      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;"> Try it!
+    <a class="sd-btn sd-btn-primary sd-mr-2" href="https://colab.research.google.com/github/deepinv/deepinv/blob/main/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
+      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;"><br>
+      Try it!
     </a>
 
   </div>
