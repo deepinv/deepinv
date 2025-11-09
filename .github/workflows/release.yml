@@ -42,7 +42,7 @@ jobs:
       - name: Update changelog
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py docs/source/changelog.rst pyproject.toml ${{github.event.inputs.bump_type}}
+          python .github/scripts/get_latest_changelog.py ./docs/source/changelog.rst pyproject.toml ${{github.event.inputs.bump_type}}
 
       - name: Bump version
         id: bump
@@ -61,13 +61,13 @@ jobs:
           commit-message: "Release v${{ steps.bump.outputs.version }}"
           add-paths: |
             pyproject.toml
-            docs/source/changelog.rst
+            ./docs/source/changelog.rst
           base: main
           labels: release
           delete-branch: true
     
       - name: Create Github release
-        if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
+        if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}
