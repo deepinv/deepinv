@@ -75,11 +75,10 @@ class DiffusersDenoiserWrapper(Denoiser):
         # Precompute sigma(t) over training timeline
         ac = self.scheduler.alphas_cumprod
 
-        self.register_buffer("sqrt_alpha_cumprod", ac.sqrt())  # alpha_t
+        self.register_buffer("scale_schedule", ac.sqrt())  # alpha_t
         self.register_buffer(
-            "sqrt_one_minus_alpha_cumprod", (1.0 - ac).clamp(min=0).sqrt()
+            "sigma_schedule", (1.0 - ac).clamp(min=0).sqrt()
         )  # sigma_t
-        self.register_buffer("beta_cumprod", 1 - ac)
 
         # prediction_type: "epsilon", "v_prediction", or "sample"
         self.prediction_type = getattr(
@@ -93,7 +92,7 @@ class DiffusersDenoiserWrapper(Denoiser):
         Map a sigma to the nearest training time-step index.
         Supports scalar or per-batch tensor sigma.
         """
-        sigmas = self.sqrt_one_minus_alpha_cumprod  # [T]
+        sigmas = self.sigma_schedule  # [T]
         # If batch, do per-element argmin.
         if sigma.dim() == 0:
             timestep = torch.argmin((sigmas - sigma).abs())
@@ -160,7 +159,7 @@ class DiffusersDenoiserWrapper(Denoiser):
             )
 
         sqrt_alpha_bar_t = self._handle_sigma(
-            self.sqrt_alpha_cumprod[timestep],
+            self.scale_schedule[timestep],
             batch_size=x.shape[0],
             ndim=x.ndim,
             device=device,
