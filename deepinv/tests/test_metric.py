@@ -212,3 +212,79 @@ def test_metric_kwargs():
 
     # Test train loss does nothing as MSE already lower_better=True
     assert torch.all(metric.MSE(train_loss=True)(x_hat, x) == torch.tensor([1.0]))
+
+
+def test_center_crop():
+    # Test center crop with positive int value
+    x = torch.ones(2, 3, 32, 32)
+    x_hat = torch.zeros(2, 3, 32, 32)
+    
+    # Test with int crop size (crops all spatial dimensions equally)
+    m = metric.MSE(center_crop=16)
+    result = m(x_hat, x)
+    # After cropping to 16x16, each sample should have MSE of 1.0
+    assert torch.all(result == torch.tensor([1.0, 1.0]))
+    
+    # Test with tuple crop size (crops last len(tuple) dimensions)
+    m = metric.MSE(center_crop=(8, 8))
+    result = m(x_hat, x)
+    # After cropping to 8x8, each sample should have MSE of 1.0
+    assert torch.all(result == torch.tensor([1.0, 1.0]))
+    
+    # Test with negative crop value (removes pixels from borders)
+    x = torch.ones(2, 3, 32, 32)
+    x_hat = x.clone()
+    # Set borders to 0
+    x_hat[:, :, :4, :] = 0  # top
+    x_hat[:, :, -4:, :] = 0  # bottom
+    x_hat[:, :, :, :4] = 0  # left
+    x_hat[:, :, :, -4:] = 0  # right
+    
+    m = metric.MSE(center_crop=-4)  # Remove 4 pixels from each border
+    result = m(x_hat, x)
+    # After removing borders, we should have identical images
+    assert torch.all(result == torch.tensor([0.0, 0.0]))
+    
+    # Test with zero crop value (removes 0 pixels from borders, i.e., no crop)
+    m = metric.MSE(center_crop=0)
+    result = m(x_hat, x)
+    # With zero crop, borders are included and MSE should be > 0
+    assert torch.all(result > 0)
+    
+    # Test that crop works with different metrics
+    x = torch.ones(1, 1, 64, 64)
+    x_hat = torch.zeros(1, 1, 64, 64)
+    
+    m_psnr = metric.PSNR(center_crop=32)
+    result_psnr = m_psnr(x_hat, x)
+    assert result_psnr.shape == torch.Size([1])
+    
+    m_mae = metric.MAE(center_crop=32)
+    result_mae = m_mae(x_hat, x)
+    assert torch.all(result_mae == torch.tensor([1.0]))
+    
+    # Test that None means no cropping
+    m_none = metric.MSE(center_crop=None)
+    x = torch.ones(1, 1, 32, 32)
+    x_hat = torch.zeros(1, 1, 32, 32)
+    result_none = m_none(x_hat, x)
+    assert torch.all(result_none == torch.tensor([1.0]))
+    
+    # Test error handling: crop size larger than dimension
+    m = metric.MSE(center_crop=64)
+    x = torch.ones(1, 1, 32, 32)
+    try:
+        m(x, x)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "larger than dimension size" in str(e)
+    
+    # Test error handling: too many border pixels to remove
+    m = metric.MSE(center_crop=-20)
+    x = torch.ones(1, 1, 32, 32)
+    try:
+        m(x, x)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "remove entire dimension" in str(e)
+
