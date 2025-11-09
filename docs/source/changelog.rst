@@ -8,6 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.6
+------
+New Features
+^^^^^^^^^^^^
 - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh:`806` by `Vicky De Ridder`_)
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
@@ -27,6 +39,8 @@ Fixed
 - Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
+
+
 
 v0.3.5
 ------
