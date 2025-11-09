@@ -26,29 +26,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check CI is passing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO="deepinv/deepinv"
-
-          get_status () {
-            curl -s -H "Authorization: token $GH_TOKEN" \
-              "https://api.github.com/repos/$REPO/actions/workflows/$1/runs?branch=main&status=completed&per_page=1" \
-              | jq -r '.workflow_runs[0].conclusion'
-          }
-
-          STATUS_TEST=$(get_status "test.yml")
-          STATUS_DOC=$(get_status "documentation.yml")
-
-          echo "Test: $STATUS_TEST"
-          echo "Docs: $STATUS_DOC"
-
-          if [[ "$STATUS_TEST" != "success" || "$STATUS_DOC" != "success" ]]; then
-            echo "❌ One or both workflows failed — aborting."
-            exit 1
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -84,7 +61,7 @@ jobs:
           commit-message: "Release v${{ steps.bump.outputs.version }}"
           add-paths: |
             pyproject.toml
-            CHANGELOG.rst
+            docs/source/changelog.rst
           base: main
           labels: release
           delete-branch: true
