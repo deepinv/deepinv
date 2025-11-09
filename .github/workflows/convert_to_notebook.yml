@@ -3,8 +3,9 @@ name: Generate example notebooks
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'examples/**/*.py'
+    # NOTE: for the first run, we want to convert all examples. For subsequent runs, uncomment the paths filter
+    # paths:
+    #   - 'examples/**/*.py'
   pull_request:
     branches:
       - main
