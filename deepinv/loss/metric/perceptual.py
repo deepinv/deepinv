@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from deepinv.loss.metric.metric import Metric, import_pyiqa
 from deepinv.physics.functional.convolution import conv2d
 
-import io, requests
+import io, requests, math
 
 
 class LPIPS(Metric):
@@ -229,7 +229,11 @@ class NIQE(Metric):
 
         cov_p = self.cov_p.expand_as(cov_d)  # (B,36,36)
         mu_p = self.mu_p  # (36,)
-        invcov = torch.linalg.pinv(0.5 * (cov_d + cov_p))  # (B,36,36)
+        invcov = torch.linalg.pinv(
+            0.5 * (cov_d.to(torch.float64) + cov_p.to(torch.float64))
+        ).to(
+            torch.float32
+        )  # (B,36,36)
         diff = (mu_p.unsqueeze(0) - mu_d).unsqueeze(1)  # (B,1,36)
         score = torch.sqrt((diff @ invcov @ diff.transpose(1, 2)).squeeze())
         return score
@@ -277,6 +281,11 @@ class NIQE(Metric):
             )
         if self.round:
             x_net = x_net.round()
+        block_hnum = math.floor(H / self.patch_size)
+        block_wnum = math.floor(W / self.patch_size)
+        x_net = x_net[
+            :, :, : block_hnum * self.patch_size, : block_wnum * self.patch_size
+        ]
 
         n = self.niqe(x_net).float()
         return n.unsqueeze(0) if n.dim() == 0 else n
