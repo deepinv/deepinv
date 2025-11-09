@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -140,7 +140,7 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.

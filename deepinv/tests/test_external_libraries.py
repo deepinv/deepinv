@@ -6,10 +6,10 @@ import unittest.mock as mock
 
 
 class TestTomographyWithAstra:
-    def dummy_compute_norm(cls, x0: torch.Tensor) -> torch.Tensor:
+    def dummy_compute_norm(self, x0: torch.Tensor) -> torch.Tensor:
         return torch.tensor(1.0).to(x0)
 
-    def dummy_projection(cls, x: torch.Tensor, out: torch.Tensor) -> None:
+    def dummy_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
 
     @pytest.mark.parametrize("normalize", [True, False, None])
