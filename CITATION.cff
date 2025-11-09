@@ -60,6 +60,8 @@ date-released: 2023-06-30
 repository-code: "https://github.com/deepinv/deepinv"
 url: "https://arxiv.org/abs/2505.20160"
 license: "BSD-3-Clause"
+doi: "10.48550/arXiv.2505.20160"
+version: 0.3.6
 keywords:
   - "inverse problems"
   - "deep learning"
