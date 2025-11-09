@@ -51,6 +51,7 @@ jobs:
           echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
 
       - name: create PR with changes
+        if: ${{ github.event.inputs.bump_type != 'dev' && success() }}
         uses: peter-evans/create-pull-request@v7
         with:
           branch: release-branch
