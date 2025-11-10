@@ -1364,6 +1364,12 @@ def test_client_mocked(return_metadata):
 @pytest.mark.parametrize("upscale", [None, 1, 2])
 @pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
 def test_swinir_upsample_without_upsampler(upscale, upsampler):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
+
     kwargs = {}
 
     if upscale is not None:
