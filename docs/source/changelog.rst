@@ -40,6 +40,7 @@ Fixed
 - Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
+- Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
 - Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
