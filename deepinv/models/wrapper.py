@@ -75,10 +75,12 @@ class DiffusersDenoiserWrapper(Denoiser):
         # Precompute sigma(t) over training timeline
         ac = self.scheduler.alphas_cumprod
 
-        self.register_buffer("scale_schedule", ac.sqrt())  # alpha_t
+        self.register_buffer(
+            "scale_schedule", ac.sqrt()
+        )  # the scaling factor -- sqrt_alphas_cumprod
         self.register_buffer(
             "sigma_schedule", (1.0 - ac).clamp(min=0).sqrt()
-        )  # sigma_t
+        )  # the noise level -- sqrt_one_minus_alphas_cumprod
 
         # prediction_type: "epsilon", "v_prediction", or "sample"
         self.prediction_type = getattr(
@@ -87,7 +89,7 @@ class DiffusersDenoiserWrapper(Denoiser):
 
         self.to(device)
 
-    def _nearest_t_from_sigma(self, sigma: float | torch.Tensor) -> torch.Tensor:
+    def _nearest_t_from_sigma(self, sigma: torch.Tensor) -> torch.Tensor:
         """
         Map a sigma to the nearest training time-step index.
         Supports scalar or per-batch tensor sigma.
@@ -106,7 +108,6 @@ class DiffusersDenoiserWrapper(Denoiser):
         self,
         x: torch.Tensor,
         sigma: float | torch.Tensor = None,
-        timestep: int | torch.Tensor = None,
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -118,8 +119,6 @@ class DiffusersDenoiserWrapper(Denoiser):
         :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
             If a single `float` is provided, the same noise level is used for all samples in the batch.
             Otherwise, batch-wise noise levels are used.
-        :param int, torch.Tensor timestep: an optional timestep index. Can be an `int` or a :class:`torch.Tensor` of shape `[B]`. If a single `int` is provided, the same timestep is used for all samples in the batch.
-            Otherwise, batch-wise timesteps are used. This parameter is ignored if `sigma` is provided.
         :param args: additional positional arguments to be passed to the model.
         :param kwarg: additional keyword arguments to be passed to the model. For example, a `prompt` for text-conditioned or `class_label` for class-conditioned models.
 
@@ -129,9 +128,7 @@ class DiffusersDenoiserWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        assert (sigma is not None) or (
-            timestep is not None
-        ), "Provide either sigma or timestep."
+        assert sigma is not None, "Please provide a noise level sigma."
 
         # Handle sigma
         sigma = self._handle_sigma(
@@ -146,25 +143,9 @@ class DiffusersDenoiserWrapper(Denoiser):
         sqrt_alpha = 1 / (1 + sigma**2).sqrt()
         sigma = sigma * sqrt_alpha
 
-        # Resolve timestep
-        if sigma is not None:
-            if timestep is not None:
-                warnings.warn(
-                    "Both sigma and timestep are provided. Ignoring timestep and using sigma."
-                )
-            timestep = self._nearest_t_from_sigma(sigma.squeeze())
-        else:
-            timestep = self._handle_sigma(
-                timestep, batch_size=x.shape[0], ndim=1, device=device, dtype=torch.long
-            )
+        timestep = self._nearest_t_from_sigma(sigma.squeeze())
 
-        sqrt_alpha_bar_t = self._handle_sigma(
-            self.scale_schedule[timestep],
-            batch_size=x.shape[0],
-            ndim=x.ndim,
-            device=device,
-            dtype=dtype,
-        )
+        sqrt_alpha_bar_t = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
 
         # Rescale input x from [0, 1] to model scale [-1, 1] and apply sqrt_alpha scaling following DDPM
         x = (x * 2 - 1) * sqrt_alpha
