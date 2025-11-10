@@ -997,3 +997,53 @@ def _infer_device(
         )
 
     return input_devices.pop() if input_devices else default
+
+
+class LaplaceNoise(NoiseModel):
+    r"""
+    Laplace noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\text{Laplace}(0,b)`.
+    In the laplace distribution, b is the scale parameter and the variance is given by :math:`\sigma^2=2b^2`.
+
+    :param Union[float, torch.Generator] b: scale of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+
+    |sep|
+    :Examples:
+
+        Adding Laplace noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, LaplaceNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = LaplaceNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
+    """
+
+    def __init__(
+        self,
+        b: float | torch.Tensor = 0.1,
+        rng: torch.Generator | None = None,
+    ):
+        device = _infer_device([b, rng])
+        super().__init__(rng=rng)
+        b = self._float_to_tensor(b)
+        b = b.to(device)
+        self.register_buffer("b", b)
+
+    def forward(self, x, b=None, seed=None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param float, torch.Tensor b: scale of the noise. If not None, it will overwrite the current noise level.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+        :returns: noisy measurements
+        """
+        self.update_parameters(b=b, **kwargs)
+        self.rng_manual_seed(seed)
+        self.to(x.device)
+
+        d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
+        return x + d.sample(x.shape)
