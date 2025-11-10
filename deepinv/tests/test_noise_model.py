@@ -16,6 +16,11 @@ NOISES = [
     "RicianNoise",
 ]
 
+# Noise model which do not have a `rng` attribute
+NO_RNG_NOISES = [
+    "Laplace",
+]
+
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
     DEVICES.append(torch.device("cuda"))
@@ -51,6 +56,16 @@ def choose_noise(noise_type, rng):
     return noise_model
 
 
+def choose_noise_stats(noise_type):
+    b = 0.1
+    if noise_type == "Laplace":
+        noise_model = (dinv.physics.LaplaceNoise(b=b), b)
+    else:
+        raise Exception("Noise model not found")
+
+    return noise_model
+
+
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_concatenation(device, rng, dtype):
@@ -77,6 +92,30 @@ def test_rng(name, device, rng, dtype):
     y_3 = noise_model(x, seed=0)
     assert torch.allclose(y_1, y_3)
     assert not torch.allclose(y_1, y_2)
+
+
+@pytest.mark.parametrize("name", NO_RNG_NOISES)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_stats(name, device, dtype):
+
+    imsize = (1, 3, 7, 16)
+    x = torch.zeros(imsize, device=device, dtype=dtype)
+    noise_model, stats = choose_noise(name)
+    y = noise_model(x)
+    noise = y - x
+
+    true_mean = x.mean().item()
+
+    if name == "Laplace":
+        b = stats
+        true_var = 2 * (b**2)
+
+    empirical_mean = noise.mean().item()
+    empirical_var = noise.var().item()
+
+    assert math.isclose(empirical_mean, true_mean, abs_tol=1e-2)
+    assert math.isclose(empirical_var, true_var, rel_tol=1e-1)
 
 
 @pytest.mark.parametrize("device", DEVICES)
