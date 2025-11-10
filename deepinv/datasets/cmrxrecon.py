@@ -145,7 +145,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             self.mask_dir is not None and not os.path.isdir(self.root / self.mask_dir)
         ):
             raise ValueError(
-                f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
+                "Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
             )
 
         all_fnames = natsorted(

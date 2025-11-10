@@ -46,7 +46,7 @@ class EDMPrecond(Denoiser):
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)
-        sigma = self._handle_sigma(
+        sigma = self.handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
         if class_labels is not None:

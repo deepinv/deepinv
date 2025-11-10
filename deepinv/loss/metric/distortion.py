@@ -750,7 +750,9 @@ class HaarPSI(Metric):
             torch.sigmoid(self.alpha * local_similarities) * weights, dim=(0, 3, 4)
         ) / torch.sum(weights, dim=(0, 3, 4))
 
-        logit = lambda value, alpha: torch.log(value / (1 - value)) / alpha
+        def logit(value, alpha):
+            return torch.log(value / (1 - value)) / alpha
+
         similarity = logit(pre_logit, self.alpha) ** 2
         return similarity[:, 0]
 

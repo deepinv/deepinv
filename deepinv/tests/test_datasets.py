@@ -1,4 +1,5 @@
-import shutil, os
+import shutil
+import os
 import math
 from typing import NamedTuple, Sequence, Mapping
 from pathlib import Path
@@ -538,7 +539,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
     for sharp_frame, blurry_shot in data_points:
         if frames != "all":
             assert (
-                type(sharp_frame) == PIL.PngImagePlugin.PngImageFile
+                type(sharp_frame) is PIL.PngImagePlugin.PngImageFile
             ), "The sharp frame is unexpectedly not a PIL image."
         else:
             assert isinstance(
@@ -546,7 +547,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
             ), "The sharp frames are unexpectedly not a list."
 
         assert (
-            type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
+            type(blurry_shot) is PIL.PngImagePlugin.PngImageFile
         ), "The blurry frame is unexpectedly not a PIL image."
 
 
@@ -565,9 +566,10 @@ def download_lsdir():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        mocker = lambda p: (
-            [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
-        )
+
+        def mocker(p):
+            return [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
+
         with (
             # Only patch globbing pngs
             patch.object(Path, "glob", side_effect=mocker),

@@ -429,7 +429,7 @@ class Restormer(Denoiser):
             LayerNorm_type == "BiasFree"
         ), f"Standard denoising / EXPECTED LayerNorm_type == 'BiasFree', INSTEAD of {LayerNorm_type}"
         assert (
-            dual_pixel_task == False
+            not dual_pixel_task
         ), f"Standard denoising / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
 
     def is_standard_deraining_network(
@@ -459,7 +459,7 @@ class Restormer(Denoiser):
             LayerNorm_type == "WithBias"
         ), f"Standard deraining / EXPECTED LayerNorm_type == 'WithBias', INSTEAD of {LayerNorm_type}"
         assert (
-            dual_pixel_task == False
+            not dual_pixel_task
         ), f"Standard deraining / EXPECTED dual_pixel_task == False, INSTEAD of {dual_pixel_task}"
 
     def is_standard_deblurring_network(
@@ -518,7 +518,7 @@ class Restormer(Denoiser):
             ffn_expansion_factor == 2.66
         ), f"Standard restormer architecture / EXPECTED ffn_expansion_factor == 2.66, INSTEAD of {ffn_expansion_factor}"
         assert (
-            bias == False
+            not bias
         ), f"Standard restormer architecture / EXPECTED bias == False, INSTEAD of {bias}"
 
 

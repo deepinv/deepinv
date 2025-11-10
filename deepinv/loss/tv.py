@@ -25,7 +25,6 @@ class TVLoss(Loss):
         :param torch.Tensor x_net: reconstructed image.
         :return: torch.nn.Tensor loss of size (batch_size,)
         """
-        batch_size = x_net.size()[0]
         h_x = x_net.size()[2]
         w_x = x_net.size()[3]
         count_h = self.tensor_size(x_net[:, :, 1:, :])

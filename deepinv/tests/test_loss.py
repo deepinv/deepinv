@@ -1,6 +1,5 @@
 import pytest
 import warnings
-import math
 import numpy as np
 import torch
 import deepinv
@@ -42,29 +41,8 @@ LIST_R2R = [
 ]
 
 
-def test_jacobian_spectral_values(toymatrix):
-    # Define the Jacobian regularisers we want to check
-    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
-    reg_FNE_l2 = FNEJacobianSpectralNorm(
-        max_iter=100, tol=1e-4, eval_mode=False, verbose=True
-    )
-
-    # Setup our toy example; here y = A@x
-    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
-    out = x_detached @ toymatrix
-
-    def model(x):
-        return x @ toymatrix
-
-    regl2 = reg_l2(out, x_detached)
-    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
-
-    assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
-    assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
-
-
 @pytest.mark.parametrize("reduction", ["none", "mean", "sum", "max"])
-def test_jacobian_spectral_values(toymatrix, reduction):
+def test_jacobian_spectral_values(reduction):
     ### Test reduction types on batches of images
     B, C, H, W = 5, 3, 8, 8
     toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
@@ -217,7 +195,7 @@ def test_sure(noise_type, device):
 def choose_r2r(noise_type):
     gain = 1.0
     sigma = 0.1
-    l = 10.0
+    l_gamma = 10.0
 
     if noise_type == "Poisson":
         noise_model = dinv.physics.PoissonNoise(gain)
@@ -226,7 +204,7 @@ def choose_r2r(noise_type):
         noise_model = dinv.physics.GaussianNoise(sigma)
         loss = dinv.loss.R2RLoss(alpha=0.999)
     elif noise_type == "Gamma":
-        noise_model = dinv.physics.GammaNoise(l)
+        noise_model = dinv.physics.GammaNoise(l_gamma)
         loss = dinv.loss.R2RLoss(alpha=0.999)
     else:
         raise Exception("The R2R loss doesnt exist")
@@ -316,9 +294,7 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(
-    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
-):
+def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     # choose training losses
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
 
@@ -484,14 +460,15 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             physics.noise_model = dinv.physics.GaussianNoise(0.1)
         backbone = DummyModel()
 
-    f = dinv.models.ArtifactRemoval(backbone)
+    dummy_model = dinv.models.ArtifactRemoval(backbone)
 
     batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
     # Dummy metric to get both outputs before metric
-    test_metric = lambda x, y: torch.stack([x, y])
+    def test_metric(x, y):
+        return torch.stack([x, y], dim=0)
 
     if loss_name == "n2n":
         loss = dinv.loss.Neighbor2Neighbor()
@@ -551,17 +528,17 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     else:
         raise ValueError("Loss name invalid.")
 
-    f = loss.adapt_model(f)
+    dummy_model = loss.adapt_model(dummy_model)
 
-    x_net = f(y, physics, update_parameters=True)
-    l = loss(x_net=x_net, y=y, physics=physics, model=f)
+    x_net = dummy_model(y, physics, update_parameters=True)
+    loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
     # Training recon + loss
     if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
-        assert l >= 0
+        assert loss_val > 0
     elif "splitting" in loss_name:
         y1 = x_net
-        y2_hat, y2 = l.clamp(0, 1)  # remove normalisation
+        y2_hat, y2 = loss_val.clamp(0, 1)  # remove normalisation
         if physics_name == "Inpainting":
             # Splitting mask 1 has more samples than mask 2
             assert y2.mean() < y1.mean() < y.mean()
@@ -572,8 +549,8 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     else:
         raise ValueError("Incorrect loss name.")
 
-    f.eval()
-    x_net = f(y, physics, update_parameters=True)
+    dummy_model.eval()
+    x_net = dummy_model(y, physics, update_parameters=True)
     y1_eval = x_net
 
     # Eval recon
@@ -616,7 +593,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             y = torch.ones(
                 *y.shape[:-1], y.shape[-1] + 1, dtype=y.dtype, device=y.device
             )
-            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
     # Test loss works even after updating new x shape
     x = torch.ones((batch_size, 2, 68, 70), device=device)
@@ -633,11 +610,11 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         pass
 
     y = physics(x)
-    f.train()
-    x_net = f(y, physics, update_parameters=True)
+    dummy_model.train()
+    x_net = dummy_model(y, physics, update_parameters=True)
     if loss_name in ("weighted-splitting", "robust-splitting"):
         with pytest.warns(UserWarning, match="Recalculating weight"):
-            l = loss(x_net=x_net, y=y, physics=physics, model=f)
+            loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
         # Revert shape, shouldn't recalculate again
         x = torch.ones((batch_size, *imsize), device=device)
@@ -647,19 +624,19 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
         )
         physics.update(mask=new_mask, coil_maps=new_maps)
         y = physics(x)
-        x_net = f(y, physics, update_parameters=True)
+        x_net = dummy_model(y, physics, update_parameters=True)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "error", message=".*Recalculating.*", category=UserWarning
             )
-            _ = loss(x_net=x_net, y=y, physics=physics, model=f)
+            _ = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
         assert len(loss.metric.weights) == 2  # weight cache
     else:
         loss.metric = torch.nn.MSELoss()
-        l = loss(x_net=x_net, y=y, physics=physics, model=f)
+        loss_val = loss(x_net=x_net, y=y, physics=physics, model=dummy_model)
 
-    assert l >= 0.0
+    assert loss_val >= 0.0
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
@@ -678,10 +655,15 @@ def test_measplit_masking(mode, img_size, split_ratio):
 
     if mode == "test_split_y":
         model = DummyModel()
-        dummy_metric = lambda y2_hat, y2: y2 * y2.mean()
+
+        def dummy_metric(y2_hat, y2):
+            return y2 * y2.mean()
+
     elif mode == "test_split_physics":
         model = DummyModel2()
-        dummy_metric = lambda y2_hat, y2: y2_hat * y2.mean()
+
+        def dummy_metric(y2_hat, y2):
+            return y2_hat * y2.mean()
 
     physics = dinv.physics.Inpainting(
         img_size,
@@ -741,24 +723,24 @@ def test_loss_scheduler(scheduler_name):
     rng = torch.Generator().manual_seed(0)
 
     if scheduler_name == "random":
-        l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+        loss_scheduler = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
     elif scheduler_name == "interleaved":
-        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+        loss_scheduler = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
     elif scheduler_name == "random_weighted":
-        l = RandomLossScheduler(
+        loss_scheduler = RandomLossScheduler(
             [TestLoss(0), TestLoss(2)], TestLoss(1), generator=rng, weightings=[4, 1]
         )
 
     # Loss scheduler adapts all inside losses
     model = TestModel()
-    l.adapt_model(model)
+    loss_scheduler.adapt_model(model)
     assert model.a == 3
 
     # Scheduler calls all losses eventually
     loss_total = 0
     loss_log = []
     for _ in range(20):
-        loss = l(None, None, None, None, None, None)
+        loss = loss_scheduler(None, None, None, None, None, None)
         loss_total += loss
         loss_log += [loss]
     assert loss_total > 20

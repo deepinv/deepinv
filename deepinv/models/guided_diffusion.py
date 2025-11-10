@@ -217,7 +217,7 @@ class ADMUNet(Denoiser):
         """
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(
+        sigma = self.handle_sigma(
             sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
         )
 

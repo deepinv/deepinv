@@ -138,12 +138,24 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805"]
+select = [
+    "A005",
+    "UP006", "F401", "B905", "B006", "RUF008", "RUF012",
+    "SLF001", "BLE001", "PLE0101", "PLW0120", "F404", "PLW0603", "S102", "E721", # "PLR6301" # From Python anti-patterns
+    "TID253", "UP004", "UP007", "UP045", "FA100", "FA102", "TID251", "N805",
+    "E4", "E7", "E9", # Pycodestyle
+    "F" # Pyflake
+]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
-"__init__.py" = ["F401"]
-"examples/**/*" = ["TID253"]
+# Rule E402 is ruff's module level import not at top of file rule.
+# Rule F811 is ruff's redefinition of unused name from line N rule. Doesn't work well with pytest fixtures.
+# Rule SLF001 is ruff's Private member accessed rule. We ignore it for tests.
+"__init__.py" = ["F401", "E402", "F403", "F405"]
+"examples/**/*" = ["E402", "TID253"]
+"deepinv/transform/base.py" = ["SLF001"]
+"deepinv/tests/**.py" = ["F811", "SLF001"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily

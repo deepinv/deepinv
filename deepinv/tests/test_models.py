@@ -225,12 +225,17 @@ def test_wavelet_adjoints():
         out = [torch.randn_like(Au[0])]
 
         if wvdim == 2:
-            for l in range(1, len(Au)):
-                out = out + [[torch.randn_like(Aul) for Aul in Au[l]]]
+            for level_index in range(1, len(Au)):
+                out = out + [[torch.randn_like(Aul) for Aul in Au[level_index]]]
 
         elif wvdim == 3:
-            for l in range(1, len(Au)):
-                out = out + [{key: torch.randn_like(Au[l][key]) for key in Au[l]}]
+            for level_index in range(1, len(Au)):
+                out = out + [
+                    {
+                        key: torch.randn_like(Au[level_index][key])
+                        for key in Au[level_index]
+                    }
+                ]
         return out
 
     for dimension in ["2d", "3d"]:
@@ -852,7 +857,7 @@ def test_icnn(dims, device, rng):
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     x = torch.ones((1, 3, *tuple(128 for i in range(dims))), device=device)
     y = physics(x)
-    potential = model(y)
+    _ = model(y)
     grad = model.grad(y)
     assert grad.shape == x.shape
 
@@ -1064,7 +1069,7 @@ def test_restoration_models(
     if (
         not (physics_name == "super_resolution_circular" and channels == 2)
         and model_name == "ram"
-        and pretrained == True
+        and pretrained
         and physics is not None
     ):  # suboptimal performance in this case
         psnr_in = psnr_fn(physics.A_dagger(y), x)
@@ -1075,8 +1080,8 @@ def test_restoration_models(
 
     if physics is not None and whsize == LIST_IMAGE_WHSIZE[0]:
         # Test backward pass
-        l = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
-        l.backward()
+        loss_val = dinv.loss.SupLoss()(x=x, x_net=model(y, physics))
+        loss_val.backward()
     else:
         pytest.skip(f"Skipping backward test for {physics_name} physics and {imsize}.")
 
@@ -1312,7 +1317,7 @@ def test_client_mocked(return_metadata):
         # Verify request payload structure
         called_args, called_kwargs = post.call_args
         assert called_args[0] == "http://example.com"
-        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+        assert called_kwargs["headers"]["Authorization"] == "Bearer test_key"
 
         sent_payload = json.loads(called_kwargs["data"])
         assert "input" in sent_payload

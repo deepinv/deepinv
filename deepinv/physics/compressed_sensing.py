@@ -211,3 +211,9 @@ class CompressedSensing(LinearPhysics):
             x = torch.einsum("im, nm->in", y, self._A_dagger)
             x = x.reshape(N, C, H, W)
         return x
+
+    def get_A_matrix(self) -> torch.Tensor:
+        """Dense forward matrix when fast=False."""
+        if self.fast:
+            raise NotImplementedError("No dense matrix in fast mode.")
+        return self._A

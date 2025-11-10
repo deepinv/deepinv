@@ -119,7 +119,7 @@ class EPLL(nn.Module):
                     "Noise level sigma has to be provided if not present in the physics model."
                 )
 
-        sigma = Denoiser._handle_sigma(
+        sigma = Denoiser.handle_sigma(
             sigma, batch_size=y.shape[0], device=y.device, dtype=y.dtype
         )
         if betas is None:
@@ -127,7 +127,7 @@ class EPLL(nn.Module):
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
         else:
             betas = [
-                Denoiser._handle_sigma(
+                Denoiser.handle_sigma(
                     beta, batch_size=y.shape[0], device=y.device, dtype=y.dtype
                 )
                 for beta in betas
@@ -228,6 +228,9 @@ class EPLL(nn.Module):
 
         # Image estimation by CG method
         rhs = Aty + beta * sigma_sq * x_tilde_flattened.view(x.shape)
-        op = lambda im: physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
+
+        def op(im):
+            return physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
+
         hat_x = conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
         return hat_x

@@ -521,7 +521,7 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
             # nvidia-smi -q -d Memory | grep -A5 GPU | grep Free
             mock_subprocess_run.return_value.stdout = "\n".join(
                 [
-                    f"Free : 1 MiB" if idx == freer_gpu_index else "Free : 0 MiB"
+                    "Free : 1 MiB" if idx == freer_gpu_index else "Free : 0 MiB"
                     for idx in range(n_gpus)
                 ]
             )
@@ -706,13 +706,13 @@ def test_AverageMeter(to_float):
     for attr_name in scalar_attr_names:
         attr_val = getattr(meter, attr_name)
         assert (
-            type(attr_val) == float
+            type(attr_val) is float
         ), f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
 
     # The list of retained values should only contain (exact) float instances
     for val in meter.vals:
         assert (
-            type(val) == float
+            type(val) is float
         ), f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."
 
 
@@ -895,7 +895,7 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
         assert imgs == [], "Images list should be empty when all inputs are None."
         assert titles == [], "Titles list should be empty when all inputs are None."
         assert (
-            grid_image == None
+            grid_image is None
         ), "Grid image list should be empty when all inputs are None."
 
     else:

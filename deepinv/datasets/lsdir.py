@@ -123,7 +123,7 @@ class LsdirHR(ImageFolder):
         if download:  # pragma: no cover
             try:
                 from huggingface_hub import hf_hub_download
-            except:
+            except ImportError:
                 raise RuntimeError(
                     "To download LsdirHR, please install huggingface-hub, request access to https://huggingface.co/ofsoundof/LSDIR (this should be instant), and authenticate yourself. For more info, see the LsdirHR's documentation."
                 )

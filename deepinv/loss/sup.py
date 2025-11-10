@@ -102,7 +102,7 @@ class ReducedResolutionLoss(SupLoss):
         """
         try:
             return self.metric(x_net, y)
-        except BaseException as e:
+        except (RuntimeError, TypeError, ValueError) as e:
             raise RuntimeError(
                 f"Metric error. Check that the reconstruction (of shape {x_net.shape}) and y (of shape {y.shape}) can be used to calculate the metric. "
                 f"Full error:",
@@ -126,14 +126,14 @@ class ReducedResolutionLoss(SupLoss):
                 phys = self.physics if self.physics is not None else physics
                 try:
                     z = phys(y)
-                except BaseException as e:
+                except (RuntimeError, TypeError, ValueError) as e:
                     raise RuntimeError(
                         "Physics error. Check that the used physics can be applied to y to generate a further degraded y. Full error:",
                         str(e),
                     )
                 try:
                     return self.model(z, phys)
-                except BaseException as e:
+                except (RuntimeError, TypeError, ValueError) as e:
                     raise RuntimeError(
                         "Model error. Check that the model can be used with a reduced-resolution input physics.A(y). Full error:",
                         str(e),

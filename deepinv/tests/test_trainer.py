@@ -481,7 +481,7 @@ def test_trainer_load_model(tmp_path):
     assert trainer.model.a == 1
 
 
-def test_trainer_test_metrics(non_blocking_plots, device, rng):
+def test_trainer_test_metrics(device, rng):
     N = 10
     dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
     trainer = dinv.Trainer(
@@ -535,7 +535,6 @@ def dummy_model(device):
 @pytest.mark.parametrize("generate_params", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
 def test_dataloader_formats(
-    non_blocking_plots,
     imsize,
     device,
     dummy_model,
@@ -641,20 +640,32 @@ def test_dataloader_formats(
         if online_measurements:
             if measurements:
                 if generate_params: # x, y, params online, both y and physics ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
                 else: # x, y online, y ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
             else:
                 if generate_params: # x, params online, params ignored
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
                 else: # x online
-                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                    assert_x_full(x)
+                    assert_y_online(y)
+                    assert_physics_online(physics)
         else:
             if measurements:
                 if generate_params: # x, y, params offline
-                    assert_x_full(x); assert_y_offline(y); assert_physics_offline(physics)
+                    assert_x_full(x)
+                    assert_y_offline(y)
+                    assert_physics_offline(physics)
                 else: # x, y offline
-                    assert_x_full(x); assert_y_offline(y); assert_physics_unchanged(physics)
+                    assert_x_full(x)
+                    assert_y_offline(y)
+                    assert_physics_unchanged(physics)
             else:
                 raise ValueError("measurements are neither loaded nor generated")
     else:
@@ -663,9 +674,13 @@ def test_dataloader_formats(
         if not measurements:
             raise ValueError("some data must be returned")
         if generate_params: # y, params
-            assert_x_none(x); assert_y_offline(y); assert_physics_offline(physics)
+            assert_x_none(x)
+            assert_y_offline(y)
+            assert_physics_offline(physics)
         else: # y
-            assert_x_none(x); assert_y_offline(y); assert_physics_unchanged(physics)
+            assert_x_none(x)
+            assert_y_offline(y)
+            assert_physics_unchanged(physics)
     # fmt: off
 
     # Check that the model is trained without errors
@@ -675,7 +690,6 @@ def test_dataloader_formats(
 @pytest.mark.parametrize("early_stop", [True, False, 3, None])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    non_blocking_plots,
     dummy_dataset,
     imsize,
     device,
@@ -811,25 +825,25 @@ def test_loss_logging(
     trainer.train()
 
     for k, (loss_name, loss_history) in enumerate(trainer.loss_history.items()):
-        l = losses[k]
-        assert loss_name == l.__class__.__name__
-        assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
+        loss = losses[k]
+        assert loss_name == loss.__class__.__name__
+        assert all([abs(value - loss.value_train) < 1e-6 for value in loss_history])
 
     for k, (metric_name, metrics_history) in enumerate(
         trainer.eval_metrics_history.items()
     ):
-        l = metrics[k]
+        metric = metrics[k]
 
-        assert metric_name == l.__class__.__name__
-        assert all([abs(value - l.value_eval) < 1e-6 for value in metrics_history])
+        assert metric_name == metric.__class__.__name__
+        assert all([abs(value - metric.value_eval) < 1e-6 for value in metrics_history])
 
     if compute_eval_losses:
         for k, (loss_name, loss_history) in enumerate(
             trainer.eval_loss_history.items()
         ):
-            l = losses[k]
-            assert loss_name == l.__class__.__name__
-            assert all([abs(value - l.value_train) < 1e-6 for value in loss_history])
+            loss = losses[k]
+            assert loss_name == loss.__class__.__name__
+            assert all([abs(value - loss.value_train) < 1e-6 for value in loss_history])
     else:
         for loss_history in trainer.eval_loss_history.values():
             assert len(loss_history) == 0
@@ -931,7 +945,7 @@ def test_model_forward_passes(
 # output to get the reported values for the gradient norms and compare them
 # to the expected values.
 def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
@@ -1004,7 +1018,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
 def test_out_dir_collision_detection(
     dummy_dataset, imsize, device, dummy_model, tmpdir
 ):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
@@ -1127,7 +1141,7 @@ def test_trained_model_not_used_for_no_learning_metrics(
     model_performance,
     learning_free_performance,
 ):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+    train_data, _ = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 

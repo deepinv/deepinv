@@ -173,7 +173,7 @@ def to_logimage(im, rescale=False, dr=5000):
 imgs = [image_gdth, to_logimage(image_gdth)]
 plot(
     imgs,
-    titles=[f"Groundtruth", f"Groundtruth \nin logarithmic scale"],
+    titles=["Groundtruth", "Groundtruth \nin logarithmic scale"],
     cmap="inferno",
     cbar=True,
 )
@@ -271,7 +271,7 @@ back = physics.A_adjoint(y)
 imgs = [to_logimage(image_gdth), to_logimage(back, rescale=True)]
 plot(
     imgs,
-    titles=[f"Groundtruth \n(logscale)", f"Backprojection \n(logscale)"],
+    titles=["Groundtruth \n(logscale)", "Backprojection \n(logscale)"],
     cmap="inferno",
 )
 

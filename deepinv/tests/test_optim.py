@@ -39,20 +39,22 @@ def test_data_fidelity_l2(device):
 
     # Create a measurement operator
     A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
     assert torch.allclose(data_fidelity(x, y, physics), torch.Tensor([1.0]).to(device))
 
     # Compute the gradient of f
-    grad_dA = data_fidelity.grad(
-        x, y, physics
-    )  # print(grad_dA) gives [[[2.0000], [0.5000]]]
+    _ = data_fidelity.grad(x, y, physics)  # print(grad_dA) gives [[[2.0000], [0.5000]]]
 
     # Compute the proximity operator of f
-    prox_dA = data_fidelity.prox(
+    _ = data_fidelity.prox(
         x, y, physics, gamma=1.0
     )  # print(prox_dA) gives [[[0.6000], [3.6000]]]
 
@@ -66,8 +68,12 @@ def test_data_fidelity_l2(device):
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
     B = torch.Tensor([[2, 1], [-1, 0.5]]).to(device)
-    B_forward = lambda v: B @ v
-    B_adjoint = lambda v: B.transpose(0, 1) @ v
+
+    def B_forward(v):
+        return B @ v
+
+    def B_adjoint(v):
+        return B.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
@@ -138,8 +144,12 @@ def test_data_fidelity_indicator(device):
 
     # Create a measurement operator
     A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
@@ -161,8 +171,13 @@ def test_data_fidelity_indicator(device):
     y = torch.Tensor([[1], [1]]).unsqueeze(0).to(device)
 
     A = torch.Tensor([[2, 0], [0, 0.5]]).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
+
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
 
     # Define the physics model associated to this operator
@@ -190,8 +205,12 @@ def test_data_fidelity_l1(device):
     assert torch.allclose(data_fidelity.d(x, y), (x - y).abs().sum())
 
     A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
@@ -230,8 +249,12 @@ def test_data_fidelity_zero(device):
     assert data_fidelity.d(x, y) == 0.0
 
     A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
@@ -300,7 +323,10 @@ def test_data_fidelity_amplitude_loss(device):
             m=10, img_size=(1, 3, 3), device=device
         )
         loss = AmplitudeLoss()
-        func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+        def func(x):
+            return loss(x, torch.ones_like(physics(x)), physics)[0]
+
         grad_value = torch.func.grad(func)(x)
         jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -343,8 +369,12 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         # Create a measurement operator
         B = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64)
-        B_forward = lambda v: B @ v
-        B_adjoint = lambda v: B.transpose(0, 1) @ v
+
+        def B_forward(v):
+            return B @ v
+
+        def B_adjoint(v):
+            return B.transpose(0, 1) @ v
 
         # Define the physics model associated to this operator
         physics = dinv.physics.LinearPhysics(A=B_forward, A_adjoint=B_adjoint)
@@ -437,7 +467,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 
     model = dinv.models.TGVDenoiser(n_it_max=5000, verbose=True, crit=1e-4)
 
-    x = model(y, ths)  # 3. Apply the model we want to test
+    _ = model(y, ths)  # 3. Apply the model we want to test
 
     # For debugging
     # plot = False
@@ -504,7 +534,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         custom_init=custom_init,
     )
 
-    x = pnp(y, physics)
+    _ = pnp(y, physics)
 
     # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
     # plot = True
@@ -605,7 +635,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             custom_init=custom_init,
         )
 
-        x = opt_algo(y, physics)
+        _ = opt_algo(y, physics)
 
         # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
         # plot = True
@@ -708,8 +738,11 @@ def test_CP_K(imsize, dummy_dataset, device):
         x = torch.tensor([[[10], [10]]], dtype=torch.float64).to(device)
 
         # Create a measurement operator
-        Id_forward = lambda v: v
-        Id_adjoint = lambda v: v
+        def Id_forward(v):
+            return v
+
+        def Id_adjoint(v):
+            return v
 
         # Define the physics model associated to this operator
         physics = dinv.physics.LinearPhysics(A=Id_forward, A_adjoint=Id_adjoint)
@@ -725,8 +758,12 @@ def test_CP_K(imsize, dummy_dataset, device):
 
         # Define a linear operator
         K = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
-        K_forward = lambda v: K @ v
-        K_adjoint = lambda v: K.transpose(0, 1) @ v
+
+        def K_forward(v):
+            return K @ v
+
+        def K_adjoint(v):
+            return K.transpose(0, 1) @ v
 
         stepsize = 0.9 / torch.linalg.norm(K, ord=2).item() ** 2
         reg_param = 1.0
@@ -800,8 +837,12 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
     # Create a measurement operator
     A = torch.tensor([[2, 1], [-1, 0.5]], dtype=torch.float64).to(device)
-    A_forward = lambda v: A @ v
-    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    def A_forward(v):
+        return A @ v
+
+    def A_adjoint(v):
+        return A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
     physics = dinv.physics.Denoising()
@@ -1001,8 +1042,11 @@ def test_linear_system(device, solver, dtype, rng):
         return
     b = torch.randn((batch_size, 32), dtype=dtype, device=device, generator=rng)
 
-    A = lambda x: (mat @ x.T).T
-    AT = lambda x: (mat.adjoint() @ x.T).T
+    def AT(x):
+        return (mat.adjoint() @ x.T).T
+
+    def A(x):
+        return (mat @ x.T).T
 
     tol = 1e-5
     if solver == "CG":
@@ -1115,7 +1159,7 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
             torch.float32,
             torch.float64,
         ]:
-            assert v.requires_grad == True
+            assert v.requires_grad
             assert v.grad is not None
             assert torch.all(~torch.isnan(v.grad))
 

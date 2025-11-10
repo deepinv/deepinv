@@ -495,7 +495,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         params = ["probe", "shifts"]
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
 
     if not get_physics_param:
         return p, img_size, norm, dtype
@@ -531,7 +531,7 @@ def find_nonlinear_operator(name, device):
         x = torch.randn(1, 3, 16, 16, device=device)
         p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     return p, x
 
 
@@ -885,14 +885,19 @@ def test_decomposable(name, device, rng):
     if isinstance(physics, dinv.physics.DecomposablePhysics):
         x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
-        proj = lambda u: physics.V(physics.V_adjoint(u))
+        def proj(u):
+            return physics.V(physics.V_adjoint(u))
+
         r = proj(x)  # project
         assert (
             torch.linalg.vector_norm(proj(r) - r) / torch.linalg.vector_norm(r) < 1e-3
         )
 
         y = physics.A(x)
-        proj = lambda u: physics.U(physics.U_adjoint(u))
+
+        def proj(u):
+            return physics.U(physics.U_adjoint(u))
+
         r = proj(y)
         assert (
             torch.linalg.vector_norm(proj(r) - r) / torch.linalg.vector_norm(r) < 1e-3
@@ -1111,7 +1116,10 @@ def test_phase_retrieval_Avjp(device):
     x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
     physics = dinv.physics.RandomPhaseRetrieval(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -1135,7 +1143,10 @@ def test_linear_physics_Avjp(device, rng):
     )
     physics = dinv.physics.CompressedSensing(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
-    func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
+
+    def func(x):
+        return loss(x, torch.ones_like(physics(x)), physics)[0]
+
     grad_value = torch.func.grad(func)(x)
     jvp_value = loss.grad(x, torch.ones_like(physics(x)), physics)
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
@@ -1166,7 +1177,7 @@ def choose_noise(noise_type, device="cpu"):
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
-    l = torch.ones((1), device=device)
+    one = torch.ones((1), device=device)
     p, s = 0.025, 0.025
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
@@ -1183,11 +1194,11 @@ def choose_noise(noise_type, device="cpu"):
     elif noise_type == "LogPoisson":
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     elif noise_type == "Gamma":
-        noise_model = dinv.physics.GammaNoise(l)
+        noise_model = dinv.physics.GammaNoise(one)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     elif noise_type == "FisherTippett":
-        noise_model = dinv.physics.FisherTippettNoise(l)
+        noise_model = dinv.physics.FisherTippettNoise(one)
     else:
         raise Exception("Noise model not found")
 
@@ -1284,21 +1295,21 @@ def test_reset_noise(device):
     physics = dinv.physics.Denoising()
     physics.noise_model = dinv.physics.GaussianNoise(0.1, rng=rng)
 
-    y1 = physics(x)
-    y2 = physics(x, sigma=0.2)
+    _ = physics(x)
+    _ = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
 
     physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
 
-    y1 = physics(x)
-    y2 = physics(x, gain=0.2)
+    _ = physics(x)
+    _ = physics(x, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
 
     physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3, rng=rng)
-    y1 = physics(x)
-    y2 = physics(x, sigma=0.2, gain=0.2)
+    _ = physics(x)
+    _ = physics(x, sigma=0.2, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
     assert physics.noise_model.sigma == 0.2
@@ -1645,13 +1656,13 @@ def test_operators_differentiability(name, device):
                 for y_hat_item, y_item in zip_strict(y_hat.x, y.x):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
-                    assert x_hat.requires_grad == True
+                    assert x_hat.requires_grad
                     assert x_hat.grad is not None
                     assert torch.all(~torch.isnan(x_hat.grad))
             else:
                 loss = torch.nn.functional.mse_loss(y_hat, y)
                 loss.backward()
-                assert x_hat.requires_grad == True
+                assert x_hat.requires_grad
                 assert x_hat.grad is not None
                 assert torch.all(~torch.isnan(x_hat.grad))
 
@@ -1676,7 +1687,7 @@ def test_operators_differentiability(name, device):
 
                         for k, v in parameters.items():
                             if v.dtype in valid_dtype:
-                                assert v.requires_grad == True
+                                assert v.requires_grad
                                 assert v.grad is not None
                                 assert torch.all(~torch.isnan(v.grad))
 
@@ -1686,7 +1697,7 @@ def test_operators_differentiability(name, device):
 
                     for k, v in parameters.items():
                         if v.dtype in valid_dtype:
-                            assert v.requires_grad == True
+                            assert v.requires_grad
                             assert v.grad is not None
                             assert torch.all(~torch.isnan(v.grad))
 
@@ -1725,7 +1736,7 @@ def test_device_consistency(name):
         try:
             physics, imsize, dtype = finder(name)
             break
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             continue
     else:
         raise ValueError(f"Could not find an operator for {name}")
@@ -1780,7 +1791,7 @@ def test_physics_state_dict(name, device):
         for name in dir(module):
             try:
                 attr = getattr(module, name)
-            except Exception:
+            except (AttributeError, RuntimeError, NotImplementedError):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
@@ -1929,8 +1940,8 @@ def test_adjoint_autograd(name, device):
     # Compute Df^\top(z) using autograd where f(z) = A^\top z.
     y.requires_grad_()
     z = torch.randn_like(x, device=device, dtype=dtype)
-    l = (z * A_adjoint(y)).sum()
-    l.backward()
+    loss = (z * A_adjoint(y)).sum()
+    loss.backward()
     # \delta y := \delta_y <z, A^\top y> = Az
     delta_y = y.grad
     Az = physics.A(z)
@@ -1954,7 +1965,7 @@ def test_clone(name, device):
     physics_clone = physics.clone()
 
     # Test clone type (parent class)
-    assert type(physics_clone) == type(physics), "Clone is not of the same type."
+    assert type(physics_clone) is type(physics), "Clone is not of the same type."
 
     # Check parameters
     parameter_names = set(name for name, _ in physics.named_parameters())
@@ -1977,7 +1988,7 @@ def test_clone(name, device):
         with torch.no_grad():
             param.fill_(0)
             param_clone.fill_(1)
-        assert not torch.allclose(param, param_clone), f"Expected different values"
+        assert not torch.allclose(param, param_clone), "Expected different values"
 
     # Check buffers
     buffer_names = set(name for name, _ in physics.named_buffers())
@@ -1997,7 +2008,7 @@ def test_clone(name, device):
         # Check that changing one buffer does not change the other
         buffer.fill_(0)
         buffer_clone.fill_(1)
-        assert not torch.allclose(buffer, buffer_clone), f"Expected different values"
+        assert not torch.allclose(buffer, buffer_clone), "Expected different values"
 
     # Test that RNGs have been cloned successfully
     rng = getattr(physics, "rng", None)
@@ -2145,8 +2156,8 @@ def test_clone(name, device):
     for param in physics.parameters():
         if not torch.is_floating_point(param):
             continue
-        l = param.flatten()[0]
-        l.backward()
+        loss = param.flatten()[0]
+        loss.backward()
         assert param.grad is not None, "Parameter gradient is None after backward."
 
     for param in physics_clone.parameters():
@@ -2167,8 +2178,8 @@ def test_clone(name, device):
     for param in physics_clone.parameters():
         if not torch.is_floating_point(param):
             continue
-        l = param.flatten()[0]
-        l.backward()
+        loss = param.flatten()[0]
+        loss.backward()
         assert param.grad is not None, "Parameter gradient is None after backward."
 
     for param in physics.parameters():
@@ -2244,7 +2255,7 @@ def test_separate_noise_models():
     assert isinstance(
         physics1.noise_model, dinv.physics.GaussianNoise
     ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
-    sigma1 = physics1.noise_model.sigma
+    _ = physics1.noise_model.sigma
     sigma2 = physics2.noise_model.sigma
     sigma1_new = sigma2 + 1
     assert (

@@ -21,7 +21,10 @@ class NoiseModel(nn.Module):
     def __init__(self, noise_model: Callable = None, rng: torch.Generator = None):
         super().__init__()
         if noise_model is None:
-            noise_model = lambda x: x
+
+            def noise_model(x):
+                return x
+
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
@@ -55,7 +58,10 @@ class NoiseModel(nn.Module):
         :return: (deepinv.physics.NoiseModel) concatenated operator
 
         """
-        noise_model = lambda x: self.noise_model(other.noise_model(x))
+
+        def noise_model(x):
+            return self.noise_model(other.noise_model(x))
+
         return NoiseModel(
             noise_model=noise_model,
             rng=self.rng,
@@ -323,73 +329,6 @@ class GaussianNoise(NoiseModel):
                 )
             )
 
-    def __add__(self, other):
-        r"""
-        Sum of 2 gaussian noises via + operator.
-
-        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
-
-        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
-        """
-        if not isinstance(other, GaussianNoise):
-            raise TypeError(
-                f"GaussianNoise Add Operator is unsupported for type {type(other)}"
-            )
-        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
-
-    def __mul__(self, other):
-        r"""
-        Element-wise multiplication of a GaussianNoise via `*` operator.
-
-        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.
-
-        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`\lambda` a float.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if isinstance(other, NoiseModel):  # standard NoiseModel multiplication
-            return super().__mul__(other)
-        elif isinstance(other, float) or isinstance(
-            other, torch.Tensor
-        ):  # should be a float or a torch.Tensor
-            if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
-                self.sigma = self.sigma.reshape(
-                    (self.sigma.size(0),) + (1,) * (other.dim() - 1)
-                )
-            return GaussianNoise(sigma=self.sigma * other)
-        else:
-            raise NotImplementedError(
-                "Multiplication with type {} is not supported.".format(type(other))
-            )
-
-    def __rmul__(self, other):
-        r"""
-        Commutativity of the __mul__ operator.
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if not isinstance(other, NoiseModel):
-            return self.__mul__(other)
-        else:
-            raise NotImplementedError(
-                "Multiplication (noise_model * gaussian_noise) with type {} is not supported.".format(
-                    type(other)
-                )
-            )
-
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""
         Adds the noise to measurements x
@@ -576,26 +515,26 @@ class GammaNoise(NoiseModel):
 
     .. warning:: This noise model does not support the random number generator.
 
-    :param float, torch.Tensor l: noise level.
+    :param float, torch.Tensor noise_level: noise level.
     """
 
-    def __init__(self, l=1.0):
+    def __init__(self, noise_level=1.0):
         super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+        if isinstance(noise_level, int):
+            noise_level = float(noise_level)
+        self.register_buffer("noise_level", self._float_to_tensor(noise_level))
 
-    def forward(self, x, l=None, seed: int = None, **kwargs):
+    def forward(self, x, noise_level=None, seed: int = None, **kwargs):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements
-        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param None, float, torch.Tensor noise_level: noise level l. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
-        self.update_parameters(l=l, **kwargs)
+        self.update_parameters(noise_level=noise_level, **kwargs)
         self.to(x.device)
-        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
+        d = torch.distributions.gamma.Gamma(self.noise_level, self.noise_level / x)
         return d.sample()
 
 
@@ -899,24 +838,24 @@ class FisherTippettNoise(NoiseModel):
 
     .. warning:: This noise model does not support the random number generator.
 
-    :param float, torch.Tensor l: noise level.
+    :param float, torch.Tensor noise_level: noise level.
     """
 
-    def __init__(self, l=1.0):
+    def __init__(self, noise_level=1.0):
         super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+        if isinstance(noise_level, int):
+            noise_level = float(noise_level)
+        self.register_buffer("l", self._float_to_tensor(noise_level))
 
-    def forward(self, x, l=None, **kwargs):
+    def forward(self, x, noise_level=None, **kwargs):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements (log-intensities)
-        :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param None, float, torch.Tensor noise_level: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements (log-intensities)
         """
-        self.update_parameters(l=l, **kwargs)
+        self.update_parameters(noise_level=noise_level, **kwargs)
         self.to(x.device)
         x = torch.exp(x)
         gamma = GammaNoise(self.l)

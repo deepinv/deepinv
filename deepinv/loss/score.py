@@ -174,8 +174,8 @@ class ScoreLoss(Loss):
                     y *= noise_model.gain
                 out = y + noise_model.gain * y * grad
             elif noise_class == "GammaNoise":
-                l = noise_model.l
-                out = l * y / ((l - 1.0) - y * grad)
+                noise_level = noise_model.noise_level
+                out = noise_level * y / ((noise_level - 1.0) - y * grad)
             else:
                 raise NotImplementedError(f"Noise model {noise_class} not implemented")
 
