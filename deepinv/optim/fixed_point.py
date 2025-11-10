@@ -239,17 +239,16 @@ class FixedPoint(nn.Module):
             Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
             The output of the function or the fixed initialization can be either:
 
-            - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
-            - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
-            - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+                - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+                - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
+                - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
         :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
         :param torch.Tensor x_gt: ground truth solution. Default: ``None``.
         :param args: optional arguments for the iterator. Commonly (y,physics) where ``y`` (torch.Tensor y) is the measurement and
-                    ``physics`` (deepinv.physics) is the physics model.
+            ``physics`` (deepinv.physics) is the physics model.
         :param kwargs: optional keyword arguments for the iterator.
-        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and
-                    ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None``
-                    otherwise.
+        :return tuple: ``(x,metrics)`` with ``x`` the fixed-point solution (dict) and ``metrics`` the computed along the iterations if ``compute_metrics`` is ``True`` or ``None`` otherwise.
         """
         X = (
             self.init_iterate_fn(*args, init, cost_fn=self.iterator.cost_fn)
