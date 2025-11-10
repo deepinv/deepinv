@@ -43,7 +43,7 @@ class Metric(Module):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input, ``clip`` clips to :math:`[0,1]`, ``standardize`` standardizes to same mean and std as ground truth, ``none`` or None no reduction will be applied (default).
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
 
     |sep|

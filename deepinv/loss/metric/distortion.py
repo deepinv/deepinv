@@ -43,7 +43,7 @@ class MAE(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -81,7 +81,7 @@ class MSE(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -117,7 +117,7 @@ class NMSE(MSE):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -166,7 +166,7 @@ class SSIM(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -271,7 +271,7 @@ class PSNR(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -322,7 +322,7 @@ class L1L2(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -371,7 +371,7 @@ class LpNorm(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
 
     """
@@ -429,7 +429,7 @@ class QNR(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -548,7 +548,7 @@ class SpectralAngleMapper(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -589,7 +589,7 @@ class ERGAS(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
@@ -646,7 +646,7 @@ class HaarPSI(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
-        If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
