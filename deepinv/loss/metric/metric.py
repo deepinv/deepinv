@@ -40,7 +40,7 @@ class Metric(Module):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input, ``clip`` clips to :math:`[0,1]`, ``standardize`` standardizes to same mean and std as ground truth, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input, ``clip`` clips to :math:`[0,1]`, ``standardize`` standardizes to same mean and std as ground truth, ``none`` or None no reduction will be applied (default).
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
         If `tuple` of `int`s, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
@@ -76,6 +76,15 @@ class Metric(Module):
         self.complex_abs = complex_abs  # NOTE assumes C in dim=1
         self._metric = metric
         self.center_crop = center_crop
+
+        if isinstance(center_crop, tuple):
+            if not (
+                all(c > 0 for c in center_crop) or all(c <= 0 for c in center_crop)
+            ):
+                raise ValueError(
+                    "If center_crop is a tuple, all values must be either positive or negative."
+                )
+
         normalizer = lambda x: x
         if norm_inputs is not None:
             if not isinstance(norm_inputs, str):
@@ -117,35 +126,35 @@ class Metric(Module):
 
     def _apply_center_crop(self, x: Tensor) -> Tensor:
         """Apply center crop to tensor.
-        
+
         :param torch.Tensor x: input tensor of shape (B, C, ...)
         :return torch.Tensor: center cropped tensor
         """
         if self.center_crop is None or x is None:
             return x
-        
+
         # Convert int to tuple for all spatial dimensions (all dims except first two)
         if isinstance(self.center_crop, int):
             n_spatial_dims = x.ndim - 2  # Exclude batch and channel dims
             crop_sizes = (self.center_crop,) * n_spatial_dims
         else:
             crop_sizes = self.center_crop
-        
+
         # Number of spatial dimensions to crop
         n_crop_dims = len(crop_sizes)
-        
+
         # Check if we have enough dimensions to crop
         if x.ndim < 2 + n_crop_dims:
             raise ValueError(
                 f"Tensor has {x.ndim} dimensions but center_crop requires at least {2 + n_crop_dims} dimensions"
             )
-        
+
         # Apply cropping to the last n_crop_dims dimensions
         slices = [slice(None)] * x.ndim
         for i, crop_size in enumerate(crop_sizes):
             dim_idx = x.ndim - n_crop_dims + i
             dim_size = x.shape[dim_idx]
-            
+
             if crop_size > 0:
                 # Standard center crop
                 if crop_size > dim_size:
@@ -163,9 +172,9 @@ class Metric(Module):
                     )
                 start = border_pixels
                 end = dim_size - border_pixels
-            
+
             slices[dim_idx] = slice(start, end)
-        
+
         return x[tuple(slices)]
 
     def metric(
