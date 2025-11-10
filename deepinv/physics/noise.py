@@ -1001,7 +1001,7 @@ def _infer_device(
 
 class LaplaceNoise(NoiseModel):
     r"""
-    Laplace noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\text{Laplace}(0,b)`.
+    Laplace noise :math:`y = z + \epsilon` where :math:`\epsilon\sim\text{Laplace}(0,b)`.
     In the laplace distribution, b is the scale parameter and the variance is given by :math:`\sigma^2=2b^2`.
 
     :param Union[float, torch.Generator] b: scale of the noise.
