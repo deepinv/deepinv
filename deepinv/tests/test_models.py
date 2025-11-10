@@ -1360,7 +1360,8 @@ def test_client_mocked(return_metadata):
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="output"):
             _ = model(y)
-        
+
+
 # SwinIR has two parameters related to usampling, upscale which specifies the
 # upsampling rate and upsampler which specifies how the upsampling is
 # performed. In this test, we verify that a warning is raised when specifying
