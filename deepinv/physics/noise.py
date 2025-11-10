@@ -1046,4 +1046,4 @@ class LaplaceNoise(NoiseModel):
         self.to(x.device)
 
         d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
-        return x + d.sample(x.shape)
+        return x + d.sample(x.shape, generator=self.rng)
