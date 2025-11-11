@@ -968,37 +968,6 @@ class RicianNoise(NoiseModel):
         return torch.sqrt((self.sigma * N1 + x) ** 2 + (self.sigma * N2) ** 2)
 
 
-def _infer_device(
-    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
-) -> torch.device:
-    """Infer the device from a list of candidates.
-
-    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
-
-    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
-
-    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
-    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
-    :raises RuntimeError: if more than one device is found among the inputs.
-    :return: the device of the candidates or the default device if no candidates are bound to a device.
-    """
-    input_devices = set()
-
-    for device_held_candidate in device_held_candidates:
-        if isinstance(
-            device_held_candidate,
-            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
-        ):
-            input_devices.add(device_held_candidate.device)
-
-    if len(input_devices) > 1:
-        raise RuntimeError(
-            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
-        )
-
-    return input_devices.pop() if input_devices else default
-
-
 class LaplaceNoise(NoiseModel):
     r"""
     Laplace noise :math:`y = z + \epsilon` where :math:`\epsilon\sim\text{Laplace}(0,b)`.
@@ -1046,4 +1015,37 @@ class LaplaceNoise(NoiseModel):
         self.to(x.device)
 
         d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
-        return x + d.sample(x.shape)
+        result = x + d.sample(x.shape)
+
+        return result
+
+
+def _infer_device(
+    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
+) -> torch.device:
+    """Infer the device from a list of candidates.
+
+    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
+
+    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
+
+    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
+    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
+    :raises RuntimeError: if more than one device is found among the inputs.
+    :return: the device of the candidates or the default device if no candidates are bound to a device.
+    """
+    input_devices = set()
+
+    for device_held_candidate in device_held_candidates:
+        if isinstance(
+            device_held_candidate,
+            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
+        ):
+            input_devices.add(device_held_candidate.device)
+
+    if len(input_devices) > 1:
+        raise RuntimeError(
+            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
+        )
+
+    return input_devices.pop() if input_devices else default
