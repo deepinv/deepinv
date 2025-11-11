@@ -63,7 +63,7 @@ def choose_noise_stats(noise_type):
     b = 0.1
     if noise_type == "Laplace":
         noise_model = (dinv.physics.LaplaceNoise(b=b), b)
-    else: # pragma: no cover
+    else:  # pragma: no cover
         raise Exception("Noise model not found")
 
     return noise_model
