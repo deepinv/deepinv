@@ -21,7 +21,15 @@ jobs:
   convert:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout PR branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
       - name: Checkout repository
+        if: github.event_name != 'pull_request'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -69,6 +77,24 @@ jobs:
           git add examples/_notebooks
           git commit -m "Auto-convert examples to notebooks [skip ci]" || echo "No changes to commit."
           git push origin HEAD:main
+
+      - name: Commit notebooks to PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/commit_needed ]; then
+            echo "Skipping commit; nothing to update."
+            exit 0
+          fi
+
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          echo "Pushing updates to PR branch: $BRANCH"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add examples/_notebooks
+          git commit -m "Auto-convert examples to notebooks (PR) [skip ci]" || echo "No changes to commit."
+          git push origin "HEAD:$BRANCH"
 
       - name: Summary
         run: |
