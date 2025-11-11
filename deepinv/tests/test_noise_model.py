@@ -101,7 +101,7 @@ def test_stats(name, device, dtype):
 
     imsize = (1, 3, 7, 16)
     x = torch.zeros(imsize, device=device, dtype=dtype)
-    noise_model, stats = choose_noise(name)
+    noise_model, stats = choose_noise_stats(name)
     y = noise_model(x)
     noise = y - x
 
