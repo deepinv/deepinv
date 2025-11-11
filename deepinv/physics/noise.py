@@ -1012,7 +1012,8 @@ class LaplaceNoise(NoiseModel):
         """
         self.update_parameters(b=b, **kwargs)
         # self.rng_manual_seed(seed)
-        torch.manual_seed(seed)
+        if seed is not None:
+            torch.manual_seed(seed)
         self.to(x.device)
 
         d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
