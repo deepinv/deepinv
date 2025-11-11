@@ -82,10 +82,10 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           set -euo pipefail
-          if [ ! -f /tmp/commit_needed ]; then
-            echo "Skipping commit; nothing to update."
-            exit 0
-          fi
+          # if [ ! -f /tmp/commit_needed ]; then
+          #   echo "Skipping commit; nothing to update."
+          #   exit 0
+          # fi
 
           BRANCH="${{ github.event.pull_request.head.ref }}"
           echo "Pushing updates to PR branch: $BRANCH"
