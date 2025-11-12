@@ -14,13 +14,13 @@
 {% set example_ipynb_repo_path = example_py_path.replace('examples/', 'examples/_notebooks/').replace('.py', '.ipynb') %}
 
 <div class="sd-card sd-shadow-sm sd-mb-3">
-  <div class="sd-card-body">
-    <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2">Run this example</p>
+  <div class="sd-card-body" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+    <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2" style="margin-bottom:0.75rem;">Run this example</p>
 
     {# Primary: open the source .py on Colab (Colab can render scripts; install instructions are in first cell) #}
-    <a class="sd-btn sd-btn-primary sd-mr-2" href="https://colab.research.google.com/github/deepinv/deepinv/blob/add_colab_badge/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
-      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;"><br>
-      Try it!
+    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/add_colab_badge/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
+      <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;">
+      <span>Try it!</span>
     </a>
 
   </div>
