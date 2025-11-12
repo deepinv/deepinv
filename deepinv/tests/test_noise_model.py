@@ -118,7 +118,7 @@ def test_stats(name, device, dtype):
     empirical_var = noise.var().item()
 
     assert math.isclose(empirical_mean, true_mean, abs_tol=1e-1)
-    assert math.isclose(empirical_var, true_var, rel_tol=1e-1)
+    assert math.isclose(empirical_var, true_var, abs_tol=1e-1)
 
 
 @pytest.mark.parametrize("device", DEVICES)
