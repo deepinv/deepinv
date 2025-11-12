@@ -146,28 +146,104 @@ def _convert_sphinx_roles_to_links(text: str, baseurl: str) -> str:
     return role_pattern.sub(repl, text)
 
 
-def _convert_sg_example_refs(text: str, baseurl: str) -> str:
-    """Convert sphinx-gallery example refs like `sphx_glr_auto_examples_basics_demo_custom_dataset.py`
-    into Markdown links to built docs pages.
+def _scan_sphinx_labels(html_root: Path) -> dict:
+    """Scan built HTML files to map label id -> relative HTML path.
 
-    Pattern: sphx_glr_auto_examples_{section}_{slug}.py
-    URL:     {base}/auto_examples/{section}/{slug}.html#sphx-glr-auto-examples-{section}-{slug-dashed}-py
-
-    Preserves backticks around the token by keeping them inside the link text.
+    This is a lightweight fallback avoiding parsing ``objects.inv``.
     """
-    # Matches with optional surrounding backticks; we keep them in the display text.
-    pattern = re.compile(r"`?sphx_glr_auto_examples_([a-z0-9\-]+)_([a-z0-9_\-]+)\.py`?", re.IGNORECASE)
+    label_map = {}
+    if not html_root.exists():
+        return label_map
+    for html_file in html_root.rglob("*.html"):
+        try:
+            content = html_file.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        rel = html_file.relative_to(html_root).as_posix()
+        # Capture id attributes. We avoid duplicates, first occurrence wins.
+        for m in re.finditer(r'id="([A-Za-z0-9_\-]+)"', content):
+            label = m.group(1)
+            label_map.setdefault(label, rel)
+    return label_map
+
+
+def _convert_backticked_label_refs(text: str, baseurl: str, label_map: dict) -> str:
+    """Convert inline-code style references like `` `Some title <label>` `` to links.
+
+    This compensates for upstream conversions that strip Sphinx roles and leave
+    the inner ``Title <label>`` wrapped in backticks.
+    """
+    # Match backticked content that ends with <label>, capture title and label.
+    # Title: allow anything except backtick; Label: conservative id chars.
+    pattern = re.compile(r"`([^`<>]+?)\s*<\s*([A-Za-z0-9_\-]+)\s*>`")
 
     def repl(m: re.Match):
-        section = m.group(1)
-        slug = m.group(2)
-        # Show a cleaner label without the sphx_glr_auto_examples_ prefix
-        display = f"`{section}/{slug}.py`"
-        anchor_slug = slug.replace("_", "-")
-        url = f"{baseurl}auto_examples/{section}/{slug}.html#sphx-glr-auto-examples-{section}-{anchor_slug}-py"
-        return f"[{display}]({url})"
+        title = m.group(1).strip()
+        label = m.group(2).strip()
+        rel = label_map.get(label)
+        if not rel:
+            return title  # drop code ticks if unresolved
+        url = (
+            f"{baseurl}{rel}#{label}"
+            if not rel.startswith("http")
+            else f"{rel}#{label}"
+        )
+        return f"[{title}]({url})"
 
     return pattern.sub(repl, text)
+
+
+def _convert_sg_example_refs(text: str, baseurl: str) -> str:
+    """Convert sphinx-gallery example refs to Markdown links to built docs pages.
+
+    Supported inputs:
+    - Bare token (optionally backticked): `sphx_glr_auto_examples_{section}_{slug}.py`
+    - With explicit title (optionally backticked): `Title <sphx_glr_auto_examples_{section}_{slug}.py>`
+
+    Target URL:
+    {base}/auto_examples/{section}/{slug}.html#sphx-glr-auto-examples-{section}-{slug-dashed}-py
+
+    For bare tokens, preserves backticks by keeping them inside the link text.
+    For titled form, uses the provided title as display text (without code ticks).
+    """
+    # 1) Titled form (with or without surrounding backticks): Title <sphx_glr_auto_examples_section_slug.py>
+    titled_pattern = re.compile(
+        r"`?([^`<>]+?)\s*<\s*sphx_glr_auto_examples_([a-z0-9\-]+)_([a-z0-9_\-]+)\.py\s*>`?",
+        re.IGNORECASE,
+    )
+
+    def repl_titled(m: re.Match):
+        title = m.group(1).strip()
+        section = m.group(2)
+        slug = m.group(3)
+        anchor_slug = slug.replace("_", "-")
+        url = (
+            f"{baseurl}auto_examples/{section}/{slug}.html"
+            f"#sphx-glr-auto-examples-{section}-{anchor_slug}-py"
+        )
+        # Use the explicit title as-is (no backticks)
+        return f"[{title}]({url})"
+
+    text = titled_pattern.sub(repl_titled, text)
+
+    # 2) Bare token (with or without surrounding backticks): sphx_glr_auto_examples_section_slug.py
+    bare_pattern = re.compile(
+        r"`?sphx_glr_auto_examples_([a-z0-9\-]+)_([a-z0-9_\-]+)\.py`?",
+        re.IGNORECASE,
+    )
+
+    def repl_bare(m: re.Match):
+        section = m.group(1)
+        slug = m.group(2)
+        display = f"`{section}/{slug}.py`"  # keep code-style for bare tokens
+        anchor_slug = slug.replace("_", "-")
+        url = (
+            f"{baseurl}auto_examples/{section}/{slug}.html"
+            f"#sphx-glr-auto-examples-{section}-{anchor_slug}-py"
+        )
+        return f"[{display}]({url})"
+
+    return bare_pattern.sub(repl_bare, text)
 
 
 def _convert_sphinx_admonitions(text: str) -> str:
@@ -303,11 +379,16 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         repo_root = Path(__file__).resolve().parents[2]
         conf_path = repo_root / "docs" / "source" / "conf.py"
         baseurl = _extract_html_baseurl(conf_path)
+        # Build label map once (scan built docs).
+        html_root = repo_root / "docs" / "build" / "html"
+        label_map = _scan_sphinx_labels(html_root)
         for cell in example_nb.get("cells", []):
             if cell.get("cell_type") == "markdown":
                 src = cell.get("source", "")
                 src_text = "".join(src) if isinstance(src, list) else src
+                # Order matters: convert :ref: before turning bare example filenames into links.
                 new_text = _convert_sphinx_roles_to_links(src_text, baseurl)
+                new_text = _convert_backticked_label_refs(new_text, baseurl, label_map)
                 new_text = _convert_sg_example_refs(new_text, baseurl)
                 new_text = _convert_sphinx_admonitions(new_text)
                 cell["source"] = new_text
