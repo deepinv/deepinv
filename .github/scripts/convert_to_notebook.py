@@ -63,9 +63,9 @@ def _build_macros_markdown_cell(macros: dict):
     for name, (body, n_args) in macros.items():
         # Ensure leading backslash in macro name and preserve body as-is
         if n_args and n_args > 0:
-            lines.append(f"\\renewcommand{{\\{name}}}[{n_args}]{{{body}}}\n")
+            lines.append(f"\\newcommand{{\\{name}}}[{n_args}]{{{body}}}\n")
         else:
-            lines.append(f"\\renewcommand{{\\{name}}}{{{body}}}\n")
+            lines.append(f"\\newcommand{{\\{name}}}{{{body}}}\n")
     lines.append("$$\n")
 
     cell = nbformat.v4.new_markdown_cell(source="".join(lines))
@@ -146,6 +146,91 @@ def _convert_sphinx_roles_to_links(text: str, baseurl: str) -> str:
     return role_pattern.sub(repl, text)
 
 
+def _convert_sg_example_refs(text: str, baseurl: str) -> str:
+    """Convert sphinx-gallery example refs like `sphx_glr_auto_examples_basics_demo_custom_dataset.py`
+    into Markdown links to built docs pages.
+
+    Pattern: sphx_glr_auto_examples_{section}_{slug}.py
+    URL:     {base}/auto_examples/{section}/{slug}.html#sphx-glr-auto-examples-{section}-{slug-dashed}-py
+
+    Preserves backticks around the token by keeping them inside the link text.
+    """
+    # Matches with optional surrounding backticks; we keep them in the display text.
+    pattern = re.compile(r"`?sphx_glr_auto_examples_([a-z0-9\-]+)_([a-z0-9_\-]+)\.py`?", re.IGNORECASE)
+
+    def repl(m: re.Match):
+        section = m.group(1)
+        slug = m.group(2)
+        # Show a cleaner label without the sphx_glr_auto_examples_ prefix
+        display = f"`{section}/{slug}.py`"
+        anchor_slug = slug.replace("_", "-")
+        url = f"{baseurl}auto_examples/{section}/{slug}.html#sphx-glr-auto-examples-{section}-{anchor_slug}-py"
+        return f"[{display}]({url})"
+
+    return pattern.sub(repl, text)
+
+
+def _convert_sphinx_admonitions(text: str) -> str:
+    """Convert simple Sphinx admonitions like '.. tip::' blocks into Markdown blockquotes.
+
+    Example:
+        .. hint:: Optional title
+           body line 1
+           body line 2
+
+    becomes
+        > Hint: Optional title
+        >
+        > body line 1
+        > body line 2
+
+    Handles common admonitions and also tolerates a non-standard plural like '.. tips::'.
+    """
+    lines = text.splitlines()
+    out = []
+    i = 0
+    dir_re = re.compile(r"^\s*\.\.\s+([A-Za-z]+)s?::\s*(.*)$")
+    known = {
+        "note": "Note",
+        "tip": "Tip",
+        "hint": "Hint",
+        "warning": "Warning",
+        "important": "Important",
+        "caution": "Caution",
+        "attention": "Attention",
+        "danger": "Danger",
+        "error": "Error",
+    }
+    while i < len(lines):
+        m = dir_re.match(lines[i])
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        role = m.group(1).lower()
+        title = m.group(2).strip()
+        label = known.get(role, role.capitalize())
+        header = f"> **{label}**"
+        if title:
+            header += f": {title}"
+        out.append(header)
+        out.append(">")
+        i += 1
+        while i < len(lines):
+            line = lines[i]
+            if line.strip() == "":
+                out.append(">")
+                i += 1
+                continue
+            if line.startswith(" ") or line.startswith("\t"):
+                out.append("> " + line.lstrip())
+                i += 1
+            else:
+                break
+        out.append("")
+    return "\n".join(out)
+
+
 def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
     """
     Convert a single Python script to a Jupyter notebook and save it under target_root,
@@ -185,7 +270,7 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         has_macros_cell = any(
             isinstance(c.get("source"), (str, list))
             and (
-                "\\renewcommand{"
+                "\\newcommand{"
                 in (
                     c.get("source")
                     if isinstance(c.get("source"), str)
@@ -213,7 +298,7 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         # Do not fail conversion if anything goes wrong
         pass
 
-    # Convert Sphinx roles in markdown cells to links
+    # Convert Sphinx roles, gallery refs, and admonitions in markdown cells
     try:
         repo_root = Path(__file__).resolve().parents[2]
         conf_path = repo_root / "docs" / "source" / "conf.py"
@@ -223,6 +308,8 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
                 src = cell.get("source", "")
                 src_text = "".join(src) if isinstance(src, list) else src
                 new_text = _convert_sphinx_roles_to_links(src_text, baseurl)
+                new_text = _convert_sg_example_refs(new_text, baseurl)
+                new_text = _convert_sphinx_admonitions(new_text)
                 cell["source"] = new_text
                 cell.setdefault("metadata", {})
                 cell["metadata"]["language"] = "markdown"
