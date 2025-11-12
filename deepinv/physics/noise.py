@@ -1011,15 +1011,33 @@ class LaplaceNoise(NoiseModel):
         :returns: noisy measurements
         """
         self.update_parameters(b=b, **kwargs)
-        # self.rng_manual_seed(seed)
-        if seed is not None:
-            torch.manual_seed(seed)
         self.to(x.device)
 
+        # Save current RNG state if seed is provided
+        if seed is not None:
+            states = self.get_rng_state(cuda=x.is_cuda)
+            torch.manual_seed(seed)
+
         d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
-        result = x + d.sample(x.shape)
+        result = x + d.sample()
+
+        # Restore previous RNG state if seed was provided
+        if seed is not None:
+            self.restore_rng(states)
 
         return result
+
+    def get_rng_state(self, cuda=False):
+        # get the rng state
+        rng_sate = torch.get_rng_state()
+        cuda_rng_sate = torch.cuda.get_rng_state("cuda") if cuda else None
+        return (rng_sate, cuda_rng_sate)
+
+    def restore_rng(self, rng_state):
+        # restore the rng state
+        torch.set_rng_state(rng_state[0])
+        if rng_state[1] is not None:
+            torch.cuda.set_rng_state(rng_state[1], "cuda")
 
 
 def _infer_device(
