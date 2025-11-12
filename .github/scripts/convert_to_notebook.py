@@ -5,6 +5,7 @@ from pathlib import Path
 import copy
 import nbformat
 import ast
+import re
 
 
 def _extract_mathjax_macros_from_conf(conf_path: Path):
@@ -62,14 +63,87 @@ def _build_macros_markdown_cell(macros: dict):
     for name, (body, n_args) in macros.items():
         # Ensure leading backslash in macro name and preserve body as-is
         if n_args and n_args > 0:
-            lines.append(f"\\newcommand{{\\{name}}}[{n_args}]{{{body}}}\n")
+            lines.append(f"\\renewcommand{{\\{name}}}[{n_args}]{{{body}}}\n")
         else:
-            lines.append(f"\\newcommand{{\\{name}}}{{{body}}}\n")
+            lines.append(f"\\renewcommand{{\\{name}}}{{{body}}}\n")
     lines.append("$$\n")
 
     cell = nbformat.v4.new_markdown_cell(source="".join(lines))
     cell.metadata["language"] = "markdown"
     return cell
+
+
+def _extract_html_baseurl(conf_path: Path) -> str:
+    """Extract html_baseurl from Sphinx conf safely via AST; fallback to project URL."""
+    try:
+        conf_src = conf_path.read_text(encoding="utf-8")
+        tree = ast.parse(conf_src, filename=str(conf_path))
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "html_baseurl":
+                        url = ast.literal_eval(node.value)
+                        if isinstance(url, str) and url:
+                            return url.rstrip("/") + "/"
+        return "https://deepinv.github.io/deepinv/"
+    except Exception:
+        return "https://deepinv.github.io/deepinv/"
+
+
+def _convert_sphinx_roles_to_links(text: str, baseurl: str) -> str:
+    """Convert Sphinx roles like :func:`deepinv.a.b` to Markdown links pointing to built docs.
+
+    Supports roles: func, class, meth, mod, attr, data, obj. Also handles
+    explicit text form: :func:`Text <deepinv.a.b>`.
+
+    URL mapping based on this repo's docs:
+    - Objects (func/class/meth/attr/data/obj):  {base}/api/stubs/{full.dotted.name}.html
+    - Modules (mod):                            {base}/api/{module.dotted.name}.html
+    """
+    role_pattern = re.compile(r":(func|class|meth|mod|attr|data|obj):`([^`]+)`")
+
+    def target_to_url(role: str, target: str):
+        m = re.match(r"^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$", target)
+        if m:
+            disp = m.group(1).strip()
+            full = m.group(2).strip()
+        else:
+            disp = target.strip()
+            full = target.strip()
+
+        if role == "mod":
+            url = f"{baseurl}api/{full}.html"
+            display = disp or f"`{full}`"
+            return display, url
+        else:
+            if not full or "." not in full:
+                return None
+            url = f"{baseurl}api/stubs/{full}.html"
+            display = disp or f"`{full}`"
+            return display, url
+
+    def repl(m: re.Match):
+        role = m.group(1)
+        target = m.group(2)
+        try:
+            res = target_to_url(role, target)
+        except Exception:
+            res = None
+        if not res:
+            mm = re.match(r"^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$", target)
+            return mm.group(1) if mm and mm.group(1) else target
+        display, url = res
+        display_md = display
+        if (
+            display_md
+            and not display_md.startswith("`")
+            and "." in display_md
+            and " " not in display_md
+        ):
+            display_md = f"`{display_md}`"
+        return f"[{display_md}]({url})"
+
+    return role_pattern.sub(repl, text)
 
 
 def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
@@ -111,7 +185,7 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         has_macros_cell = any(
             isinstance(c.get("source"), (str, list))
             and (
-                "\\newcommand{"
+                "\\renewcommand{"
                 in (
                     c.get("source")
                     if isinstance(c.get("source"), str)
@@ -137,6 +211,22 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
             example_nb["cells"].insert(insert_idx, macros_cell)
     except Exception:
         # Do not fail conversion if anything goes wrong
+        pass
+
+    # Convert Sphinx roles in markdown cells to links
+    try:
+        repo_root = Path(__file__).resolve().parents[2]
+        conf_path = repo_root / "docs" / "source" / "conf.py"
+        baseurl = _extract_html_baseurl(conf_path)
+        for cell in example_nb.get("cells", []):
+            if cell.get("cell_type") == "markdown":
+                src = cell.get("source", "")
+                src_text = "".join(src) if isinstance(src, list) else src
+                new_text = _convert_sphinx_roles_to_links(src_text, baseurl)
+                cell["source"] = new_text
+                cell.setdefault("metadata", {})
+                cell["metadata"]["language"] = "markdown"
+    except Exception:
         pass
 
     # Ensure the parent directory exists
