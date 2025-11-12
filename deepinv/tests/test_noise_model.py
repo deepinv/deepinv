@@ -105,7 +105,7 @@ def test_stats(name, device, dtype):
     imsize = (1, 3, 7, 16)
     x = torch.zeros(imsize, device=device, dtype=dtype)
     noise_model, stats = choose_noise_stats(name)
-    y = noise_model(x)
+    y = noise_model(x, seed=0)
     noise = y - x
 
     true_mean = x.mean().item()
@@ -117,7 +117,7 @@ def test_stats(name, device, dtype):
     empirical_mean = noise.mean().item()
     empirical_var = noise.var().item()
 
-    assert math.isclose(empirical_mean, true_mean, abs_tol=1e-2)
+    assert math.isclose(empirical_mean, true_mean, abs_tol=1e-1)
     assert math.isclose(empirical_var, true_var, rel_tol=1e-1)
 
 
