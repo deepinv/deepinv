@@ -173,7 +173,6 @@ def _convert_backticked_label_refs(text: str, baseurl: str, label_map: dict) -> 
     This compensates for upstream conversions that strip Sphinx roles and leave
     the inner ``Title <label>`` wrapped in backticks.
     """
-    # Match backticked content that ends with <label>, capture title and label.
     # Title: allow anything except backtick; Label: conservative id chars.
     pattern = re.compile(r"`([^`<>]+?)\s*<\s*([A-Za-z0-9_\-]+)\s*>`")
 

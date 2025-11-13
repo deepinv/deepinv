@@ -39,9 +39,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install sphinx_gallery
+          pip install sphinx_gallery nbformat 
 
-      - name: Convert example .py scripts to .ipynb with Jupytext
+      - name: Convert example .py scripts to .ipynb 
         run: |
           set -euo pipefail
           echo "Converting Python examples to notebooks in examples/_notebooks..."
