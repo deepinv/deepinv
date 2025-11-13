@@ -7,18 +7,19 @@
 {% if pagename.startswith('auto_examples/') and not pagename.endswith('/index') and pagename != 'auto_examples/index' %}
 
 {#
-  Derive the source .py path from the example page path.
-  Gallery pages live at auto_examples/<section>/<name> and source scripts at examples/<section>/<name>.py
+  Build the notebook path corresponding to this example page.
+  Pages live at auto_examples/<section>/<name>
+  Notebooks are published to gh-pages at auto_examples/_notebooks/<section>/<name>.ipynb
+  (they are generated in the docs workflow under _build/auto_examples/_notebooks before deployment)
 #}
-{% set example_py_path = pagename.replace('auto_examples/', 'examples/') + '.py' %}
-{% set example_ipynb_repo_path = example_py_path.replace('examples/', 'examples/_notebooks/').replace('.py', '.ipynb') %}
+{% set example_ipynb_repo_path = pagename.replace('auto_examples/', 'auto_examples/_notebooks/') + '.ipynb' %}
 
 <div class="sd-card sd-shadow-sm sd-mb-3">
   <div class="sd-card-body" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
     <p class="sd-card-text sd-fs-5 sd-font-weight-bold sd-mb-2" style="margin-bottom:0.75rem;">Run this example</p>
 
-    {# Primary: open the source .py on Colab (Colab can render scripts; install instructions are in first cell) #}
-    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/add_colab_badge/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
+  {# Primary: open the generated notebook on Colab #}
+    <a class="sd-btn sd-btn-primary" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:0.25rem; padding:0.5rem 0.75rem;" href="https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/{{ example_ipynb_repo_path }}" target="_blank" rel="noopener">
       <img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align: middle; height: 20px;">
       <span>Try it!</span>
     </a>
