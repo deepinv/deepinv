@@ -167,8 +167,6 @@ if not torch.cuda.is_available():
     ckpt = torch.hub.load_state_dict_from_url(
         url, map_location=lambda storage, loc: storage, file_name=file_name
     )
-    print(ckpt["state_dict"].keys())
-    print(model.state_dict().keys())
     model.load_state_dict(ckpt["state_dict"])
     optimizer.load_state_dict(ckpt["optimizer"])
 
