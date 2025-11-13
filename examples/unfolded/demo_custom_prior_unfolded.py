@@ -155,7 +155,7 @@ stepsize = [
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 trainable_params = [
     "stepsize",
-    "lambda_reg",
+    "lambda",
 ]  # define which parameters are trainable
 
 # Select the data fidelity term
