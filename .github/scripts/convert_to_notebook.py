@@ -634,4 +634,5 @@ if __name__ == "__main__":
 
     # Use default gallery configuration
     gallery_conf = copy.deepcopy(gen_gallery.DEFAULT_GALLERY_CONF)
+    print(f'Processing: {input_path}')
     convert_script_to_notebook(input_path, target_path, gallery_conf)
