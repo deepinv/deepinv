@@ -54,7 +54,7 @@ physics = dinv.physics.Tomography(
     circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-    normalize=True
+    normalize=True,
 )
 
 
@@ -149,7 +149,7 @@ class PDNetDataFid(DataFidelity):
 
 
 # Unrolled optimization algorithm parameters
-max_iter = 10 
+max_iter = 10
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
 data_fidelity = [
