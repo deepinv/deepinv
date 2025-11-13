@@ -2,23 +2,14 @@ from .distrib_framework import (
     DistributedContext,
     DistributedPhysics,
     DistributedLinearPhysics,
-    DistributedDataFidelity,
-    DistributedMeasurements,
-    DistributedSignal,
-    DistributedPrior,
+    DistributedProcessing,
 )
-from .utils import TilingConfig, FactoryConfig, DistributedBundle, make_distrib_bundle
+from .distribute import distribute
 
 __all__ = [
     "DistributedContext",
     "DistributedPhysics",
     "DistributedLinearPhysics",
-    "DistributedDataFidelity",
-    "DistributedMeasurements",
-    "DistributedSignal",
-    "DistributedPrior",
-    "TilingConfig",
-    "FactoryConfig",
-    "DistributedBundle",
-    "make_distrib_bundle",
+    "DistributedProcessing",
+    "distribute",
 ]

@@ -20,7 +20,7 @@ Index = tuple[Union[slice, int], ...]
 # =========================
 class DistributedContext:
     r"""
-    Small, opinionated context manager for distributed runs.
+    Context manager for distributed runs.
 
     Handles:
       - Init/destroy process group (if RANK/WORLD_SIZE envs exist)
@@ -29,7 +29,6 @@ class DistributedContext:
       - Sharding helpers and tiny comm helpers
 
     :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
-    :param str sharding: sharding strategy for data distribution. Options are `'round_robin'` and `'block'`.
     :param bool cleanup: whether to clean up the process group on exit.
     :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
     :param bool deterministic: whether to use deterministic cuDNN operations.
@@ -39,7 +38,6 @@ class DistributedContext:
     def __init__(
         self,
         backend: Optional[str] = None,
-        sharding: str = "round_robin",
         cleanup: bool = True,
         seed: Optional[int] = None,
         deterministic: bool = False,
@@ -49,14 +47,12 @@ class DistributedContext:
         Initialize the distributed context manager.
 
         :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
-        :param str sharding: sharding strategy for data distribution. Options are `'round_robin'` and `'block'`.
         :param bool cleanup: whether to clean up the process group on exit.
         :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
         :param bool deterministic: whether to use deterministic cuDNN operations.
         :param None, str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic.
         """
         self.backend = backend
-        self.sharding = sharding
         self.cleanup = cleanup
         self.seed = seed
         self.deterministic = deterministic
@@ -137,7 +133,7 @@ class DistributedContext:
             self.device = torch.device(f"cuda:{dev_index}")
             torch.cuda.set_device(self.device)
         else:
-            # Auto mode (original behavior)
+            # Auto mode
             if torch.cuda.is_available() and visible_gpus > 0:
                 # map local_rank onto *visible* devices
                 dev_index = self.local_rank % visible_gpus
@@ -178,22 +174,14 @@ class DistributedContext:
     # ----------------------
     def local_indices(self, num_items: int) -> list[int]:
         r"""
-        Get local indices for this rank based on sharding strategy.
+        Get local indices for this rank based on round robin sharding.
 
         :param int num_items: total number of items to shard.
         :return: (list) list of indices assigned to this rank.
         """
-        if self.sharding == "round_robin":
-            indices = [
-                i for i in range(num_items) if (i % self.world_size) == self.rank
-            ]
-        elif self.sharding == "block":
-            per_rank = (num_items + self.world_size - 1) // self.world_size
-            start = self.rank * per_rank
-            end = min(start + per_rank, num_items)
-            indices = list(range(start, end))
-        else:
-            raise ValueError("sharding must be either 'round_robin' or 'block'.")
+        indices = [
+            i for i in range(num_items) if (i % self.world_size) == self.rank
+        ]
 
         # Warning for efficiency, but allow empty indices (don't raise error)
         if self.is_dist and len(indices) == 0 and self.rank == 0:
@@ -232,207 +220,224 @@ class DistributedContext:
         if self.is_dist:
             dist.barrier()
 
-
-# =========================
-# Distributed Measurements
-# =========================
-class DistributedMeasurements:
-    r"""
-    Holds only local measurement shards.
-
-    You can supply either:
-      - factory(i, device, shared) -> Tensor and num_items to build local shards
-      - a full list of measurements (replicated across ranks); we'll select locals
-
-    No collectives are used here; we assume each rank can construct its own locals.
-
-    :param DistributedContext ctx: distributed context manager.
-    :param None, int num_items: total number of measurement items. Required when using factory.
-    :param None, Callable factory: factory function that creates measurements. Should have signature `factory(index, device, shared) -> torch.Tensor`.
-    :param None, Sequence[torch.Tensor] measurements_list: list of all measurements to be distributed.
-    :param None, dict shared: shared data dictionary passed to factory function.
-    """
-
-    def __init__(
-        self,
-        ctx: DistributedContext,
-        num_items: Optional[int] = None,
-        *,
-        factory: Optional[
-            Callable[[int, torch.device, Optional[dict]], torch.Tensor]
-        ] = None,
-        measurements_list: Optional[Sequence[torch.Tensor]] = None,
-        shared: Optional[dict] = None,
-    ):
-        r"""
-        Initialize distributed measurements.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param None, int num_items: total number of measurement items. Required when using factory.
-        :param None, Callable factory: factory function that creates measurements. Should have signature `factory(index, device, shared) -> torch.Tensor`.
-        :param None, Sequence[torch.Tensor] measurements_list: list of all measurements to be distributed.
-        :param None, dict shared: shared data dictionary passed to factory function.
-        :param None, torch.dtype dtype: data type for measurements.
+    # ----------------------
+    # Gather Strategies
+    # ----------------------
+    def gather_tensorlist_naive(
+        self, local_indices: list[int], local_results: list[torch.Tensor], num_ops: int
+    ) -> TensorList:
         """
-        self.ctx = ctx
-        self.shared = shared
-
-        if (factory is None and measurements_list is None) or (
-            factory is not None and measurements_list is not None
-        ):
-            raise ValueError("Provide either factory or measurements_list.")
-        if num_items is None and factory is not None:
-            raise ValueError("Must provide num_items if using factory.")
-
-        self.num_items = num_items if num_items is not None else len(measurements_list)
-        self.local_idx: list[int] = ctx.local_indices(num_items)
-        self._global_to_local: dict[int, int] = {
-            g: j for j, g in enumerate(self.local_idx)
-        }
-
-        self.local: list[torch.Tensor] = []
-        if factory is not None:
-            for i in self.local_idx:
-                y = factory(i, ctx.device, shared)
-                self.local.append(y.to(ctx.device, dtype=y.dtype))
-        elif measurements_list is not None:
-            for i in self.local_idx:
-                self.local.append(
-                    measurements_list[i].to(
-                        ctx.device, dtype=measurements_list[i].dtype
+        Naive gather strategy using object serialization.
+        
+        Best for: Small tensors where serialization overhead is negligible.
+        
+        Communication pattern: 1 all_gather_object call (high overhead, simple)
+        
+        :param list[int] local_indices: indices owned by this rank
+        :param list[torch.Tensor] local_results: local tensor results
+        :param int num_ops: total number of operators
+        :return: TensorList with all results
+        """
+        if not self.is_dist:
+            # Single process: just build the list
+            out: list = [None] * num_ops
+            for idx, result in zip(local_indices, local_results, strict=False):
+                out[idx] = result
+            return TensorList(out)
+        
+        # Pair indices with tensors
+        pairs = list(zip(local_indices, local_results, strict=False))
+        
+        # Gather all pairs from all ranks
+        gathered = [None] * self.world_size
+        dist.all_gather_object(gathered, pairs)
+        
+        # Assemble into output list
+        out: list = [None] * num_ops
+        for rank_pairs in gathered:
+            if rank_pairs is not None:
+                for idx, tensor in rank_pairs:
+                    out[idx] = tensor
+        
+        return TensorList(out)
+    
+    def gather_tensorlist_concatenated(
+        self, local_indices: list[int], local_results: list[torch.Tensor], num_ops: int
+    ) -> TensorList:
+        """
+        Efficient gather strategy using a single concatenated tensor.
+        
+        Best for: Medium to large tensors where minimizing communication calls matters.
+        
+        Communication pattern:
+        - 1 all_gather_object for metadata (lightweight)
+        - 1 all_gather for concatenated tensor data (efficient)
+        
+        :param list[int] local_indices: indices owned by this rank
+        :param list[torch.Tensor] local_results: local tensor results
+        :param int num_ops: total number of operators
+        :return: TensorList with all results
+        """
+        if not self.is_dist:
+            # Single process: just build the list
+            out: list = [None] * num_ops
+            for idx, result in zip(local_indices, local_results, strict=False):
+                out[idx] = result
+            return TensorList(out)
+        
+        # Step 1: Share metadata (indices, shapes, dtypes)
+        local_metadata = [
+            (idx, tuple(result.shape), result.dtype, result.numel())
+            for idx, result in zip(local_indices, local_results, strict=False)
+        ]
+        
+        gathered_metadata = [None] * self.world_size
+        dist.all_gather_object(gathered_metadata, local_metadata)
+        
+        # Flatten all metadata
+        all_metadata = []
+        for rank_metadata in gathered_metadata:
+            if rank_metadata is not None:
+                all_metadata.extend(rank_metadata)
+        
+        # Step 2: Flatten and pad local tensors to max size
+        if len(local_results) > 0:
+            # Find max numel across all tensors globally
+            max_numel = max(numel for _, _, _, numel in all_metadata)
+            
+            # Flatten and pad each local tensor
+            flattened_padded = []
+            for result in local_results:
+                flat = result.flatten()
+                if flat.numel() < max_numel:
+                    padding = torch.zeros(
+                        max_numel - flat.numel(), 
+                        dtype=flat.dtype, 
+                        device=self.device
                     )
-                )
+                    flat = torch.cat([flat, padding])
+                flattened_padded.append(flat)
+            
+            # Concatenate all local flattened tensors
+            local_concat = torch.stack(flattened_padded)  # Shape: [num_local, max_numel]
         else:
-            raise ValueError("Provide factory or measurements_list.")
-
-    def __len__(self):
-        return self.num_items
-
-    def indices(self) -> list[int]:
-        return self.local_idx
-
-    def get_local(self) -> list[torch.Tensor]:
-        return self.local
-
-    def get_by_global_index(self, i: int) -> torch.Tensor:
-        """Returns the local tensor if owned; raises otherwise."""
-        if i not in self._global_to_local:
-            raise KeyError(f"Measurement {i} is not local to rank {self.ctx.rank}.")
-        return self.local[self._global_to_local[i]]
-
-
-# =========================
-# Distributed Signal
-# =========================
-class DistributedSignal:
-    r"""
-    A wrapper around a replicated signal tensor with automatic synchronization.
-
-    The signal is automatically synchronized across all processes after initialization
-    and after any update operations. Users should not call ```sync_``` manually.
-
-    :param DistributedContext ctx: distributed context manager.
-    :param Sequence[int] shape: shape of the signal tensor.
-    :param None, torch.dtype dtype: data type for the signal tensor.
-    :param None, torch.Tensor init: initial tensor data. If `None`, tensor is initialized with zeros.
-    :param int sync_src: source rank for broadcasting during synchronization.
-
-    |sep|
-
-    :Examples:
-
-        Create and update a distributed signal:
-
-        >>> with DistributedContext() as ctx:
-        ...     signal = DistributedSignal(ctx, (3, 32, 32))
-        ...     signal.update_(torch.randn(3, 32, 32))  # Automatically synchronized
-        ...     signal.add_(-0.1 * gradient)  # Automatically synchronized
-    """
-
-    def __init__(
-        self,
-        ctx: DistributedContext,
-        shape: Sequence[int],
-        dtype: Optional[torch.dtype] = None,
-        init: Optional[torch.Tensor] = None,
-        sync_src: int = 0,
-    ):
-        r"""
-        Initialize the distributed signal.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param Sequence[int] shape: shape of the signal tensor.
-        :param None, torch.dtype dtype: data type for the signal tensor.
-        :param None, torch.Tensor init: initial tensor data. If `None`, tensor is initialized with zeros.
-        :param int sync_src: source rank for broadcasting during synchronization.
+            # This rank has no tensors - create empty placeholder
+            max_numel = max((numel for _, _, _, numel in all_metadata), default=1)
+            local_concat = torch.zeros((0, max_numel), dtype=torch.float32, device=self.device)
+        
+        # Step 3: All-gather the concatenated tensor
+        # First, share how many tensors each rank has
+        num_local_tensors = torch.tensor([len(local_results)], dtype=torch.int64, device=self.device)
+        all_num_tensors = [torch.zeros(1, dtype=torch.int64, device=self.device) for _ in range(self.world_size)]
+        dist.all_gather(all_num_tensors, num_local_tensors)
+        
+        # Prepare buffers for all_gather - need to use all_gather_into_tensor for variable sizes
+        # Create a single flattened buffer for all ranks' data
+        max_local_count = max(count.item() for count in all_num_tensors)
+        
+        # Pad local_concat to max_local_count if needed
+        if len(local_results) < max_local_count:
+            padding_rows = max_local_count - len(local_results)
+            padding = torch.zeros((padding_rows, max_numel), dtype=local_concat.dtype, device=self.device)
+            local_concat_padded = torch.cat([local_concat, padding], dim=0)
+        else:
+            local_concat_padded = local_concat
+        
+        # All-gather with fixed size
+        tensor_lists = [
+            torch.zeros((max_local_count, max_numel), dtype=local_concat_padded.dtype, device=self.device)
+            for _ in range(self.world_size)
+        ]
+        
+        # All-gather the actual data
+        dist.all_gather(tensor_lists, local_concat_padded)
+        
+        # Step 4: Reconstruct TensorList from gathered data
+        out: list = [None] * num_ops
+        metadata_idx = 0
+        
+        for rank_idx, rank_metadata in enumerate(gathered_metadata):
+            if rank_metadata is None:
+                continue
+                
+            rank_tensors = tensor_lists[rank_idx]
+            
+            for local_pos, (idx, shape, dtype, numel) in enumerate(rank_metadata):
+                # Extract the flattened tensor
+                flat_tensor = rank_tensors[local_pos, :numel]
+                
+                # Reshape to original shape
+                out[idx] = flat_tensor.reshape(shape).to(dtype)
+        
+        return TensorList(out)
+    
+    def gather_tensorlist_broadcast(
+        self, local_indices: list[int], local_results: list[torch.Tensor], num_ops: int
+    ) -> TensorList:
         """
-        self.ctx = ctx
-        self.dtype = dtype or torch.float32
-        self._shape = torch.Size(shape)
-        self._sync_src = sync_src
-
-        if init is None:
-            self._data = torch.zeros(self._shape, device=ctx.device, dtype=self.dtype)
-        else:
-            self.dtype = init.dtype
-            self._data = init.to(ctx.device, dtype=init.dtype)
-
-        # Auto-sync after initialization
-        self._sync()
-
-    def _sync(self):
-        """Internal synchronization method."""
-        if self.ctx.is_dist:
-            self.ctx.broadcast_(self._data, src=self._sync_src)
-
-    def update_(self, new_data: torch.Tensor):
-        """Update signal data and automatically sync across processes."""
-        self._data.copy_(new_data)
-        self._sync()
-        return self
-
-    def copy_(self, other):
-        """Copy from another tensor/signal with automatic sync."""
-        if isinstance(other, DistributedSignal):
-            self._data.copy_(other._data)
-        else:
-            self._data.copy_(other)
-        self._sync()
-        return self
-
-    def clone(self):
-        """Clone the signal (creates new DistributedSignal)."""
-        new_signal = DistributedSignal(
-            self.ctx, self.shape, self.dtype, sync_src=self._sync_src
-        )
-        new_signal._data.copy_(self._data)
-        new_signal._sync()
-        return new_signal
-
-    def all_reduce_(self, op: str = "mean"):
-        """Optional: consensus ops if your algorithm needs it."""
-        self.ctx.all_reduce_(self._data, op=op)
-        return self
-
-    @property
-    def shape(self) -> torch.Size:
-        return self._data.shape
-
-    @property
-    def data(self) -> torch.Tensor:
-        """Access to underlying tensor data (read-only recommended)."""
-        return self._data
-
-    @data.setter
-    def data(self, value: torch.Tensor):
-        """Set data with automatic sync."""
-        self._data = value.to(self.ctx.device, dtype=self.dtype)
-        self._sync()
-
-    @property
-    def tensor(self) -> torch.Tensor:
-        """Access to underlying tensor (alias for data)."""
-        return self._data
+        Broadcast-based gather strategy.
+        
+        Best for: Heterogeneous tensor sizes where different operators produce 
+        very different sized outputs, or when you want to overlap computation 
+        with communication (each operator can be broadcast as soon as it's ready).
+        
+        Use cases:
+        - Different physics operators produce vastly different measurement sizes
+        - Streaming/pipelined execution where operators complete at different times
+        - Very large tensors where memory for concatenation is prohibitive
+        
+        Communication pattern: num_ops broadcasts (can be overlapped with computation)
+        
+        :param list[int] local_indices: indices owned by this rank
+        :param list[torch.Tensor] local_results: local tensor results
+        :param int num_ops: total number of operators
+        :return: TensorList with all results
+        """
+        if not self.is_dist:
+            # Single process: just build the list
+            out: list = [None] * num_ops
+            for idx, result in zip(local_indices, local_results, strict=False):
+                out[idx] = result
+            return TensorList(out)
+        
+        # Step 1: Share metadata (indices, shapes, dtypes)
+        local_metadata = [
+            (idx, tuple(result.shape), result.dtype)
+            for idx, result in zip(local_indices, local_results, strict=False)
+        ]
+        
+        gathered_metadata = [None] * self.world_size
+        dist.all_gather_object(gathered_metadata, local_metadata)
+        
+        # Build shape map
+        shape_map = {}
+        for rank_metadata in gathered_metadata:
+            if rank_metadata is not None:
+                for idx, shape, dtype in rank_metadata:
+                    if idx not in shape_map:
+                        shape_map[idx] = (shape, dtype)
+        
+        # Step 2: Broadcast each operator's result from its owner
+        out: list = [None] * num_ops
+        
+        for idx in range(num_ops):
+            shape, dtype = shape_map[idx]
+            responsible_rank = idx % self.world_size  # Round-robin sharding
+            
+            # Prepare tensor to send/receive
+            if idx in local_indices:
+                # This rank owns this operator
+                local_pos = local_indices.index(idx)
+                tensor_to_send = local_results[local_pos].contiguous()
+            else:
+                # Create receive buffer
+                tensor_to_send = torch.zeros(shape, dtype=dtype, device=self.device)
+            
+            # Broadcast from owner to all ranks
+            dist.broadcast(tensor_to_send, src=responsible_rank)
+            out[idx] = tensor_to_send
+        
+        return TensorList(out)
 
 
 # =========================
@@ -451,6 +456,11 @@ class DistributedPhysics(Physics):
     :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
     :param None, dict shared: shared data dictionary passed to factory function.
     :param None, torch.dtype dtype: data type for operations.
+    :param str gather_strategy: strategy for gathering distributed results. Options are:
+        - `'naive'`: Simple object serialization (best for small tensors)
+        - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
+        - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
+        Default is `'concatenated'`.
     """
 
     def __init__(
@@ -461,6 +471,7 @@ class DistributedPhysics(Physics):
         *,
         shared: Optional[dict] = None,
         dtype: Optional[torch.dtype] = None,
+        gather_strategy: str = "concatenated",
         **kwargs,
     ):
         r"""
@@ -471,12 +482,25 @@ class DistributedPhysics(Physics):
         :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
         :param None, dict shared: shared data dictionary passed to factory function.
         :param None, torch.dtype dtype: data type for operations.
+        :param str gather_strategy: strategy for gathering distributed results. Options are:
+            - `'naive'`: Simple object serialization (best for small tensors)
+            - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
+            - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
+            Default is `'concatenated'`.
         """
         super().__init__(**kwargs)
         self.ctx = ctx
         self.dtype = dtype or torch.float32
         self.num_ops = num_ops
         self.local_idx: list[int] = ctx.local_indices(num_ops)
+        
+        # Validate and set gather strategy
+        valid_strategies = {'naive', 'concatenated', 'broadcast'}
+        if gather_strategy not in valid_strategies:
+            raise ValueError(
+                f"gather_strategy must be one of {valid_strategies}, got '{gather_strategy}'"
+            )
+        self.gather_strategy = gather_strategy
 
         # Broadcast shared object (lightweight) once (root=0) if present
         self.shared = shared
@@ -491,34 +515,48 @@ class DistributedPhysics(Physics):
             p_i = factory(i, ctx.device, self.shared)
             self.local_physics.append(p_i)
 
-    # -------- local fast path --------
+    # -------- Factorized map-reduce logic --------
+    def _map_reduce(
+        self, x: torch.Tensor, local_op: Callable, **kwargs
+    ) -> TensorList:
+        """
+        Efficient map-reduce pattern for distributed operations.
+        
+        Maps local_op over local physics operators, then gathers results using
+        the configured gather strategy.
+        
+        :param torch.Tensor x: input tensor
+        :param Callable local_op: operation to apply, e.g., lambda p, x: p.A(x)
+        :return: TensorList of gathered results
+        """
+        # Step 1: Map - apply operation to local physics operators
+        local_results = [local_op(p, x, **kwargs) for p in self.local_physics]
+        
+        # Step 2: Reduce - gather results using selected strategy
+        if self.gather_strategy == 'naive':
+            return self.ctx.gather_tensorlist_naive(
+                self.local_idx, local_results, self.num_ops
+            )
+        elif self.gather_strategy == 'concatenated':
+            return self.ctx.gather_tensorlist_concatenated(
+                self.local_idx, local_results, self.num_ops
+            )
+        elif self.gather_strategy == 'broadcast':
+            return self.ctx.gather_tensorlist_broadcast(
+                self.local_idx, local_results, self.num_ops
+            )
+        else:
+            raise ValueError(f"Unknown gather strategy: {self.gather_strategy}")
+
     def A_local(self, x: torch.Tensor, **kwargs) -> list[torch.Tensor]:
         return [p.A(x, **kwargs) for p in self.local_physics]
 
-    # Optional: global assembly (for compatibility/debug)
     def A(self, x: torch.Tensor, **kwargs) -> TensorList:
-        pairs = list(zip(self.local_idx, self.A_local(x, **kwargs), strict=False))
-        if not self.ctx.is_dist:
-            out = [None] * self.num_ops
-            for i, t in pairs:
-                out[i] = t
-            return TensorList(out)
-
-        # NOTE: use all_gather_object only for small N or debugging.
-        # For production, prefer tensor collectives with metadata. Kept simple here.
-        gathered = [None] * self.ctx.world_size
-        # All ranks participate in all_gather_object, even if pairs is empty
-        dist.all_gather_object(gathered, pairs)
-        all_pairs = []
-        for part in gathered:
-            all_pairs.extend(part)
-        out = [None] * self.num_ops
-        for i, t in all_pairs:
-            out[i] = t
-        return TensorList(out)
-
+        return self._map_reduce(x, lambda p, x, **kw: p.A(x, **kw), **kwargs)
+    
     def forward(self, x, **kwargs):
-        return self.A(x, **kwargs)
+        """Apply full forward model: sensor(noise(A(x)))"""
+        return self._map_reduce(x, lambda p, x, **kw: p.forward(x, **kw), **kwargs)
 
 
 class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
@@ -545,6 +583,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         shared: Optional[dict] = None,
         reduction: str = "sum",
         dtype: Optional[torch.dtype] = None,
+        gather_strategy: str = "concatenated",
         **kwargs,
     ):
         r"""
@@ -556,10 +595,12 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param None, dict shared: shared data dictionary passed to factory function.
         :param str reduction: reduction mode for distributed operations. Options are `'sum'` and `'mean'`.
         :param None, torch.dtype dtype: data type for operations.
+        :param str gather_strategy: strategy for gathering distributed results.
         """
         LinearPhysics.__init__(self, A=lambda x: x, A_adjoint=lambda y: y, **kwargs)
         self.reduction_mode = reduction
-        super().__init__(ctx, num_ops, factory, shared=shared, dtype=dtype, **kwargs)
+        super().__init__(ctx, num_ops, factory, shared=shared, dtype=dtype, 
+                        gather_strategy=gather_strategy, **kwargs)
 
         for p in self.local_physics:
             if not isinstance(p, LinearPhysics):
@@ -615,152 +656,26 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         return self._reduce_global(local)
 
 
-# =========================
-# Distributed Data Fidelity
-# =========================
-class DistributedDataFidelity:
+
+class DistributedProcessing:
     r"""
-    Truly distributed data fidelity.
+    Distributed processing using pluggable signal processing strategies (denoiser, prior, etc)
 
-    Builds/owns only local fidelity blocks (by index):
-      - computes loss locally and all-reduces a single scalar
-      - computes grad via local VJP and all-reduces a single x-shaped tensor
-
-    :param DistributedContext ctx: distributed context manager.
-    :param Union[DistributedPhysics, DistributedLinearPhysics] physics: distributed physics operators.
-    :param DistributedMeasurements measurements: distributed measurements.
-    :param None, Callable data_fidelity_factory: factory function for creating data fidelity terms. Should have signature `factory(index, device, shared) -> object`.
-    :param None, Sequence[object] data_fidelity_list: list of all data fidelity terms to be distributed.
-    :param None, dict shared: shared data dictionary passed to factory function.
-    :param str reduction: reduction mode for loss aggregation. Options are `'sum'` and `'mean'`.
-    """
-
-    def __init__(
-        self,
-        ctx: DistributedContext,
-        physics: Union[DistributedPhysics, DistributedLinearPhysics],
-        measurements: DistributedMeasurements,
-        *,
-        data_fidelity_factory: Optional[
-            Callable[[int, torch.device, Optional[dict]], object]
-        ] = None,
-        data_fidelity_list: Optional[Sequence[object]] = None,
-        shared: Optional[dict] = None,
-        reduction: str = "sum",
-    ):
-        r"""
-        Initialize distributed data fidelity.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param Union[DistributedPhysics, DistributedLinearPhysics] physics: distributed physics operators.
-        :param DistributedMeasurements measurements: distributed measurements.
-        :param None, Callable data_fidelity_factory: factory function for creating data fidelity terms. Should have signature `factory(index, device, shared) -> object`.
-        :param None, Sequence[object] data_fidelity_list: list of all data fidelity terms to be distributed.
-        :param None, dict shared: shared data dictionary passed to factory function.
-        :param str reduction: reduction mode for loss aggregation. Options are `'sum'` and `'mean'`.
-        """
-        self.ctx = ctx
-        self.physics = physics
-        self.meas = measurements
-        self.reduction = reduction
-        self.shared = shared
-
-        local_idx = physics.local_idx
-        if data_fidelity_factory is not None:
-            self.local_df = [
-                data_fidelity_factory(i, ctx.device, shared) for i in local_idx
-            ]
-        elif data_fidelity_list is not None:
-            self.local_df = [data_fidelity_list[i] for i in local_idx]
-        else:
-            raise ValueError("Provide data_fidelity_factory or data_fidelity_list.")
-
-        # Sanity: indices alignment
-        assert (
-            local_idx == self.meas.indices()
-        ), "Physics and measurements must shard the same global indices under the same context."
-
-    # ---- loss ----
-    @torch.no_grad()
-    def fn(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
-        # Local forward
-        y_pred_local = self.physics.A_local(
-            X.tensor, **kwargs
-        )  # list aligned with local_idx
-        y_true_local = self.meas.get_local()
-
-        # Local accumulation (each DF returns a scalar per-batch; we sum)
-        loss = X.tensor.new_zeros(())
-        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local, strict=False):
-            # Use the distance function directly since we already have A(x) = yhat
-            loss = loss + df.d(yhat, y, **kwargs)
-
-        # Global reduction - all ranks participate even if they have no local data
-        if self.ctx.is_dist:
-            self.ctx.all_reduce_(loss, op="sum")
-        if self.reduction == "mean":
-            loss = loss / float(self.physics.num_ops)
-        return loss
-
-    # ---- grad wrt x ----
-    def grad(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
-        # Local forward (recompute or cache as you like)
-        y_pred_local = self.physics.A_local(X.tensor, **kwargs)
-        y_true_local = self.meas.get_local()
-
-        # Local residuals: dℓ/dy_i
-        v_local = []
-        for df, yhat, y in zip(self.local_df, y_pred_local, y_true_local, strict=False):
-            v_local.append(df.d.grad(yhat, y, **kwargs))
-
-        # Local VJP into x-shape
-        if isinstance(self.physics, DistributedLinearPhysics):
-            x_grad_local = self.physics.A_vjp_local(X.tensor, v_local, **kwargs)
-        else:
-            # Fallback: generic physics with manual vjp (requires per-op support).
-            if len(v_local) > 0:
-                contribs = [
-                    p.A_vjp(X.tensor, v_i, **kwargs)
-                    for p, v_i in zip(self.physics.local_physics, v_local, strict=False)
-                ]
-                x_grad_local = torch.stack(contribs, dim=0).sum(0)
-            else:
-                x_grad_local = torch.zeros_like(X.tensor)
-
-        if not torch.is_tensor(x_grad_local):
-            x_grad_local = torch.zeros_like(X.tensor)
-
-        # Global reduction - all ranks participate even if they have no local data
-        if self.ctx.is_dist:
-            self.ctx.all_reduce_(x_grad_local, op="sum")
-        if self.reduction == "mean":
-            x_grad_local = x_grad_local / float(self.physics.num_ops)
-
-        return x_grad_local
-
-
-class DistributedPrior:
-    r"""
-    Distributed prior using pluggable signal processing strategies.
-
-    This class enables distributed processing of prior terms by using signal processing
+    This class enables distributed processing by using signal processing
     strategies that define how to split, process, and combine signal patches across
     multiple processes.
 
     :param DistributedContext ctx: distributed context manager.
-    :param deepinv.optim.Prior prior: prior term to be applied in a distributed manner.
+    :param Callable processor: processing function to be applied in a distributed manner.
     :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy. Either a strategy name (`'basic'`, `'smart_tiling'`) or a custom strategy instance.
-    :param Sequence[int] signal_shape: full tensor shape of the signal to be processed (e.g. BCHW).
-    :param None, dict strategy_kwargs: extra arguments for the strategy (when using string strategy names).
     """
 
     def __init__(
         self,
         ctx: DistributedContext,
-        prior: Prior,
+        processor: Callable,
         *,
-        strategy: Union[str, DistributedSignalStrategy] = "smart_tiling",
-        signal_shape: Sequence[int],
+        strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
         strategy_kwargs: Optional[dict] = None,
         max_batch_size: Optional[int] = None,
         **kwargs,
@@ -776,27 +691,39 @@ class DistributedPrior:
         :param None, int max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to 1 for sequential processing.
         """
         self.ctx = ctx
-        self.prior = prior
+        self.processor = processor
         self.max_batch_size = max_batch_size
+        self.strategy = strategy if strategy is not None else "smart_tiling"
+        self.strategy_kwargs = strategy_kwargs
 
-        if hasattr(prior, "to"):
-            self.prior.to(ctx.device)
+        if hasattr(processor, "to"):
+            self.processor.to(ctx.device)
+
+    def __call__(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        self._init_shape_and_strategy(x.shape)
+        return self._apply_op(x, *args, **kwargs)
+
+    # ---- internals --------------------------------------------------------
+
+    def _init_shape_and_strategy(
+        self,
+        signal_shape: Sequence[int],
+    ):
 
         self.signal_shape = torch.Size(signal_shape)
 
         # Create or set the strategy
-        if isinstance(strategy, str):
+        if isinstance(self.strategy, str):
             from .distribution_strategies.strategies import create_strategy
 
-            strategy_kwargs = strategy_kwargs or {}
-            self.strategy = create_strategy(strategy, signal_shape, **strategy_kwargs)
+            strategy_kwargs = self.strategy_kwargs or {}
+            self._strategy = create_strategy(self.strategy, signal_shape, **strategy_kwargs)
         else:
-            self.strategy = strategy
-
-        if self.strategy is None:
+            self._strategy = self.strategy
+        if self._strategy is None:
             raise RuntimeError("Strategy is None - failed to create or import strategy")
 
-        self.num_patches = self.strategy.get_num_patches()
+        self.num_patches = self._strategy.get_num_patches()
         if self.num_patches == 0:
             raise ValueError("Strategy produced zero patches.")
 
@@ -817,63 +744,41 @@ class DistributedPrior:
                     f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks."
                 )
 
-    # ---- public ops -------------------------------------------------------
-
-    def grad(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
-        return self._apply_op(X, op="grad", **kwargs)
-
-    def prox(self, X: DistributedSignal, **kwargs) -> torch.Tensor:
-        return self._apply_op(X, op="prox", **kwargs)
-
-    # ---- internals --------------------------------------------------------
-
-    def _apply_op(self, X: DistributedSignal, *, op: str, **kwargs) -> torch.Tensor:
+    def _apply_op(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
-        Apply prior operation (grad/prox) using the distributed strategy.
+        Apply processor using the distributed strategy.
 
         This method:
         1. Extracts local patches using the strategy
         2. Applies batching as defined by the strategy
-        3. Applies the prior operation to batched patches
+        3. Applies the processor to batched patches
         4. Unpacks and reduces results using the strategy
         5. All-reduces the final result across ranks
         """
         # Handle empty case early
         if not self.local_indices:
             out_local = torch.zeros(
-                self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype
+                self.signal_shape, device=self.ctx.device, dtype=x.dtype
             )
             if self.ctx.is_dist:
                 self.ctx.all_reduce_(out_local, op="sum")
             return out_local
 
-        # Get the prior operation function
-        if op == "grad":
-            if not hasattr(self.prior, "grad"):
-                raise ValueError("Prior does not implement .grad()")
-            prior_fn = lambda t: self.prior.grad(t, **kwargs)
-        elif op == "prox":
-            if not hasattr(self.prior, "prox"):
-                raise ValueError("Prior does not implement .prox()")
-            prior_fn = lambda t: self.prior.prox(t, **kwargs)
-        else:
-            raise ValueError(f"Unknown operation: {op}")
-
         # 1. Extract local patches using strategy
-        local_pairs = self.strategy.get_local_patches(X.tensor, self.local_indices)
+        local_pairs = self._strategy.get_local_patches(x, self.local_indices)
         patches = [patch for _, patch in local_pairs]
 
         # 2. Apply batching strategy with max_batch_size
-        batched_patches = self.strategy.apply_batching(patches, max_batch_size=self.max_batch_size)
+        batched_patches = self._strategy.apply_batching(patches, max_batch_size=self.max_batch_size)
 
-        # 3. Apply prior to each batch
+        # 3. Apply processor to each batch
         processed_batches = []
         for batch in batched_patches:
-            result = prior_fn(batch)
+            result = self.processor(batch, *args, **kwargs)
             processed_batches.append(result)
 
         # 4. Unpack results back to individual patches
-        processed_patches = self.strategy.unpack_batched_results(
+        processed_patches = self._strategy.unpack_batched_results(
             processed_batches, len(patches)
         )
 
@@ -888,9 +793,9 @@ class DistributedPrior:
 
         # 6. Initialize output tensor and apply reduction strategy
         out_local = torch.zeros(
-            self.signal_shape, device=self.ctx.device, dtype=X.tensor.dtype
+            self.signal_shape, device=self.ctx.device, dtype=x.dtype
         )
-        self.strategy.reduce_patches(out_local, processed_pairs)
+        self._strategy.reduce_patches(out_local, processed_pairs)
 
         # 7. All-reduce to combine results from all ranks
         if self.ctx.is_dist:

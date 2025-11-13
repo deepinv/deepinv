@@ -1,9 +1,10 @@
 """
-Large-scale plug-and-play methods using distributed computing
-=============================================================
+Distributed Plug-and-Play (PnP) Reconstruction
+==============================================
 
-This example demonstrates how to use the distributed framework for PnP reconstruction.
-The framework automatically distributes physics operators and priors across multiple processes.
+This example demonstrates how to use the distributed framework for PnP reconstruction
+using the simplified distribute() API. The framework automatically distributes physics
+operators and denoisers across multiple processes.
 
 **Usage:**
 
@@ -12,17 +13,25 @@ The framework automatically distributes physics operators and priors across mult
     # Single process
     python examples/distrib/demo_pnp_distributed.py
 
-    # Multi-process with torchrun
+    # Multi-process with torchrun (2 processes)
     python -m torch.distributed.run --nproc_per_node=2 examples/distrib/demo_pnp_distributed.py
+
+**Key Features:**
+
+- Distribute multiple physics operators across processes
+- Distribute denoiser with image tiling
+- PnP algorithm with distributed components
+- L2 data fidelity gradient computed using data_fidelity.grad()
 
 **Key Steps:**
 
-1. Create physics operators and measurements
+1. Create stacked physics operators and measurements with reproducible noise
 2. Initialize distributed context
-3. Configure distributed components with FactoryConfig and TilingConfig
-4. Build distributed bundle with make_distrib_bundle()
-5. Run PnP iterations
-6. Visualize results
+3. Distribute physics with dinv.distrib.distribute()
+4. Distribute denoiser with tiling configuration
+5. Create PnP prior and L2 data fidelity
+6. Run PnP iterations using data_fidelity.grad() for gradient computation
+7. Visualize results and track convergence
 """
 
 import torch
@@ -34,14 +43,10 @@ from deepinv.optim.prior import PnP
 from deepinv.loss.metric import PSNR
 from deepinv.utils.plotting import plot
 from deepinv.models import DRUNet
+from typing import cast
 
 # Import the distributed framework
-from deepinv.distrib import (
-    DistributedContext,
-    FactoryConfig,
-    TilingConfig,
-    make_distrib_bundle,
-)
+from deepinv.distrib import DistributedContext, distribute, DistributedLinearPhysics
 
 
 # ============================================================================
@@ -49,12 +54,13 @@ from deepinv.distrib import (
 # ============================================================================
 
 
-def create_physics_and_measurements(device, img_size=(256, 256)):
+def create_physics_and_measurements(device, img_size=(256, 256), seed=42):
     """
     Create stacked physics operators and measurements using example images.
 
     :param device: Device to create operators on
     :param tuple img_size: Size of the image (H, W)
+    :param int seed: Random seed for reproducible noise generation
 
     :returns: Tuple of (stacked_physics, measurements, clean_image)
     """
@@ -78,12 +84,13 @@ def create_physics_and_measurements(device, img_size=(256, 256)):
     # Create physics operators
     physics_list = []
 
-    for kernel, noise_level in zip(kernels, noise_levels):
+    for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels)):
         # Create blur operator with circular padding
         blur_op = Blur(filter=kernel, padding="circular", device=str(device))
 
-        # Set the noise model
-        blur_op.noise_model = GaussianNoise(sigma=noise_level)
+        # Set the noise model with reproducible random generator
+        rng = torch.Generator(device=device).manual_seed(seed + i)
+        blur_op.noise_model = GaussianNoise(sigma=noise_level, rng=rng)
         blur_op = blur_op.to(device)
 
         physics_list.append(blur_op)
@@ -104,8 +111,8 @@ def main():
     # CONFIGURATION
     # ============================================================================
 
-    num_iterations = 10
-    lr = 1
+    num_iterations = 20
+    step_size = 0.5
     denoiser_sigma = 0.05
     img_size = (512, 512)
     patch_size = 128
@@ -139,73 +146,67 @@ def main():
             print(f"   Measurements type: {type(measurements).__name__}")
 
         # ============================================================================
-        # STEP 2: Load denoiser model and create PnP prior
+        # STEP 2: Distribute physics operators
         # ============================================================================
-
-        # PnP prior with denoiser
-        denoiser = DRUNet(pretrained="download").to(ctx.device)
-        pnp_prior = PnP(denoiser=denoiser)
-
-        # ============================================================================
-        # STEP 3: Configure distributed components
-        # ============================================================================
-
-        # Factory configuration: stacked physics, measurements, and data fidelity
-        # The framework automatically extracts individual operators from StackedPhysics
-        factory_config = FactoryConfig(
-            physics=stacked_physics,
-            measurements=measurements,
-            data_fidelity=L2(),
-        )
-
-        # Tiling configuration: how to split the image for distributed processing
-        tiling_config = TilingConfig(
-            patch_size=patch_size,
-            receptive_field_size=receptive_field_size,
-        )
 
         if ctx.rank == 0:
-            print(f"\n🔧 Configured distributed components")
+            print(f"\n🔧 Distributing physics operators...")
+
+        distributed_physics = distribute(stacked_physics, ctx)
+
+        if ctx.rank == 0:
+            print(f"   ✅ Distributed physics created")
+            print(f"   Local operators on this rank: {len(distributed_physics.local_idx)}")
+
+        # ============================================================================
+        # STEP 3: Create L2 data fidelity
+        # ============================================================================
+
+        data_fidelity = L2()
+
+        if ctx.rank == 0:
+            print(f"\n✅ Created L2 data fidelity")
+
+        # ============================================================================
+        # STEP 4: Distribute denoiser with tiling
+        # ============================================================================
+
+        if ctx.rank == 0:
+            print(f"\n🔧 Loading and distributing denoiser...")
             print(f"   Patch size: {patch_size}x{patch_size}")
             print(f"   Receptive field radius: {receptive_field_size}")
 
-        # ============================================================================
-        # STEP 4: Build distributed bundle
-        # ============================================================================
+        denoiser = DRUNet(pretrained="download").to(ctx.device)
 
-        B, C, H, W = clean_image.shape
-
-        distributed_bundle = make_distrib_bundle(
+        distributed_denoiser = distribute(
+            denoiser,
             ctx,
-            factory_config=factory_config,
-            signal_shape=(B, C, H, W),
-            prior=pnp_prior,
-            tiling=tiling_config,
+            patch_size=patch_size,
+            receptive_field_size=receptive_field_size,
+            overlap=True,
         )
 
         if ctx.rank == 0:
-            print(f"\n🏗️ Built distributed bundle")
-            print(
-                f"   Local physics operators: {len(distributed_bundle.physics.local_idx)}"
-            )
-            print(
-                f"   Local measurements: {len(distributed_bundle.measurements.local)}"
-            )
+            print(f"   ✅ Distributed denoiser created")
 
         # ============================================================================
-        # STEP 5: Run distributed PnP algorithm
+        # STEP 5: Create PnP prior with distributed denoiser
+        # ============================================================================
+
+        prior = PnP(denoiser=distributed_denoiser)
+
+        if ctx.rank == 0:
+            print(f"\n✅ Created PnP prior with distributed denoiser")
+
+        # ============================================================================
+        # STEP 6: Run distributed PnP algorithm
         # ============================================================================
 
         if ctx.rank == 0:
             print(f"\n🔄 Running PnP reconstruction ({num_iterations} iterations)...")
 
-        # Extract components
-        distributed_signal = distributed_bundle.signal
-        distributed_data_fidelity = distributed_bundle.data_fidelity
-        distributed_prior = distributed_bundle.prior
-
-        # Initialize with zeros
-        distributed_signal.update_(torch.zeros_like(clean_image))
+        # Initialize reconstruction with zeros
+        x = torch.zeros_like(clean_image)
 
         # Track PSNR (only on rank 0)
         psnr_metric = PSNR()
@@ -214,32 +215,63 @@ def main():
         # PnP iterations
         with torch.no_grad():
             for it in range(num_iterations):
-                # Data fidelity gradient (distributed across processes)
-                grad = distributed_data_fidelity.grad(distributed_signal)
+                # Data fidelity gradient step using the data_fidelity.grad() method
+                grad = data_fidelity.grad(x, measurements, distributed_physics)
+                
+                # Gradient descent step
+                x = x - step_size * grad
 
-                # Gradient descent
-                new_data = distributed_signal.data - lr * grad
-                distributed_signal.update_(new_data)
-
-                # Denoising (distributed prior)
-                if distributed_prior is not None:
-                    denoised = distributed_prior.prox(
-                        distributed_signal, sigma_denoiser=denoiser_sigma
-                    )
-                    distributed_signal.update_(denoised)
+                # Denoising step (proximal operator of prior)
+                x = prior.prox(x, sigma_denoiser=denoiser_sigma)
 
                 # Compute PSNR on rank 0
                 if ctx.rank == 0:
-                    psnr_val = psnr_metric(distributed_signal.data, clean_image).item()
+                    psnr_val = psnr_metric(x, clean_image).item()
                     psnr_history.append(psnr_val)
 
-                    if it == 0 or (it + 1) % 2 == 0:
+                    if it == 0 or (it + 1) % 5 == 0:
                         print(
                             f"   Iteration {it+1}/{num_iterations}, PSNR: {psnr_val:.2f} dB"
                         )
 
         # ============================================================================
-        # STEP 6: Visualize results (only on rank 0)
+        # STEP 7: Compare with non-distributed PnP (only on rank 0)
+        # ============================================================================
+
+        if ctx.rank == 0:
+            print(f"\n🔍 Comparing with non-distributed PnP reconstruction...")
+            
+            # Run non-distributed PnP
+            x_ref = torch.zeros_like(clean_image)
+            with torch.no_grad():
+                for it in range(num_iterations):
+                    # Data fidelity gradient step using data_fidelity.grad()
+                    grad_ref = data_fidelity.grad(x_ref, measurements, stacked_physics)
+                    x_ref = x_ref - step_size * grad_ref
+                    
+                    # Denoising step
+                    x_ref = denoiser(x_ref, sigma=denoiser_sigma)
+            
+            # Compare results
+            diff = torch.abs(x - x_ref)
+            mean_diff = diff.mean().item()
+            max_diff = diff.max().item()
+            
+            psnr_ref = psnr_metric(x_ref, clean_image).item()
+            psnr_dist = psnr_metric(x, clean_image).item()
+            
+            print(f"   Non-distributed final PSNR: {psnr_ref:.2f} dB")
+            print(f"   Distributed final PSNR:     {psnr_dist:.2f} dB")
+            print(f"   PSNR difference:             {abs(psnr_dist - psnr_ref):.2f} dB")
+            print(f"   Mean absolute difference:    {mean_diff:.2e}")
+            print(f"   Max absolute difference:     {max_diff:.2e}")
+            
+            # Check that results are close
+            assert abs(psnr_dist - psnr_ref) < 1.0, f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
+            print(f"   ✅ Results match well!")
+
+        # ============================================================================
+        # STEP 8: Visualize results (only on rank 0)
         # ============================================================================
 
         if ctx.rank == 0:
@@ -247,16 +279,29 @@ def main():
             print(f"   Final PSNR: {psnr_history[-1]:.2f} dB")
 
             # Plot results
-            reconstruction = distributed_signal.data
-
             plot(
-                [clean_image, measurements[0], reconstruction],
-                titles=["Ground Truth", "Measurement", "Reconstruction"],
+                [clean_image, measurements[0], x],
+                titles=["Ground Truth", "Measurement (first)", "Reconstruction"],
                 save_fn="distributed_pnp_result.png",
                 figsize=(12, 4),
             )
 
-            print(f"\n📊 Results saved to distributed_pnp_result.png")
+            # Plot convergence curve
+            import matplotlib.pyplot as plt
+            
+            plt.figure(figsize=(8, 5))
+            plt.plot(range(1, num_iterations + 1), psnr_history, marker='o', linewidth=2)
+            plt.xlabel("Iteration", fontsize=12)
+            plt.ylabel("PSNR (dB)", fontsize=12)
+            plt.title("PnP Reconstruction Convergence", fontsize=14)
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.savefig("distributed_pnp_convergence.png", dpi=150)
+            plt.close()
+
+            print(f"\n📊 Results saved:")
+            print(f"   - distributed_pnp_result.png")
+            print(f"   - distributed_pnp_convergence.png")
             print("\n" + "=" * 70)
 
 

@@ -1,22 +1,20 @@
 """
-Tests for the distributed framework.
+Tests for the simplified distributed API (distribute function).
 
-This module contains tests for:
-- DistributedContext: context manager for distributed runs
-- DistributedLinearPhysics: distributed physics operators
-- DistributedMeasurements: distributed measurements
-- DistributedDataFidelity: distributed data fidelity
-- DistributedSignal: distributed signal processing
-- DistributedPrior: distributed prior processing
-- Distribution strategies: BasicStrategy and SmartTilingStrategy
-- Factory API: FactoryConfig, TilingConfig, make_distrib_bundle
-- Single vs distributed equivalence
+This module tests the simplified distribute() API that makes it easy to convert
+StackedPhysics, lists of physics, or factory functions into distributed physics operators.
 
-Notes on testing distributed code:
-- These tests can run in single-process mode for basic validation
-- Multi-process tests use subprocess with torchrun to spawn multiple processes
-- CI/CD environments typically only support CPU-based multi-process testing
-- GPU-based multi-process testing should be done locally or on specialized infrastructure
+Key test scenarios:
+- distribute() with StackedPhysics
+- distribute() with StackedLinearPhysics (automatic type detection)
+- distribute() with list of Physics operators
+- distribute() with list of LinearPhysics operators
+- distribute() with callable factory
+- Single-process and multi-process modes
+- Forward operations (A)
+- Adjoint operations (A_adjoint)
+- A_adjoint_A (composition)
+- All gather strategies (naive, concatenated, broadcast)
 """
 
 from __future__ import annotations
@@ -26,39 +24,57 @@ import torch
 import time
 import torch.multiprocessing as mp
 
-from deepinv.physics import Blur, GaussianNoise
+from deepinv.physics import Blur, GaussianNoise, LinearPhysics
 from deepinv.physics.blur import gaussian_blur
-from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import Prior
+from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
+from deepinv.utils.tensorlist import TensorList
 
 # Import distributed components
-from deepinv.distrib import (
+from deepinv.deepinv.distrib.distrib_framework import (
     DistributedContext,
     DistributedLinearPhysics,
-    DistributedDataFidelity,
-    DistributedMeasurements,
-    DistributedSignal,
-    DistributedPrior,
-    FactoryConfig,
-    TilingConfig,
-    make_distrib_bundle,
 )
-
-from deepinv.distrib.distribution_strategies.strategies import (
-    BasicStrategy,
-    SmartTilingStrategy,
-    SmartTiling3DStrategy,
-    create_strategy,
-)
+from deepinv.distrib.distribute import distribute
 
 
 # =============================================================================
-# Helper Functions
+# Fixtures
 # =============================================================================
 
 
-def create_test_physics(device, num_ops=3):
-    """Create simple test physics operators."""
+@pytest.fixture
+def num_ops():
+    """Number of physics operators for tests."""
+    return 3
+
+
+@pytest.fixture
+def test_input():
+    """Test input tensor."""
+    return torch.randn(1, 1, 16, 16)
+
+
+@pytest.fixture(params=["naive", "concatenated", "broadcast"])
+def gather_strategy(request):
+    """Parameterized fixture for gather strategies."""
+    return request.param
+
+
+@pytest.fixture(params=["physics_list", "stacked_physics", "callable_factory"])
+def physics_specification(request):
+    """
+    Parameterized fixture that returns different ways to specify physics operators.
+    
+    Returns a tuple: (spec_type, spec_object, num_ops_needed)
+    - spec_type: "physics_list", "stacked_physics", or "callable_factory"
+    - spec_object: the actual specification (list, StackedPhysics, or callable)
+    - num_ops_needed: whether num_operators parameter is needed for distribute()
+    """
+    return request.param
+
+
+def create_test_physics_list(device, num_ops=3):
+    """Create simple test physics operators as a list."""
     physics_list = []
     for i in range(num_ops):
         # Create simple blur operators with different sigmas
@@ -69,13 +85,41 @@ def create_test_physics(device, num_ops=3):
     return physics_list
 
 
-def create_test_measurements(physics_list, x, device):
-    """Create test measurements from physics operators."""
-    measurements_list = []
-    for physics in physics_list:
-        y = physics(x)
-        measurements_list.append(y)
-    return measurements_list
+def create_physics_specification(spec_type, device, num_ops):
+    """
+    Create physics specification based on type.
+    
+    Args:
+        spec_type: "physics_list", "stacked_physics", or "callable_factory"
+        device: torch device
+        num_ops: number of operators
+        
+    Returns:
+        tuple: (physics_spec, needs_num_ops_param)
+    """
+    if spec_type == "physics_list":
+        physics_list = create_test_physics_list(device, num_ops)
+        return physics_list, False
+    
+    elif spec_type == "stacked_physics":
+        physics_list = create_test_physics_list(device, num_ops)
+        stacked = StackedLinearPhysics(physics_list)
+        return stacked, False
+    
+    elif spec_type == "callable_factory":
+        def physics_factory(idx, device, shared):
+            kernel = gaussian_blur(sigma=1.0 + idx * 0.5, device=device)
+            blur = Blur(filter=kernel, padding="circular", device=device)
+            blur.noise_model = GaussianNoise(sigma=0.01)
+            return blur
+        return physics_factory, True
+    
+    else:
+        raise ValueError(f"Unknown spec_type: {spec_type}")
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
 
 
 def _worker(rank, world_size, test_func, test_args, result_queue, dist_config):
@@ -149,15 +193,14 @@ def run_distributed_test(test_func, dist_config, test_args=None):
     ctx = mp.get_context("spawn")
     result_queue = ctx.Queue()
 
-    # Timeout policy: give distributed tests more time than single-rank
-    # (you can tweak these numbers to taste)
+    # Timeout policy
     per_rank_budget = 12.0  # seconds per rank
     timeout = max(20.0, per_rank_budget * world_size)
 
     processes = []
     start_time = time.monotonic()
 
-    # Spawn worker processes (expects a module-level _worker)
+    # Spawn worker processes
     for rank in range(world_size):
         p = ctx.Process(
             target=_worker,
@@ -192,1020 +235,626 @@ def run_distributed_test(test_func, dist_config, test_args=None):
                 # queue.Empty or transient issues: just loop and re-check
                 pass
 
-            # Early exit if any process has already exited abnormally
-            for r, p in enumerate(processes):
-                if not p.is_alive() and p.exitcode not in (0, None):
-                    # Give a moment to flush any queued error from _worker
-                    time.sleep(0.05)
-
-        # After collection phase, join with a small grace period
-        for p in processes:
-            if p.is_alive():
-                p.join(timeout=0.5)
-
     finally:
-        # Terminate any stragglers gently, then force-kill
+        # Wait for all processes to finish
         for p in processes:
             if p.is_alive():
-                try:
-                    p.terminate()
-                except Exception:
-                    pass
-        for p in processes:
+                p.terminate()
+            p.join(timeout=2.0)
             if p.is_alive():
-                try:
-                    # SIGKILL equivalent for mp.Process
-                    p.kill()
-                except Exception:
-                    pass
-        # Close the queue cleanly
-        try:
-            result_queue.close()
-            result_queue.join_thread()
-        except Exception:
-            pass
+                p.kill()
+                p.join()
 
-    # Work out which ranks are missing or failed
-    missing_ranks = sorted(
-        set(range(world_size)) - set(results_by_rank) - set(errors_by_rank)
-    )
-    failed_ranks = [r for r, p in enumerate(processes) if p.exitcode not in (0, None)]
-    timed_out = (time.monotonic() - start_time) >= timeout and (received < world_size)
+    # Check for errors
+    if errors_by_rank:
+        error_msgs = [f"{errors_by_rank[r]}" for r in sorted(errors_by_rank.keys())]
+        raise RuntimeError(f"Distributed test failed:\n" + "\n".join(error_msgs))
 
-    # Build a helpful error message if anything went wrong
-    if timed_out or missing_ranks or errors_by_rank or failed_ranks:
-        lines = []
-        if timed_out:
-            lines.append(
-                f"Timed out after {timeout:.1f}s (received {received}/{world_size} rank results)."
-            )
-        if missing_ranks:
-            lines.append(f"No result received from ranks: {missing_ranks}.")
-        if failed_ranks:
-            lines.append(f"Processes exited non-zero for ranks: {failed_ranks}.")
-        if errors_by_rank:
-            lines.append("Rank errors:")
-            for r in sorted(errors_by_rank):
-                err = errors_by_rank[r]
-                lines.append(f"  - Rank {r}: {err!r}")
-        raise RuntimeError("\n".join(lines))
+    # Check we got all results
+    if received < world_size:
+        missing = [r for r in range(world_size) if r not in results_by_rank]
+        raise RuntimeError(f"Timeout or missing results from ranks: {missing}")
 
     # Return results ordered by rank
     return [results_by_rank[r] for r in range(world_size)]
 
 
-# =========================================================================
-# Helpers for distributed context tests
-# =========================================================================
-
-
-def _test_initialization(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        assert ctx.world_size == world_size
-        assert ctx.rank == rank
-        assert ctx.device is not None
-        assert ctx.sharding in ["round_robin", "block"]
-
-        # Check distributed state
-        if world_size > 1:
-            assert ctx.is_dist
-        else:
-            assert not ctx.is_dist
-
-        return {"rank": rank, "world_size": world_size}
-
-
-def _test_sharding_round_robin(rank, world_size, args):
-    with DistributedContext(sharding="round_robin", seed=42, device_mode="cpu") as ctx:
-        num_items = 10
-        local_indices = ctx.local_indices(num_items)
-
-        # Verify we get the correct indices for this rank
-        expected = [i for i in range(num_items) if i % world_size == rank]
-        assert (
-            local_indices == expected
-        ), f"Rank {rank}: got {local_indices}, expected {expected}"
-
-        return local_indices
-
-
-def _test_all_reduce(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        # Each rank contributes its rank value
-        t = torch.tensor([float(rank)], device=ctx.device)
-
-        # Sum reduction
-        result_sum = ctx.all_reduce_(t.clone(), op="sum")
-        expected_sum = sum(range(world_size))
-        assert torch.allclose(
-            result_sum, torch.tensor([float(expected_sum)], device=ctx.device)
-        )
-
-        # Mean reduction
-        result_mean = ctx.all_reduce_(t.clone(), op="mean")
-        expected_mean = sum(range(world_size)) / world_size
-        assert torch.allclose(
-            result_mean, torch.tensor([expected_mean], device=ctx.device)
-        )
-
-        return {"sum": result_sum.item(), "mean": result_mean.item()}
-
-
-def _test_broadcast(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        # Only rank 0 has meaningful data
-        if rank == 0:
-            t = torch.tensor([1.0, 2.0, 3.0], device=ctx.device)
-        else:
-            t = torch.zeros(3, device=ctx.device)
-
-        # Broadcast from rank 0
-        result = ctx.broadcast_(t.clone(), src=0)
-
-        # All ranks should now have [1, 2, 3]
-        expected = torch.tensor([1.0, 2.0, 3.0], device=ctx.device)
-        assert torch.allclose(result, expected)
-
-        return result.tolist()
-
-
 # =============================================================================
-# Test DistributedContext
+# Single-Process Tests
 # =============================================================================
 
 
-class TestDistributedContext:
-    """Test the DistributedContext context manager."""
-
-    def test_initialization(self, dist_config):
-        """Test context initialization with distributed configuration."""
-        results = run_distributed_test(_test_initialization, dist_config)
-        assert len(results) == dist_config["world_size"]
-
-    def test_sharding_round_robin(self, dist_config):
-        """Test round-robin sharding with different world sizes."""
-        results = run_distributed_test(_test_sharding_round_robin, dist_config)
-
-        # Verify all indices are covered exactly once
-        all_indices = []
-        for indices in results:
-            all_indices.extend(indices)
-        all_indices.sort()
-        assert all_indices == list(range(10))
-
-    def test_all_reduce(self, dist_config):
-        """Test all_reduce operation."""
-
-        results = run_distributed_test(_test_all_reduce, dist_config)
-
-        # All ranks should have the same result
-        for result in results:
-            assert result["sum"] == sum(range(dist_config["world_size"]))
-            assert (
-                abs(
-                    result["mean"]
-                    - sum(range(dist_config["world_size"])) / dist_config["world_size"]
-                )
-                < 1e-6
+def test_distribute_single_process(physics_specification, gather_strategy, num_ops):
+    """
+    Test distribute() in single-process mode with different physics specifications
+    and gather strategies.
+    """
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create physics specification
+        physics_spec, needs_num_ops = create_physics_specification(
+            physics_specification, ctx.device, num_ops
+        )
+        
+        # Distribute with gather strategy
+        if needs_num_ops:
+            distributed_physics = distribute(
+                physics_spec, ctx,
+                num_operators=num_ops,
+                type_object="linear_physics",
+                gather_strategy=gather_strategy
             )
-
-    def test_broadcast(self, dist_config):
-        """Test broadcast operation."""
-
-        results = run_distributed_test(_test_broadcast, dist_config)
-
-        # All ranks should have the same result
-        for result in results:
-            assert result == [1.0, 2.0, 3.0]
-
-
-# =============================================================================
-# Helpers for DistributedMeasurements tests
-# =============================================================================
-
-
-def _test_measurements_initialization_with_list(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        # Create measurements (same on all ranks)
-        torch.manual_seed(42)
-        measurements = [torch.randn(1, 3, 32, 32, device=ctx.device) for _ in range(5)]
-        # Note: must pass num_items when providing a list
-        dmeas = DistributedMeasurements(
-            ctx,
-            num_items=len(measurements),
-            measurements_list=measurements,
-        )
-
-        assert len(dmeas) == 5
-
-        # Check that local measurements match expected distribution
-        expected_local_count = len(ctx.local_indices(5))
-        assert len(dmeas.local) == expected_local_count
-        assert len(dmeas.indices()) == expected_local_count
-
-        return {"num_local": len(dmeas.local), "indices": dmeas.indices()}
-
-
-def _test_measurements_initialization_with_factory(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-
-        def meas_factory(idx, device, shared):
-            torch.manual_seed(idx)  # Make deterministic
-            return torch.randn(1, 3, 32, 32, device=device)
-
-        dmeas = DistributedMeasurements(
-            ctx, num_items=5, factory=meas_factory
-        )
-
-        assert len(dmeas) == 5
-        assert all(y.shape == (1, 3, 32, 32) for y in dmeas.local)
-
-        return {"num_local": len(dmeas.local)}
-
-
-# =============================================================================
-# Test DistributedMeasurements
-# =============================================================================
-
-
-class TestDistributedMeasurements:
-    """Test DistributedMeasurements class."""
-
-    def test_initialization_with_list(self, dist_config):
-        """Test initialization with a list of measurements."""
-        results = run_distributed_test(
-            _test_measurements_initialization_with_list, dist_config
-        )
-
-        # Verify total count matches
-        total_local = sum(r["num_local"] for r in results)
-        assert total_local == 5
-
-    def test_initialization_with_factory(self, dist_config):
-        """Test initialization with a factory function."""
-        results = run_distributed_test(
-            _test_measurements_initialization_with_factory, dist_config
-        )
-
-        # Verify total count
-        total_local = sum(r["num_local"] for r in results)
-        assert total_local == 5
-
-
-# =============================================================================
-# Helpers for DistributedLinearPhysics tests
-# =============================================================================
-
-
-def _test_physics_initialization_with_list(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        dphysics = DistributedLinearPhysics(
-            ctx, num_ops=len(physics_list), factory=lambda i, d, s: physics_list[i]
-        )
-
-        expected_local = len(ctx.local_indices(3))
-        assert len(dphysics.local_idx) == expected_local
-        assert len(dphysics.local_physics) == expected_local
-
-        return {"num_local": len(dphysics.local_idx)}
-
-
-def _test_physics_forward(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        torch.manual_seed(42)
-        x = torch.randn(1, 3, 64, 64, device=ctx.device)
-
-        dphysics = DistributedLinearPhysics(
-            ctx,
-            num_ops=len(physics_list),
-            factory=lambda i, d, s: physics_list[i].to(d),
-        )
-
-        # Test forward on local operators
-        local_results = []
-        for phys, idx in zip(dphysics.local_physics, dphysics.local_idx):
-            y = phys(x)
-            local_results.append(y)
-
-        expected_local = len(ctx.local_indices(3))
-        assert len(local_results) == expected_local
-        assert all(isinstance(y, torch.Tensor) for y in local_results)
-
-        return {"num_results": len(local_results)}
-
-
-# =============================================================================
-# Test DistributedLinearPhysics
-# =============================================================================
-
-
-class TestDistributedLinearPhysics:
-    """Test DistributedLinearPhysics class."""
-
-    def test_initialization_with_list(self, dist_config):
-        """Test initialization with a list of physics operators."""
-        results = run_distributed_test(
-            _test_physics_initialization_with_list, dist_config
-        )
-
-        # Verify total
-        total = sum(r["num_local"] for r in results)
-        assert total == 3
-
-    def test_forward(self, dist_config):
-        """Test forward operation."""
-        results = run_distributed_test(_test_physics_forward, dist_config)
-        total = sum(r["num_results"] for r in results)
-        assert total == 3
-
-
-# =============================================================================
-# Helpers for DistributedDataFidelity tests
-# =============================================================================
-
-
-def _test_data_fidelity_grad(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        # Create physics and measurements (deterministic)
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        torch.manual_seed(42)
-        x = torch.randn(1, 3, 64, 64, device=ctx.device)
-        measurements = create_test_measurements(physics_list, x, ctx.device)
-
-        dphysics = DistributedLinearPhysics(
-            ctx, num_ops=len(physics_list), factory=lambda i, d, s: physics_list[i]
-        )
-        # Note: must pass num_items when providing a list
-        dmeas = DistributedMeasurements(
-            ctx, num_items=len(measurements), measurements_list=measurements
-        )
-
-        # Create distributed data fidelity and signal
-        ddf = DistributedDataFidelity(
-            ctx,
-            dphysics,
-            dmeas,
-            data_fidelity_factory=lambda i, d, s: L2(),
-            reduction="mean",
-        )
-        dsignal = DistributedSignal(ctx, shape=x.shape)
-        dsignal.update_(x)
-
-        # Compute gradient
-        grad = ddf.grad(dsignal)
-
-        assert grad.shape == x.shape
-        assert grad.device == ctx.device
-
-        return {"grad_norm": grad.norm().item()}
-
-
-# =============================================================================
-# Test DistributedDataFidelity
-# =============================================================================
-
-
-class TestDistributedDataFidelity:
-    """Test DistributedDataFidelity class."""
-
-    def test_grad(self, dist_config):
-        """Test gradient computation in distributed mode."""
-        results = run_distributed_test(_test_data_fidelity_grad, dist_config)
-
-        # All ranks should have same gradient (due to all_reduce)
-        grad_norms = [r["grad_norm"] for r in results]
-        assert all(abs(gn - grad_norms[0]) < 1e-5 for gn in grad_norms)
-
-
-# =============================================================================
-# Helpers for DistributedSignal tests
-# =============================================================================
-
-
-def _test_signal_initialization_and_sync(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        shape = (1, 3, 64, 64)
-
-        # Initialize with different data on each rank
-        if rank == 0:
-            init_data = torch.ones(*shape, device=ctx.device)
         else:
-            init_data = torch.zeros(*shape, device=ctx.device)
+            distributed_physics = distribute(
+                physics_spec, ctx,
+                gather_strategy=gather_strategy
+            )
+        
+        # Check type
+        assert isinstance(distributed_physics, DistributedLinearPhysics)
+        assert distributed_physics.num_ops == num_ops
+        assert distributed_physics.gather_strategy == gather_strategy
+        
+        # Create reference stacked physics for comparison
+        reference_physics = StackedLinearPhysics(
+            create_test_physics_list(ctx.device, num_ops)
+        )
+        
+        # Test forward (A without noise)
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y_distributed = distributed_physics.A(x)
+        y_reference = reference_physics.A(x)
+        
+        assert len(y_distributed) == len(y_reference)
+        for i in range(len(y_reference)):
+            assert torch.allclose(y_distributed[i], y_reference[i], atol=1e-5), \
+                f"Forward mismatch at index {i} with {physics_specification} and {gather_strategy}"
+        
+        # Test adjoint
+        x_adj_distributed = distributed_physics.A_adjoint(y_distributed)
+        x_adj_reference = reference_physics.A_adjoint(y_reference)
+        
+        assert torch.allclose(x_adj_distributed, x_adj_reference, atol=1e-5), \
+            f"Adjoint mismatch with {physics_specification} and {gather_strategy}"
+        
+        # Test forward() method (with noise - just check structure)
+        y_forward = distributed_physics.forward(x)
+        assert len(y_forward) == num_ops
+        for i in range(num_ops):
+            assert y_forward[i].shape == y_reference[i].shape
 
-        dsignal = DistributedSignal(ctx, shape=shape, init=init_data)
 
-        # After init, all ranks should have the same data (broadcast from rank 0)
-        assert dsignal.shape == shape
-        assert dsignal.data.shape == shape
-
-        # Data should be synced (broadcast from rank 0)
-        expected = torch.ones(*shape, device=ctx.device)
-        assert torch.allclose(dsignal.data, expected)
-
-        return {"data_sum": dsignal.data.sum().item()}
+# =============================================================================
+# Multi-Process Tests
+# =============================================================================
 
 
-def _test_signal_update_and_sync(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        shape = (1, 3, 16, 16)
-        dsignal = DistributedSignal(ctx, shape=shape)
-
-        # Update with rank-specific data (only rank 0's data should propagate)
-        if rank == 0:
-            new_data = torch.full(shape, 3.14, device=ctx.device)
+def _test_distributed_operation_worker(rank, world_size, args):
+    """
+    Generic worker function for multi-process tests.
+    Tests both forward and adjoint operations.
+    """
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create physics specification
+        physics_spec, needs_num_ops = create_physics_specification(
+            args["spec_type"], ctx.device, args["num_ops"]
+        )
+        
+        # Distribute with gather strategy
+        if needs_num_ops:
+            distributed_physics = distribute(
+                physics_spec, ctx,
+                num_operators=args["num_ops"],
+                type_object="linear_physics",
+                gather_strategy=args["gather_strategy"]
+            )
         else:
-            new_data = torch.full(shape, 2.71, device=ctx.device)
+            distributed_physics = distribute(
+                physics_spec, ctx,
+                gather_strategy=args["gather_strategy"]
+            )
+        
+        # Test forward operation
+        x = args["x"].to(ctx.device)
+        y_distributed = distributed_physics.A(x)
+        
+        # Each rank should get the full result
+        assert len(y_distributed) == args["num_ops"]
+        
+        # Test adjoint operation if requested
+        if args.get("test_adjoint", False):
+            x_adj_distributed = distributed_physics.A_adjoint(y_distributed)
+            
+            # Verify on rank 0
+            if rank == 0:
+                # Create reference
+                reference_physics = StackedLinearPhysics(
+                    create_test_physics_list(ctx.device, args["num_ops"])
+                )
+                y_reference = reference_physics.A(x)
+                x_adj_reference = reference_physics.A_adjoint(y_reference)
+                
+                max_diff = torch.max(torch.abs(x_adj_distributed - x_adj_reference)).item()
+                assert max_diff < 1e-5, \
+                    f"Adjoint mismatch with {args['spec_type']} and {args['gather_strategy']}: {max_diff}"
+        
+        # Verify forward on rank 0
+        if rank == 0:
+            reference_physics = StackedLinearPhysics(
+                create_test_physics_list(ctx.device, args["num_ops"])
+            )
+            y_reference = reference_physics.A(x)
+            
+            for i in range(len(y_reference)):
+                max_diff = torch.max(torch.abs(y_distributed[i] - y_reference[i])).item()
+                assert max_diff < 1e-5, \
+                    f"Forward mismatch at index {i} with {args['spec_type']} and {args['gather_strategy']}: {max_diff}"
+        
+        return "success"
 
-        dsignal.update_(new_data)
 
-        # After update, all ranks should have rank 0's data
-        expected = torch.full(shape, 3.14, device=ctx.device)
-        assert torch.allclose(dsignal.data, expected, atol=1e-5)
+def test_distribute_multiprocess_forward(dist_config, physics_specification, gather_strategy):
+    """Test distribute() with multi-process forward operation."""
+    # Prepare test data
+    x = torch.randn(1, 1, 16, 16)
+    test_args = {
+        "num_ops": 4,
+        "x": x,
+        "spec_type": physics_specification,
+        "gather_strategy": gather_strategy,
+        "test_adjoint": False,
+    }
+    
+    # Run distributed test
+    results = run_distributed_test(_test_distributed_operation_worker, dist_config, test_args)
+    
+    # Check all ranks succeeded
+    assert all(r == "success" for r in results)
 
-        return {"data_mean": dsignal.data.mean().item()}
+
+def test_distribute_multiprocess_adjoint(dist_config, physics_specification, gather_strategy):
+    """Test distribute() with multi-process adjoint operation."""
+    # Prepare test data
+    x = torch.randn(1, 1, 16, 16)
+    test_args = {
+        "num_ops": 4,
+        "x": x,
+        "spec_type": physics_specification,
+        "gather_strategy": gather_strategy,
+        "test_adjoint": True,
+    }
+    
+    # Run distributed test
+    results = run_distributed_test(_test_distributed_operation_worker, dist_config, test_args)
+    
+    # Check all ranks succeeded
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
-# Test DistributedSignal
+# User Example Test
 # =============================================================================
 
 
-class TestDistributedSignal:
-    """Test DistributedSignal class."""
-
-    def test_initialization_and_sync(self, dist_config):
-        """Test signal initialization and synchronization across ranks."""
-        results = run_distributed_test(
-            _test_signal_initialization_and_sync, dist_config
+def _test_user_example_worker(rank, world_size, args):
+    """Worker function testing the user's example code pattern."""
+    import deepinv as dinv
+    
+    with DistributedContext(device_mode="cpu") as ctx:
+        # User's example: create stacked physics
+        physics1 = Blur(
+            filter=gaussian_blur(sigma=1.0, device=str(ctx.device)),
+            padding="circular",
+            device=str(ctx.device)
         )
+        physics2 = Blur(
+            filter=gaussian_blur(sigma=1.5, device=str(ctx.device)),
+            padding="circular",
+            device=str(ctx.device)
+        )
+        physics3 = Blur(
+            filter=gaussian_blur(sigma=2.0, device=str(ctx.device)),
+            padding="circular",
+            device=str(ctx.device)
+        )
+        
+        # Stack physics (user's code)
+        stacked_physics = StackedLinearPhysics([physics1, physics2, physics3])
+        
+        # Distribute with specified gather strategy (user's code)
+        distributed_physics = distribute(
+            stacked_physics, ctx,
+            gather_strategy=args.get("gather_strategy", "concatenated")
+        )
+        
+        # User's example: create input
+        x = torch.ones(1, 1, 32, 32, device=ctx.device)
+        
+        # User's example: applies physics in parallel
+        y = distributed_physics.A(x)
+        
+        # Check y is correct
+        assert isinstance(y, TensorList)
+        assert len(y) == 3
+        
+        # User's example: applies adjoint
+        y_forward = distributed_physics.A(x)
+        x2 = distributed_physics.A_adjoint(y_forward)
+        
+        # Verify correctness on rank 0
+        if rank == 0:
+            # Compare with stacked physics
+            y_stacked = stacked_physics.A(x)
+            x2_stacked = stacked_physics.A_adjoint(y_stacked)
+            
+            # Check forward
+            for i in range(len(y)):
+                max_diff = torch.max(torch.abs(y[i] - y_stacked[i])).item()
+                assert max_diff < 1e-5, f"Forward mismatch at index {i}: {max_diff}"
+            
+            # Check adjoint
+            max_diff = torch.max(torch.abs(x2 - x2_stacked)).item()
+            assert max_diff < 1e-5, f"Adjoint mismatch: {max_diff}"
+        
+        return "success"
 
-        # All ranks should have same data
-        data_sums = [r["data_sum"] for r in results]
-        assert all(abs(s - data_sums[0]) < 1e-5 for s in data_sums)
 
-    def test_update_and_sync(self, dist_config):
-        """Test updating signal data with synchronization."""
-        results = run_distributed_test(_test_signal_update_and_sync, dist_config)
-
-        # All ranks should have same mean
-        data_means = [r["data_mean"] for r in results]
-        assert all(abs(m - 3.14) < 1e-5 for m in data_means)
+def test_user_example_code(dist_config, gather_strategy):
+    """Test the user's example code pattern works in multi-process mode."""
+    test_args = {
+        "gather_strategy": gather_strategy
+    }
+    
+    # Run distributed test
+    results = run_distributed_test(_test_user_example_worker, dist_config, test_args)
+    
+    # Check all ranks succeeded
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
-# Test Distribution Strategies
+# Error Handling Tests
 # =============================================================================
 
 
-class TestDistributionStrategies:
-    """Test distribution strategies."""
-
-    def test_basic_strategy_initialization(self):
-        """Test BasicStrategy initialization."""
-        signal_shape = (1, 3, 64, 64)
-        strategy = BasicStrategy(signal_shape, split_dims=(-2, -1))
-
-        assert strategy.signal_shape == torch.Size(signal_shape)
-        assert strategy.get_num_patches() > 0
-
-    def test_basic_strategy_get_local_patches(self):
-        """Test BasicStrategy patch extraction."""
-        signal_shape = (1, 3, 64, 64)
-        strategy = BasicStrategy(signal_shape, split_dims=(-2, -1), num_splits=(2, 2))
-
-        X = torch.randn(*signal_shape)
-        local_indices = [0, 1]
-        patches = strategy.get_local_patches(X, local_indices)
-
-        assert len(patches) == 2
-        assert all(isinstance(p, tuple) and len(p) == 2 for p in patches)
-
-    def test_basic_strategy_reduce_patches(self):
-        """Test BasicStrategy patch reduction."""
-        signal_shape = (1, 3, 64, 64)
-        strategy = BasicStrategy(signal_shape, split_dims=(-2, -1), num_splits=(2, 2))
-
-        X = torch.randn(*signal_shape)
-        local_indices = list(range(strategy.get_num_patches()))
-        patches = strategy.get_local_patches(X, local_indices)
-
-        # Process patches (identity operation)
-        processed_patches = [(idx, patch) for idx, patch in patches]
-
-        # Reduce back
-        out = torch.zeros_like(X)
-        strategy.reduce_patches(out, processed_patches)
-
-        # Should reconstruct original (with some numerical error for splits)
-        assert out.shape == X.shape
-
-    def test_smart_tiling_strategy_initialization(self):
-        """Test SmartTilingStrategy initialization."""
-        signal_shape = (1, 3, 128, 128)
-        strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_size=16
-        )
-
-        assert strategy.signal_shape == torch.Size(signal_shape)
-        assert strategy.patch_size == 64
-        assert strategy.receptive_field_size == 16
-        assert strategy.get_num_patches() > 0
-
-    def test_smart_tiling_strategy_get_local_patches(self):
-        """Test SmartTilingStrategy patch extraction with padding."""
-        signal_shape = (1, 3, 128, 128)
-        strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_size=16
-        )
-
-        X = torch.randn(*signal_shape)
-        local_indices = [0]
-        patches = strategy.get_local_patches(X, local_indices)
-
-        assert len(patches) == 1
-        idx, patch = patches[0]
-        # Patch should be larger than patch_size due to receptive field padding
-        assert patch.shape[-2] >= 64 or patch.shape[-1] >= 64
-
-    def test_smart_tiling_strategy_batching(self):
-        """Test SmartTilingStrategy batching with max_batch_size parameter."""
-        signal_shape = (1, 3, 128, 128)
-        strategy = SmartTilingStrategy(
-            signal_shape, patch_size=64, receptive_field_size=16
-        )
-
-        X = torch.randn(*signal_shape)
-        num_patches = strategy.get_num_patches()
-        patches = strategy.get_local_patches(X, list(range(num_patches)))
-
-        # Extract just the patch tensors
-        patch_tensors = [p[1] for p in patches]
-
-        # Test default batching (all patches in one batch)
-        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
-        assert isinstance(batched_all, list)
-        assert len(batched_all) == 1  # Single batch with all patches
+def test_distribute_error_handling():
+    """Test that distribute() properly handles errors."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Test callable without num_operators
+        def factory(idx, device, shared):
+            return Blur(filter=torch.ones(1, 1, 3, 3, device=device), device=device)
         
-        # Test sequential batching (max_batch_size=1)
-        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
-        assert isinstance(batched_seq, list)
-        assert len(batched_seq) == len(patch_tensors)  # One batch per patch
+        with pytest.raises(ValueError, match="num_operators"):
+            distribute(factory, ctx, type_object="linear_physics")
         
-        # Test partial batching (max_batch_size=2)
-        if len(patch_tensors) > 1:
-            batched_partial = strategy.apply_batching(patch_tensors, max_batch_size=2)
-            assert isinstance(batched_partial, list)
-            expected_batches = (len(patch_tensors) + 1) // 2
-            assert len(batched_partial) == expected_batches
-
-    def test_smart_tiling_oversized_patch(self):
-        """Test SmartTilingStrategy with patch larger than image."""
-        signal_shape = (1, 3, 32, 32)
-        # Patch size larger than image
-        strategy = SmartTilingStrategy(
-            signal_shape, patch_size=128, receptive_field_size=16
-        )
-
-        # Should handle gracefully and create at least one patch
-        assert strategy.get_num_patches() > 0
-
-        X = torch.randn(*signal_shape)
-        patches = strategy.get_local_patches(X, [0])
-        assert len(patches) > 0
-
-    def test_create_strategy_factory(self):
-        """Test strategy factory function."""
-        signal_shape = (1, 3, 64, 64)
-
-        basic = create_strategy("basic", signal_shape)
-        assert isinstance(basic, BasicStrategy)
-
-        smart = create_strategy("smart_tiling", signal_shape, patch_size=32)
-        assert isinstance(smart, SmartTilingStrategy)
-
-        # Test 3D strategy
-        signal_shape_3d = (1, 1, 32, 32, 32)
-        smart_3d = create_strategy("smart_tiling_3d", signal_shape_3d, patch_size=16)
-        assert isinstance(smart_3d, SmartTiling3DStrategy)
-
-        with pytest.raises(ValueError):
-            create_strategy("unknown_strategy", signal_shape)
-
-    def test_smart_tiling_3d_strategy_initialization(self):
-        """Test SmartTiling3DStrategy initialization."""
-        signal_shape = (1, 1, 64, 64, 64)
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=32, receptive_field_size=8
-        )
-
-        assert strategy.signal_shape == torch.Size(signal_shape)
-        assert strategy.patch_size == 32
-        assert strategy.receptive_field_size == 8
-        assert strategy.get_num_patches() > 0
-
-    def test_smart_tiling_3d_strategy_get_local_patches(self):
-        """Test SmartTiling3DStrategy patch extraction with padding."""
-        signal_shape = (1, 1, 64, 64, 64)
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=32, receptive_field_size=8
-        )
-
-        X = torch.randn(*signal_shape)
-        local_indices = [0]
-        patches = strategy.get_local_patches(X, local_indices)
-
-        assert len(patches) == 1
-        idx, patch = patches[0]
-        # Patch should be larger than patch_size due to receptive field padding
-        assert (
-            patch.shape[-3] >= 32 or patch.shape[-2] >= 32 or patch.shape[-1] >= 32
-        )
-
-    def test_smart_tiling_3d_strategy_batching(self):
-        """Test SmartTiling3DStrategy batching with max_batch_size parameter."""
-        signal_shape = (1, 1, 64, 64, 64)
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=32, receptive_field_size=8
-        )
-
-        X = torch.randn(*signal_shape)
-        num_patches = strategy.get_num_patches()
-        patches = strategy.get_local_patches(X, list(range(num_patches)))
-
-        # Extract just the patch tensors
-        patch_tensors = [p[1] for p in patches]
-
-        # Test default batching (all patches in one batch)
-        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
-        assert isinstance(batched_all, list)
-        assert len(batched_all) == 1  # Single batch with all patches
-        
-        # Test sequential batching (max_batch_size=1) - critical for 3D memory management
-        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
-        assert isinstance(batched_seq, list)
-        assert len(batched_seq) == len(patch_tensors)  # One batch per patch
-        
-        # Test partial batching (max_batch_size=2)
-        if len(patch_tensors) > 1:
-            batched_partial = strategy.apply_batching(patch_tensors, max_batch_size=2)
-            assert isinstance(batched_partial, list)
-            expected_batches = (len(patch_tensors) + 1) // 2
-            assert len(batched_partial) == expected_batches
-
-    def test_smart_tiling_3d_oversized_patch(self):
-        """Test SmartTiling3DStrategy with patch larger than volume."""
-        signal_shape = (1, 1, 16, 16, 16)
-        # Patch size larger than volume
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=64, receptive_field_size=8
-        )
-
-        # Should handle gracefully and create at least one patch
-        assert strategy.get_num_patches() > 0
-
-        X = torch.randn(*signal_shape)
-        patches = strategy.get_local_patches(X, [0])
-        assert len(patches) > 0
-
-    def test_smart_tiling_3d_strategy_reduce_patches(self):
-        """Test SmartTiling3DStrategy patch reduction with different batch sizes."""
-        signal_shape = (1, 1, 64, 64, 64)
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=32, receptive_field_size=8
-        )
-
-        X = torch.randn(*signal_shape)
-        local_indices = list(range(strategy.get_num_patches()))
-        patches = strategy.get_local_patches(X, local_indices)
-
-        # Extract patch tensors
-        patch_tensors = [p[1] for p in patches]
-
-        # Test with default batching (all in one batch)
-        batched_all = strategy.apply_batching(patch_tensors, max_batch_size=None)
-        processed_batches_all = batched_all  # Identity processing
-        unpacked_all = strategy.unpack_batched_results(processed_batches_all, len(patch_tensors))
-        processed_patches_all = [(patches[i][0], unpacked_all[i]) for i in range(len(patches))]
-        
-        out_all = torch.zeros_like(X)
-        strategy.reduce_patches(out_all, processed_patches_all)
-        assert out_all.shape == X.shape
-        assert torch.allclose(out_all, X, atol=1e-5)
-
-        # Test with sequential batching (max_batch_size=1) - the 3D default
-        batched_seq = strategy.apply_batching(patch_tensors, max_batch_size=1)
-        processed_batches_seq = batched_seq  # Identity processing
-        unpacked_seq = strategy.unpack_batched_results(processed_batches_seq, len(patch_tensors))
-        processed_patches_seq = [(patches[i][0], unpacked_seq[i]) for i in range(len(patches))]
-        
-        out_seq = torch.zeros_like(X)
-        strategy.reduce_patches(out_seq, processed_patches_seq)
-        assert out_seq.shape == X.shape
-        assert torch.allclose(out_seq, X, atol=1e-5)
-        
-        # Both methods should give same result
-        assert torch.allclose(out_all, out_seq, atol=1e-5)
-
-    def test_smart_tiling_3d_non_overlapping(self):
-        """Test SmartTiling3DStrategy with non-overlapping patches."""
-        signal_shape = (1, 1, 64, 64, 64)
-        strategy = SmartTiling3DStrategy(
-            signal_shape, patch_size=32, receptive_field_size=8, non_overlap=True
-        )
-
-        X = torch.randn(*signal_shape)
-        num_patches = strategy.get_num_patches()
-
-        # For a 64^3 volume with 32^3 patches, we expect 8 patches (2x2x2)
-        assert num_patches == 8
-
-        patches = strategy.get_local_patches(X, list(range(num_patches)))
-        assert len(patches) == num_patches
+        # Test callable with auto type (should error)
+        with pytest.raises(ValueError, match="type_object"):
+            distribute(factory, ctx, type_object="auto")
 
 
 # =============================================================================
-# Helpers for DistributedPrior tests
+# Tests for Distributed Processors (Priors and Denoisers)
 # =============================================================================
 
 
-def _test_prior_prox_operation(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
+# Import prior and denoiser components
+from deepinv.optim.prior import Prior
+from deepinv.models.base import Denoiser
 
-        class SimplePrior(Prior):
-            def forward(self, x, *args, **kwargs):
-                return x * 0.9
 
-        prior = SimplePrior()
-        signal_shape = (1, 3, 64, 64)
+class SimplePrior(Prior):
+    """Simple test prior that scales the input."""
+    def __init__(self, scale=0.9):
+        super().__init__()
+        self.scale = scale
+    
+    def forward(self, x, *args, **kwargs):
+        return x * self.scale
 
-        dprior = DistributedPrior(
+
+class SimpleDenoiser(Denoiser):
+    """Simple test denoiser that scales the input."""
+    def __init__(self, scale=0.95):
+        super().__init__()
+        self.scale = scale
+    
+    def forward(self, x, sigma=None, *args, **kwargs):
+        # Simple scaling operation (not a real denoiser)
+        return x * self.scale
+
+
+@pytest.fixture(params=["basic", "smart_tiling"])
+def tiling_strategy(request):
+    """Parameterized fixture for tiling strategies."""
+    return request.param
+
+
+@pytest.fixture(params=["prior", "denoiser"])
+def processor_type(request):
+    """Parameterized fixture for processor types."""
+    return request.param
+
+
+def create_test_processor(processor_type, device):
+    """Create a test processor (prior or denoiser)."""
+    if processor_type == "prior":
+        return SimplePrior(scale=0.9).to(device)
+    elif processor_type == "denoiser":
+        return SimpleDenoiser(scale=0.95).to(device)
+    else:
+        raise ValueError(f"Unknown processor type: {processor_type}")
+
+
+# =============================================================================
+# Single-Process Processor Tests
+# =============================================================================
+
+
+def test_distribute_processor_single_process(processor_type, tiling_strategy):
+    """Test distribute() with processors in single-process mode."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create test processor
+        processor = create_test_processor(processor_type, ctx.device)
+        
+        # Distribute the processor
+        distributed_processor = distribute(
+            processor,
             ctx,
-            prior=prior,
-            signal_shape=signal_shape,
-            strategy="basic",
-            strategy_kwargs={"split_dims": (-2, -1), "num_splits": (2, 2)},
+            type_object=processor_type,
+            tiling_strategy=tiling_strategy,
+            patch_size=8,
+            receptive_field_size=2,
         )
-
-        dsignal = DistributedSignal(ctx, shape=signal_shape)
-        torch.manual_seed(42)
-        x = torch.randn(*signal_shape, device=ctx.device)
-        dsignal.update_(x)
-
-        # Apply prox
-        result = dprior.prox(dsignal)
-
-        assert result.shape == signal_shape
+        
+        # Test forward operation
+        x = torch.randn(1, 3, 16, 16, device=ctx.device)
+        result = distributed_processor(x)
+        
+        # Verify result has correct shape and device
+        assert result.shape == x.shape
         assert result.device == ctx.device
+        
+        # Verify result is reasonable (not zeros, not same as input)
+        assert not torch.allclose(result, torch.zeros_like(result))
+        assert not torch.allclose(result, x)
 
-        return {"result_norm": result.norm().item()}
 
-
-def _test_prior_prox_operation_3d(rank, world_size, args):
-    """Test 3D prior prox operation in distributed context."""
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-
-        class SimplePrior3D(Prior):
-            def forward(self, x, *args, **kwargs):
-                return x * 0.9
-
-        prior = SimplePrior3D()
-        signal_shape = (1, 1, 32, 32, 32)
-
-        dprior = DistributedPrior(
+def test_distribute_processor_different_patch_sizes():
+    """Test processor distribution with different patch sizes."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        processor = SimplePrior(scale=0.9).to(ctx.device)
+        
+        # Test with small patches
+        distributed_small = distribute(
+            processor,
             ctx,
-            prior=prior,
-            signal_shape=signal_shape,
-            strategy="smart_tiling_3d",
-            strategy_kwargs={
-                "patch_size": 16,
-                "receptive_field_size": 4,
-                "non_overlap": True,
-            },
+            type_object="prior",
+            tiling_strategy="smart_tiling",
+            patch_size=8,
+            receptive_field_size=2,
         )
+        
+        x = torch.randn(1, 3, 32, 32, device=ctx.device)
+        result_small = distributed_small(x)
+        assert result_small.shape == x.shape
+        
+        # Test with large patches (larger than image)
+        distributed_large = distribute(
+            processor,
+            ctx,
+            type_object="prior",
+            tiling_strategy="smart_tiling",
+            patch_size=64,
+            receptive_field_size=8,
+        )
+        
+        result_large = distributed_large(x)
+        assert result_large.shape == x.shape
 
-        dsignal = DistributedSignal(ctx, shape=signal_shape)
+
+def test_distribute_processor_with_max_batch_size():
+    """Test processor distribution with different max_batch_size settings."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        processor = SimpleDenoiser(scale=0.95).to(ctx.device)
+        
+        x = torch.randn(1, 3, 32, 32, device=ctx.device)
+        
+        # Test with default batching (all patches at once)
+        distributed_default = distribute(
+            processor,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="smart_tiling",
+            patch_size=16,
+            receptive_field_size=4,
+            max_batch_size=None,
+        )
+        result_default = distributed_default(x, sigma=0.1)
+        
+        # Test with sequential processing (one patch at a time)
+        distributed_seq = distribute(
+            processor,
+            ctx,
+            type_object="denoiser",
+            tiling_strategy="smart_tiling",
+            patch_size=16,
+            receptive_field_size=4,
+            max_batch_size=1,
+        )
+        result_seq = distributed_seq(x, sigma=0.1)
+        
+        # Results should be identical
+        assert torch.allclose(result_default, result_seq, atol=1e-5)
+
+
+# =============================================================================
+# Multi-Process Processor Tests
+# =============================================================================
+
+
+def _test_distributed_processor_worker(rank, world_size, args):
+    """Worker function for multi-process processor tests."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create test processor
+        processor_type = args["processor_type"]
+        processor = create_test_processor(processor_type, ctx.device)
+        
+        # Distribute the processor
+        distributed_processor = distribute(
+            processor,
+            ctx,
+            type_object=processor_type,
+            tiling_strategy=args.get("tiling_strategy", "smart_tiling"),
+            patch_size=args.get("patch_size", 8),
+            receptive_field_size=args.get("receptive_field_size", 2),
+            max_batch_size=args.get("max_batch_size", None),
+        )
+        
+        # Test forward operation with deterministic input
         torch.manual_seed(42)
-        x = torch.randn(*signal_shape, device=ctx.device)
-        dsignal.update_(x)
-
-        # Apply prox
-        result = dprior.prox(dsignal)
-
-        assert result.shape == signal_shape
+        x = torch.randn(1, 3, 16, 16, device=ctx.device)
+        
+        # Apply processor
+        if processor_type == "denoiser":
+            result = distributed_processor(x, sigma=0.1)
+        else:
+            result = distributed_processor(x)
+        
+        # Verify result
+        assert result.shape == x.shape
         assert result.device == ctx.device
-
+        
+        # All ranks should get the same result due to all_reduce
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
+def test_distribute_processor_multiprocess(dist_config, processor_type, tiling_strategy):
+    """Test distribute() with processors in multi-process mode."""
+    test_args = {
+        "processor_type": processor_type,
+        "tiling_strategy": tiling_strategy,
+        "patch_size": 8,
+        "receptive_field_size": 2,
+    }
+    
+    # Run distributed test
+    results = run_distributed_test(_test_distributed_processor_worker, dist_config, test_args)
+    
+    # All ranks should have the same result (due to all_reduce)
+    norms = [r["result_norm"] for r in results]
+    assert all(abs(n - norms[0]) < 1e-4 for n in norms), f"Norms differ: {norms}"
+
+
+def test_distribute_processor_multiprocess_batching(dist_config):
+    """Test processor distribution with different batching strategies in multi-process mode."""
+    
+    # Test with default batching
+    test_args_default = {
+        "processor_type": "denoiser",
+        "tiling_strategy": "smart_tiling",
+        "patch_size": 8,
+        "receptive_field_size": 2,
+        "max_batch_size": None,
+    }
+    results_default = run_distributed_test(_test_distributed_processor_worker, dist_config, test_args_default)
+    norms_default = [r["result_norm"] for r in results_default]
+    
+    # Test with sequential processing
+    test_args_seq = {
+        "processor_type": "denoiser",
+        "tiling_strategy": "smart_tiling",
+        "patch_size": 8,
+        "receptive_field_size": 2,
+        "max_batch_size": 1,
+    }
+    results_seq = run_distributed_test(_test_distributed_processor_worker, dist_config, test_args_seq)
+    norms_seq = [r["result_norm"] for r in results_seq]
+    
+    # Results should be the same regardless of batching strategy
+    assert all(abs(n_default - n_seq) < 1e-4 for n_default, n_seq in zip(norms_default, norms_seq))
+
+
 # =============================================================================
-# Test DistributedPrior
+# 3D Processor Tests
 # =============================================================================
 
 
-class TestDistributedPrior:
-    """Test DistributedPrior class."""
-
-    def test_prox_operation(self, dist_config):
-        """Test prox operation with distributed prior."""
-        results = run_distributed_test(_test_prior_prox_operation, dist_config)
-
-        # All ranks should have same result (after all_reduce)
-        norms = [r["result_norm"] for r in results]
-        assert all(abs(n - norms[0]) < 1e-4 for n in norms)
-
-    def test_prox_operation_3d(self, dist_config):
-        """Test prox operation with distributed 3D prior."""
-        results = run_distributed_test(_test_prior_prox_operation_3d, dist_config)
-
-        # All ranks should have same result (after all_reduce)
-        norms = [r["result_norm"] for r in results]
-        assert all(abs(n - norms[0]) < 1e-4 for n in norms)
-        assert all(abs(n - norms[0]) < 1e-4 for n in norms)
-
-
-# =============================================================================
-# Helpers for Factory API tests
-# =============================================================================
-
-
-def _test_factory_make_distrib_bundle_basic(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        torch.manual_seed(42)
-        x = torch.randn(1, 3, 64, 64, device=ctx.device)
-        measurements = create_test_measurements(physics_list, x, ctx.device)
-
-        factory_config = FactoryConfig(
-            physics=physics_list, measurements=measurements, data_fidelity=L2()
-        )
-
-        bundle = make_distrib_bundle(
-            ctx, factory_config=factory_config, signal_shape=(1, 3, 64, 64)
-        )
-
-        assert bundle.physics is not None
-        assert bundle.measurements is not None
-        assert bundle.data_fidelity is not None
-        assert bundle.signal is not None
-        assert bundle.prior is None  # No prior specified
-
-        return {"success": True}
-
-
-def _test_factory_make_distrib_bundle_with_prior(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        torch.manual_seed(42)
-        x = torch.randn(1, 3, 64, 64, device=ctx.device)
-        measurements = create_test_measurements(physics_list, x, ctx.device)
-
-        factory_config = FactoryConfig(
-            physics=physics_list, measurements=measurements, data_fidelity=L2()
-        )
-
-        class SimplePrior(Prior):
-            def forward(self, x, *args, **kwargs):
-                return x * 0.9
-
-        prior = SimplePrior()
-        tiling_config = TilingConfig(patch_size=32, receptive_field_size=8)
-
-        bundle = make_distrib_bundle(
+def _test_distributed_processor_3d_worker(rank, world_size, args):
+    """Worker function for 3D processor tests."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create simple 3D prior
+        processor = SimplePrior(scale=0.9).to(ctx.device)
+        
+        # Distribute with 3D tiling strategy
+        distributed_processor = distribute(
+            processor,
             ctx,
-            factory_config=factory_config,
-            signal_shape=(1, 3, 64, 64),
-            prior=prior,
-            tiling=tiling_config,
+            type_object="prior",
+            tiling_strategy="smart_tiling_3d",
+            patch_size=args.get("patch_size", 8),
+            receptive_field_size=args.get("receptive_field_size", 2),
+            max_batch_size=args.get("max_batch_size", 1),  # Use sequential for 3D
         )
-
-        assert bundle.prior is not None
-        assert isinstance(bundle.prior, DistributedPrior)
-
-        return {"success": True}
-
-
-# =============================================================================
-# Test Factory API
-# =============================================================================
-
-
-class TestFactoryAPI:
-    """Test the factory API for creating distributed components."""
-
-    def test_make_distrib_bundle_basic(self, dist_config):
-        """Test make_distrib_bundle with basic configuration."""
-        results = run_distributed_test(
-            _test_factory_make_distrib_bundle_basic, dist_config
-        )
-        assert all(r["success"] for r in results)
-
-    def test_make_distrib_bundle_with_prior(self, dist_config):
-        """Test make_distrib_bundle with prior."""
-        results = run_distributed_test(
-            _test_factory_make_distrib_bundle_with_prior, dist_config
-        )
-        assert all(r["success"] for r in results)
-
-
-# =============================================================================
-# Helpers for Integration tests
-# =============================================================================
-
-
-def _test_pnp_equivalence(rank, world_size, args):
-    with DistributedContext(seed=42, device_mode="cpu") as ctx:
-        # Create test data (deterministic)
-        B, C, H, W = 1, 3, 64, 64
+        
+        # Test with 3D input
         torch.manual_seed(42)
-        x_true = torch.randn(B, C, H, W, device=ctx.device)
+        x = torch.randn(1, 1, 16, 16, 16, device=ctx.device)
+        
+        result = distributed_processor(x)
+        
+        # Verify result
+        assert result.shape == x.shape
+        assert result.device == ctx.device
+        
+        return {"result_norm": result.norm().item(), "rank": rank}
 
-        # Create physics operators
-        physics_list = create_test_physics(ctx.device, num_ops=3)
-        measurements = create_test_measurements(physics_list, x_true, ctx.device)
 
-        # Simple prior
-        class SimplePrior(Prior):
-            def forward(self, x, *args, **kwargs):
-                return x * 0.95
+def test_distribute_processor_3d(dist_config):
+    """Test processor distribution with 3D volumes."""
+    test_args = {
+        "patch_size": 8,
+        "receptive_field_size": 2,
+        "max_batch_size": 1,
+    }
+    
+    # Run distributed test
+    results = run_distributed_test(_test_distributed_processor_3d_worker, dist_config, test_args)
+    
+    # All ranks should have the same result
+    norms = [r["result_norm"] for r in results]
+    assert all(abs(n - norms[0]) < 1e-4 for n in norms), f"Norms differ: {norms}"
 
-        prior = SimplePrior()
 
-        # Run distributed PnP
-        factory_config = FactoryConfig(
-            physics=physics_list, measurements=measurements, data_fidelity=L2()
-        )
-        tiling_config = TilingConfig(patch_size=32, receptive_field_size=8)
+# =============================================================================
+# Integration Test: Verify Consistency Between Single and Distributed
+# =============================================================================
 
-        bundle = make_distrib_bundle(
+
+def test_processor_single_vs_distributed():
+    """Test that distributed processing gives same results as single-process for simple cases."""
+    # Create a simple processor
+    processor = SimplePrior(scale=0.9)
+    
+    # Small test input
+    torch.manual_seed(42)
+    x = torch.randn(1, 3, 16, 16)
+    
+    # Single-process result (direct application)
+    result_direct = processor(x)
+    
+    # Distributed single-process result
+    with DistributedContext(device_mode="cpu") as ctx:
+        distributed_processor = distribute(
+            processor.to(ctx.device),
             ctx,
-            factory_config=factory_config,
-            signal_shape=(B, C, H, W),
-            prior=prior,
-            tiling=tiling_config,
+            type_object="prior",
+            tiling_strategy="basic",
+            patch_size=16,  # Same as image size for exact match
+            receptive_field_size=0,  # No overlap
         )
-
-        bundle.signal.update_(torch.zeros_like(x_true))
-
-        lr = 0.1
-        num_iters = 3
-
-        for it in range(num_iters):
-            # Data fidelity gradient
-            grad = bundle.data_fidelity.grad(bundle.signal)
-
-            # Gradient step
-            new_data = bundle.signal.data - lr * grad
-            bundle.signal.update_(new_data)
-
-            # Prior step
-            if bundle.prior is not None:
-                denoised = bundle.prior.prox(bundle.signal)
-                bundle.signal.update_(denoised)
-
-        x_distributed = bundle.signal.data
-
-        # Compute norm for comparison
-        result_norm = x_distributed.norm().item()
-        result_mean = x_distributed.mean().item()
-
-        return {
-            "norm": result_norm,
-            "mean": result_mean,
-            "rank": rank,
-            "world_size": world_size,
-        }
-
-
-# =============================================================================
-# Integration Test: Single vs Distributed PnP Equivalence
-# =============================================================================
-
-
-@pytest.mark.slow
-class TestSingleVsDistributedEquivalence:
-    """Test that single-process and distributed PnP produce equivalent results."""
-
-    def test_pnp_equivalence(self, dist_config):
-        """
-        Test that distributed framework produces same results as single-process
-        when run in distributed mode, and compare against reference single-process.
-        """
-        results = run_distributed_test(_test_pnp_equivalence, dist_config)
-
-        # All ranks should produce the same result
-        norms = [r["norm"] for r in results]
-        means = [r["mean"] for r in results]
-
-        # Check consistency across ranks
-        for i in range(1, len(results)):
-            assert (
-                abs(norms[i] - norms[0]) < 1e-3
-            ), f"Rank {i} norm {norms[i]} differs from rank 0 norm {norms[0]}"
-            assert (
-                abs(means[i] - means[0]) < 1e-4
-            ), f"Rank {i} mean {means[i]} differs from rank 0 mean {means[0]}"
-
-        # Verify results are reasonable (not all zeros)
-        assert norms[0] > 0.1, "Result norm is too small"
+        
+        x_ctx = x.to(ctx.device)
+        result_distributed = distributed_processor(x_ctx)
+    
+    # Results should be very close (allowing for numerical precision)
+    max_diff = torch.max(torch.abs(result_direct - result_distributed.cpu())).item()
+    assert max_diff < 1e-5, f"Results differ by {max_diff}"

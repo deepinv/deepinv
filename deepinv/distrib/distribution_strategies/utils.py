@@ -116,7 +116,7 @@ def _normalize_hw_args(
     stride: Optional[tuple[int, int]],
     hw_dims: tuple[int, int],
     *,
-    receptive_field_radius: int = 0,
+    receptive_field_size: int = 0,
     non_overlap: bool = True,
     end_align: Optional[bool] = None,  # only used if non_overlap=False
 ) -> tuple[
@@ -188,8 +188,8 @@ def _normalize_hw_args(
     pad_top = 0
     pad_left = 0
 
-    win_h = ph + 2 * receptive_field_radius
-    win_w = pw + 2 * receptive_field_radius
+    win_h = ph + 2 * receptive_field_size
+    win_w = pw + 2 * receptive_field_size
 
     return (
         ndim,
@@ -216,7 +216,7 @@ def tiling_splitting_strategy(
     signal_shape: Sequence[int],
     *,
     patch_size: int | tuple[int, int],
-    receptive_field_radius: int = 0,
+    receptive_field_size: int = 0,
     stride: Optional[tuple[int, int]] = None,
     hw_dims: tuple[int, int] = (-2, -1),
     non_overlap: bool = True,
@@ -236,7 +236,7 @@ def tiling_splitting_strategy(
 
     :param Sequence[int] signal_shape: shape of the input signal tensor.
     :param int, tuple[int, int] patch_size: size of each patch. If int, assumes square patches.
-    :param int receptive_field_radius: padding radius around each patch for receptive field.
+    :param int receptive_field_size: padding radius around each patch for receptive field.
     :param None, tuple[int, int] stride: stride between patches. If `None`, uses patch_size for non-overlapping.
     :param tuple[int, int] hw_dims: dimensions corresponding to height and width.
     :param bool non_overlap: whether patches should be non-overlapping.
@@ -252,7 +252,7 @@ def tiling_splitting_strategy(
 
         >>> signal_shape = (1, 3, 512, 512)
         >>> global_slices, metadata = tiling_splitting_strategy(
-        ...     signal_shape, patch_size=256, receptive_field_radius=32
+        ...     signal_shape, patch_size=256, receptive_field_size=32
         ... )
         >>> # Use for batching:
         >>> piece = X[global_slices[i]]
@@ -281,7 +281,7 @@ def tiling_splitting_strategy(
         patch_size,
         stride,
         hw_dims,
-        receptive_field_radius=receptive_field_radius,
+        receptive_field_size=receptive_field_size,
         non_overlap=non_overlap,
         end_align=end_align,
     )
@@ -308,7 +308,7 @@ def tiling_splitting_strategy(
     target_slices: list[Index] = []
     pad_specs: list[tuple[int, int, int, int]] = []
 
-    rf = receptive_field_radius
+    rf = receptive_field_size
 
     for hs in h_starts:
         for ws in w_starts:
@@ -386,7 +386,7 @@ def tiling_splitting_strategy(
         "inner_patch_size": (ph, pw),
         "grid_shape": (len(h_starts), len(w_starts)),
         "pad_mode": pad_mode,
-        "receptive_field_radius": rf,
+        "receptive_field_size": rf,
         "non_overlap": non_overlap,
         "stride": (sh, sw),
     }
@@ -399,7 +399,7 @@ def _normalize_dhw_args(
     stride: Optional[tuple[int, int, int]],
     dhw_dims: tuple[int, int, int],
     *,
-    receptive_field_radius: int = 0,
+    receptive_field_size: int = 0,
     non_overlap: bool = True,
     end_align: Optional[bool] = None,
 ) -> tuple[
@@ -485,9 +485,9 @@ def _normalize_dhw_args(
     pad_top = 0
     pad_left = 0
 
-    win_d = pd + 2 * receptive_field_radius
-    win_h = ph + 2 * receptive_field_radius
-    win_w = pw + 2 * receptive_field_radius
+    win_d = pd + 2 * receptive_field_size
+    win_h = ph + 2 * receptive_field_size
+    win_w = pw + 2 * receptive_field_size
 
     return (
         ndim,
@@ -522,7 +522,7 @@ def tiling3d_splitting_strategy(
     signal_shape: Sequence[int],
     *,
     patch_size: int | tuple[int, int, int],
-    receptive_field_radius: int = 0,
+    receptive_field_size: int = 0,
     stride: Optional[tuple[int, int, int]] = None,
     dhw_dims: tuple[int, int, int] = (-3, -2, -1),
     non_overlap: bool = True,
@@ -542,7 +542,7 @@ def tiling3d_splitting_strategy(
 
     :param Sequence[int] signal_shape: shape of the input signal tensor (e.g., [B, C, D, H, W]).
     :param int, tuple[int, int, int] patch_size: size of each cube patch. If int, assumes cubic patches.
-    :param int receptive_field_radius: padding radius around each patch for receptive field.
+    :param int receptive_field_size: padding radius around each patch for receptive field.
     :param None, tuple[int, int, int] stride: stride between patches. If `None`, uses patch_size for non-overlapping.
     :param tuple[int, int, int] dhw_dims: dimensions corresponding to depth, height, and width.
     :param bool non_overlap: whether patches should be non-overlapping.
@@ -558,7 +558,7 @@ def tiling3d_splitting_strategy(
 
         >>> signal_shape = (1, 1, 64, 64, 64)
         >>> global_slices, metadata = tiling3d_splitting_strategy(
-        ...     signal_shape, patch_size=32, receptive_field_radius=8
+        ...     signal_shape, patch_size=32, receptive_field_size=8
         ... )
         >>> # Use for batching:
         >>> piece = X[global_slices[i]]
@@ -595,7 +595,7 @@ def tiling3d_splitting_strategy(
         patch_size,
         stride,
         dhw_dims,
-        receptive_field_radius=receptive_field_radius,
+        receptive_field_size=receptive_field_size,
         non_overlap=non_overlap,
         end_align=end_align,
     )
@@ -626,7 +626,7 @@ def tiling3d_splitting_strategy(
     target_slices: list[Index] = []
     pad_specs: list[tuple[int, int, int, int, int, int]] = []
 
-    rf = receptive_field_radius
+    rf = receptive_field_size
 
     for ds in d_starts:
         for hs in h_starts:
@@ -719,7 +719,7 @@ def tiling3d_splitting_strategy(
         "inner_patch_size": (pd, ph, pw),
         "grid_shape": (len(d_starts), len(h_starts), len(w_starts)),
         "pad_mode": pad_mode,
-        "receptive_field_radius": rf,
+        "receptive_field_size": rf,
         "non_overlap": non_overlap,
         "stride": (sd, sh, sw),
     }

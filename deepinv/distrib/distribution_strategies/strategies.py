@@ -314,7 +314,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
         :param Sequence[int] signal_shape: shape of the complete signal tensor.
         :param int patch_size: size of each patch (assuming square patches).
-        :param int receptive_field_radius: padding radius around each patch.
+        :param int receptive_field_size: padding radius around each patch.
         :param None, int stride: stride between patches (default: patch_size for non-overlapping).
         :param bool non_overlap: whether patches should be non-overlapping.
         :param str pad_mode: padding mode for edge patches.
@@ -358,7 +358,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                     print(
                         f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
                         f"Using single patch mode with patch_size={safe_patch_size}, "
-                        f"receptive_field_radius={safe_receptive_field}"
+                        f"receptive_field_size={safe_receptive_field}"
                     )
 
                 self.patch_size = safe_patch_size
@@ -528,7 +528,7 @@ class SmartTiling3DStrategy(DistributedSignalStrategy):
                     print(
                         f"Warning: patch_size ({self.patch_size}) >= volume size ({D}x{H}x{W}). "
                         f"Using single patch mode with patch_size={safe_patch_size}, "
-                        f"receptive_field_radius={safe_receptive_field}"
+                        f"receptive_field_size={safe_receptive_field}"
                     )
 
                 self.patch_size = safe_patch_size
@@ -544,7 +544,7 @@ class SmartTiling3DStrategy(DistributedSignalStrategy):
 
         kwargs = {
             "patch_size": self.patch_size,
-            "receptive_field_radius": self.receptive_field_size,
+            "receptive_field_size": self.receptive_field_size,
             "stride": (self.stride, self.stride, self.stride)
             if not self.non_overlap
             else None,
