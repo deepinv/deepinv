@@ -6,7 +6,6 @@ import copy
 import nbformat
 import ast
 import re
-from typing import Dict, List, Tuple
 
 ###############################################################################
 # Citation handling
@@ -15,7 +14,7 @@ from typing import Dict, List, Tuple
 _CITATION_ROLE_PATTERN = re.compile(r":(?:footcite|cite)(?::[pt])?:`([^`]+)`")
 
 
-def _load_bib_database(bib_path: Path) -> Dict[str, dict]:
+def _load_bib_database(bib_path: Path) -> dict[str, dict]:
     """Load a BibTeX database and return a mapping key -> entry dict.
 
     Tries to use ``bibtexparser`` if available; if not, falls back to a very
@@ -48,7 +47,7 @@ def _load_bib_database(bib_path: Path) -> Dict[str, dict]:
     return entries
 
 
-def _format_inline_citation(entry: dict) -> Tuple[str, str]:
+def _format_inline_citation(entry: dict) -> tuple[str, str]:
     """Return (display_text, url) for inline citation.
 
     display_text follows "AuthorLast et al., YEAR" rules:
@@ -97,7 +96,7 @@ def _format_inline_citation(entry: dict) -> Tuple[str, str]:
 
 
 def _replace_citation_roles(
-    text: str, bib_db: Dict[str, dict], cited_keys: List[str]
+    text: str, bib_db: dict[str, dict], cited_keys: list[str]
 ) -> str:
     """Replace Sphinx citation roles with inline Markdown author-year hyperlinks.
 
@@ -128,7 +127,7 @@ def _replace_citation_roles(
     return _CITATION_ROLE_PATTERN.sub(repl, text)
 
 
-def _build_references_cell(cited_keys: List[str], bib_db: Dict[str, dict]):
+def _build_references_cell(cited_keys: list[str], bib_db: dict[str, dict]):
     """Create a Markdown cell listing full references for cited keys."""
     if not cited_keys:
         return None
@@ -570,7 +569,7 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         label_map = _scan_sphinx_labels(html_root)
         bib_path = repo_root / "docs" / "source" / "refs.bib"
         bib_db = _load_bib_database(bib_path)
-        cited_keys: List[str] = []
+        cited_keys: list[str] = []
         new_cells = []
         for cell in example_nb.get("cells", []):
             if cell.get("cell_type") == "markdown":
