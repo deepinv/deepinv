@@ -69,7 +69,7 @@ test_base_dataset = datasets.MNIST(
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Generate the compressed sensing measurement operator with 5x under-sampling factor.
+# Generate the compressed sensing measurement operator.
 physics = dinv.physics.CompressedSensing(
     m=200, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
