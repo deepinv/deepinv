@@ -3,6 +3,7 @@ Learned iterative custom prior
 ==============================
 
 This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
+The custom prior in use is
 The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
 
 """
@@ -68,14 +69,12 @@ test_base_dataset = datasets.MNIST(
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Generate the compressed sensing measurement operator with 10x under-sampling factor.
+# Generate the compressed sensing measurement operator with 5x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
+    m=200, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LICP"
-n_images_max = (
-    1000 if torch.cuda.is_available() else 200
-)  # maximal number of images used for training
+n_images_max = 200
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_base_dataset,
@@ -147,12 +146,12 @@ prior = Prior(g=g)
 # For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
-max_iter = 5  # Number of unrolled iterations
+max_iter = 10  # Number of unrolled iterations
 lambda_reg = [
-    1.0
+    1
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
-    1.0
+    5
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 trainable_params = [
     "stepsize",
@@ -185,18 +184,18 @@ model = PGD(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 10
-learning_rate = 5e-3  # reduce this parameter when using more epochs
+epochs = 5
+learning_rate = 0.05  # reduce this parameter when using more epochs
 
 # Choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=torch.nn.L1Loss())]
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 8
-test_batch_size = 64 if torch.cuda.is_available() else 8
+train_batch_size = 32
+test_batch_size = 32
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -254,6 +253,7 @@ dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )
 
 
