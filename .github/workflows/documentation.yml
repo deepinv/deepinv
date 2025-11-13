@@ -31,7 +31,6 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           pip install -e .[dataset,denoisers,doc,training]
-          pip install nbformat   # for notebook conversion
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build 

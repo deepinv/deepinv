@@ -6,6 +6,167 @@ import copy
 import nbformat
 import ast
 import re
+from typing import Dict, List, Tuple
+
+###############################################################################
+# Citation handling
+###############################################################################
+
+_CITATION_ROLE_PATTERN = re.compile(r":(?:footcite|cite)(?::[pt])?:`([^`]+)`")
+
+
+def _load_bib_database(bib_path: Path) -> Dict[str, dict]:
+    """Load a BibTeX database and return a mapping key -> entry dict.
+
+    Tries to use ``bibtexparser`` if available; if not, falls back to a very
+    lightweight (and imperfect) parser that splits on lines starting with '@'.
+    The fallback supports simple key/value extraction for fields used here.
+    """
+    if not bib_path.exists():
+        return {}
+    src = bib_path.read_text(encoding="utf-8")
+    entries = {}
+    raw_items = re.split(r"\n@", src)
+    for i, raw in enumerate(raw_items):
+        if i == 0 and not raw.startswith("@"):
+            # Skip header before first entry
+            if not raw.strip().startswith("@"):
+                continue
+        if not raw.startswith("@"):
+            raw = "@" + raw
+        m = re.match(r"@\w+\{([^,]+),", raw)
+        if not m:
+            continue
+        key = m.group(1).strip()
+        body = raw[m.end() :]
+        fields = {}
+        for fm in re.finditer(r"(\w+)\s*=\s*[\{\"]([^\{\"}]*)[\}\"]", body):
+            fname = fm.group(1).lower()
+            fval = fm.group(2).strip()
+            fields[fname] = fval
+        entries[key] = fields
+    return entries
+
+
+def _format_inline_citation(entry: dict) -> Tuple[str, str]:
+    """Return (display_text, url) for inline citation.
+
+    display_text follows "AuthorLast et al., YEAR" rules:
+    - 1 author: Lastname YEAR
+    - 2 authors: Lastname1 & Lastname2 YEAR
+    - >=3 authors: Lastname1 et al., YEAR
+
+    URL preference order: doi -> url -> arxiv(eprint) -> empty string.
+    """
+    authors_raw = entry.get("author") or entry.get("Authors") or ""
+    year = entry.get("year", "n.d.")
+    # Split authors on ' and '
+    authors = [a.strip() for a in re.split(r"\band\b", authors_raw) if a.strip()]
+
+    def last_name(author: str) -> str:
+        # Handle "Last, First" vs "First Last" forms
+        if "," in author:
+            return author.split(",", 1)[0].strip()
+        parts = author.split()
+        return parts[-1] if parts else author
+
+    display: str
+    if not authors:
+        display = year
+    elif len(authors) == 1:
+        display = f"{last_name(authors[0])} {year}"
+    elif len(authors) == 2:
+        display = f"{last_name(authors[0])} & {last_name(authors[1])} {year}"
+    else:
+        display = f"{last_name(authors[0])} et al., {year}"
+
+    # URL resolution
+    doi = entry.get("doi") or entry.get("DOI")
+    url = entry.get("url") or entry.get("URL")
+    eprint = entry.get("eprint")
+    archive_prefix = entry.get("archiveprefix", "").lower()
+    if doi:
+        link = f"https://doi.org/{doi}"
+    elif url:
+        link = url
+    elif eprint and (archive_prefix == "arxiv" or "arxiv" in (url or "")):
+        link = f"https://arxiv.org/abs/{eprint}"
+    else:
+        link = ""
+    return display, link
+
+
+def _replace_citation_roles(
+    text: str, bib_db: Dict[str, dict], cited_keys: List[str]
+) -> str:
+    """Replace Sphinx citation roles with inline Markdown author-year hyperlinks.
+
+    Collects citation keys into cited_keys preserving order of first appearance.
+    Supports multiple keys separated by commas or spaces inside a single role.
+    """
+
+    def repl(m: re.Match) -> str:
+        raw_keys = m.group(1)
+        # Split keys on comma/space
+        keys = [k.strip() for k in re.split(r"[,\s]+", raw_keys) if k.strip()]
+        rendered = []
+        for key in keys:
+            if key not in cited_keys:
+                cited_keys.append(key)
+            entry = bib_db.get(key)
+            if not entry:
+                rendered.append(key)
+                continue
+            display, link = _format_inline_citation(entry)
+            if link:
+                rendered.append(f"[{display}]({link})")
+            else:
+                rendered.append(display)
+        # Join multiple citations with '; '
+        return "(" + "; ".join(rendered) + ")"
+
+    return _CITATION_ROLE_PATTERN.sub(repl, text)
+
+
+def _build_references_cell(cited_keys: List[str], bib_db: Dict[str, dict]):
+    """Create a Markdown cell listing full references for cited keys."""
+    if not cited_keys:
+        return None
+    lines = ["## References\n\n"]
+    for key in cited_keys:
+        entry = bib_db.get(key)
+        if not entry:
+            lines.append(f"- {key}\n")
+            continue
+        authors_raw = entry.get("author", "").replace("\n", " ")
+        title = entry.get("title", "").rstrip(".")
+        year = entry.get("year", "n.d.")
+        journal = (
+            entry.get("journal")
+            or entry.get("booktitle")
+            or entry.get("publisher")
+            or ""
+        )
+        doi = entry.get("doi") or entry.get("DOI")
+        url = entry.get("url") or entry.get("URL")
+        eprint = entry.get("eprint")
+        archive_prefix = entry.get("archiveprefix", "").lower()
+        # Simple author formatting: keep as-is but compress spaces
+        authors_fmt = re.sub(r"\s+", " ", authors_raw).strip()
+        ref = f"- {authors_fmt} ({year}). *{title}*."
+        if journal:
+            ref += f" {journal}."
+        if doi:
+            ref += f" [doi:{doi}](https://doi.org/{doi})"
+        elif url:
+            ref += f" [link]({url})"
+        elif eprint and archive_prefix == "arxiv":
+            ref += f" [arXiv:{eprint}](https://arxiv.org/abs/{eprint})"
+        ref += "\n"
+        lines.append(ref)
+    cell = nbformat.v4.new_markdown_cell(source="".join(lines))
+    cell.metadata["language"] = "markdown"
+    return cell
 
 
 def _extract_mathjax_macros_from_conf(conf_path: Path):
@@ -306,6 +467,32 @@ def _convert_sphinx_admonitions(text: str) -> str:
     return "\n".join(out)
 
 
+def _remove_footbibliography_blocks(text: str) -> str:
+    """Remove any References section markers meant for Sphinx footbibliography.
+
+    Specifically strips lines like ':References:' and '.. footbibliography::'.
+    Also collapses consecutive blank lines resulting from the removal.
+    """
+    lines = text.splitlines()
+    out = []
+    pat_ref = re.compile(r"^\s*:References:\s*$", re.IGNORECASE)
+    pat_footb = re.compile(r"^\s*\.\.\s*footbibliography::\s*$", re.IGNORECASE)
+    for ln in lines:
+        if pat_ref.match(ln) or pat_footb.match(ln):
+            continue
+        out.append(ln)
+    # Collapse multiple blank lines
+    collapsed = []
+    prev_blank = False
+    for ln in out:
+        is_blank = ln.strip() == ""
+        if is_blank and prev_blank:
+            continue
+        collapsed.append(ln)
+        prev_blank = is_blank
+    return "\n".join(collapsed).strip()
+
+
 def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
     """
     Convert a single Python script to a Jupyter notebook and save it under target_root,
@@ -373,7 +560,7 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         # Do not fail conversion if anything goes wrong
         pass
 
-    # Convert Sphinx roles, gallery refs, and admonitions in markdown cells
+    # Convert Sphinx roles, gallery refs, admonitions, and add inline citations
     try:
         repo_root = Path(__file__).resolve().parents[2]
         conf_path = repo_root / "docs" / "source" / "conf.py"
@@ -381,18 +568,37 @@ def convert_script_to_notebook(src_file: Path, output_file: Path, gallery_conf):
         # Build label map once (scan built docs).
         html_root = repo_root / "docs" / "build" / "html"
         label_map = _scan_sphinx_labels(html_root)
+        bib_path = repo_root / "docs" / "source" / "refs.bib"
+        bib_db = _load_bib_database(bib_path)
+        cited_keys: List[str] = []
+        new_cells = []
         for cell in example_nb.get("cells", []):
             if cell.get("cell_type") == "markdown":
                 src = cell.get("source", "")
                 src_text = "".join(src) if isinstance(src, list) else src
-                # Order matters: convert :ref: before turning bare example filenames into links.
-                new_text = _convert_sphinx_roles_to_links(src_text, baseurl)
+                # 0) Remove any Sphinx footbibliography markers
+                src_text = _remove_footbibliography_blocks(src_text)
+                if not src_text:
+                    # Skip empty cell after removal
+                    continue
+                # 1) Citations first to capture original roles before other rewrites
+                new_text = _replace_citation_roles(src_text, bib_db, cited_keys)
+                # 2) Convert Sphinx object roles
+                new_text = _convert_sphinx_roles_to_links(new_text, baseurl)
                 new_text = _convert_backticked_label_refs(new_text, baseurl, label_map)
                 new_text = _convert_sg_example_refs(new_text, baseurl)
                 new_text = _convert_sphinx_admonitions(new_text)
                 cell["source"] = new_text
                 cell.setdefault("metadata", {})
                 cell["metadata"]["language"] = "markdown"
+                new_cells.append(cell)
+            else:
+                new_cells.append(cell)
+        example_nb["cells"] = new_cells
+        # Append references cell if citations collected
+        ref_cell = _build_references_cell(cited_keys, bib_db)
+        if ref_cell is not None:
+            example_nb["cells"].append(ref_cell)
     except Exception:
         pass
 
