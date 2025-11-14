@@ -235,13 +235,13 @@ class FixedPoint(nn.Module):
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
-        :param Callable, torch.Tensor, tuple, dict init:  initialization of the algorithm.
+        :param Callable, torch.Tensor, tuple, dict init: initialization of the algorithm.
             Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
             The output of the function or the fixed initialization can be either:
 
-                - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
-                - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
-                - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+            - a tuple :math:`(x_0, z_0)` (where ``x_0`` and ``z_0`` are the initial primal and dual variables),
+            - a :class:`torch.Tensor` :math:`x_0` (if no dual variables :math:`z_0` are used), or
+            - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
 
         :param bool compute_metrics: if ``True``, the metrics are computed along the iterations. Default: ``False``.
         :param torch.Tensor x_gt: ground truth solution. Default: ``None``.
