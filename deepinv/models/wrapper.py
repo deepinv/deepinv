@@ -1,8 +1,6 @@
 from __future__ import annotations
 import torch
 from deepinv.models import Denoiser
-import warnings
-
 
 class DiffusersDenoiserWrapper(Denoiser):
     """
@@ -77,10 +75,10 @@ class DiffusersDenoiserWrapper(Denoiser):
 
         self.register_buffer(
             "scale_schedule", ac.sqrt()
-        )  # the scaling factor -- sqrt_alphas_cumprod
+        )  # the scaling factor (EDM) -- sqrt_alphas_cumprod
         self.register_buffer(
-            "sigma_schedule", (1.0 - ac).clamp(min=0).sqrt()
-        )  # the noise level -- sqrt_one_minus_alphas_cumprod
+            "sigma_schedule", (1 / ac - 1.0).clamp(min=0).sqrt()
+        )  # the noise level (EDM) -- sqrt_one_minus_alphas_cumprod / sqrt_alphas_cumprod
 
         # prediction_type: "epsilon", "v_prediction", or "sample"
         self.prediction_type = getattr(
@@ -140,15 +138,12 @@ class DiffusersDenoiserWrapper(Denoiser):
         )
 
         sigma = sigma * 2  # since image is in [-1, 1] range in the model
-        sqrt_alpha = 1 / (1 + sigma**2).sqrt()
-        sigma = sigma * sqrt_alpha
-
         timestep = self._nearest_t_from_sigma(sigma.squeeze())
 
-        sqrt_alpha_bar_t = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
+        scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
 
-        # Rescale input x from [0, 1] to model scale [-1, 1] and apply sqrt_alpha scaling following DDPM
-        x = (x * 2 - 1) * sqrt_alpha
+        # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
+        x = (x * 2 - 1) * scale
         # UNet forward
         pred = self.model(x, timestep, *args, return_dict=False, **kwargs)
         if isinstance(pred, (list, tuple)):
@@ -158,9 +153,9 @@ class DiffusersDenoiserWrapper(Denoiser):
         # Convert model output to x0 depending on prediction type
         pt = self.prediction_type
         if pt == "epsilon":
-            x0 = (x - sigma * pred) / sqrt_alpha_bar_t
+            x0 = x / scale - sigma * pred    
         elif pt == "v_prediction":
-            x0 = sqrt_alpha_bar_t * x - sigma * pred
+            x0 = scale * (x - sigma * pred)
         elif pt == "sample":
             x0 = pred
         else:

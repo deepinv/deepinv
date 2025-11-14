@@ -65,7 +65,7 @@ dinv.utils.plot(
 # The model was trained with DDPM scheduler, however we can use it with any SDE provided in DeepInv.
 # Here, we use the Variance Exploding SDE with Euler solver for sampling.
 
-num_steps = 150
+num_steps = 125
 rng = torch.Generator(device)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
