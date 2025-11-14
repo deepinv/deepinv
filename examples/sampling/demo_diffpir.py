@@ -14,7 +14,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 # %%
 # Generate an inverse problem

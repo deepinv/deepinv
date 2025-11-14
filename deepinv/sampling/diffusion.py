@@ -77,7 +77,7 @@ class DDRM(Reconstructor):
     r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`zhu2023denoising`.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 

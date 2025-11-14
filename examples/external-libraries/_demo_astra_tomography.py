@@ -20,7 +20,7 @@ import torch
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.plotting import plot, plot_curves
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 
@@ -71,11 +71,11 @@ noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 physics = TomographyWithAstra(
     img_size=(img_size, img_size),
-    num_angles=num_angles,
+    angles=num_angles,
     device=device,
     noise_model=noise_model,
     geometry_type="fanbeam",
-    num_detectors=2 * img_size,
+    n_detector_pixels=2 * img_size,
     geometry_parameters={"source_radius": 800.0, "detector_radius": 200.0},
 )
 observation = physics(test_imgs)

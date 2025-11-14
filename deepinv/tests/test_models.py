@@ -1,6 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
+import contextlib
 
 import torch
 from torch.utils.data import DataLoader
@@ -507,6 +508,34 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
         assert x_hat.shape == x.shape
 
 
+DENOISERS_3D = {
+    dinv.models.DnCNN: {
+        "depth": 2,
+        "nf": 8,
+        "pretrained": None,
+    },
+    dinv.models.DRUNet: {
+        "in_channels": 1,
+        "out_channels": 1,
+        "nc": [8, 8, 8, 8],
+        "nb": 2,
+        "pretrained": None,
+    },
+    dinv.models.UNet: {"scales": 2},
+}
+
+
+@pytest.mark.parametrize("model", DENOISERS_3D.items())
+def test_3d_denoisers(model, device):
+    default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
+    model, args = model
+    args.update(default_args)
+    net = model(**args)
+    test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
+    out = net(test_tensor, sigma=0.1)
+    assert out.shape == test_tensor.shape
+
+
 @pytest.mark.parametrize("level", [3, 5, 6])
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -550,21 +579,25 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
-def test_wavelet_decomposition(channels, dimension, batch_size, device):
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, device):
     pytest.importorskip(
         "ptwt",
         reason="This test requires pytorch_wavelets. It should be "
         "installed with `pip install "
         "git+https://github.com/fbcotter/pytorch_wavelets.git`",
     )
-    model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
+    model = dinv.models.WaveletDenoiser(
+        level=1, wvdim=dimension, is_complex=is_complex
+    ).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
         if dimension == 2
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    x = torch.randn(img_size, dtype=torch.float32).to(device)
+    dtype = torch.complex64 if is_complex else torch.float32
+    x = torch.randn(img_size, dtype=dtype, device=device)
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
@@ -621,6 +654,32 @@ def test_drunet_inputs(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
+@pytest.mark.parametrize(
+    "drunet_args",
+    [
+        {"act_mode": "L", "downsample_mode": "avgpool", "upsample_mode": "upconv"},
+        {
+            "act_mode": "E",
+            "downsample_mode": "maxpool",
+            "upsample_mode": "pixelshuffle",
+        },
+        {"act_mode": "s"},
+    ],
+)
+def test_drunet_options(drunet_args, device):
+    args = {"pretrained": None, "nc": (4, 4, 4, 4), "nb": 2, "device": device, "dim": 2}
+    args.update(drunet_args)
+    drunet_2d = dinv.models.DRUNet(**args)
+    out = drunet_2d(torch.randn([1, 3, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64)
+    args["dim"] = 3
+    if args.get("upsample_mode", None) == "pixelshuffle":
+        args.pop("upsample_mode")
+    drunet_3d = dinv.models.DRUNet(**args)
+    out = drunet_3d(torch.randn([1, 3, 64, 64, 64], device=device), 0.1)
+    assert out.shape == (1, 3, 64, 64, 64)
+
+
 def test_diffunetmodel(imsize, device):
     # This model is a bit different from others as not strictly a denoiser as such.
     # The Ho et al. diffusion model only works for color, square image with powers of two in w, h.
@@ -655,7 +714,8 @@ def test_diffunetmodel(imsize, device):
         x_hat = model(y, sigma, type_t="wrong_type")
 
 
-def test_PDNet(imsize_1_channel, device):
+@pytest.mark.parametrize("image_volume_shape", [[1, 37, 31], [1, 16, 16, 16]])
+def test_PDNet(image_volume_shape, device):
     # Tests the PDNet algorithm - this is an unfolded algorithm so it is tested on its own here.
     from deepinv.optim.optimizers import CPIteration, fStep, gStep
     from deepinv.optim import Prior, DataFidelity
@@ -664,7 +724,7 @@ def test_PDNet(imsize_1_channel, device):
 
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize_1_channel, device=device).unsqueeze(0)
+    x = torch.ones(image_volume_shape, device=device).unsqueeze(0)
     y = physics(x)
 
     class PDNetIteration(CPIteration):
@@ -721,7 +781,7 @@ def test_PDNet(imsize_1_channel, device):
             self.model = model
 
         def prox(self, x, w):
-            return self.model(x, w[:, 0:1, :, :])
+            return self.model(x, w[:, 0:1])
 
     class PDNetDataFid(DataFidelity):
         def __init__(self, model, *args, **kwargs):
@@ -729,29 +789,36 @@ def test_PDNet(imsize_1_channel, device):
             self.model = model
 
         def prox(self, x, w, y):
-            return self.model(x, w[:, 1:2, :, :], y)
+            return self.model(x, w[:, 1:2], y)
 
     # Unrolled optimization algorithm parameters
+
+    dim = len(image_volume_shape) - 1
+
     max_iter = 5  # number of unfolded layers
 
     # Set up the data fidelity term. Each layer has its own data fidelity module.
     data_fidelity = [
-        PDNetDataFid(model=PDNet_DualBlock().to(device)) for i in range(max_iter)
+        PDNetDataFid(model=PDNet_DualBlock(depth=2, nf=16, dim=dim).to(device))
+        for i in range(max_iter)
     ]
 
     # Set up the trainable prior. Each layer has its own prior module.
-    prior = [PDNetPrior(model=PDNet_PrimalBlock().to(device)) for i in range(max_iter)]
+    prior = [
+        PDNetPrior(model=PDNet_PrimalBlock(depth=2, nf=16, dim=dim).to(device))
+        for i in range(max_iter)
+    ]
 
     n_primal = 5  # extend the primal space
     n_dual = 5  # extend the dual space
 
     def custom_init(y, physics):
-        x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
-        u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+        x0 = physics.A_dagger(y).repeat(1, n_primal, *tuple(1 for i in range(dim)))
+        u0 = torch.zeros_like(y).repeat(1, n_dual, *tuple(1 for i in range(dim)))
         return {"est": (x0, x0, u0)}
 
     def custom_output(X):
-        return X["est"][0][:, 1, :, :].unsqueeze(1)
+        return X["est"][0][:, 1].unsqueeze(1)
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
@@ -769,12 +836,21 @@ def test_PDNet(imsize_1_channel, device):
     assert x_hat.shape == x.shape
 
 
-def test_icnn(device, rng):
+@pytest.mark.parametrize("dims", [2, 3])
+def test_icnn(dims, device, rng):
     from deepinv.models import ICNN
 
-    model = ICNN(in_channels=3, device=device)
+    num_filters = 64 if dims == 2 else 4
+    num_layers = 10 if dims == 2 else 3
+    model = ICNN(
+        num_filters=num_filters,
+        num_layers=num_layers,
+        in_channels=3,
+        device=device,
+        dim=dims,
+    )
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
-    x = torch.ones((1, 3, 128, 128), device=device)
+    x = torch.ones((1, 3, *tuple(128 for i in range(dims))), device=device)
     y = physics(x)
     potential = model(y)
     grad = model.grad(y)
@@ -1053,11 +1129,20 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
 
 
 @pytest.mark.parametrize("n_channels", [3])
-def test_dsccp_net(device, n_channels):
-    # Load the pretrained model
+@pytest.mark.parametrize("spatials", [(37, 28), (32, 32, 32)])
+def test_dsccp_net(device, n_channels, spatials):
+    image_size = (n_channels, *spatials)
+    d = len(spatials)
 
-    image_size = (n_channels, 37, 28)
-    model = dinv.models.DScCP().to(device)
+    depth = 20 if d == 2 else 3
+    n_c_per_layer = 64 if d == 2 else 8
+
+    model = dinv.models.DScCP(
+        depth=depth,
+        n_channels_per_layer=n_c_per_layer,
+        pretrained="download" if d == 2 else None,
+        dim=d,
+    ).to(device)
     x = torch.rand(image_size, device=device).unsqueeze(0)
 
     y = model(x, 0.01)
@@ -1069,7 +1154,7 @@ def test_dsccp_net(device, n_channels):
     assert y.shape == x.shape
 
     # batch of sigma
-    x = x.expand(4, -1, -1, -1)
+    x = x.expand(4, *tuple(-1 for i in range(d + 1)))
     y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
 
@@ -1174,6 +1259,19 @@ def test_denoiser_perf(device):
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
 
+    # Test denoisers on complex data
+    x = x.to(torch.complex64)
+    y = y.to(torch.complex64)
+    denoiser = dinv.models.WaveletDenoiser(
+        level=1,
+        wvdim=2,
+        is_complex=True,
+    ).to(device)
+    x_hat = denoiser(y)
+    psnr_orig = dinv.metric.PSNR()(y, x).mean().item()
+    psnr_denoised = dinv.metric.PSNR()(x_hat, x).mean().item()
+    assert psnr_denoised > psnr_orig + 0.5, "Denoiser did not improve performance"
+
 
 @pytest.mark.parametrize("return_metadata", [False, True])
 def test_client_mocked(return_metadata):
@@ -1256,3 +1354,42 @@ def test_client_mocked(return_metadata):
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="output"):
             _ = model(y)
+
+
+# SwinIR has two parameters related to usampling, upscale which specifies the
+# upsampling rate and upsampler which specifies how the upsampling is
+# performed. In this test, we verify that a warning is raised when specifying
+# an upsampling rate > 1 but not the upsampling method, or conversely when
+# specifying an upsampling without specifying an upsampling rate > 1.
+@pytest.mark.parametrize("upscale", [None, 1, 2])
+@pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
+def test_swinir_upsample_without_upsampler(upscale, upsampler):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
+
+    kwargs = {}
+
+    if upscale is not None:
+        kwargs["upscale"] = upscale
+
+    if upsampler is not None:
+        kwargs["upsampler"] = upsampler
+
+    should_warn = (upscale is not None and upscale > 1 and upsampler is None) or (
+        (upscale is None or upscale == 1) and upsampler is not None
+    )
+
+    ctx = (
+        pytest.warns(
+            UserWarning,
+            match="upscale",
+        )
+        if should_warn
+        else contextlib.nullcontext()
+    )
+
+    with ctx:
+        _ = dinv.models.SwinIR(in_chans=3, upsample=1, pretrained=None, **kwargs)

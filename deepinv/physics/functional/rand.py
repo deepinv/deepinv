@@ -11,26 +11,25 @@ def random_choice(
     rng: torch.Generator = None,
 ):
     r"""
-    PyTorch equivalent of `numpy.random.choice`
+    PyTorch equivalent of :func:`numpy.random.choice`
+
     :param torch.Tensor a: the 1-D input tensor
     :param size: output shape.
-    :param bool replace: whether to sample with replacement.
-        Default is True, meaning that a value of `a` can be selected multiple times.
-    :param torch.Tensor p: the probabilities for each entry in `a`.
-        If not given, the sample assumes a uniform distribution over all entries in `a`.
-
+    :param bool replace: whether to sample with replacement. Default is True, meaning that a value of `a` can be selected multiple times.
+    :param torch.Tensor p: the probabilities for each entry in `a`. If not given, the sample assumes a uniform distribution over all entries in `a`.
     :return: the generated random samples in the same device as `a`.
 
     |sep|
 
     :Examples:
 
-    >>> import torch
-    >>> from deepinv.physics.functional import random_choice
-    >>> a = torch.tensor([1.,2.,3.,4.,5.])
-    >>> p = torch.tensor([0,0,1.,0,0])
-    >>> print(random_choice(a, 2, replace=True, p=p))
-    tensor([3., 3.])
+        >>> import torch
+        >>> from deepinv.physics.functional import random_choice
+        >>> a = torch.tensor([1.,2.,3.,4.,5.])
+        >>> p = torch.tensor([0,0,1.,0,0])
+        >>> print(random_choice(a, 2, replace=True, p=p))
+        tensor([3., 3.])
+
     """
     if isinstance(a, int):
         if rng is not None:
