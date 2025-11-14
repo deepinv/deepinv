@@ -1015,7 +1015,9 @@ class LaplaceNoise(NoiseModel):
         self.to(x.device)
 
         u = self.rand_like(x, seed=seed)
-        noise = - self.b * torch.sign(u - 0.5) * torch.log1p(-2 * torch.abs(u - 0.5)) # Inverse CDF method
+        noise = (
+            -self.b * torch.sign(u - 0.5) * torch.log1p(-2 * torch.abs(u - 0.5))
+        )  # Inverse CDF method
         return x + noise
 
 
