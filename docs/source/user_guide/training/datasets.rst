@@ -50,6 +50,8 @@ We provide dataset classes for you to easily load in your own data:
      - Dataset that returns tensor(s) passed in at input: either tensor(s) for a single observation or a whole dataset of them
    * - :class:`deepinv.datasets.HDF5Dataset`
      - Dataset of measurements generated using :func:`deepinv.datasets.generate_dataset`, see :ref:`below <generating-datasets>` for how to use.
+   * - :class:`deepinv.datasets.RandomPatchSampler`
+     - Dataset that randomly samples a patch from a larger nD image at each iteration, accepts a ground-truth directory or measurement directory. If both are provided, filenames and shapes must match for each pair.
 
 .. _generating-datasets:
 
@@ -71,7 +73,7 @@ For example, here we generate a dataset of inpainting measurements from the :cla
 
     >>> import deepinv as dinv
     >>> from torchvision.transforms import ToTensor, Compose, CenterCrop
-    >>> save_dir = dinv.utils.demo.get_data_home() / 'set14'
+    >>> save_dir = dinv.utils.get_data_home() / 'set14'
     >>> 
     >>> # Define base train dataset
     >>> dataset = dinv.datasets.Set14HR(save_dir, download=True, transform=Compose([CenterCrop(128), ToTensor()])) # doctest: +ELLIPSIS
