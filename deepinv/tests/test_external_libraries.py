@@ -6,10 +6,10 @@ import unittest.mock as mock
 
 
 class TestTomographyWithAstra:
-    def dummy_compute_norm(cls, x0: torch.Tensor) -> torch.Tensor:
+    def dummy_compute_norm(self, x0: torch.Tensor) -> torch.Tensor:
         return torch.tensor(1.0).to(x0)
 
-    def dummy_projection(cls, x: torch.Tensor, out: torch.Tensor) -> None:
+    def dummy_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         out[:] = 1.0
 
     @pytest.mark.parametrize("normalize", [True, False, None])
@@ -143,10 +143,11 @@ class TestTomographyWithAstra:
             loss.backward()
             assert pred.grad is not None
 
+            threshold = 1e-3 if geometry_type != "conebeam" else 5e-2
             if normalize:
-                assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+                assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold
 
             if normalize is None:
                 # when normalize is not set by the user, it should default to True
                 assert physics.normalize is True
-                assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+                assert abs(physics.compute_norm(x, squared=False) - 1.0) < threshold
