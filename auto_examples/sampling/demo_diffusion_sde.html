@@ -1,0 +1,1732 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Building your diffusion posterior sampling method using SDEs &#8212; deepinv 0.3.6 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=8da8c241"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/sampling/demo_diffusion_sde';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/auto_examples/sampling/demo_diffusion_sde.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Image reconstruction with a diffusion model" href="demo_ddrm.html" />
+    <link rel="prev" title="Building your custom MCMC sampling algorithm." href="demo_custom_kernel.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.6 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.6 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../basics/index.html">Basics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_quickstart.html">5 minute quickstart tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_pretrained_model.html">Use a pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_optim.html">Use iterative reconstruction algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_dataset.html">Bring your own dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/demo_custom_physics.html">Bring your own physics</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../models/index.html">Models</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_foundation_model.html">Inference and fine-tune a foundation model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_training.html">Training a reconstruction model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/demo_denoiser_tour.html">Benchmarking pretrained denoisers</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../physics/index.html">Physics</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_physics_tour.html">Tour of forward sensing operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_blur_tour.html">Tour of blur operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_mri_tour.html">Tour of MRI functionality in DeepInverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spatial_unwrapping.html">Spatial unwrapping and modulo imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_ptychography.html">Ptychography phase retrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_spc.html">Pattern Ordering in a Compressive Single Pixel Camera</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_optimizing_physics_parameter.html">Solving blind inverse problems / estimating physics parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_remote_sensing.html">Remote sensing with satellite images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../physics/demo_microscopy_3d.html">3D diffraction PSF</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../optimization/index.html">Optimization</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_3D_denoising.html">3D denoising</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_epll.html">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_TV_minimisation.html">Image deblurring with Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_wavelet_prior.html">Image inpainting with wavelet prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_patch_priors_CT.html">Patch priors for limited-angle computed tomography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../optimization/demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../plug-and-play/index.html">Plug-and-Play</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_DPIR_deblur.html">DPIR method for PnP image deblurring.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_mirror_descent.html">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_PnP_custom_optim.html">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_RED_GSPnP_SR.html">Regularization by Denoising (RED) for Super-Resolution.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plug-and-play/demo_vanilla_PnP.html">Vanilla PnP for computed tomography (CT).</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Diffusion &amp; MCMC</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="demo_custom_kernel.html">Building your custom MCMC sampling algorithm.</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Building your diffusion posterior sampling method using SDEs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_ddrm.html">Image reconstruction with a diffusion model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_dps.html">Implementing DPS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_diffpir.html">Implementing DiffPIR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="demo_sampling.html">Uncertainty quantification with PnP-ULA.</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../unfolded/index.html">Unfolded</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_DEQ.html">Deep Equilibrium (DEQ) algorithms for image deblurring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_LISTA.html">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_learned_primal_dual.html">Learned Primal-Dual algorithm for CT scan.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_custom_prior_unfolded.html">Learned iterative custom prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constant_memory.html">Reducing the memory and computational complexity of unfolded network training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_unfolded_constrained_LISTA.html">Unfolded Chambolle-Pock for constrained image inpainting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../unfolded/demo_vanilla_unfolded.html">Vanilla Unfolded algorithm for super-resolution</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../self-supervised-learning/index.html">Self-Supervised Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html">Image transformations for Equivariant Imaging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_transforms.html">Image transforms for equivariance &amp; augmentations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_artifact2artifact.html">Self-supervised MRI reconstruction with Artifact2Artifact</a></li>
+
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_r2r_denoising.html">Self-supervised denoising with the Generalized R2R loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_n2n_denoising.html">Self-supervised denoising with the Neighbor2Neighbor loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_sure_denoising.html">Self-supervised denoising with the SURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_unsure.html">Self-supervised denoising with the UNSURE loss.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_multioperator_imaging.html">Self-supervised learning from incomplete measurements of multiple operators.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html">Self-supervised learning with Equivariant Imaging for MRI.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../self-supervised-learning/demo_splitting_loss.html">Self-supervised learning with measurement splitting</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../adversarial-learning/index.html">Adversarial Learning</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../adversarial-learning/demo_gan_imaging.html">Imaging inverse problems with adversarial networks</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../external-libraries/index.html">External Libraries</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_io.html">Loading scientific images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/_demo_astra_tomography.html">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_ri_basic.html">Radio interferometric imaging with deepinverse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_connect_spyrit.html">Single-pixel imaging with Spyrit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../external-libraries/demo_hf_dataset.html">Using HuggingFace datasets</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Diffusion &amp; MCMC</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Building your diffusion posterior sampling method using SDEs</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>New to DeepInverse? Get started with the basics with the
+<a class="reference internal" href="../basics/demo_quickstart.html#sphx-glr-auto-examples-basics-demo-quickstart-py"><span class="std std-ref">5 minute quickstart tutorial</span></a>.</p>
+</div>
+<section class="sphx-glr-example-title" id="building-your-diffusion-posterior-sampling-method-using-sdes">
+<span id="sphx-glr-auto-examples-sampling-demo-diffusion-sde-py"></span><h1>Building your diffusion posterior sampling method using SDEs<a class="headerlink" href="#building-your-diffusion-posterior-sampling-method-using-sdes" title="Link to this heading">#</a></h1>
+<p>This demo shows you how to use
+<a class="reference internal" href="../../api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.PosteriorDiffusion</span></code></a> to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.</p>
+<p>This method requires:</p>
+<ul class="simple">
+<li><p>A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., <a class="reference internal" href="../../api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp" title="deepinv.models.NCSNpp"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.NCSNpp</span></code></a>).</p></li>
+<li><p>A (noisy) data fidelity term (e.g., <a class="reference internal" href="../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DPSDataFidelity</span></code></a>).</p></li>
+<li><p>Define a drift term <span class="math notranslate nohighlight">\(f(x, t)\)</span> and a diffusion term <span class="math notranslate nohighlight">\(g(t)\)</span> for the forward-time SDE. They can be defined through the <a class="reference internal" href="../../api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE" title="deepinv.sampling.DiffusionSDE"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSDE</span></code></a> (e.g., <a class="reference internal" href="../../api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.VarianceExplodingDiffusion</span></code></a>).</p></li>
+</ul>
+<p>The <a class="reference internal" href="../../api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.PosteriorDiffusion</span></code></a> class can be used to perform posterior sampling for inverse problems.
+Consider the acquisition model:</p>
+<div class="math notranslate nohighlight">
+\[y = \noise{\forw{x}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\forw{x}\)</span> is the forward operator (e.g., a convolutional operator) and <span class="math notranslate nohighlight">\(\noise{\cdot}\)</span> is the noise operator (e.g., Gaussian noise).
+This class defines the reverse-time SDE for the posterior distribution <span class="math notranslate nohighlight">\(p(x|y)\)</span> given the data <span class="math notranslate nohighlight">\(y\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[d\, x_t = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla_{x_t} \log p_t(x_t | y) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}\]</div>
+<p>where <span class="math notranslate nohighlight">\(f\)</span> is the drift term, <span class="math notranslate nohighlight">\(g\)</span> is the diffusion coefficient and <span class="math notranslate nohighlight">\(w\)</span> is the standard Brownian motion.
+The drift term and the diffusion coefficient are defined by the underlying (unconditional) forward-time SDE <code class="code docutils literal notranslate"><span class="pre">sde</span></code>.
+In this example, we will use 2 well-known SDE in the literature: the Variance-Exploding (VE) and Variance-Preserving (VP or DDPM).</p>
+<p>The (conditional) score function <span class="math notranslate nohighlight">\(\nabla_{x_t} \log p_t(x_t | y)\)</span> can be decomposed using the Bayes’ rule:</p>
+<div class="math notranslate nohighlight">
+\[\nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).\]</div>
+<p>The first term is the score function of the unconditional SDE, which is typically approximated by an MMSE denoiser (<code class="code docutils literal notranslate"><span class="pre">denoiser</span></code>) using the well-known Tweedie’s formula, while the
+second term is approximated by the (noisy) data-fidelity term (<code class="code docutils literal notranslate"><span class="pre">data_fidelity</span></code>).
+We implement various data-fidelity terms in <a class="reference external" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2">the user guide</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this demo, we limit the number of diffusion steps for the sake of speed, but in practice, you should use a larger number of steps to obtain better results.</p>
+</div>
+<hr class="docutils" />
+<p>Let us import the necessary modules, define the denoiser and the SDE.</p>
+<p>In this first example, we use the Variance-Exploding SDE, whose forward process is defined as:</p>
+<div class="math notranslate nohighlight">
+\[d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.\]</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp" title="deepinv.models.NCSNpp" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">NCSNpp</span></a>
+
+<a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_available.html#torch.cuda.is_available" title="torch.cuda.is_available" class="sphx-glr-backref-module-torch-cuda sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span></a><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+<a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float64</span></a>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a> <span class="o">=</span> <span class="mf">2.5</span>
+<a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gif_frequency</span></a> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># Increase this value to save the GIF saving time</span>
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">PosteriorDiffusion</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">DPSDataFidelity</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">EulerSolver</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">VarianceExplodingDiffusion</span></a><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity" title="deepinv.optim.ZeroFidelity" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class"><span class="n">ZeroFidelity</span></a>
+
+<span class="c1"># In this example, we use the pre-trained FFHQ-64 model from the</span>
+<span class="c1"># EDM framework: https://arxiv.org/pdf/2206.00364 .</span>
+<span class="c1"># The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp" title="deepinv.models.NCSNpp" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">NCSNpp</span></a><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<span class="c1"># The solution is obtained by calling the SDE object with a desired solver (here, Euler).</span>
+<span class="c1"># The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.</span>
+<a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_steps</span></a> <span class="o">=</span> <span class="mi">150</span>
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.linspace.html#torch.linspace" title="torch.linspace" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">num_steps</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">EulerSolver</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="p">)</span>
+
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a> <span class="o">=</span> <span class="mf">0.005</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a> <span class="o">=</span> <span class="mi">5</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">VarianceExplodingDiffusion</span></a><span class="p">(</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/edm/resolve/main/ncsnpp-ffhq64-uncond-ve.pt?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/ncsnpp-ffhq64-uncond-ve.pt
+
+  0%|          | 0.00/240M [00:00&lt;?, ?B/s]
+ 13%|█▎        | 32.0M/240M [00:00&lt;00:00, 335MB/s]
+ 28%|██▊       | 67.1M/240M [00:00&lt;00:00, 354MB/s]
+ 42%|████▏     | 102M/240M [00:00&lt;00:00, 357MB/s]
+ 57%|█████▋    | 137M/240M [00:00&lt;00:00, 364MB/s]
+ 72%|███████▏  | 172M/240M [00:00&lt;00:00, 360MB/s]
+ 87%|████████▋ | 208M/240M [00:00&lt;00:00, 364MB/s]
+100%|██████████| 240M/240M [00:00&lt;00:00, 364MB/s]
+</pre></div>
+</div>
+<section id="reverse-time-sde-as-sampling-process">
+<h2>Reverse-time SDE as sampling process<a class="headerlink" href="#reverse-time-sde-as-sampling-process" title="Link to this heading">#</a></h2>
+<p>When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
+Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">PosteriorDiffusion</span></a><span class="p">(</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.ZeroFidelity.html#deepinv.optim.ZeroFidelity" title="deepinv.optim.ZeroFidelity" class="sphx-glr-backref-module-deepinv-optim sphx-glr-backref-type-py-class"><span class="n">ZeroFidelity</span></a><span class="p">(),</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">x_init</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">get_trajectory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="s2">&quot;Unconditional generation&quot;</span><span class="p">,</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;sde_sample.png&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.save_videos.html#deepinv.utils.save_videos" title="deepinv.utils.save_videos" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">save_videos</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a><span class="o">.</span><span class="n">cpu</span><span class="p">()[::</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gif_frequency</span></a><span class="p">],</span>
+    <span class="n">time_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;VE-SDE Trajectory&quot;</span><span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;sde_trajectory.gif&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/149 [00:00&lt;?, ?it/s]
+  1%|          | 1/149 [00:00&lt;01:22,  1.79it/s]
+  1%|▏         | 2/149 [00:01&lt;01:21,  1.81it/s]
+  2%|▏         | 3/149 [00:01&lt;01:19,  1.83it/s]
+  3%|▎         | 4/149 [00:02&lt;01:19,  1.83it/s]
+  3%|▎         | 5/149 [00:02&lt;01:18,  1.84it/s]
+  4%|▍         | 6/149 [00:03&lt;01:17,  1.84it/s]
+  5%|▍         | 7/149 [00:03&lt;01:17,  1.83it/s]
+  5%|▌         | 8/149 [00:04&lt;01:16,  1.83it/s]
+  6%|▌         | 9/149 [00:04&lt;01:16,  1.83it/s]
+  7%|▋         | 10/149 [00:05&lt;01:16,  1.83it/s]
+  7%|▋         | 11/149 [00:06&lt;01:15,  1.83it/s]
+  8%|▊         | 12/149 [00:06&lt;01:14,  1.83it/s]
+  9%|▊         | 13/149 [00:07&lt;01:14,  1.83it/s]
+  9%|▉         | 14/149 [00:07&lt;01:13,  1.83it/s]
+ 10%|█         | 15/149 [00:08&lt;01:13,  1.83it/s]
+ 11%|█         | 16/149 [00:08&lt;01:12,  1.83it/s]
+ 11%|█▏        | 17/149 [00:09&lt;01:11,  1.83it/s]
+ 12%|█▏        | 18/149 [00:09&lt;01:11,  1.84it/s]
+ 13%|█▎        | 19/149 [00:10&lt;01:10,  1.84it/s]
+ 13%|█▎        | 20/149 [00:10&lt;01:10,  1.84it/s]
+ 14%|█▍        | 21/149 [00:11&lt;01:09,  1.85it/s]
+ 15%|█▍        | 22/149 [00:11&lt;01:08,  1.85it/s]
+ 15%|█▌        | 23/149 [00:12&lt;01:08,  1.85it/s]
+ 16%|█▌        | 24/149 [00:13&lt;01:07,  1.85it/s]
+ 17%|█▋        | 25/149 [00:13&lt;01:07,  1.85it/s]
+ 17%|█▋        | 26/149 [00:14&lt;01:06,  1.85it/s]
+ 18%|█▊        | 27/149 [00:14&lt;01:06,  1.85it/s]
+ 19%|█▉        | 28/149 [00:15&lt;01:05,  1.85it/s]
+ 19%|█▉        | 29/149 [00:15&lt;01:05,  1.84it/s]
+ 20%|██        | 30/149 [00:16&lt;01:04,  1.84it/s]
+ 21%|██        | 31/149 [00:16&lt;01:03,  1.85it/s]
+ 21%|██▏       | 32/149 [00:17&lt;01:03,  1.85it/s]
+ 22%|██▏       | 33/149 [00:17&lt;01:03,  1.84it/s]
+ 23%|██▎       | 34/149 [00:18&lt;01:02,  1.83it/s]
+ 23%|██▎       | 35/149 [00:19&lt;01:02,  1.82it/s]
+ 24%|██▍       | 36/149 [00:19&lt;01:01,  1.83it/s]
+ 25%|██▍       | 37/149 [00:20&lt;01:00,  1.84it/s]
+ 26%|██▌       | 38/149 [00:20&lt;01:00,  1.85it/s]
+ 26%|██▌       | 39/149 [00:21&lt;00:59,  1.85it/s]
+ 27%|██▋       | 40/149 [00:21&lt;00:58,  1.85it/s]
+ 28%|██▊       | 41/149 [00:22&lt;00:58,  1.85it/s]
+ 28%|██▊       | 42/149 [00:22&lt;00:57,  1.85it/s]
+ 29%|██▉       | 43/149 [00:23&lt;00:57,  1.85it/s]
+ 30%|██▉       | 44/149 [00:23&lt;00:56,  1.85it/s]
+ 30%|███       | 45/149 [00:24&lt;00:56,  1.85it/s]
+ 31%|███       | 46/149 [00:24&lt;00:55,  1.85it/s]
+ 32%|███▏      | 47/149 [00:25&lt;00:55,  1.85it/s]
+ 32%|███▏      | 48/149 [00:26&lt;00:54,  1.85it/s]
+ 33%|███▎      | 49/149 [00:26&lt;00:54,  1.85it/s]
+ 34%|███▎      | 50/149 [00:27&lt;00:53,  1.84it/s]
+ 34%|███▍      | 51/149 [00:27&lt;00:53,  1.83it/s]
+ 35%|███▍      | 52/149 [00:28&lt;00:52,  1.83it/s]
+ 36%|███▌      | 53/149 [00:28&lt;00:52,  1.83it/s]
+ 36%|███▌      | 54/149 [00:29&lt;00:51,  1.83it/s]
+ 37%|███▋      | 55/149 [00:29&lt;00:51,  1.83it/s]
+ 38%|███▊      | 56/149 [00:30&lt;00:50,  1.83it/s]
+ 38%|███▊      | 57/149 [00:30&lt;00:50,  1.83it/s]
+ 39%|███▉      | 58/149 [00:31&lt;00:49,  1.83it/s]
+ 40%|███▉      | 59/149 [00:32&lt;00:49,  1.84it/s]
+ 40%|████      | 60/149 [00:32&lt;00:48,  1.84it/s]
+ 41%|████      | 61/149 [00:33&lt;00:47,  1.83it/s]
+ 42%|████▏     | 62/149 [00:33&lt;00:47,  1.83it/s]
+ 42%|████▏     | 63/149 [00:34&lt;00:46,  1.83it/s]
+ 43%|████▎     | 64/149 [00:34&lt;00:46,  1.83it/s]
+ 44%|████▎     | 65/149 [00:35&lt;00:45,  1.84it/s]
+ 44%|████▍     | 66/149 [00:35&lt;00:45,  1.83it/s]
+ 45%|████▍     | 67/149 [00:36&lt;00:44,  1.84it/s]
+ 46%|████▌     | 68/149 [00:36&lt;00:43,  1.84it/s]
+ 46%|████▋     | 69/149 [00:37&lt;00:43,  1.85it/s]
+ 47%|████▋     | 70/149 [00:38&lt;00:42,  1.85it/s]
+ 48%|████▊     | 71/149 [00:38&lt;00:42,  1.85it/s]
+ 48%|████▊     | 72/149 [00:39&lt;00:41,  1.85it/s]
+ 49%|████▉     | 73/149 [00:39&lt;00:41,  1.85it/s]
+ 50%|████▉     | 74/149 [00:40&lt;00:40,  1.85it/s]
+ 50%|█████     | 75/149 [00:40&lt;00:40,  1.84it/s]
+ 51%|█████     | 76/149 [00:41&lt;00:39,  1.84it/s]
+ 52%|█████▏    | 77/149 [00:41&lt;00:39,  1.85it/s]
+ 52%|█████▏    | 78/149 [00:42&lt;00:38,  1.85it/s]
+ 53%|█████▎    | 79/149 [00:42&lt;00:37,  1.85it/s]
+ 54%|█████▎    | 80/149 [00:43&lt;00:37,  1.85it/s]
+ 54%|█████▍    | 81/149 [00:44&lt;00:36,  1.85it/s]
+ 55%|█████▌    | 82/149 [00:44&lt;00:36,  1.85it/s]
+ 56%|█████▌    | 83/149 [00:45&lt;00:35,  1.85it/s]
+ 56%|█████▋    | 84/149 [00:45&lt;00:35,  1.85it/s]
+ 57%|█████▋    | 85/149 [00:46&lt;00:34,  1.85it/s]
+ 58%|█████▊    | 86/149 [00:46&lt;00:34,  1.85it/s]
+ 58%|█████▊    | 87/149 [00:47&lt;00:33,  1.85it/s]
+ 59%|█████▉    | 88/149 [00:47&lt;00:32,  1.85it/s]
+ 60%|█████▉    | 89/149 [00:48&lt;00:32,  1.85it/s]
+ 60%|██████    | 90/149 [00:48&lt;00:31,  1.85it/s]
+ 61%|██████    | 91/149 [00:49&lt;00:31,  1.85it/s]
+ 62%|██████▏   | 92/149 [00:49&lt;00:30,  1.85it/s]
+ 62%|██████▏   | 93/149 [00:50&lt;00:30,  1.85it/s]
+ 63%|██████▎   | 94/149 [00:51&lt;00:29,  1.85it/s]
+ 64%|██████▍   | 95/149 [00:51&lt;00:29,  1.85it/s]
+ 64%|██████▍   | 96/149 [00:52&lt;00:28,  1.85it/s]
+ 65%|██████▌   | 97/149 [00:52&lt;00:28,  1.85it/s]
+ 66%|██████▌   | 98/149 [00:53&lt;00:27,  1.84it/s]
+ 66%|██████▋   | 99/149 [00:53&lt;00:27,  1.84it/s]
+ 67%|██████▋   | 100/149 [00:54&lt;00:26,  1.83it/s]
+ 68%|██████▊   | 101/149 [00:54&lt;00:26,  1.83it/s]
+ 68%|██████▊   | 102/149 [00:55&lt;00:25,  1.83it/s]
+ 69%|██████▉   | 103/149 [00:55&lt;00:25,  1.83it/s]
+ 70%|██████▉   | 104/149 [00:56&lt;00:24,  1.83it/s]
+ 70%|███████   | 105/149 [00:57&lt;00:24,  1.83it/s]
+ 71%|███████   | 106/149 [00:57&lt;00:23,  1.83it/s]
+ 72%|███████▏  | 107/149 [00:58&lt;00:23,  1.82it/s]
+ 72%|███████▏  | 108/149 [00:58&lt;00:22,  1.82it/s]
+ 73%|███████▎  | 109/149 [00:59&lt;00:21,  1.83it/s]
+ 74%|███████▍  | 110/149 [00:59&lt;00:21,  1.83it/s]
+ 74%|███████▍  | 111/149 [01:00&lt;00:20,  1.83it/s]
+ 75%|███████▌  | 112/149 [01:00&lt;00:20,  1.83it/s]
+ 76%|███████▌  | 113/149 [01:01&lt;00:19,  1.83it/s]
+ 77%|███████▋  | 114/149 [01:01&lt;00:19,  1.83it/s]
+ 77%|███████▋  | 115/149 [01:02&lt;00:18,  1.83it/s]
+ 78%|███████▊  | 116/149 [01:03&lt;00:17,  1.83it/s]
+ 79%|███████▊  | 117/149 [01:03&lt;00:17,  1.83it/s]
+ 79%|███████▉  | 118/149 [01:04&lt;00:16,  1.83it/s]
+ 80%|███████▉  | 119/149 [01:04&lt;00:16,  1.83it/s]
+ 81%|████████  | 120/149 [01:05&lt;00:15,  1.83it/s]
+ 81%|████████  | 121/149 [01:05&lt;00:15,  1.83it/s]
+ 82%|████████▏ | 122/149 [01:06&lt;00:14,  1.83it/s]
+ 83%|████████▎ | 123/149 [01:06&lt;00:14,  1.83it/s]
+ 83%|████████▎ | 124/149 [01:07&lt;00:13,  1.83it/s]
+ 84%|████████▍ | 125/149 [01:07&lt;00:13,  1.83it/s]
+ 85%|████████▍ | 126/149 [01:08&lt;00:12,  1.83it/s]
+ 85%|████████▌ | 127/149 [01:09&lt;00:11,  1.84it/s]
+ 86%|████████▌ | 128/149 [01:09&lt;00:11,  1.84it/s]
+ 87%|████████▋ | 129/149 [01:10&lt;00:10,  1.85it/s]
+ 87%|████████▋ | 130/149 [01:10&lt;00:10,  1.85it/s]
+ 88%|████████▊ | 131/149 [01:11&lt;00:09,  1.85it/s]
+ 89%|████████▊ | 132/149 [01:11&lt;00:09,  1.85it/s]
+ 89%|████████▉ | 133/149 [01:12&lt;00:08,  1.85it/s]
+ 90%|████████▉ | 134/149 [01:12&lt;00:08,  1.85it/s]
+ 91%|█████████ | 135/149 [01:13&lt;00:07,  1.85it/s]
+ 91%|█████████▏| 136/149 [01:13&lt;00:07,  1.85it/s]
+ 92%|█████████▏| 137/149 [01:14&lt;00:06,  1.85it/s]
+ 93%|█████████▎| 138/149 [01:14&lt;00:05,  1.85it/s]
+ 93%|█████████▎| 139/149 [01:15&lt;00:05,  1.85it/s]
+ 94%|█████████▍| 140/149 [01:16&lt;00:04,  1.85it/s]
+ 95%|█████████▍| 141/149 [01:16&lt;00:04,  1.85it/s]
+ 95%|█████████▌| 142/149 [01:17&lt;00:03,  1.85it/s]
+ 96%|█████████▌| 143/149 [01:17&lt;00:03,  1.85it/s]
+ 97%|█████████▋| 144/149 [01:18&lt;00:02,  1.83it/s]
+ 97%|█████████▋| 145/149 [01:18&lt;00:02,  1.83it/s]
+ 98%|█████████▊| 146/149 [01:19&lt;00:01,  1.83it/s]
+ 99%|█████████▊| 147/149 [01:19&lt;00:01,  1.84it/s]
+ 99%|█████████▉| 148/149 [01:20&lt;00:00,  1.84it/s]
+100%|██████████| 149/149 [01:20&lt;00:00,  1.85it/s]
+100%|██████████| 149/149 [01:20&lt;00:00,  1.84it/s]
+</pre></div>
+</div>
+<p>We obtain the following unconditional sample</p>
+<div class="image-row docutils container">
+<img src="../../_images/sde_sample.png" srcset="../../_images/sde_sample.png" alt="example of unconditional sample" class = "custom-img"/><img src="../../_images/sde_trajectory.gif" srcset="../../_images/sde_trajectory.gif" alt="example of unconditional trajectory" class = "custom-gif"/></div>
+<p>When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
+For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
+We can use the <a class="reference internal" href="../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DPSDataFidelity</span></code></a> as the data fidelity term.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">del</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a>  <span class="c1"># clean memory</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.ones_like.html#torch.ones_like" title="torch.ones_like" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">24</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span> <span class="mi">24</span><span class="p">:</span><span class="mi">40</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span></a><span class="p">(</span><span class="n">img_size</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/size.html#torch.Size" title="torch.Size" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">weight</span></a> <span class="o">=</span> <span class="mf">3.0</span>  <span class="c1"># guidance strength</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dps_fidelity</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">DPSDataFidelity</span></a><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">weight</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">weight</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">PosteriorDiffusion</span></a><span class="p">(</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dps_fidelity</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># To perform posterior sampling, we need to provide the measurements, the physics and the solver.</span>
+<span class="c1"># Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.</span>
+<a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">seed_1</span></a> <span class="o">=</span> <span class="mi">11</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">seed_1</span></a><span class="p">,</span>
+    <span class="n">get_trajectory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># Here, we plot the original image, the measurement and the posterior sample</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat</span></a><span class="p">],</span>
+    <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Original&quot;</span><span class="p">,</span> <span class="s2">&quot;Measurement&quot;</span><span class="p">,</span> <span class="s2">&quot;Posterior sample&quot;</span><span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_sample.png&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+<span class="c1"># We can also save the trajectory of the posterior sample</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.save_videos.html#deepinv.utils.save_videos" title="deepinv.utils.save_videos" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">save_videos</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a><span class="p">[::</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gif_frequency</span></a><span class="p">],</span>
+    <span class="n">time_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Posterior sample with VE&quot;</span><span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_trajectory.gif&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/149 [00:00&lt;?, ?it/s]
+  1%|          | 1/149 [00:01&lt;04:12,  1.70s/it]
+  1%|▏         | 2/149 [00:03&lt;04:03,  1.65s/it]
+  2%|▏         | 3/149 [00:04&lt;03:58,  1.63s/it]
+  3%|▎         | 4/149 [00:06&lt;03:55,  1.62s/it]
+  3%|▎         | 5/149 [00:08&lt;03:52,  1.62s/it]
+  4%|▍         | 6/149 [00:09&lt;03:50,  1.61s/it]
+  5%|▍         | 7/149 [00:11&lt;03:48,  1.61s/it]
+  5%|▌         | 8/149 [00:12&lt;03:47,  1.61s/it]
+  6%|▌         | 9/149 [00:14&lt;03:45,  1.61s/it]
+  7%|▋         | 10/149 [00:16&lt;03:43,  1.61s/it]
+  7%|▋         | 11/149 [00:17&lt;03:42,  1.61s/it]
+  8%|▊         | 12/149 [00:19&lt;03:40,  1.61s/it]
+  9%|▊         | 13/149 [00:21&lt;03:39,  1.61s/it]
+  9%|▉         | 14/149 [00:22&lt;03:37,  1.61s/it]
+ 10%|█         | 15/149 [00:24&lt;03:36,  1.61s/it]
+ 11%|█         | 16/149 [00:25&lt;03:34,  1.61s/it]
+ 11%|█▏        | 17/149 [00:27&lt;03:32,  1.61s/it]
+ 12%|█▏        | 18/149 [00:29&lt;03:30,  1.61s/it]
+ 13%|█▎        | 19/149 [00:30&lt;03:29,  1.61s/it]
+ 13%|█▎        | 20/149 [00:32&lt;03:28,  1.62s/it]
+ 14%|█▍        | 21/149 [00:33&lt;03:27,  1.62s/it]
+ 15%|█▍        | 22/149 [00:35&lt;03:26,  1.62s/it]
+ 15%|█▌        | 23/149 [00:37&lt;03:24,  1.62s/it]
+ 16%|█▌        | 24/149 [00:38&lt;03:22,  1.62s/it]
+ 17%|█▋        | 25/149 [00:40&lt;03:21,  1.62s/it]
+ 17%|█▋        | 26/149 [00:42&lt;03:19,  1.62s/it]
+ 18%|█▊        | 27/149 [00:43&lt;03:16,  1.61s/it]
+ 19%|█▉        | 28/149 [00:45&lt;03:15,  1.62s/it]
+ 19%|█▉        | 29/149 [00:46&lt;03:13,  1.61s/it]
+ 20%|██        | 30/149 [00:48&lt;03:11,  1.61s/it]
+ 21%|██        | 31/149 [00:50&lt;03:09,  1.61s/it]
+ 21%|██▏       | 32/149 [00:51&lt;03:08,  1.61s/it]
+ 22%|██▏       | 33/149 [00:53&lt;03:06,  1.61s/it]
+ 23%|██▎       | 34/149 [00:54&lt;03:05,  1.62s/it]
+ 23%|██▎       | 35/149 [00:56&lt;03:04,  1.62s/it]
+ 24%|██▍       | 36/149 [00:58&lt;03:02,  1.62s/it]
+ 25%|██▍       | 37/149 [00:59&lt;03:00,  1.61s/it]
+ 26%|██▌       | 38/149 [01:01&lt;02:59,  1.61s/it]
+ 26%|██▌       | 39/149 [01:03&lt;02:57,  1.61s/it]
+ 27%|██▋       | 40/149 [01:04&lt;02:55,  1.61s/it]
+ 28%|██▊       | 41/149 [01:06&lt;02:53,  1.61s/it]
+ 28%|██▊       | 42/149 [01:07&lt;02:52,  1.61s/it]
+ 29%|██▉       | 43/149 [01:09&lt;02:50,  1.61s/it]
+ 30%|██▉       | 44/149 [01:11&lt;02:48,  1.61s/it]
+ 30%|███       | 45/149 [01:12&lt;02:47,  1.61s/it]
+ 31%|███       | 46/149 [01:14&lt;02:45,  1.61s/it]
+ 32%|███▏      | 47/149 [01:15&lt;02:44,  1.61s/it]
+ 32%|███▏      | 48/149 [01:17&lt;02:42,  1.61s/it]
+ 33%|███▎      | 49/149 [01:19&lt;02:41,  1.61s/it]
+ 34%|███▎      | 50/149 [01:20&lt;02:39,  1.61s/it]
+ 34%|███▍      | 51/149 [01:22&lt;02:37,  1.61s/it]
+ 35%|███▍      | 52/149 [01:23&lt;02:36,  1.61s/it]
+ 36%|███▌      | 53/149 [01:25&lt;02:34,  1.61s/it]
+ 36%|███▌      | 54/149 [01:27&lt;02:33,  1.61s/it]
+ 37%|███▋      | 55/149 [01:28&lt;02:31,  1.61s/it]
+ 38%|███▊      | 56/149 [01:30&lt;02:30,  1.62s/it]
+ 38%|███▊      | 57/149 [01:32&lt;02:28,  1.62s/it]
+ 39%|███▉      | 58/149 [01:33&lt;02:27,  1.62s/it]
+ 40%|███▉      | 59/149 [01:35&lt;02:26,  1.62s/it]
+ 40%|████      | 60/149 [01:36&lt;02:24,  1.63s/it]
+ 41%|████      | 61/149 [01:38&lt;02:23,  1.63s/it]
+ 42%|████▏     | 62/149 [01:40&lt;02:21,  1.62s/it]
+ 42%|████▏     | 63/149 [01:41&lt;02:19,  1.62s/it]
+ 43%|████▎     | 64/149 [01:43&lt;02:17,  1.62s/it]
+ 44%|████▎     | 65/149 [01:45&lt;02:16,  1.62s/it]
+ 44%|████▍     | 66/149 [01:46&lt;02:14,  1.62s/it]
+ 45%|████▍     | 67/149 [01:48&lt;02:12,  1.61s/it]
+ 46%|████▌     | 68/149 [01:49&lt;02:10,  1.61s/it]
+ 46%|████▋     | 69/149 [01:51&lt;02:08,  1.61s/it]
+ 47%|████▋     | 70/149 [01:53&lt;02:07,  1.61s/it]
+ 48%|████▊     | 71/149 [01:54&lt;02:05,  1.61s/it]
+ 48%|████▊     | 72/149 [01:56&lt;02:04,  1.61s/it]
+ 49%|████▉     | 73/149 [01:57&lt;02:02,  1.61s/it]
+ 50%|████▉     | 74/149 [01:59&lt;02:00,  1.61s/it]
+ 50%|█████     | 75/149 [02:01&lt;01:59,  1.61s/it]
+ 51%|█████     | 76/149 [02:02&lt;01:57,  1.61s/it]
+ 52%|█████▏    | 77/149 [02:04&lt;01:55,  1.61s/it]
+ 52%|█████▏    | 78/149 [02:05&lt;01:54,  1.61s/it]
+ 53%|█████▎    | 79/149 [02:07&lt;01:52,  1.61s/it]
+ 54%|█████▎    | 80/149 [02:09&lt;01:50,  1.61s/it]
+ 54%|█████▍    | 81/149 [02:10&lt;01:49,  1.61s/it]
+ 55%|█████▌    | 82/149 [02:12&lt;01:47,  1.61s/it]
+ 56%|█████▌    | 83/149 [02:13&lt;01:46,  1.61s/it]
+ 56%|█████▋    | 84/149 [02:15&lt;01:44,  1.61s/it]
+ 57%|█████▋    | 85/149 [02:17&lt;01:42,  1.61s/it]
+ 58%|█████▊    | 86/149 [02:18&lt;01:41,  1.61s/it]
+ 58%|█████▊    | 87/149 [02:20&lt;01:39,  1.61s/it]
+ 59%|█████▉    | 88/149 [02:22&lt;01:38,  1.61s/it]
+ 60%|█████▉    | 89/149 [02:23&lt;01:36,  1.61s/it]
+ 60%|██████    | 90/149 [02:25&lt;01:34,  1.61s/it]
+ 61%|██████    | 91/149 [02:26&lt;01:33,  1.61s/it]
+ 62%|██████▏   | 92/149 [02:28&lt;01:31,  1.61s/it]
+ 62%|██████▏   | 93/149 [02:30&lt;01:30,  1.61s/it]
+ 63%|██████▎   | 94/149 [02:31&lt;01:28,  1.61s/it]
+ 64%|██████▍   | 95/149 [02:33&lt;01:26,  1.61s/it]
+ 64%|██████▍   | 96/149 [02:34&lt;01:25,  1.61s/it]
+ 65%|██████▌   | 97/149 [02:36&lt;01:23,  1.61s/it]
+ 66%|██████▌   | 98/149 [02:38&lt;01:22,  1.61s/it]
+ 66%|██████▋   | 99/149 [02:39&lt;01:20,  1.61s/it]
+ 67%|██████▋   | 100/149 [02:41&lt;01:18,  1.61s/it]
+ 68%|██████▊   | 101/149 [02:42&lt;01:17,  1.61s/it]
+ 68%|██████▊   | 102/149 [02:44&lt;01:15,  1.61s/it]
+ 69%|██████▉   | 103/149 [02:46&lt;01:14,  1.61s/it]
+ 70%|██████▉   | 104/149 [02:47&lt;01:12,  1.61s/it]
+ 70%|███████   | 105/149 [02:49&lt;01:10,  1.61s/it]
+ 71%|███████   | 106/149 [02:50&lt;01:09,  1.61s/it]
+ 72%|███████▏  | 107/149 [02:52&lt;01:07,  1.61s/it]
+ 72%|███████▏  | 108/149 [02:54&lt;01:06,  1.61s/it]
+ 73%|███████▎  | 109/149 [02:55&lt;01:04,  1.61s/it]
+ 74%|███████▍  | 110/149 [02:57&lt;01:02,  1.61s/it]
+ 74%|███████▍  | 111/149 [02:59&lt;01:01,  1.61s/it]
+ 75%|███████▌  | 112/149 [03:00&lt;00:59,  1.61s/it]
+ 76%|███████▌  | 113/149 [03:02&lt;00:58,  1.61s/it]
+ 77%|███████▋  | 114/149 [03:03&lt;00:56,  1.62s/it]
+ 77%|███████▋  | 115/149 [03:05&lt;00:54,  1.61s/it]
+ 78%|███████▊  | 116/149 [03:07&lt;00:53,  1.61s/it]
+ 79%|███████▊  | 117/149 [03:08&lt;00:51,  1.61s/it]
+ 79%|███████▉  | 118/149 [03:10&lt;00:49,  1.61s/it]
+ 80%|███████▉  | 119/149 [03:11&lt;00:48,  1.61s/it]
+ 81%|████████  | 120/149 [03:13&lt;00:46,  1.61s/it]
+ 81%|████████  | 121/149 [03:15&lt;00:45,  1.61s/it]
+ 82%|████████▏ | 122/149 [03:16&lt;00:43,  1.61s/it]
+ 83%|████████▎ | 123/149 [03:18&lt;00:42,  1.62s/it]
+ 83%|████████▎ | 124/149 [03:20&lt;00:40,  1.62s/it]
+ 84%|████████▍ | 125/149 [03:21&lt;00:38,  1.62s/it]
+ 85%|████████▍ | 126/149 [03:23&lt;00:37,  1.63s/it]
+ 85%|████████▌ | 127/149 [03:24&lt;00:35,  1.63s/it]
+ 86%|████████▌ | 128/149 [03:26&lt;00:34,  1.63s/it]
+ 87%|████████▋ | 129/149 [03:28&lt;00:32,  1.63s/it]
+ 87%|████████▋ | 130/149 [03:29&lt;00:30,  1.63s/it]
+ 88%|████████▊ | 131/149 [03:31&lt;00:29,  1.63s/it]
+ 89%|████████▊ | 132/149 [03:33&lt;00:27,  1.62s/it]
+ 89%|████████▉ | 133/149 [03:34&lt;00:25,  1.62s/it]
+ 90%|████████▉ | 134/149 [03:36&lt;00:24,  1.62s/it]
+ 91%|█████████ | 135/149 [03:37&lt;00:22,  1.62s/it]
+ 91%|█████████▏| 136/149 [03:39&lt;00:20,  1.61s/it]
+ 92%|█████████▏| 137/149 [03:41&lt;00:19,  1.61s/it]
+ 93%|█████████▎| 138/149 [03:42&lt;00:17,  1.61s/it]
+ 93%|█████████▎| 139/149 [03:44&lt;00:16,  1.61s/it]
+ 94%|█████████▍| 140/149 [03:45&lt;00:14,  1.61s/it]
+ 95%|█████████▍| 141/149 [03:47&lt;00:12,  1.61s/it]
+ 95%|█████████▌| 142/149 [03:49&lt;00:11,  1.61s/it]
+ 96%|█████████▌| 143/149 [03:50&lt;00:09,  1.61s/it]
+ 97%|█████████▋| 144/149 [03:52&lt;00:08,  1.61s/it]
+ 97%|█████████▋| 145/149 [03:53&lt;00:06,  1.61s/it]
+ 98%|█████████▊| 146/149 [03:55&lt;00:04,  1.61s/it]
+ 99%|█████████▊| 147/149 [03:57&lt;00:03,  1.61s/it]
+ 99%|█████████▉| 148/149 [03:58&lt;00:01,  1.61s/it]
+100%|██████████| 149/149 [04:00&lt;00:00,  1.61s/it]
+100%|██████████| 149/149 [04:00&lt;00:00,  1.61s/it]
+</pre></div>
+</div>
+<p>We obtain the following posterior sample and trajectory</p>
+<div class="image-col docutils container">
+<img src="../../_images/posterior_sample.png" srcset="../../_images/posterior_sample.png" alt="example of posterior sample" /><img src="../../_images/posterior_trajectory.gif" srcset="../../_images/posterior_trajectory.gif" alt="example of posterior trajectory" class = "custom-gif"/></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Reproducibility</strong>: To ensure the reproducibility, if the parameter <code class="code docutils literal notranslate"><span class="pre">rng</span></code> is given, the same sample will
+be generated when the same seed is used.
+One can obtain varying samples by using a different seed.</p>
+<p><strong>Parallel sampling</strong>: one can draw multiple samples in parallel by giving the initial shape, e.g., <code class="code docutils literal notranslate"><span class="pre">x_init</span> <span class="pre">=</span> <span class="pre">(B,</span> <span class="pre">C,</span> <span class="pre">H,</span> <span class="pre">W)</span></code></p>
+</div>
+</section>
+<section id="varying-the-sde">
+<h2>Varying the SDE<a class="headerlink" href="#varying-the-sde" title="Link to this heading">#</a></h2>
+<p>One can also change the underlying SDE for sampling.
+For example, we can also use the Variance-Preserving (VP or DDPM) in <a class="reference internal" href="../../api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion" title="deepinv.sampling.VariancePreservingDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.VariancePreservingDiffusion</span></code></a>, whose forward drift and diffusion term are defined as:</p>
+<div class="math notranslate nohighlight">
+\[f(x_t, t) = -\frac{1}{2} \beta(t)x_t \qquad \mbox{ and } \qquad g(t) = \beta(t)  \qquad \mbox{ with } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).\]</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling</span><span class="w"> </span><span class="kn">import</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion" title="deepinv.sampling.VariancePreservingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">VariancePreservingDiffusion</span></a>
+
+<span class="k">del</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VariancePreservingDiffusion.html#deepinv.sampling.VariancePreservingDiffusion" title="deepinv.sampling.VariancePreservingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">VariancePreservingDiffusion</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">PosteriorDiffusion</span></a><span class="p">(</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dps_fidelity</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat_vp</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">111</span><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.linspace.html#torch.linspace" title="torch.linspace" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mi">150</span><span class="p">),</span>
+    <span class="n">get_trajectory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat_vp</span></a><span class="p">],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span>
+        <span class="s2">&quot;posterior sample with VE&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;posterior sample with VP&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_sample_ve_vp.png&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+
+
+<span class="c1"># We can also save the trajectory of the posterior sample</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.save_videos.html#deepinv.utils.save_videos" title="deepinv.utils.save_videos" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">save_videos</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a><span class="p">[::</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gif_frequency</span></a><span class="p">],</span>
+    <span class="n">time_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Posterior sample with VP&quot;</span><span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_trajectory_vp.gif&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/149 [00:00&lt;?, ?it/s]
+  1%|          | 1/149 [00:01&lt;03:58,  1.61s/it]
+  1%|▏         | 2/149 [00:03&lt;03:56,  1.61s/it]
+  2%|▏         | 3/149 [00:04&lt;03:54,  1.60s/it]
+  3%|▎         | 4/149 [00:06&lt;03:52,  1.60s/it]
+  3%|▎         | 5/149 [00:08&lt;03:51,  1.61s/it]
+  4%|▍         | 6/149 [00:09&lt;03:49,  1.61s/it]
+  5%|▍         | 7/149 [00:11&lt;03:48,  1.61s/it]
+  5%|▌         | 8/149 [00:12&lt;03:46,  1.61s/it]
+  6%|▌         | 9/149 [00:14&lt;03:44,  1.61s/it]
+  7%|▋         | 10/149 [00:16&lt;03:43,  1.61s/it]
+  7%|▋         | 11/149 [00:17&lt;03:42,  1.62s/it]
+  8%|▊         | 12/149 [00:19&lt;03:41,  1.62s/it]
+  9%|▊         | 13/149 [00:20&lt;03:39,  1.62s/it]
+  9%|▉         | 14/149 [00:22&lt;03:38,  1.61s/it]
+ 10%|█         | 15/149 [00:24&lt;03:36,  1.61s/it]
+ 11%|█         | 16/149 [00:25&lt;03:34,  1.61s/it]
+ 11%|█▏        | 17/149 [00:27&lt;03:32,  1.61s/it]
+ 12%|█▏        | 18/149 [00:28&lt;03:30,  1.61s/it]
+ 13%|█▎        | 19/149 [00:30&lt;03:28,  1.61s/it]
+ 13%|█▎        | 20/149 [00:32&lt;03:28,  1.61s/it]
+ 14%|█▍        | 21/149 [00:33&lt;03:26,  1.61s/it]
+ 15%|█▍        | 22/149 [00:35&lt;03:24,  1.61s/it]
+ 15%|█▌        | 23/149 [00:37&lt;03:22,  1.61s/it]
+ 16%|█▌        | 24/149 [00:38&lt;03:20,  1.61s/it]
+ 17%|█▋        | 25/149 [00:40&lt;03:19,  1.61s/it]
+ 17%|█▋        | 26/149 [00:41&lt;03:17,  1.61s/it]
+ 18%|█▊        | 27/149 [00:43&lt;03:16,  1.61s/it]
+ 19%|█▉        | 28/149 [00:45&lt;03:14,  1.61s/it]
+ 19%|█▉        | 29/149 [00:46&lt;03:12,  1.61s/it]
+ 20%|██        | 30/149 [00:48&lt;03:11,  1.61s/it]
+ 21%|██        | 31/149 [00:49&lt;03:09,  1.61s/it]
+ 21%|██▏       | 32/149 [00:51&lt;03:07,  1.61s/it]
+ 22%|██▏       | 33/149 [00:53&lt;03:06,  1.60s/it]
+ 23%|██▎       | 34/149 [00:54&lt;03:04,  1.61s/it]
+ 23%|██▎       | 35/149 [00:56&lt;03:03,  1.61s/it]
+ 24%|██▍       | 36/149 [00:57&lt;03:02,  1.61s/it]
+ 25%|██▍       | 37/149 [00:59&lt;03:00,  1.61s/it]
+ 26%|██▌       | 38/149 [01:01&lt;02:58,  1.61s/it]
+ 26%|██▌       | 39/149 [01:02&lt;02:56,  1.61s/it]
+ 27%|██▋       | 40/149 [01:04&lt;02:55,  1.61s/it]
+ 28%|██▊       | 41/149 [01:05&lt;02:53,  1.61s/it]
+ 28%|██▊       | 42/149 [01:07&lt;02:51,  1.61s/it]
+ 29%|██▉       | 43/149 [01:09&lt;02:50,  1.61s/it]
+ 30%|██▉       | 44/149 [01:10&lt;02:48,  1.61s/it]
+ 30%|███       | 45/149 [01:12&lt;02:47,  1.61s/it]
+ 31%|███       | 46/149 [01:13&lt;02:45,  1.61s/it]
+ 32%|███▏      | 47/149 [01:15&lt;02:43,  1.60s/it]
+ 32%|███▏      | 48/149 [01:17&lt;02:42,  1.61s/it]
+ 33%|███▎      | 49/149 [01:18&lt;02:40,  1.61s/it]
+ 34%|███▎      | 50/149 [01:20&lt;02:39,  1.61s/it]
+ 34%|███▍      | 51/149 [01:22&lt;02:37,  1.61s/it]
+ 35%|███▍      | 52/149 [01:23&lt;02:36,  1.61s/it]
+ 36%|███▌      | 53/149 [01:25&lt;02:34,  1.61s/it]
+ 36%|███▌      | 54/149 [01:26&lt;02:32,  1.61s/it]
+ 37%|███▋      | 55/149 [01:28&lt;02:31,  1.61s/it]
+ 38%|███▊      | 56/149 [01:30&lt;02:29,  1.61s/it]
+ 38%|███▊      | 57/149 [01:31&lt;02:28,  1.62s/it]
+ 39%|███▉      | 58/149 [01:33&lt;02:26,  1.61s/it]
+ 40%|███▉      | 59/149 [01:34&lt;02:24,  1.61s/it]
+ 40%|████      | 60/149 [01:36&lt;02:23,  1.61s/it]
+ 41%|████      | 61/149 [01:38&lt;02:21,  1.61s/it]
+ 42%|████▏     | 62/149 [01:39&lt;02:20,  1.61s/it]
+ 42%|████▏     | 63/149 [01:41&lt;02:19,  1.62s/it]
+ 43%|████▎     | 64/149 [01:42&lt;02:17,  1.62s/it]
+ 44%|████▎     | 65/149 [01:44&lt;02:15,  1.61s/it]
+ 44%|████▍     | 66/149 [01:46&lt;02:13,  1.61s/it]
+ 45%|████▍     | 67/149 [01:47&lt;02:12,  1.61s/it]
+ 46%|████▌     | 68/149 [01:49&lt;02:10,  1.61s/it]
+ 46%|████▋     | 69/149 [01:51&lt;02:08,  1.61s/it]
+ 47%|████▋     | 70/149 [01:52&lt;02:07,  1.61s/it]
+ 48%|████▊     | 71/149 [01:54&lt;02:05,  1.61s/it]
+ 48%|████▊     | 72/149 [01:55&lt;02:03,  1.61s/it]
+ 49%|████▉     | 73/149 [01:57&lt;02:01,  1.61s/it]
+ 50%|████▉     | 74/149 [01:59&lt;02:00,  1.61s/it]
+ 50%|█████     | 75/149 [02:00&lt;01:59,  1.61s/it]
+ 51%|█████     | 76/149 [02:02&lt;01:58,  1.62s/it]
+ 52%|█████▏    | 77/149 [02:03&lt;01:56,  1.62s/it]
+ 52%|█████▏    | 78/149 [02:05&lt;01:54,  1.62s/it]
+ 53%|█████▎    | 79/149 [02:07&lt;01:52,  1.61s/it]
+ 54%|█████▎    | 80/149 [02:08&lt;01:51,  1.61s/it]
+ 54%|█████▍    | 81/149 [02:10&lt;01:49,  1.61s/it]
+ 55%|█████▌    | 82/149 [02:11&lt;01:47,  1.61s/it]
+ 56%|█████▌    | 83/149 [02:13&lt;01:45,  1.61s/it]
+ 56%|█████▋    | 84/149 [02:15&lt;01:44,  1.61s/it]
+ 57%|█████▋    | 85/149 [02:16&lt;01:42,  1.61s/it]
+ 58%|█████▊    | 86/149 [02:18&lt;01:41,  1.61s/it]
+ 58%|█████▊    | 87/149 [02:20&lt;01:39,  1.61s/it]
+ 59%|█████▉    | 88/149 [02:21&lt;01:37,  1.61s/it]
+ 60%|█████▉    | 89/149 [02:23&lt;01:36,  1.61s/it]
+ 60%|██████    | 90/149 [02:24&lt;01:34,  1.61s/it]
+ 61%|██████    | 91/149 [02:26&lt;01:33,  1.61s/it]
+ 62%|██████▏   | 92/149 [02:28&lt;01:31,  1.60s/it]
+ 62%|██████▏   | 93/149 [02:29&lt;01:29,  1.60s/it]
+ 63%|██████▎   | 94/149 [02:31&lt;01:28,  1.61s/it]
+ 64%|██████▍   | 95/149 [02:32&lt;01:26,  1.61s/it]
+ 64%|██████▍   | 96/149 [02:34&lt;01:25,  1.61s/it]
+ 65%|██████▌   | 97/149 [02:36&lt;01:23,  1.61s/it]
+ 66%|██████▌   | 98/149 [02:37&lt;01:21,  1.61s/it]
+ 66%|██████▋   | 99/149 [02:39&lt;01:20,  1.61s/it]
+ 67%|██████▋   | 100/149 [02:40&lt;01:18,  1.61s/it]
+ 68%|██████▊   | 101/149 [02:42&lt;01:17,  1.61s/it]
+ 68%|██████▊   | 102/149 [02:44&lt;01:15,  1.61s/it]
+ 69%|██████▉   | 103/149 [02:45&lt;01:13,  1.61s/it]
+ 70%|██████▉   | 104/149 [02:47&lt;01:12,  1.61s/it]
+ 70%|███████   | 105/149 [02:48&lt;01:10,  1.61s/it]
+ 71%|███████   | 106/149 [02:50&lt;01:09,  1.61s/it]
+ 72%|███████▏  | 107/149 [02:52&lt;01:07,  1.61s/it]
+ 72%|███████▏  | 108/149 [02:53&lt;01:05,  1.61s/it]
+ 73%|███████▎  | 109/149 [02:55&lt;01:04,  1.61s/it]
+ 74%|███████▍  | 110/149 [02:56&lt;01:02,  1.61s/it]
+ 74%|███████▍  | 111/149 [02:58&lt;01:01,  1.61s/it]
+ 75%|███████▌  | 112/149 [03:00&lt;00:59,  1.62s/it]
+ 76%|███████▌  | 113/149 [03:01&lt;00:58,  1.62s/it]
+ 77%|███████▋  | 114/149 [03:03&lt;00:56,  1.61s/it]
+ 77%|███████▋  | 115/149 [03:05&lt;00:54,  1.61s/it]
+ 78%|███████▊  | 116/149 [03:06&lt;00:53,  1.61s/it]
+ 79%|███████▊  | 117/149 [03:08&lt;00:51,  1.61s/it]
+ 79%|███████▉  | 118/149 [03:09&lt;00:49,  1.61s/it]
+ 80%|███████▉  | 119/149 [03:11&lt;00:48,  1.61s/it]
+ 81%|████████  | 120/149 [03:13&lt;00:46,  1.61s/it]
+ 81%|████████  | 121/149 [03:14&lt;00:45,  1.61s/it]
+ 82%|████████▏ | 122/149 [03:16&lt;00:43,  1.61s/it]
+ 83%|████████▎ | 123/149 [03:17&lt;00:41,  1.61s/it]
+ 83%|████████▎ | 124/149 [03:19&lt;00:40,  1.61s/it]
+ 84%|████████▍ | 125/149 [03:21&lt;00:38,  1.61s/it]
+ 85%|████████▍ | 126/149 [03:22&lt;00:36,  1.61s/it]
+ 85%|████████▌ | 127/149 [03:24&lt;00:35,  1.61s/it]
+ 86%|████████▌ | 128/149 [03:25&lt;00:33,  1.61s/it]
+ 87%|████████▋ | 129/149 [03:27&lt;00:32,  1.61s/it]
+ 87%|████████▋ | 130/149 [03:29&lt;00:30,  1.61s/it]
+ 88%|████████▊ | 131/149 [03:30&lt;00:28,  1.61s/it]
+ 89%|████████▊ | 132/149 [03:32&lt;00:27,  1.62s/it]
+ 89%|████████▉ | 133/149 [03:34&lt;00:25,  1.61s/it]
+ 90%|████████▉ | 134/149 [03:35&lt;00:24,  1.61s/it]
+ 91%|█████████ | 135/149 [03:37&lt;00:22,  1.61s/it]
+ 91%|█████████▏| 136/149 [03:38&lt;00:20,  1.61s/it]
+ 92%|█████████▏| 137/149 [03:40&lt;00:19,  1.61s/it]
+ 93%|█████████▎| 138/149 [03:42&lt;00:17,  1.61s/it]
+ 93%|█████████▎| 139/149 [03:43&lt;00:16,  1.61s/it]
+ 94%|█████████▍| 140/149 [03:45&lt;00:14,  1.61s/it]
+ 95%|█████████▍| 141/149 [03:46&lt;00:12,  1.61s/it]
+ 95%|█████████▌| 142/149 [03:48&lt;00:11,  1.61s/it]
+ 96%|█████████▌| 143/149 [03:50&lt;00:09,  1.61s/it]
+ 97%|█████████▋| 144/149 [03:51&lt;00:08,  1.61s/it]
+ 97%|█████████▋| 145/149 [03:53&lt;00:06,  1.61s/it]
+ 98%|█████████▊| 146/149 [03:54&lt;00:04,  1.61s/it]
+ 99%|█████████▊| 147/149 [03:56&lt;00:03,  1.61s/it]
+ 99%|█████████▉| 148/149 [03:58&lt;00:01,  1.61s/it]
+100%|██████████| 149/149 [03:59&lt;00:00,  1.62s/it]
+100%|██████████| 149/149 [03:59&lt;00:00,  1.61s/it]
+</pre></div>
+</div>
+<p>We can comparing the sampling trajectory depending on the underlying SDE</p>
+<div class="image-col docutils container">
+<img src="../../_images/posterior_sample_ve_vp.png" srcset="../../_images/posterior_sample_ve_vp.png" alt="posterior sample with VP" /><div class="image-row docutils container">
+<img src="../../_images/posterior_trajectory.gif" srcset="../../_images/posterior_trajectory.gif" alt="posterior trajectory with VE" class = "custom-gif"/><img src="../../_images/posterior_trajectory_vp.gif" srcset="../../_images/posterior_trajectory_vp.gif" alt="posterior trajectory with VP" class = "custom-gif"/></div>
+</div>
+</section>
+<section id="plug-and-play-posterior-sampling-with-arbitrary-denoisers">
+<h2>Plug-and-play Posterior Sampling with arbitrary denoisers<a class="headerlink" href="#plug-and-play-posterior-sampling-with-arbitrary-denoisers" title="Link to this heading">#</a></h2>
+<p>The <a class="reference internal" href="../../api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.PosteriorDiffusion</span></code></a> class can be used together with any (well-trained) denoisers for posterior sampling.
+For example, we can use the <a class="reference internal" href="../../api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DRUNet</span></code></a> for posterior sampling.
+We can also change the underlying SDE, for example change the <code class="code docutils literal notranslate"><span class="pre">sigma_max</span></code> value.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">del</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a>  <span class="c1"># clean memory</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a> <span class="o">=</span> <span class="mf">0.001</span>
+<a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a> <span class="o">=</span> <span class="mf">10.0</span>
+<a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class"><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">torch</span><span class="o">.</span><span class="n">float32</span></a>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.linspace.html#torch.linspace" title="torch.linspace" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span></a><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mi">250</span><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">EulerSolver</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">timesteps</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/generated/torch.Generator.html#torch.Generator" title="torch.Generator" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rng</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DRUNet</span></a><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;download&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">VarianceExplodingDiffusion</span></a><span class="p">(</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_max</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma_min</span></a><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a>
+<span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.load_example.html#deepinv.utils.load_example" title="deepinv.utils.load_example" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">load_example</span></a><span class="p">(</span>
+    <span class="s2">&quot;butterfly.png&quot;</span><span class="p">,</span>
+    <span class="n">img_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+    <span class="n">resize_mode</span><span class="o">=</span><span class="s2">&quot;resize&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a> <span class="o">=</span> <a href="https://docs.pytorch.org/docs/stable/generated/torch.ones_like.html#torch.ones_like" title="torch.ones_like" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">70</span><span class="p">:</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">:</span><span class="mi">180</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">mask</span></a><span class="p">,</span>
+    <span class="n">img_size</span><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/size.html#torch.Size" title="torch.Size" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+<span class="p">)</span>
+
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">PosteriorDiffusion</span></a><span class="p">(</span>
+    <span class="n">data_fidelity</span><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity" title="deepinv.sampling.DPSDataFidelity" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class"><span class="n">DPSDataFidelity</span></a><span class="p">(</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">weight</span></a><span class="o">=</span><span class="mf">0.3</span><span class="p">),</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet" class="sphx-glr-backref-module-deepinv-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">denoiser</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html#deepinv.sampling.VarianceExplodingDiffusion" title="deepinv.sampling.VarianceExplodingDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sde</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.EulerSolver.html#deepinv.sampling.EulerSolver" title="deepinv.sampling.EulerSolver" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">solver</span></a><span class="p">,</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="torch.dtype" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">dtype</span></a><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="o">=</span><a href="https://docs.python.org/3.9/library/stdtypes.html#str" title="builtins.str" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">device</span></a><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># To perform posterior sampling, we need to provide the measurements, the physics and the solver.</span>
+<a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a> <span class="o">=</span> <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.sampling.PosteriorDiffusion.html#deepinv.sampling.PosteriorDiffusion" title="deepinv.sampling.PosteriorDiffusion" class="sphx-glr-backref-module-deepinv-sampling sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">model</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="o">=</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span>
+    <a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="o">=</span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting" class="sphx-glr-backref-module-deepinv-physics sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">physics</span></a><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">get_trajectory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Here, we plot the original image, the measurement and the posterior sample</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.plot.html#deepinv.utils.plot" title="deepinv.utils.plot" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span>
+    <span class="p">[</span><a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x_hat</span></a><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Original&quot;</span><span class="p">,</span> <span class="s2">&quot;Measurement&quot;</span><span class="p">,</span> <span class="s2">&quot;Posterior sample DRUNet&quot;</span><span class="p">],</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_sample_DRUNet.png&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># We can also save the trajectory of the posterior sample</span>
+<a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.utils.save_videos.html#deepinv.utils.save_videos" title="deepinv.utils.save_videos" class="sphx-glr-backref-module-deepinv-utils sphx-glr-backref-type-py-function"><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">save_videos</span></a><span class="p">(</span>
+    <a href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">trajectory</span></a><span class="p">[::</span><a href="https://docs.python.org/3.9/library/functions.html#int" title="builtins.int" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gif_frequency</span></a><span class="p">]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="n">time_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Posterior trajectory DRUNet&quot;</span><span class="p">],</span>
+    <span class="n">save_fn</span><span class="o">=</span><span class="s2">&quot;posterior_sample_DRUNet.gif&quot;</span><span class="p">,</span>
+    <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="o">=</span><span class="p">(</span><a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">,</span> <a href="https://docs.python.org/3.9/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">figsize</span></a><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/249 [00:00&lt;?, ?it/s]
+  0%|          | 1/249 [00:04&lt;19:59,  4.84s/it]
+  1%|          | 2/249 [00:09&lt;19:52,  4.83s/it]
+  1%|          | 3/249 [00:14&lt;19:45,  4.82s/it]
+  2%|▏         | 4/249 [00:19&lt;19:41,  4.82s/it]
+  2%|▏         | 5/249 [00:24&lt;19:36,  4.82s/it]
+  2%|▏         | 6/249 [00:28&lt;19:32,  4.82s/it]
+  3%|▎         | 7/249 [00:33&lt;19:27,  4.83s/it]
+  3%|▎         | 8/249 [00:38&lt;19:22,  4.82s/it]
+  4%|▎         | 9/249 [00:43&lt;19:16,  4.82s/it]
+  4%|▍         | 10/249 [00:48&lt;19:13,  4.83s/it]
+  4%|▍         | 11/249 [00:53&lt;19:08,  4.83s/it]
+  5%|▍         | 12/249 [00:57&lt;19:03,  4.82s/it]
+  5%|▌         | 13/249 [01:02&lt;18:57,  4.82s/it]
+  6%|▌         | 14/249 [01:07&lt;18:52,  4.82s/it]
+  6%|▌         | 15/249 [01:12&lt;18:47,  4.82s/it]
+  6%|▋         | 16/249 [01:17&lt;18:42,  4.82s/it]
+  7%|▋         | 17/249 [01:22&lt;18:41,  4.84s/it]
+  7%|▋         | 18/249 [01:26&lt;18:38,  4.84s/it]
+  8%|▊         | 19/249 [01:31&lt;18:35,  4.85s/it]
+  8%|▊         | 20/249 [01:36&lt;18:31,  4.85s/it]
+  8%|▊         | 21/249 [01:41&lt;18:27,  4.86s/it]
+  9%|▉         | 22/249 [01:46&lt;18:24,  4.86s/it]
+  9%|▉         | 23/249 [01:51&lt;18:21,  4.87s/it]
+ 10%|▉         | 24/249 [01:56&lt;18:16,  4.87s/it]
+ 10%|█         | 25/249 [02:01&lt;18:12,  4.88s/it]
+ 10%|█         | 26/249 [02:05&lt;18:06,  4.87s/it]
+ 11%|█         | 27/249 [02:10&lt;18:01,  4.87s/it]
+ 11%|█         | 28/249 [02:15&lt;17:56,  4.87s/it]
+ 12%|█▏        | 29/249 [02:20&lt;17:52,  4.88s/it]
+ 12%|█▏        | 30/249 [02:25&lt;17:46,  4.87s/it]
+ 12%|█▏        | 31/249 [02:30&lt;17:43,  4.88s/it]
+ 13%|█▎        | 32/249 [02:35&lt;17:37,  4.87s/it]
+ 13%|█▎        | 33/249 [02:39&lt;17:32,  4.87s/it]
+ 14%|█▎        | 34/249 [02:44&lt;17:27,  4.87s/it]
+ 14%|█▍        | 35/249 [02:49&lt;17:23,  4.88s/it]
+ 14%|█▍        | 36/249 [02:54&lt;17:19,  4.88s/it]
+ 15%|█▍        | 37/249 [02:59&lt;17:13,  4.87s/it]
+ 15%|█▌        | 38/249 [03:04&lt;17:08,  4.87s/it]
+ 16%|█▌        | 39/249 [03:09&lt;17:03,  4.87s/it]
+ 16%|█▌        | 40/249 [03:14&lt;16:58,  4.87s/it]
+ 16%|█▋        | 41/249 [03:19&lt;16:53,  4.87s/it]
+ 17%|█▋        | 42/249 [03:23&lt;16:48,  4.87s/it]
+ 17%|█▋        | 43/249 [03:28&lt;16:43,  4.87s/it]
+ 18%|█▊        | 44/249 [03:33&lt;16:38,  4.87s/it]
+ 18%|█▊        | 45/249 [03:38&lt;16:33,  4.87s/it]
+ 18%|█▊        | 46/249 [03:43&lt;16:28,  4.87s/it]
+ 19%|█▉        | 47/249 [03:48&lt;16:24,  4.87s/it]
+ 19%|█▉        | 48/249 [03:53&lt;16:19,  4.87s/it]
+ 20%|█▉        | 49/249 [03:57&lt;16:14,  4.87s/it]
+ 20%|██        | 50/249 [04:02&lt;16:09,  4.87s/it]
+ 20%|██        | 51/249 [04:07&lt;16:04,  4.87s/it]
+ 21%|██        | 52/249 [04:12&lt;15:59,  4.87s/it]
+ 21%|██▏       | 53/249 [04:17&lt;15:54,  4.87s/it]
+ 22%|██▏       | 54/249 [04:22&lt;15:50,  4.88s/it]
+ 22%|██▏       | 55/249 [04:27&lt;15:45,  4.87s/it]
+ 22%|██▏       | 56/249 [04:32&lt;15:40,  4.87s/it]
+ 23%|██▎       | 57/249 [04:36&lt;15:36,  4.88s/it]
+ 23%|██▎       | 58/249 [04:41&lt;15:30,  4.87s/it]
+ 24%|██▎       | 59/249 [04:46&lt;15:26,  4.87s/it]
+ 24%|██▍       | 60/249 [04:51&lt;15:22,  4.88s/it]
+ 24%|██▍       | 61/249 [04:56&lt;15:16,  4.88s/it]
+ 25%|██▍       | 62/249 [05:01&lt;15:11,  4.87s/it]
+ 25%|██▌       | 63/249 [05:06&lt;15:06,  4.87s/it]
+ 26%|██▌       | 64/249 [05:11&lt;15:01,  4.87s/it]
+ 26%|██▌       | 65/249 [05:15&lt;14:55,  4.87s/it]
+ 27%|██▋       | 66/249 [05:20&lt;14:52,  4.88s/it]
+ 27%|██▋       | 67/249 [05:25&lt;14:46,  4.87s/it]
+ 27%|██▋       | 68/249 [05:30&lt;14:41,  4.87s/it]
+ 28%|██▊       | 69/249 [05:35&lt;14:35,  4.86s/it]
+ 28%|██▊       | 70/249 [05:40&lt;14:30,  4.87s/it]
+ 29%|██▊       | 71/249 [05:45&lt;14:26,  4.87s/it]
+ 29%|██▉       | 72/249 [05:50&lt;14:22,  4.87s/it]
+ 29%|██▉       | 73/249 [05:54&lt;14:17,  4.87s/it]
+ 30%|██▉       | 74/249 [05:59&lt;14:11,  4.86s/it]
+ 30%|███       | 75/249 [06:04&lt;14:05,  4.86s/it]
+ 31%|███       | 76/249 [06:09&lt;14:02,  4.87s/it]
+ 31%|███       | 77/249 [06:14&lt;13:57,  4.87s/it]
+ 31%|███▏      | 78/249 [06:19&lt;13:52,  4.87s/it]
+ 32%|███▏      | 79/249 [06:24&lt;13:47,  4.87s/it]
+ 32%|███▏      | 80/249 [06:28&lt;13:42,  4.87s/it]
+ 33%|███▎      | 81/249 [06:33&lt;13:37,  4.87s/it]
+ 33%|███▎      | 82/249 [06:38&lt;13:32,  4.86s/it]
+ 33%|███▎      | 83/249 [06:43&lt;13:26,  4.86s/it]
+ 34%|███▎      | 84/249 [06:48&lt;13:21,  4.86s/it]
+ 34%|███▍      | 85/249 [06:53&lt;13:16,  4.85s/it]
+ 35%|███▍      | 86/249 [06:58&lt;13:12,  4.86s/it]
+ 35%|███▍      | 87/249 [07:02&lt;13:07,  4.86s/it]
+ 35%|███▌      | 88/249 [07:07&lt;13:03,  4.87s/it]
+ 36%|███▌      | 89/249 [07:12&lt;12:58,  4.87s/it]
+ 36%|███▌      | 90/249 [07:17&lt;12:53,  4.86s/it]
+ 37%|███▋      | 91/249 [07:22&lt;12:49,  4.87s/it]
+ 37%|███▋      | 92/249 [07:27&lt;12:44,  4.87s/it]
+ 37%|███▋      | 93/249 [07:32&lt;12:39,  4.87s/it]
+ 38%|███▊      | 94/249 [07:37&lt;12:33,  4.86s/it]
+ 38%|███▊      | 95/249 [07:41&lt;12:28,  4.86s/it]
+ 39%|███▊      | 96/249 [07:46&lt;12:23,  4.86s/it]
+ 39%|███▉      | 97/249 [07:51&lt;12:18,  4.86s/it]
+ 39%|███▉      | 98/249 [07:56&lt;12:13,  4.86s/it]
+ 40%|███▉      | 99/249 [08:01&lt;12:08,  4.86s/it]
+ 40%|████      | 100/249 [08:06&lt;12:03,  4.85s/it]
+ 41%|████      | 101/249 [08:11&lt;11:58,  4.85s/it]
+ 41%|████      | 102/249 [08:15&lt;11:53,  4.85s/it]
+ 41%|████▏     | 103/249 [08:20&lt;11:49,  4.86s/it]
+ 42%|████▏     | 104/249 [08:25&lt;11:45,  4.87s/it]
+ 42%|████▏     | 105/249 [08:30&lt;11:42,  4.88s/it]
+ 43%|████▎     | 106/249 [08:35&lt;11:37,  4.88s/it]
+ 43%|████▎     | 107/249 [08:40&lt;11:32,  4.88s/it]
+ 43%|████▎     | 108/249 [08:45&lt;11:27,  4.88s/it]
+ 44%|████▍     | 109/249 [08:50&lt;11:22,  4.87s/it]
+ 44%|████▍     | 110/249 [08:54&lt;11:16,  4.87s/it]
+ 45%|████▍     | 111/249 [08:59&lt;11:11,  4.87s/it]
+ 45%|████▍     | 112/249 [09:04&lt;11:07,  4.87s/it]
+ 45%|████▌     | 113/249 [09:09&lt;11:01,  4.87s/it]
+ 46%|████▌     | 114/249 [09:14&lt;10:56,  4.86s/it]
+ 46%|████▌     | 115/249 [09:19&lt;10:51,  4.86s/it]
+ 47%|████▋     | 116/249 [09:24&lt;10:46,  4.86s/it]
+ 47%|████▋     | 117/249 [09:28&lt;10:41,  4.86s/it]
+ 47%|████▋     | 118/249 [09:33&lt;10:36,  4.86s/it]
+ 48%|████▊     | 119/249 [09:38&lt;10:31,  4.86s/it]
+ 48%|████▊     | 120/249 [09:43&lt;10:26,  4.86s/it]
+ 49%|████▊     | 121/249 [09:48&lt;10:22,  4.86s/it]
+ 49%|████▉     | 122/249 [09:53&lt;10:17,  4.86s/it]
+ 49%|████▉     | 123/249 [09:58&lt;10:12,  4.86s/it]
+ 50%|████▉     | 124/249 [10:02&lt;10:07,  4.86s/it]
+ 50%|█████     | 125/249 [10:07&lt;10:03,  4.86s/it]
+ 51%|█████     | 126/249 [10:12&lt;09:58,  4.87s/it]
+ 51%|█████     | 127/249 [10:17&lt;09:54,  4.87s/it]
+ 51%|█████▏    | 128/249 [10:22&lt;09:50,  4.88s/it]
+ 52%|█████▏    | 129/249 [10:27&lt;09:44,  4.87s/it]
+ 52%|█████▏    | 130/249 [10:32&lt;09:39,  4.87s/it]
+ 53%|█████▎    | 131/249 [10:37&lt;09:34,  4.87s/it]
+ 53%|█████▎    | 132/249 [10:41&lt;09:29,  4.87s/it]
+ 53%|█████▎    | 133/249 [10:46&lt;09:25,  4.87s/it]
+ 54%|█████▍    | 134/249 [10:51&lt;09:20,  4.87s/it]
+ 54%|█████▍    | 135/249 [10:56&lt;09:15,  4.87s/it]
+ 55%|█████▍    | 136/249 [11:01&lt;09:10,  4.87s/it]
+ 55%|█████▌    | 137/249 [11:06&lt;09:05,  4.87s/it]
+ 55%|█████▌    | 138/249 [11:11&lt;09:00,  4.87s/it]
+ 56%|█████▌    | 139/249 [11:15&lt;08:54,  4.86s/it]
+ 56%|█████▌    | 140/249 [11:20&lt;08:50,  4.86s/it]
+ 57%|█████▋    | 141/249 [11:25&lt;08:45,  4.86s/it]
+ 57%|█████▋    | 142/249 [11:30&lt;08:39,  4.86s/it]
+ 57%|█████▋    | 143/249 [11:35&lt;08:35,  4.86s/it]
+ 58%|█████▊    | 144/249 [11:40&lt;08:30,  4.86s/it]
+ 58%|█████▊    | 145/249 [11:45&lt;08:25,  4.86s/it]
+ 59%|█████▊    | 146/249 [11:50&lt;08:21,  4.87s/it]
+ 59%|█████▉    | 147/249 [11:54&lt;08:16,  4.87s/it]
+ 59%|█████▉    | 148/249 [11:59&lt;08:11,  4.87s/it]
+ 60%|█████▉    | 149/249 [12:04&lt;08:06,  4.87s/it]
+ 60%|██████    | 150/249 [12:09&lt;08:01,  4.87s/it]
+ 61%|██████    | 151/249 [12:14&lt;07:56,  4.86s/it]
+ 61%|██████    | 152/249 [12:19&lt;07:52,  4.87s/it]
+ 61%|██████▏   | 153/249 [12:24&lt;07:47,  4.87s/it]
+ 62%|██████▏   | 154/249 [12:29&lt;07:43,  4.88s/it]
+ 62%|██████▏   | 155/249 [12:33&lt;07:39,  4.88s/it]
+ 63%|██████▎   | 156/249 [12:38&lt;07:33,  4.88s/it]
+ 63%|██████▎   | 157/249 [12:43&lt;07:28,  4.88s/it]
+ 63%|██████▎   | 158/249 [12:48&lt;07:24,  4.88s/it]
+ 64%|██████▍   | 159/249 [12:53&lt;07:19,  4.88s/it]
+ 64%|██████▍   | 160/249 [12:58&lt;07:14,  4.88s/it]
+ 65%|██████▍   | 161/249 [13:03&lt;07:08,  4.87s/it]
+ 65%|██████▌   | 162/249 [13:08&lt;07:04,  4.87s/it]
+ 65%|██████▌   | 163/249 [13:12&lt;06:59,  4.88s/it]
+ 66%|██████▌   | 164/249 [13:17&lt;06:54,  4.88s/it]
+ 66%|██████▋   | 165/249 [13:22&lt;06:50,  4.89s/it]
+ 67%|██████▋   | 166/249 [13:27&lt;06:44,  4.87s/it]
+ 67%|██████▋   | 167/249 [13:32&lt;06:39,  4.87s/it]
+ 67%|██████▋   | 168/249 [13:37&lt;06:35,  4.88s/it]
+ 68%|██████▊   | 169/249 [13:42&lt;06:30,  4.88s/it]
+ 68%|██████▊   | 170/249 [13:47&lt;06:26,  4.89s/it]
+ 69%|██████▊   | 171/249 [13:52&lt;06:22,  4.90s/it]
+ 69%|██████▉   | 172/249 [13:56&lt;06:16,  4.89s/it]
+ 69%|██████▉   | 173/249 [14:01&lt;06:11,  4.89s/it]
+ 70%|██████▉   | 174/249 [14:06&lt;06:05,  4.87s/it]
+ 70%|███████   | 175/249 [14:11&lt;05:59,  4.86s/it]
+ 71%|███████   | 176/249 [14:16&lt;05:54,  4.85s/it]
+ 71%|███████   | 177/249 [14:21&lt;05:49,  4.86s/it]
+ 71%|███████▏  | 178/249 [14:25&lt;05:44,  4.85s/it]
+ 72%|███████▏  | 179/249 [14:30&lt;05:39,  4.85s/it]
+ 72%|███████▏  | 180/249 [14:35&lt;05:34,  4.85s/it]
+ 73%|███████▎  | 181/249 [14:40&lt;05:29,  4.84s/it]
+ 73%|███████▎  | 182/249 [14:45&lt;05:24,  4.84s/it]
+ 73%|███████▎  | 183/249 [14:50&lt;05:20,  4.86s/it]
+ 74%|███████▍  | 184/249 [14:55&lt;05:16,  4.87s/it]
+ 74%|███████▍  | 185/249 [14:59&lt;05:11,  4.87s/it]
+ 75%|███████▍  | 186/249 [15:04&lt;05:06,  4.87s/it]
+ 75%|███████▌  | 187/249 [15:09&lt;05:02,  4.87s/it]
+ 76%|███████▌  | 188/249 [15:14&lt;04:57,  4.87s/it]
+ 76%|███████▌  | 189/249 [15:19&lt;04:52,  4.88s/it]
+ 76%|███████▋  | 190/249 [15:24&lt;04:47,  4.88s/it]
+ 77%|███████▋  | 191/249 [15:29&lt;04:42,  4.88s/it]
+ 77%|███████▋  | 192/249 [15:34&lt;04:38,  4.88s/it]
+ 78%|███████▊  | 193/249 [15:39&lt;04:33,  4.88s/it]
+ 78%|███████▊  | 194/249 [15:43&lt;04:28,  4.88s/it]
+ 78%|███████▊  | 195/249 [15:48&lt;04:23,  4.88s/it]
+ 79%|███████▊  | 196/249 [15:53&lt;04:18,  4.89s/it]
+ 79%|███████▉  | 197/249 [15:58&lt;04:13,  4.88s/it]
+ 80%|███████▉  | 198/249 [16:03&lt;04:08,  4.88s/it]
+ 80%|███████▉  | 199/249 [16:08&lt;04:03,  4.88s/it]
+ 80%|████████  | 200/249 [16:13&lt;03:58,  4.88s/it]
+ 81%|████████  | 201/249 [16:18&lt;03:53,  4.87s/it]
+ 81%|████████  | 202/249 [16:22&lt;03:49,  4.87s/it]
+ 82%|████████▏ | 203/249 [16:27&lt;03:44,  4.87s/it]
+ 82%|████████▏ | 204/249 [16:32&lt;03:39,  4.87s/it]
+ 82%|████████▏ | 205/249 [16:37&lt;03:34,  4.87s/it]
+ 83%|████████▎ | 206/249 [16:42&lt;03:29,  4.87s/it]
+ 83%|████████▎ | 207/249 [16:47&lt;03:24,  4.87s/it]
+ 84%|████████▎ | 208/249 [16:52&lt;03:20,  4.88s/it]
+ 84%|████████▍ | 209/249 [16:57&lt;03:15,  4.89s/it]
+ 84%|████████▍ | 210/249 [17:01&lt;03:10,  4.89s/it]
+ 85%|████████▍ | 211/249 [17:06&lt;03:05,  4.88s/it]
+ 85%|████████▌ | 212/249 [17:11&lt;03:00,  4.87s/it]
+ 86%|████████▌ | 213/249 [17:16&lt;02:55,  4.88s/it]
+ 86%|████████▌ | 214/249 [17:21&lt;02:50,  4.88s/it]
+ 86%|████████▋ | 215/249 [17:26&lt;02:46,  4.89s/it]
+ 87%|████████▋ | 216/249 [17:31&lt;02:41,  4.89s/it]
+ 87%|████████▋ | 217/249 [17:36&lt;02:36,  4.89s/it]
+ 88%|████████▊ | 218/249 [17:41&lt;02:31,  4.90s/it]
+ 88%|████████▊ | 219/249 [17:45&lt;02:26,  4.90s/it]
+ 88%|████████▊ | 220/249 [17:50&lt;02:22,  4.90s/it]
+ 89%|████████▉ | 221/249 [17:55&lt;02:17,  4.92s/it]
+ 89%|████████▉ | 222/249 [18:00&lt;02:12,  4.92s/it]
+ 90%|████████▉ | 223/249 [18:05&lt;02:08,  4.93s/it]
+ 90%|████████▉ | 224/249 [18:10&lt;02:03,  4.93s/it]
+ 90%|█████████ | 225/249 [18:15&lt;01:58,  4.93s/it]
+ 91%|█████████ | 226/249 [18:20&lt;01:53,  4.93s/it]
+ 91%|█████████ | 227/249 [18:25&lt;01:48,  4.93s/it]
+ 92%|█████████▏| 228/249 [18:30&lt;01:43,  4.93s/it]
+ 92%|█████████▏| 229/249 [18:35&lt;01:38,  4.92s/it]
+ 92%|█████████▏| 230/249 [18:40&lt;01:33,  4.91s/it]
+ 93%|█████████▎| 231/249 [18:44&lt;01:28,  4.89s/it]
+ 93%|█████████▎| 232/249 [18:49&lt;01:23,  4.89s/it]
+ 94%|█████████▎| 233/249 [18:54&lt;01:18,  4.90s/it]
+ 94%|█████████▍| 234/249 [18:59&lt;01:13,  4.90s/it]
+ 94%|█████████▍| 235/249 [19:04&lt;01:08,  4.91s/it]
+ 95%|█████████▍| 236/249 [19:09&lt;01:03,  4.91s/it]
+ 95%|█████████▌| 237/249 [19:14&lt;00:58,  4.91s/it]
+ 96%|█████████▌| 238/249 [19:19&lt;00:53,  4.90s/it]
+ 96%|█████████▌| 239/249 [19:24&lt;00:48,  4.90s/it]
+ 96%|█████████▋| 240/249 [19:29&lt;00:44,  4.90s/it]
+ 97%|█████████▋| 241/249 [19:33&lt;00:39,  4.89s/it]
+ 97%|█████████▋| 242/249 [19:38&lt;00:34,  4.90s/it]
+ 98%|█████████▊| 243/249 [19:43&lt;00:29,  4.90s/it]
+ 98%|█████████▊| 244/249 [19:48&lt;00:24,  4.91s/it]
+ 98%|█████████▊| 245/249 [19:53&lt;00:19,  4.92s/it]
+ 99%|█████████▉| 246/249 [19:58&lt;00:14,  4.91s/it]
+ 99%|█████████▉| 247/249 [20:03&lt;00:09,  4.91s/it]
+100%|█████████▉| 248/249 [20:08&lt;00:04,  4.92s/it]
+100%|██████████| 249/249 [20:13&lt;00:00,  4.92s/it]
+100%|██████████| 249/249 [20:13&lt;00:00,  4.87s/it]
+</pre></div>
+</div>
+<p>We obtain the following posterior trajectory</p>
+<div class="image-col docutils container">
+<img src="../../_images/posterior_sample_DRUNet.png" srcset="../../_images/posterior_sample_DRUNet.png" alt="posterior sample DRUNet" /><img src="../../_images/posterior_sample_DRUNet.gif" srcset="../../_images/posterior_sample_DRUNet.gif" alt="posterior trajectory DRUNet" class = "custom-gif"/></div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (30 minutes 35.908 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-sampling-demo-diffusion-sde-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/4f75bcaedd6b5e17dadb7924b6bbd94a/demo_diffusion_sde.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_diffusion_sde.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/f9fa442c3ffcdd8de9a777d5ce079941/demo_diffusion_sde.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_diffusion_sde.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/38bd3a2384d7d57c0bd36562e262ddd3/demo_diffusion_sde.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_diffusion_sde.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="demo_custom_kernel.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Building your custom MCMC sampling algorithm.</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="demo_ddrm.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Image reconstruction with a diffusion model</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reverse-time-sde-as-sampling-process">Reverse-time SDE as sampling process</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#varying-the-sde">Varying the SDE</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#plug-and-play-posterior-sampling-with-arbitrary-denoisers">Plug-and-play Posterior Sampling with arbitrary denoisers</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/auto_examples/sampling/demo_diffusion_sde.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+  <div class="sidebar-secondary-item">
+
+
+  <div class="sphx-glr-sidebar-component">
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-python-sidebar" title="demo_diffusion_sde.py">
+          <a download href="../../_downloads/f9fa442c3ffcdd8de9a777d5ce079941/demo_diffusion_sde.py">
+            <i class="fa-solid fa-download"></i>
+            Download source code
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-jupyter-sidebar" title="demo_diffusion_sde.ipynb">
+          <a download href="../../_downloads/4f75bcaedd6b5e17dadb7924b6bbd94a/demo_diffusion_sde.ipynb">
+            <i class="fa-solid fa-download"></i>
+            Download Jupyter notebook
+          </a>
+        </div>
+      
+    
+      
+        <div class="sphx-glr-sidebar-item sphx-glr-download-zip-sidebar" title="demo_diffusion_sde.zip">
+          <a download href="../../_downloads/38bd3a2384d7d57c0bd36562e262ddd3/demo_diffusion_sde.zip">
+            <i class="fa-solid fa-download"></i>
+            Download zipped
+          </a>
+        </div>
+      
+    
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

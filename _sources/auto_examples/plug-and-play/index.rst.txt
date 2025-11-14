@@ -1,0 +1,117 @@
+
+
+.. _sphx_glr_auto_examples_plug-and-play:
+
+Plug-and-Play
+-------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in :footcitezhang2021plug. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).">
+
+.. only:: html
+
+  .. image:: /auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_DPIR_deblur_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_DPIR_deblur.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use a mirror descent algorithm for solving an inverse problem with Poisson noise. See :footcitehurault2023convergent for more details.">
+
+.. only:: html
+
+  .. image:: /auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_mirror_descent_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_mirror_descent.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Condat-Vu Primal-Dual algorithm, and apply it for Single Pixel Camera reconstruction.">
+
+.. only:: html
+
+  .. image:: /auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_custom_optim_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_custom_optim.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Condat-Vu Primal-Dual)</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Implementation of :footciteromano2017little using as plug-in denoiser the Gradient-Step Denoiser (GSPnP) :footcitehurault2021gradient which provides an explicit prior.">
+
+.. only:: html
+
+  .. image:: /auto_examples/plug-and-play/images/thumb/sphx_glr_demo_RED_GSPnP_SR_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_plug-and-play_demo_RED_GSPnP_SR.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard PnP algorithm with DnCNN denoiser for computed tomography.">
+
+.. only:: html
+
+  .. image:: /auto_examples/plug-and-play/images/thumb/sphx_glr_demo_vanilla_PnP_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_plug-and-play_demo_vanilla_PnP.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/plug-and-play/demo_PnP_DPIR_deblur
+   /auto_examples/plug-and-play/demo_PnP_mirror_descent
+   /auto_examples/plug-and-play/demo_PnP_custom_optim
+   /auto_examples/plug-and-play/demo_RED_GSPnP_SR
+   /auto_examples/plug-and-play/demo_vanilla_PnP
+
