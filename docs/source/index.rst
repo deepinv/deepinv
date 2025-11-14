@@ -3,7 +3,7 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
+|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube|
 
 .. toctree::
    :maxdepth: 3
@@ -16,6 +16,7 @@ DeepInverse: a Python library for imaging with deep learning
    finding_help
    contributing
    community
+   changelog
 
 DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
@@ -145,4 +146,5 @@ unfolded, deep equilibrium models
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
-
+.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
+   :target: https://www.youtube.com/@deepinv
