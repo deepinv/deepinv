@@ -8,6 +8,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+
+Fixed
+^^^^^
+
+
+v0.3.6
+------
+New Features
+^^^^^^^^^^^^
 - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh:`806` by `Vicky De Ridder`_)
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
@@ -28,6 +41,7 @@ Fixed
 - Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
+- Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
 - Fix formula error in Zernike polynomials, extend to higher order (:gh:`826` by `Minh Hai Nguyen`_)
 
 v0.3.5
@@ -493,3 +507,4 @@ Changed
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
+.. _Alexander Skorikov: https://github.com/askorikov
