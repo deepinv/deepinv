@@ -1,6 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
+import contextlib
 
 import torch
 from torch.utils.data import DataLoader
@@ -1355,3 +1356,42 @@ def test_client_mocked(return_metadata):
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="output"):
             _ = model(y)
+
+
+# SwinIR has two parameters related to usampling, upscale which specifies the
+# upsampling rate and upsampler which specifies how the upsampling is
+# performed. In this test, we verify that a warning is raised when specifying
+# an upsampling rate > 1 but not the upsampling method, or conversely when
+# specifying an upsampling without specifying an upsampling rate > 1.
+@pytest.mark.parametrize("upscale", [None, 1, 2])
+@pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
+def test_swinir_upsample_without_upsampler(upscale, upsampler):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
+
+    kwargs = {}
+
+    if upscale is not None:
+        kwargs["upscale"] = upscale
+
+    if upsampler is not None:
+        kwargs["upsampler"] = upsampler
+
+    should_warn = (upscale is not None and upscale > 1 and upsampler is None) or (
+        (upscale is None or upscale == 1) and upsampler is not None
+    )
+
+    ctx = (
+        pytest.warns(
+            UserWarning,
+            match="upscale",
+        )
+        if should_warn
+        else contextlib.nullcontext()
+    )
+
+    with ctx:
+        _ = dinv.models.SwinIR(in_chans=3, upsample=1, pretrained=None, **kwargs)
