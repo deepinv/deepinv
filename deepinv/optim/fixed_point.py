@@ -235,8 +235,8 @@ class FixedPoint(nn.Module):
 
         Since the prior and parameters (stepsize, regularisation parameter, etc.) can change at each iteration,
         the prior and parameters are updated before each call to the iterator.
-        
-        :param Callable, torch.Tensor, tuple, dict init: initialization of the algorithm. 
+
+        :param Callable, torch.Tensor, tuple, dict init: initialization of the algorithm.
             Either a Callable function of the form ``init(y, physics)`` or a fixed torch.Tensor initialization.
             The output of the function or the fixed initialization can be either:
 
