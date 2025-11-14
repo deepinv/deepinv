@@ -268,8 +268,10 @@ def generate_dataset(
         if os.path.exists(hf_path):
             if overwrite_existing:
                 warn(
-                    f"Dataset {hf_path} already exists, this will overwrite the previous dataset."
+                    f"Dataset {hf_path} already exists, this will close and overwrite the previous dataset."
                 )
+                # remove existing dataset to avoid open file error
+                os.remove(hf_path)
             else:
                 warn(f"Dataset {hf_path} already exists, skipping...")
                 continue

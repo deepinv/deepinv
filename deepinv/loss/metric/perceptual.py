@@ -28,15 +28,20 @@ class LPIPS(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
+    :param bool as_loss: if True, returns LPIPS as a loss. Default: False.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
-    def __init__(self, device="cpu", check_input_range=False, **kwargs):
+    def __init__(self, device="cpu", check_input_range=False, as_loss=False, **kwargs):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.lpips = pyiqa.create_metric(
-            "lpips", check_input_range=check_input_range, device=device
+            "lpips", check_input_range=check_input_range, device=device, as_loss=as_loss
         ).to(device)
         self.lower_better = self.lpips.lower_better
 
@@ -70,8 +75,12 @@ class NIQE(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
+        If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
+        If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
 
     def __init__(self, device="cpu", check_input_range=False, **kwargs):

@@ -89,7 +89,7 @@ class fStepSM(fStep):
         """
         x = x.to(torch.cfloat)
         # normalize every image in x
-        x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
+        x = x / torch.linalg.vector_norm(x, dim=(1, 2, 3), ord=2, keepdim=True)
         # y should have mean 1 for each image
         y = y / torch.mean(y, dim=1, keepdim=True)
         diag_T = self.preprocessing(y)
@@ -98,7 +98,7 @@ class fStepSM(fStep):
         res = diag_T * res
         res = physics.B_adjoint(res)
         x = res + self.lamb * x
-        x = torch.stack([subtensor / subtensor.norm() for subtensor in x])
+        x = x / torch.linalg.vector_norm(x, dim=(1, 2, 3), ord=2, keepdim=True)
         return x
 
 

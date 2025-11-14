@@ -41,7 +41,7 @@ class _WrapperDenoiserMinusOneOne(nn.Module):
 
 class BaseSDE(nn.Module):
     r"""
-    Base class for Stochastic Differential Equation (SDE):min_num_steps
+    Base class for Stochastic Differential Equation (SDE):
 
     .. math::
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}

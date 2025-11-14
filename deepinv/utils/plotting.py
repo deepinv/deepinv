@@ -15,7 +15,7 @@ import torchvision.transforms.functional as F
 
 from PIL import Image
 
-from deepinv.utils.signal import normalize_signal, complex_abs
+from deepinv.utils.signals import normalize_signal, complex_abs
 
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
@@ -188,7 +188,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
-@torch.no_grad
+@torch.no_grad()
 def preprocess_img(im, rescale_mode="min_max"):
     r"""
     Prepare a batch of images for plotting.

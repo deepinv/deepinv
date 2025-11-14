@@ -3,7 +3,7 @@ import torch
 
 def norm(a):
     """Computes the L2 norm i.e. root sum of squares"""
-    return a.pow(2).sum(dim=(-1, -2), keepdim=True).sqrt()
+    return torch.linalg.vector_norm(a, dim=(-1, -2), keepdim=True)
 
 
 def cal_psnr(
@@ -27,7 +27,7 @@ def cal_psnr(
 
 def cal_mse(a, b):
     """Computes the mean squared error (MSE)"""
-    return (a - b).pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
+    return (a - b).abs().pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
 
 
 def cal_mae(a, b):

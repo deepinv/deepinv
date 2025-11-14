@@ -5,7 +5,7 @@ import os
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
-    extract_zipfile,
+    extract_tarball,
 )
 from deepinv.datasets.base import ImageFolder
 
@@ -18,17 +18,18 @@ class Set14HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
-                   |         |               |
-                   |         |               -- img_014_SRF_2_SRCNN.png
-                   |         |
-                   |         -- image_SRF_3 --- ...
-                   |         -- image_SRF_4 --- ...
-                   |
-                   -- Set14_SR.zip
+        self.root --- Set14_HR.tar.gz
+                |
+                --- Set14_HR --- baboon.png
+                |             |
+                |             --- butterfly.png
+                |             --- face.png
+                |             --- ...
+                |
+                --- xxx
 
-    This dataset wrapper gives access to the 14 high resolution images in the `image_SRF_4` folder.
-    Raw dataset source : https://github.com/jbhuang0604/SelfExSR
+    This dataset wrapper gives access to the 14 high resolution images in the `Set14_HR` folder.
+    Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set14
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
@@ -56,18 +57,11 @@ class Set14HR(ImageFolder):
 
     _archive_urls = MappingProxyType(
         {
-            "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
+            "Set14_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Set14/resolve/main/data/Set14_HR.tar.gz",
         }
     )
-
+    _checksums = MappingProxyType({"Set14_HR": "3fce01c3dfe9760194e8a22f6bc032c5"})
     # for integrity of downloaded data
-    _checksums = MappingProxyType(
-        {
-            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
-            "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
-            "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
-        }
-    )
 
     def __init__(
         self,
@@ -76,7 +70,7 @@ class Set14HR(ImageFolder):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.img_dir = os.path.join(self.root, "Set14", "image_SRF_4")
+        self.img_dir = os.path.join(self.root, "Set14_HR")
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -89,18 +83,16 @@ class Set14HR(ImageFolder):
                     )
 
                 for filename, url in self._archive_urls.items():
-                    # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
                         save_path=os.path.join(self.root, filename),
                     )
-                    # extract local zip file
-                    extract_zipfile(os.path.join(self.root, filename), self.root)
+                    extract_tarball(os.path.join(self.root, filename), self.root)
 
-                    if self.check_dataset_exists():
-                        print("Dataset has been successfully downloaded.")
-                    else:
-                        raise ValueError("There is an issue with the data downloaded.")
+                if self.check_dataset_exists():
+                    print("Dataset has been successfully downloaded.")
+                else:
+                    raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
             else:
                 raise RuntimeError(
@@ -108,27 +100,25 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialize ImageFolder
-        super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
 
         ``self.root`` should have the following structure: ::
 
-            self.root --- Set14 --- image_SRF_2 --- img_001_SRF_2_bicubic.png
-                       |         |               |
-                       |         |               -- img_014_SRF_2_SRCNN.png
-                       |         |
-                       |         -- image_SRF_3 --- ...
-                       |         -- image_SRF_4 --- ...
-                       |         -- xxx
-                       -- xxx
+            self.root --- Set14_HR --- baboon.png
+                    |             |
+                    |             --- butterfly.png
+                    |             --- face.png
+                    |             --- ...
+                    |
+                    --- xxx
         """
-        data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14"))
+        data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14_HR"))
         if not data_dir_exist:
             return False
         return all(
-            calculate_md5_for_folder(os.path.join(self.root, "Set14", folder_name))
-            == checksum
+            calculate_md5_for_folder(os.path.join(self.root, folder_name)) == checksum
             for folder_name, checksum in self._checksums.items()
         )

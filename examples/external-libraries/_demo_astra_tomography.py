@@ -20,7 +20,7 @@ import torch
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.plotting import plot, plot_curves
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 
@@ -110,7 +110,7 @@ plot_convergence_metrics = (
 )
 
 # Algorithm parameters
-scaling = 1 / physics.compute_norm(torch.rand_like(test_imgs)).item()
+scaling = 1 / physics.compute_sqnorm(torch.rand_like(test_imgs)).item()
 stepsize = 0.99 * scaling
 lamb = 3.0  # TV regularisation parameter
 params_algo = {"stepsize": stepsize, "lambda": lamb}
