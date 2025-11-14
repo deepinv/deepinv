@@ -11,6 +11,7 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
@@ -506,3 +507,4 @@ Changed
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
+.. _Alexander Skorikov: https://github.com/askorikov
