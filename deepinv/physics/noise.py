@@ -5,7 +5,6 @@ from typing import Callable
 from collections.abc import Iterable
 import warnings
 import deepinv as dinv
-from deepinv.physics.generator import noise
 
 
 class NoiseModel(nn.Module):
