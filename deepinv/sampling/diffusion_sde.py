@@ -15,7 +15,7 @@ from deepinv.sampling.utils import trapz_torch
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
     """
-    A wrapper for denoisers trained on :math:`[x_{min}, x_{max}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
+    A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
 
     :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.
     :param float xmin: minimum value of the denoiser training range. Default to `0.0`.
@@ -251,7 +251,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     r"""
     Generative diffusion Stochastic Differential Equation.
 
-    This class implements the diffusion generative SDE based on the formulation from :footcite:t:`karras2022elucidating`:
+    This class implements the diffusion generative SDE based on the formulation from :footcite:t:`karras2022elucidating` (with :math:`\beta(t) = \alpha s(t)^2 \sigma(t) \sigma'(t)`):
 
     .. math::
         d x_t = \left(\frac{s'(t)}{s(t)} x_t - \frac{1 + \alpha}{2} s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
@@ -336,14 +336,14 @@ class EDMDiffusionSDE(DiffusionSDE):
 
             else:
                 raise ValueError(
-                    "scale_t must be provided if variance_preserving or variance_exploding is False"
+                    "'scale_t' must be provided if 'variance_preserving' and 'variance_exploding' is False"
                 )
         self.scale_t = scale_t
 
         if sigma_prime_t is None:
 
             def sigma_prime_t(t):
-                t = torch.tensor(self._handle_time_step(t), requires_grad=True)
+                t = self._handle_time_step(t).requires_grad_(True)
                 s = self.sigma_t(t)
                 s.backward()
                 return t.grad.item()
@@ -353,7 +353,7 @@ class EDMDiffusionSDE(DiffusionSDE):
         if scale_prime_t is None:
 
             def scale_prime_t(t):
-                t = torch.tensor(self._handle_time_step(t), requires_grad=True)
+                t = self._handle_time_step(t).requires_grad_(True)
                 s = self.scale_t(t)
                 s.backward()
                 return t.grad.item()
@@ -378,7 +378,7 @@ class EDMDiffusionSDE(DiffusionSDE):
             *kwargs,
         )
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
         x_in = x / scale
@@ -479,20 +479,20 @@ class SongDiffusionSDE(EDMDiffusionSDE):
 
         if B_t is None:
 
-            def B_t(t: Union[Tensor, float], n_steps: int = 1000) -> Tensor:
+            def B_t(t: Tensor | float, n_steps: int = 100) -> Tensor:
                 t = self._handle_time_step(t)
                 return trapz_torch(
                     beta_t, torch.tensor(0.0, device=t.device), t, n_steps
                 )
 
-        def scale_t(t: Union[Tensor, float]) -> Tensor:
+        def scale_t(t: Tensor | float) -> Tensor:
             return torch.exp(-B_t(t))
 
-        def scale_prime_t(t: Union[Tensor, float]) -> Tensor:
+        def scale_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return -beta_t(t) * scale_t(t)
 
-        def sigma_t(t: Tensor | float) -> Tensor:
+        def sigma_t(t: Tensor | float, n_steps: int = 100) -> Tensor:
             t = self._handle_time_step(t)
             if variance_preserving:
                 return (1 / scale_t(t) ** 2 - 1) ** 0.5
@@ -506,7 +506,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
                 )
                 return (2 * integral).sqrt()
 
-        def sigma_prime_t(t: Union[Tensor, float]) -> Tensor:
+        def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return (xi_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
 
@@ -574,11 +574,11 @@ class FlowMatching(EDMDiffusionSDE):
         **kwargs,
     ):
 
-        def scale_t(t: Union[Tensor, float]) -> Tensor:
+        def scale_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return a_t(t)
 
-        def scale_prime_t(t: Union[Tensor, float]) -> Tensor:
+        def scale_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return a_prime_t(t)
 
@@ -586,7 +586,7 @@ class FlowMatching(EDMDiffusionSDE):
             t = self._handle_time_step(t)
             return b_t(t) / a_t(t)
 
-        def sigma_prime_t(t: Union[Tensor, float]) -> Tensor:
+        def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return (b_prime_t(t) * a_t(t) - b_t(t) * a_prime_t(t)) / (a_t(t) ** 2)
 
@@ -626,7 +626,7 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
             t = self._handle_time_step(t)
             return sigma_min * (sigma_max / sigma_min) ** t
 
-        def sigma_prime_t(t: Union[Tensor, float]) -> Tensor:
+        def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             return self.sigma_t(t) * (np.log(sigma_max) - np.log(sigma_min))
 

@@ -90,6 +90,7 @@ class NCSNpp(Denoiser):
         pixel_std: float = 0.75,
         device=None,
     ):
+        model_name = model_name.lower()
         assert model_name in ["ncsn", "ddpm"]
         if model_name == "ncsn":
             embedding_type = "fourier"
