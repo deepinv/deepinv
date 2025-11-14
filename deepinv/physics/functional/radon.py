@@ -12,7 +12,13 @@ else:
     grid_sample = F.grid_sample
 
 
-def fan_beam_grid(theta, image_size, fan_parameters, dtype=torch.float, device="cpu"):
+def fan_beam_grid(
+    theta: torch.Tensor,
+    image_size: int,
+    fan_parameters: dict[str, int | float],
+    dtype=torch.float,
+    device: torch.device | str = "cpu",
+):
     scale_factor = 2.0 / (image_size * fan_parameters["pixel_spacing"])
     n_detector_pixels = fan_parameters["n_detector_pixels"]
     source_radius = fan_parameters["source_radius"] * scale_factor
@@ -60,7 +66,7 @@ def fftfreq(n):
     return results * val
 
 
-def deg2rad(x):
+def deg2rad(x: int | float | torch.Tensor) -> torch.Tensor:
     return x * 4 * torch.ones(1, device=x.device, dtype=x.dtype).atan() / 180
 
 
@@ -172,7 +178,7 @@ class Radon(nn.Module):
     Sparse Radon transform operator.
 
 
-    :param int in_size: the size of the input image.
+    :param int in_size: the size of the input image (assumed square).
     :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is ``torch.arange(180)``.
     :param bool circle: if ``True``, the input image is assumed to be a circle. Default is ``False``.
     :param bool parallel_computation: if ``True``, all projections are performed in parallel. Requires more memory but is faster on GPUs.
@@ -242,7 +248,7 @@ class Radon(nn.Module):
         else:
             self.register_buffer("all_grids", all_grids, persistent=False)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
 
         :param torch.Tensor x: the input image.
@@ -298,7 +304,9 @@ class Radon(nn.Module):
                 out[..., i] = rotated.sum(2)
         return out
 
-    def _create_grids(self, angles, grid_size, circle, device="cpu"):
+    def _create_grids(
+        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str = "cpu"
+    ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
@@ -331,7 +339,7 @@ class IRadon(nn.Module):
     Inverse sparse Radon transform operator.
 
 
-    :param int in_size: the size of the input image
+    :param int in_size: the size of the input image  (assumed square).
     :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
     :param bool circle: if True, the input image is assumed to be a circle. Default is False.
     :param use_filter: if True, the ramp filter is applied to the input image. Default is True.
@@ -382,7 +390,7 @@ class IRadon(nn.Module):
             else lambda x: x
         )
 
-    def forward(self, x, filtering=True):
+    def forward(self, x: torch.Tensor, filtering: bool = True) -> torch.Tensor:
         r"""
 
         :param torch.Tensor x: the input image.
@@ -390,11 +398,6 @@ class IRadon(nn.Module):
         """
         it_size = x.shape[2]
         ch_size = x.shape[1]
-
-        # if self.in_size is None:
-        #     self.in_size = (
-        #         int((it_size / SQRT2).floor()) if not self.circle else it_size
-        #     )
 
         x = self.filter(x) if filtering else x
 
@@ -443,18 +446,22 @@ class IRadon(nn.Module):
 
         return reco
 
-    def _create_yxgrid(self, in_size, circle):
+    def _create_yxgrid(
+        self, in_size: int, circle: bool
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         if not circle:
             in_size = int((SQRT2 * in_size).ceil())
         unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype, device=self.device)
         ygrid, xgrid = torch.meshgrid(unitrange, unitrange, indexing="ij")
         return ygrid, xgrid
 
-    def _XYtoT(self, theta):
+    def _XYtoT(self, theta: int | float | torch.Tensor) -> torch.Tensor:
         T = self.xgrid * (deg2rad(theta)).cos() - self.ygrid * (deg2rad(theta)).sin()
         return T
 
-    def _create_grids(self, angles, grid_size, circle):
+    def _create_grids(
+        self, angles: torch.Tensor, grid_size: int, circle: bool
+    ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
