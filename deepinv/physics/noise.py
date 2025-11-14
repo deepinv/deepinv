@@ -1002,7 +1002,7 @@ class LaplaceNoise(NoiseModel):
         b = b.to(device)
         self.register_buffer("b", b)
 
-    def forward(self, x, b=None, seed=None, **kwargs):
+    def forward(self, x: Tensor, b: float | Tensor = None, seed: int = None, **kwargs):
         r"""
         Adds the noise to measurements x
 
