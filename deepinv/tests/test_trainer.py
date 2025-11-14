@@ -1040,7 +1040,10 @@ def test_out_dir_collision_detection(
 def test_trainer_speed(device):  # pragma: no cover
     if device == torch.device("cpu"):
         pytest.skip("Skip speed test on CPU")
-    img_size = (3, 64, 64)
+
+    torch.manual_seed(42)
+
+    img_size = (3, 128, 128)
     batch_size = 4
     N = 1000
     gradient_steps = 500
@@ -1086,21 +1089,27 @@ def test_trainer_speed(device):  # pragma: no cover
 
     import time
 
-    start = time.time()
+    torch.cuda.synchronize(device)
+    start = time.perf_counter()
     for _ in range(epochs):
         do_epoch()
-    end = time.time()
+
+    torch.cuda.synchronize(device)
+    end = time.perf_counter()
     time_naive = end - start
 
     # remove setup time
-    start = time.time()
+    torch.cuda.synchronize(device)
+    start = time.perf_counter()
     trainer.setup_train()
-    end = time.time()
+    end = time.perf_counter()
+    torch.cuda.synchronize(device)
     time_setup = end - start
 
-    start = time.time()
+    start = time.perf_counter()
     trainer.train()
-    end = time.time()
+    torch.cuda.synchronize(device)
+    end = time.perf_counter()
     time_trainer = end - start - time_setup
 
     # 10% overhead allowed
