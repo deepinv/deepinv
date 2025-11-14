@@ -5,6 +5,7 @@ from typing import Callable
 from collections.abc import Iterable
 import warnings
 import deepinv as dinv
+from deepinv.physics.generator import noise
 
 
 class NoiseModel(nn.Module):
@@ -1013,8 +1014,9 @@ class LaplaceNoise(NoiseModel):
         self.update_parameters(b=b, **kwargs)
         self.to(x.device)
 
-        d = torch.distributions.Laplace(0.0, torch.ones_like(x) * self.b)
-        return x + d.icdf(self.rand_like(x, seed=seed))
+        u = self.rand_like(x, seed=seed)
+        noise = - self.b * torch.sign(u - 0.5) * torch.log1p(-2 * torch.abs(u - 0.5)) # Inverse CDF method
+        return x + noise
 
 
 def _infer_device(
