@@ -245,7 +245,7 @@ def load_example(
 ):
     r"""
     Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_.
-    
+
     Uses :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
     or :func:`deepinv.utils.load_np_url` if numpy array in `npy` or `npz` file.
 
