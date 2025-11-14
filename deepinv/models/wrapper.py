@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from deepinv.models import Denoiser
 
+
 class DiffusersDenoiserWrapper(Denoiser):
     """
     Wraps a diffusers model as a DeepInv Denoiser.
@@ -153,7 +154,7 @@ class DiffusersDenoiserWrapper(Denoiser):
         # Convert model output to x0 depending on prediction type
         pt = self.prediction_type
         if pt == "epsilon":
-            x0 = x / scale - sigma * pred    
+            x0 = x / scale - sigma * pred
         elif pt == "v_prediction":
             x0 = scale * (x - sigma * pred)
         elif pt == "sample":
