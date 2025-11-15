@@ -121,8 +121,8 @@ class GSPnP(RED):
         r"""
         Computes the prior :math:`g(x)`.
 
-        :param torch.tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.tensor) prior :math:`g(x)`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`g(x)`.
         """
         return self.denoiser.potential(x, *args, **kwargs)
 
@@ -143,7 +143,7 @@ model = PGD(
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
     lambda_reg=lambda_reg,
     stepsize=stepsize,
     early_stop=early_stop,

@@ -140,10 +140,10 @@ prior = Prior(g=g)
 # %%
 # We use :func:`deepinv.optim.PGD` with `unfold=True` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
-# thresholding parameters :math:`\lambda` as learnable parameters.
+# regularization parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
-# yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
-# For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
+# yielding a distinct ``stepsize`` and ``lambda`` value for each iteration of the algorithm.
+# For single ``stepsize`` and ``lambda`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
 max_iter = 10  # Number of unrolled iterations

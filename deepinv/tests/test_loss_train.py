@@ -220,14 +220,14 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [0.01 * torch.ones(1, level)] * max_iter
+    g_param = [0.01 * torch.ones(1, level)] * max_iter
     # define which parameters are trainable
     trainable_params = ["g_param", "stepsize"]
 
     model_unfolded = getattr(dinv.optim, name_algo)(
         unfold=True,
         stepsize=stepsize,
-        g_param=sigma_denoiser,
+        g_param=g_param,
         lambda_reg=lamb,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,

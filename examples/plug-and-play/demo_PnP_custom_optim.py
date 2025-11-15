@@ -165,14 +165,14 @@ class CV(BaseOptim):
         stepsize=1.0,
         stepsize_dual=1.0,
         beta=1.0,
-        g_param=None,
+        sigma_denoiser=None,
         **kwargs,
     ):
         params_algo = {
             "lambda": lambda_reg,
             "stepsize": stepsize,
             "stepsize_dual": stepsize_dual,
-            "g_param": g_param,
+            "g_param": sigma_denoiser,
             "beta": beta,
         }
 
@@ -247,7 +247,6 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # We build the PnP model using our custom :func:`deepinv.optim.PDCP` function.
 #
 # The primal dual stepsizes :math:`\tau` corresponds to the ``stepsize`` key and :math:`\sigma` to the ``sigma`` key.
-# The ``g_param`` key corresponds to the noise level of the denoiser.
 #
 # For the denoiser, we choose the 1-Lipschitz grayscale DnCNN model (see the :ref:`pretrained-weights <pretrained-weights>`).
 #
@@ -255,7 +254,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Set up the PnP algorithm parameters :
 stepsize = 0.99  # primal stepsize
 stepsize_dual = 0.99  # dual stepsize
-g_param = 0.01  # denoiser parameter (noise level)
+sigma_denoiser = 0.01  # denoiser parameter (noise level)
 max_iter = 200
 early_stop = True  # stop the algorithm when convergence is reached
 
@@ -277,7 +276,7 @@ model = CV(
     data_fidelity=data_fidelity,
     stepsize=stepsize,
     stepsize_dual=stepsize_dual,
-    g_param=g_param,
+    sigma_denoiser=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,

@@ -233,7 +233,7 @@ model = PGD(
     max_iter=max_iter,
     verbose=verbose,
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
 )
 
 # Run the algorithm

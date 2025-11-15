@@ -167,7 +167,7 @@ model = ADMM(
     max_iter=max_iter,
     verbose=False,
     stepsize=stepsize,
-    g_param=noise_level_img,
+    sigma_denoiser=noise_level_img,
     g_first=True,
 )
 

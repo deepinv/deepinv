@@ -25,12 +25,12 @@ if TYPE_CHECKING:
 class DEQConfig:
     """Configuration parameters for Deep Equilibrium models.
 
-    :param: bool jacobian_free: Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
-    :param: bool anderson_acceleration_backward: Whether to use Anderson acceleration for solving the backward equilibrium.
-    :param: int history_size_backward: Number of past iterates used in Anderson acceleration for the backward pass.
-    :param: float beta_backward: Momentum coefficient in Anderson acceleration for the backward pass.
-    :param: float eps_backward: Regularization parameter for Anderson acceleration in the backward pass.
-    :param: int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
+    :param  bool jacobian_free: Whether to use a Jacobian-free backward pass (see :footcite:t:`fung2022jfb`).
+    :param  bool anderson_acceleration_backward: Whether to use Anderson acceleration for solving the backward equilibrium.
+    :param  int history_size_backward: Number of past iterates used in Anderson acceleration for the backward pass.
+    :param  float beta_backward: Momentum coefficient in Anderson acceleration for the backward pass.
+    :param  float eps_backward: Regularization parameter for Anderson acceleration in the backward pass.
+    :param  int max_iter_backward: Maximum number of iterations in the backward equilibrium solver.
     """
 
     jacobian_free: bool = False
@@ -45,9 +45,9 @@ class DEQConfig:
 class AndersonAccelerationConfig:
     """Configuration parameters for Anderson acceleration of a fixed-point algorithm.
 
-    :param: int history_size: Number of past iterates used in Anderson acceleration.
-    :param: float beta: Momentum coefficient in Anderson acceleration.
-    :param: float eps: Regularization parameter for Anderson acceleration.
+    :param  int history_size: Number of past iterates used in Anderson acceleration.
+    :param  float beta: Momentum coefficient in Anderson acceleration.
+    :param  float eps: Regularization parameter for Anderson acceleration.
     """
 
     history_size: float = 0.1
@@ -59,9 +59,9 @@ class AndersonAccelerationConfig:
 class BacktrackingConfig:
     """Configuration parameters for backtracking line search on the stepsize.
 
-    :param: float gamma: Armijo-like parameter (controls sufficient decrease).
-    :param: float eta: Step reduction factor (e.g. multiply step by eta on failure).
-    :param: int max_iter: Maximum number of backtracking steps.
+    :param  float gamma: Armijo-like parameter (controls sufficient decrease).
+    :param  float eta: Step reduction factor (e.g. multiply step by eta on failure).
+    :param  int max_iter: Maximum number of backtracking steps.
     """
 
     gamma: float = 0.1

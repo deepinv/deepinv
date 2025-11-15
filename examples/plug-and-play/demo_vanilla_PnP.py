@@ -75,7 +75,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # The algorithm alternates between a denoising step and a gradient descent step.
 # The denoising step is performed by a DNCNN pretrained denoiser :class:`deepinv.models.DnCNN`.
 #
-# Set up the PnP algorithm parameters : the ``stepsize``, ``g_param`` the noise level of the denoiser.
+# Set up the PnP algorithm parameters : the ``stepsize``, ``sigma_denoiser`` the noise level of the denoiser.
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
@@ -109,7 +109,7 @@ model = PGD(
     data_fidelity=data_fidelity,
     prior=prior,
     stepsize=stepsize,
-    g_param=sigma_denoiser,
+    sigma_denoiser=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
