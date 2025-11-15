@@ -529,6 +529,7 @@ class PosteriorDiffusion(Reconstructor):
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
+        self.minus_one_one = minus_one_one
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
@@ -608,7 +609,8 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
-
+        if self.minus_one_one and y is not None:
+            y = (y - 0.5) * 2  # Scale y to [-1, 1]
         solution = self.solver.sample(
             self.posterior,
             x_init,
@@ -620,10 +622,16 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+
+        # Scale the output back to [0, 1]
+        sample = solution.sample
+        if self.minus_one_one:
+            sample = (sample.clamp_(-1, 1) + 1) / 2
+
         if get_trajectory:
-            return solution.sample, solution.trajectory
+            return sample, solution.trajectory
         else:
-            return solution.sample
+            return sample
 
     def score(
         self,
