@@ -930,8 +930,9 @@ def test_model_forward_passes(
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
-    train_data, eval_data = dummy_dataset, dummy_dataset
+@pytest.mark.parametrize("grad_clip", [None, 0.5])
+def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
+    train_data = dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
@@ -951,6 +952,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
         train_dataloader=dataloader,
         online_measurements=True,
         check_grad=True,
+        grad_clip=grad_clip,
     )
 
     call_count = 0
@@ -988,12 +990,21 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
 
     stdout_value = stdout_buf.getvalue()
 
-    gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
-    gradient_norms = [float(norm[0]) for norm in gradient_norms]
-    gradient_norms = torch.tensor(gradient_norms)
-    expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
-    expected_gradient_norms = torch.tensor(expected_gradient_norms)
-    assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+    if grad_clip is None:
+        gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
+        gradient_norms = [float(norm[0]) for norm in gradient_norms]
+        gradient_norms = torch.tensor(gradient_norms)
+        expected_gradient_norms = [
+            float(epoch) for epoch in range(1, trainer.epochs + 1)
+        ]
+        expected_gradient_norms = torch.tensor(expected_gradient_norms)
+        assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+    else:
+        grads = [
+            p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
+        ]
+        assert len(grads) > 0
+        assert torch.linalg.vector_norm(torch.cat(grads), ord=2) <= grad_clip + 1e-1
 
 
 # Test output directory collision detection
