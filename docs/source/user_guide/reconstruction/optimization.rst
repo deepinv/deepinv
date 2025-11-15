@@ -325,7 +325,7 @@ Alternatively, the parameters can be defined via the dictionary ``params_algo``.
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
        | should be smaller than :math:`1/(\|A\|_2^2)`.
-   * - ``"lambda_reg"``
+   * - ``"lambda_reg"`` (or ``"lambda"`` if passed via the dictionary ``params_algo``)
      - | Regularization parameter :math:`\lambda`
        | multiplying the regularization term.
      - Should be positive.

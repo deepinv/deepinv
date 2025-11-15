@@ -338,20 +338,19 @@ class BaseOptim(Reconstructor):
         if isinstance(params_algo, MappingProxyType):
             params_algo = params_algo.copy()
 
-        # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
+        # By default ``params_algo`` should contain a prior parameter named ``g_param`` or ``sigma_denoiser``, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             if "sigma_denoiser" in params_algo.keys():
                 params_algo["g_param"] = params_algo.pop("sigma_denoiser")
             else:
                 params_algo["g_param"] = None
 
-        # Correct the 'lambda_reg' key to 'lambda' in params_algo if it exists.
-        if "lambda_reg" in params_algo.keys():
-            params_algo["lambda"] = params_algo.pop("lambda_reg")
-
         # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
         if "lambda" not in params_algo.keys():
-            params_algo["lambda"] = 1.0
+            if "lambda_reg" in params_algo.keys():
+                params_algo["lambda"] = params_algo.pop("lambda_reg")
+            else:
+                params_algo["lambda"] = 1.0
 
         # By default ``params_algo`` should contain a relaxation ``beta`` parameter, set by default to 1..
         if "beta" not in params_algo.keys():
