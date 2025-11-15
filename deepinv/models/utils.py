@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
-from torch.nn.functional import silu
+import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import Linear, GroupNorm
 from itertools import chain
@@ -216,17 +216,17 @@ class UpDownConv2d(torch.nn.Module):
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
 
         if self.fused_resample and self.up and w is not None:
-            x = torch.nn.functional.conv_transpose2d(
+            x = F.conv_transpose2d(
                 x,
                 f.mul(4).tile([self.in_channels, 1, 1, 1]),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
             )
-            x = torch.nn.functional.conv2d(x, w, padding=max(w_pad - f_pad, 0))
+            x = F.conv2d(x, w, padding=max(w_pad - f_pad, 0))
         elif self.fused_resample and self.down and w is not None:
-            x = torch.nn.functional.conv2d(x, w, padding=w_pad + f_pad)
-            x = torch.nn.functional.conv2d(
+            x = F.conv2d(x, w, padding=w_pad + f_pad)
+            x = F.conv2d(
                 x,
                 f.tile([self.out_channels, 1, 1, 1]),
                 groups=self.out_channels,
@@ -234,7 +234,7 @@ class UpDownConv2d(torch.nn.Module):
             )
         else:
             if self.up:
-                x = torch.nn.functional.conv_transpose2d(
+                x = F.conv_transpose2d(
                     x,
                     f.mul(4).tile([self.in_channels, 1, 1, 1]),
                     groups=self.in_channels,
@@ -242,7 +242,7 @@ class UpDownConv2d(torch.nn.Module):
                     padding=f_pad,
                 )
             if self.down:
-                x = torch.nn.functional.conv2d(
+                x = F.conv2d(
                     x,
                     f.tile([self.in_channels, 1, 1, 1]),
                     groups=self.in_channels,
@@ -250,49 +250,10 @@ class UpDownConv2d(torch.nn.Module):
                     padding=f_pad,
                 )
             if w is not None:
-                x = torch.nn.functional.conv2d(x, w, padding=w_pad)
+                x = F.conv2d(x, w, padding=w_pad)
         if b is not None:
             x = x.add_(b.reshape(1, -1, 1, 1))
         return x
-
-
-# ----------------------------------------------------------------------------
-# Attention weight computation, i.e., softmax(Q^T * K).
-# Performs all computation using FP32, but uses the original datatype for
-# inputs/outputs/gradients to conserve memory.
-
-
-class AttentionOp(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, q, k):
-        w = (
-            torch.einsum(
-                "ncq,nck->nqk",
-                q.to(torch.float32),
-                (k / np.sqrt(k.shape[1])).to(torch.float32),
-            )
-            .softmax(dim=2)
-            .to(q.dtype)
-        )
-        ctx.save_for_backward(q, k, w)
-        return w
-
-    @staticmethod
-    def backward(ctx, dw):
-        q, k, w = ctx.saved_tensors
-        db = torch._softmax_backward_data(
-            grad_output=dw.to(torch.float32),
-            output=w.to(torch.float32),
-            dim=2,
-            input_dtype=torch.float32,
-        )
-        dq = torch.einsum("nck,nqk->ncq", k.to(torch.float32), db).to(
-            q.dtype
-        ) / np.sqrt(k.shape[1])
-        dk = torch.einsum("ncq,nqk->nck", q.to(torch.float32), db).to(
-            k.dtype
-        ) / np.sqrt(k.shape[1])
-        return dq, dk
 
 
 # ----------------------------------------------------------------------------
@@ -392,18 +353,16 @@ class UNetBlock(torch.nn.Module):
 
     def forward(self, x, emb):
         orig = x
-        x = self.conv0(silu(self.norm0(x)))
+        x = self.conv0(F.silu(self.norm0(x)))
 
         params = self.affine(emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
         if self.adaptive_scale:
             scale, shift = params.chunk(chunks=2, dim=1)
-            x = silu(torch.addcmul(shift, self.norm1(x), scale + 1))
+            x = F.silu(torch.addcmul(shift, self.norm1(x), scale + 1))
         else:
-            x = silu(self.norm1(x.add_(params)))
+            x = F.silu(self.norm1(x.add_(params)))
 
-        x = self.conv1(
-            torch.nn.functional.dropout(x, p=self.dropout, training=self.training)
-        )
+        x = self.conv1(F.dropout(x, p=self.dropout, training=self.training))
         x = x.add_(self.skip(orig) if self.skip is not None else orig)
         x = x * self.skip_scale
 
@@ -415,8 +374,17 @@ class UNetBlock(torch.nn.Module):
                 )
                 .unbind(2)
             )
-            w = AttentionOp.apply(q, k)
-            a = torch.einsum("nqk,nck->ncq", w, v)
+
+            a = F.scaled_dot_product_attention(
+                q.transpose(1, 2),  # [N, Q, C]
+                k.transpose(1, 2),  # [N, K, C]
+                v.transpose(1, 2),  # [N, K, C]
+                dropout_p=0.0,
+                is_causal=False,
+            ).transpose(
+                1, 2
+            )  # back to [N, C, Q]
+
             x = self.proj(a.reshape(*x.shape)).add_(x)
             x = x * self.skip_scale
         return x

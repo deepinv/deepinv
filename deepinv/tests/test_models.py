@@ -687,31 +687,33 @@ def test_diffunetmodel(imsize, device):
 
     from deepinv.models import DiffUNet
 
-    model = DiffUNet().to(device)
+    model = DiffUNet(in_channels=1, out_channels=1, use_fp16=True, pretrained=None).to(
+        device
+    )
 
     torch.manual_seed(0)
-    sigma = 0.2
-    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones((3, 32, 32), device=device).unsqueeze(
-        0
-    )  # Testing the smallest size possible
-    y = physics(x)
+    y = torch.ones((1, 32, 32), device=device).unsqueeze(0)
 
     timestep = torch.tensor([1]).to(
         device
     )  # We pick a random timestep, goal is to check that model inference is ok.
-    x_hat = model(y, timestep)
-    x_hat = x_hat[:, :3, ...]
+    x_hat = model(y, timestep, type_t="timestep")
+    x_hat = x_hat[:, :1, ...]
 
-    assert x_hat.shape == x.shape
+    assert x_hat.shape == y.shape
 
     # Now we check that the denoise_forward method works
-    x_hat = model(y, sigma)
-    assert x_hat.shape == x.shape
+    x_hat = model(y, timestep, type_t="noise_level")
+    assert x_hat.shape == y.shape
+
+    # Check forward patch
+    x_hat = model.patch_forward(y, timestep, type_t="timestep", patch_size=16)
+    assert x_hat.shape == y.shape
+    x_hat = model.patch_forward(y, timestep, type_t="noise_level", patch_size=16)
 
     with pytest.raises(Exception):
         # The following should raise an exception because type_t is not in ['noise_level', 'timestep'].
-        x_hat = model(y, sigma, type_t="wrong_type")
+        x_hat = model(y, timestep, type_t="wrong_type")
 
 
 @pytest.mark.parametrize("image_volume_shape", [[1, 37, 31], [1, 16, 16, 16]])
