@@ -27,6 +27,7 @@ New Features
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -56,6 +57,7 @@ New Features
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 - Add SpatialUnwrapping forward model and ItohFidelity data fidelity (:gh:`723` by `Brayan Monroy`_)
+- make FFT and spatial convolution equivalent (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
