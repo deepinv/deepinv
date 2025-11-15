@@ -27,11 +27,15 @@ def _raise_value_error_padding_messages(padding):
         "circular",
         "replicate",
         "reflect",
-        "constant",
+        "zeros",
     ]:
         raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'constant'."
+            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'zeros'."
         )
+    else:
+        if padding.lower() == "zeros":
+            padding = "constant"
+    return padding
 
 
 def conv2d(
@@ -51,20 +55,19 @@ def conv2d(
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
-        ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
+    :param padding: (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``). If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
     :return: :class:`torch.Tensor`: the blurry output.
 
     .. note::
 
-        Contrarily to Pytorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
+        Contrarily to Pytorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution when ``correlation=False``.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.
 
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
 
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
@@ -111,11 +114,10 @@ def conv_transpose2d(
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool correlation: choose True if you want a cross-correlation (default `False`)
+        If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
+        Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
-    Otherwise, each channel of each image is convolved with the corresponding kernel.
-
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'`` and ``'zeros'``.
         If ``padding='valid'`` the output is larger than the image (padding)
         otherwise the output has the same size as the image.
 
@@ -129,7 +131,7 @@ def conv_transpose2d(
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
     filter = _flip_filter_if_needed(filter, correlation, dims=(-2, -1))
 
     # Get dimensions of the input and the filter
@@ -167,10 +169,6 @@ def conv2d_fft(
 
     The adjoint of this operation is :func:`deepinv.physics.functional.conv_transpose2d_fft`
 
-    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as
-    `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
-    Otherwise, each channel of each image is convolved with the corresponding kernel.
-
     .. note::
 
         The convolution here is a convolution, not a correlation as in :func:`torch.nn.functional.conv2d`.
@@ -178,14 +176,16 @@ def conv2d_fft(
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
+        If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
+        Otherwise, each channel of each image is convolved with the corresponding kernel.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
         If ``padding = 'valid'`` the output is smaller than the image (no padding),
         otherwise the output has the same size as the image. Default is ``'valid'``.
     :return: :class:`torch.Tensor`: the output of the convolution of the shape size as `x`.
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
     B, C, H, W = x.size()
@@ -244,11 +244,10 @@ def conv_transpose2d_fft(
 
     :param torch.Tensor y: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-
-    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
+        If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`y`.
 
@@ -259,7 +258,7 @@ def conv_transpose2d_fft(
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
 
     # Get dimensions of the input and the filter
     B, C, H, W = y.size()
@@ -331,12 +330,17 @@ def conv3d(
 
     :param torch.Tensor x: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
+
+    .. note::
+
+        Contrarily to Pytorch's :func:`torch.nn.functional.conv3d`, which performs a cross-correlation, this function performs a convolution when ``correlation=False``.
+
     """
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.shape
     b, c, d, h, w = filter.shape
@@ -385,14 +389,14 @@ def conv_transpose3d(
 
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
-    :param bool correlation: choose True if you want a cross-correlation (default `False`).
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+    :param bool correlation: choose `True` if you want the transpose of the cross-correlation (default `False`).
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
     B, C, D, H, W = y.shape
     b, c, d, h, w = filter.shape
 
@@ -433,7 +437,7 @@ def conv3d_fft(
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
         If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
     .. note::
@@ -446,7 +450,7 @@ def conv3d_fft(
     """
 
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
 
     B, C, D, H, W = x.size()
     b, c, d, h, w = filter.size()
@@ -529,7 +533,7 @@ def conv_transpose3d_fft(
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
         If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
 
     .. note::
@@ -540,7 +544,7 @@ def conv_transpose3d_fft(
     """
 
     assert y.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
-    _raise_value_error_padding_messages(padding)
+    padding = _raise_value_error_padding_messages(padding)
     # Get dimensions of the input and the filter
     B, C, D, H, W = y.size()
     b, c, d, h, w = filter.size()
@@ -670,7 +674,7 @@ def _apply_transpose_padding(
 
     Args:
         x: result of conv_transposeNd with shape (B, C, ...spatial...)
-        padding: one of 'circular', 'replicate', 'reflect', 'constant'
+        padding: one of 'circular', 'replicate', 'reflect', 'zeros'
         p: half sizes per spatial dim (e.g., (ph, pw) for 2D or (pd, ph, pw) for 3D)
         i: parity flags per spatial dim: (f-1) % 2 for each filter size
 

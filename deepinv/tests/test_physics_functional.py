@@ -5,7 +5,7 @@ from functools import partial
 import deepinv as dinv
 
 # Some global constants
-ALL_CONV_PADDING = ("valid", "circular", "constant", "replicate", "reflect")
+ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
 
 
 @pytest.mark.parametrize("B", [1, 2])

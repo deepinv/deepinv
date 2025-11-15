@@ -49,10 +49,10 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
      - Computes the 2D transposed convolution with FFT, efficiently implementing upsampling or deconvolution.
 
    * - :func:`deepinv.physics.functional.conv3d`
-     - Performs 3D convolution, typically used in volumetric data processing for filtering and feature extraction.
+     - Performs 3D convolution.
 
    * - :func:`deepinv.physics.functional.conv_transpose3d`
-     - Computes the 3D transposed convolution (deconvolution), used for volumetric data upsampling or reversing convolutional operations.
+     - Computes the 3D transposed convolution
 
    * - :func:`deepinv.physics.functional.conv3d_fft`
      - Performs 3D convolution using FFT, suitable for volumetric data processing in applications like medical imaging.
