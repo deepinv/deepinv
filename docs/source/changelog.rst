@@ -11,6 +11,7 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
@@ -24,6 +25,7 @@ New Features
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed
@@ -508,3 +510,4 @@ Changed
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
+.. _Alexander Skorikov: https://github.com/askorikov
