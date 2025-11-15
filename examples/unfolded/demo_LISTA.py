@@ -152,15 +152,15 @@ prior = [
 # Note that in this case, the prior is a list of elements containing the terms :math:`\|\left(Wx\right)_{i, j}\|_1=g_{i, j}(x)`,
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
-# Unrolled optimization algorithm parameters
-g_param = [
+# Unrolled optimization algorithm parameters.
+sigma_denoiser = [
     torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct regularization parameter is trained for each iteration.
 
 trainable_params = [
     "stepsize",
-    "g_param",
+    "sigma_denoiser",
 ]  # define which parameters are trainable
 
 # Define the unfolded trainable model.
@@ -171,7 +171,7 @@ model = PGD(
     max_iter=max_iter,
     prior=prior,
     stepsize=stepsize,
-    g_param=g_param,
+    sigma_denoiser=sigma_denoiser,
 ).to(device)
 
 

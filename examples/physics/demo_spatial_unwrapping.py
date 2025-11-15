@@ -166,7 +166,7 @@ wrapped_phase = physics(phase_map)
 
 # ADMM-based inversion with TV prior and Itoh fidelity
 stepsize = 1e-4
-lam = 2.0 / stepsize
+lambda_reg = 2.0 / stepsize
 prior = dinv.optim.TVPrior(n_it_max=10)
 fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 
@@ -179,8 +179,7 @@ model = ADMM(
     max_iter=10,
     verbose=False,
     stepsize=stepsize,
-    lambda_reg=lam,
-    g_param=1.0,
+    lambda_reg=lambda_reg
 )
 x_model = model(wrapped_phase, physics)
 

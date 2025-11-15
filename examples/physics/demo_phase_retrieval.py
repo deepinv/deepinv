@@ -102,7 +102,7 @@ data_fidelity = L2()
 prior = Zero()
 iterator = dinv.optim.optim_iterators.GDIteration()
 # Parameters for the optimizer, including stepsize and regularization coefficient.
-optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": []}
+optim_params = {"stepsize": 0.06, "lambda": 1.0}
 num_iter = 1000
 
 # Initial guess
