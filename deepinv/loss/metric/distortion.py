@@ -458,8 +458,8 @@ class QNR(Metric):
             for c in range(n_bands):
                 out += (
                     abs(
-                        self.Q(hrms[:, [b], :, :], hrms[:, [c], :, :])
-                        - self.Q(lrms[:, [b], :, :], lrms[:, [c], :, :])
+                        self.Q(hrms[:, (b,), :, :], hrms[:, (c,), :, :])
+                        - self.Q(lrms[:, (b,), :, :], lrms[:, (c,), :, :])
                     )
                     ** self.p
                 )
@@ -472,7 +472,8 @@ class QNR(Metric):
         for b in range(n_bands):
             out += (
                 abs(
-                    self.Q(hrms[:, [b], :, :], pan) - self.Q(lrms[:, [b], :, :], pan_lr)
+                    self.Q(hrms[:, (b,), :, :], pan)
+                    - self.Q(lrms[:, (b,), :, :], pan_lr)
                 )
                 ** self.q
             )
