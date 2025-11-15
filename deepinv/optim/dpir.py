@@ -71,7 +71,7 @@ class DPIR(BaseOptim):
         sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma, device=device)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(
-            create_iterator("HQS", prior=prior, F_fn=None, g_first=False),
+            create_iterator("HQS", prior=prior, cost_fn=None, g_first=False),
             max_iter=max_iter,
             data_fidelity=L2(),
             prior=prior,

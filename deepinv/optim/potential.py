@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import deepinv
 from deepinv.optim.utils import gradient_descent
 
 
@@ -21,7 +22,7 @@ class Potential(nn.Module):
         Computes the value of the potential :math:`h(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) prior :math:`h(x)`.
+        :return: (torch.Tensor) prior :math:`h(x)`.
         """
         return self._fn(x, *args, **kwargs)
 
@@ -30,7 +31,7 @@ class Potential(nn.Module):
         Computes the value of the potential :math:`h(x)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
-        :return: (torch.tensor) prior :math:`h(x)`.
+        :return: (torch.Tensor) prior :math:`h(x)`.
         """
         return self.fn(x, *args, **kwargs)
 
@@ -40,7 +41,7 @@ class Potential(nn.Module):
         By default, the conjugate is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
-        :return: (torch.tensor) conjugate potential :math:`h^*(y)`.
+        :return: (torch.Tensor) conjugate potential :math:`h^*(y)`.
         """
         grad = lambda z: self.grad(z, *args, **kwargs) - x
         z = gradient_descent(-grad, x)
@@ -54,7 +55,7 @@ class Potential(nn.Module):
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x h`, computed in :math:`x`.
         """
         with torch.enable_grad():
             x = x.requires_grad_()
@@ -71,7 +72,7 @@ class Potential(nn.Module):
         By default, the gradient is computed using automatic differentiation.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
+        :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         with torch.enable_grad():
             x = x.requires_grad_()
@@ -103,7 +104,7 @@ class Potential(nn.Module):
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma h}(x)`, computed in :math:`x`.
+        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma h}(x)`, computed in :math:`x`.
         """
         grad = lambda z: gamma * self.grad(z, *args, **kwargs) + (z - x)
         return gradient_descent(
@@ -119,7 +120,7 @@ class Potential(nn.Module):
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
         :param float lamb: math:`\lambda` parameter in front of :math:`f`
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda h)^*}(x)`, computed in :math:`x`.
+        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda h)^*}(x)`, computed in :math:`x`.
         """
         return x - gamma * self.prox(x / gamma, *args, gamma=lamb / gamma, **kwargs)
 
@@ -151,11 +152,26 @@ class Potential(nn.Module):
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}^h_{\gamma \regname}(x)`, computed in :math:`x`.
+        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}^h_{\gamma \regname}(x)`, computed in :math:`x`.
         """
-        grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
-            bregman_potential.grad(u) - bregman_potential.grad(x)
-        )
-        return gradient_descent(
-            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
-        )
+        if isinstance(bregman_potential, deepinv.optim.BregmanL2):
+            return self.prox(
+                x,
+                *args,
+                gamma=gamma,
+                stepsize_inter=stepsize_inter,
+                max_iter_inter=max_iter_inter,
+                tol_inter=tol_inter,
+                **kwargs,
+            )
+        else:
+            grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
+                bregman_potential.grad(u) - bregman_potential.grad(x)
+            )
+            return gradient_descent(
+                grad,
+                x,
+                step_size=stepsize_inter,
+                max_iter=max_iter_inter,
+                tol=tol_inter,
+            )

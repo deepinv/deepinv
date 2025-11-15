@@ -22,6 +22,18 @@ Base Class
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.BacktrackingConfig
+   deepinv.optim.AndersonAccelerationConfig
+   deepinv.optim.DEQConfig
+   deepinv.optim.GD
+   deepinv.optim.PGD
+   deepinv.optim.FISTA
+   deepinv.optim.ADMM
+   deepinv.optim.DRS
+   deepinv.optim.HQS
+   deepinv.optim.MD
+   deepinv.optim.PMD
+   deepinv.optim.PDCP
 
 
 Potentials
@@ -144,6 +156,7 @@ Iterators
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.MDIteration
+   deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
 
 

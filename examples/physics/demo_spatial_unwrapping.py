@@ -23,8 +23,8 @@ import torch
 import deepinv as dinv
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-
-from deepinv.utils.demo import load_example
+from deepinv.optim import ADMM
+from deepinv.utils import load_example
 
 
 # %%
@@ -166,22 +166,20 @@ wrapped_phase = physics(phase_map)
 
 # ADMM-based inversion with TV prior and Itoh fidelity
 stepsize = 1e-4
-lam = 2.0 / stepsize
+lambda_reg = 2.0 / stepsize
 prior = dinv.optim.TVPrior(n_it_max=10)
 fidelity = dinv.optim.ItohFidelity(threshold=threshold)
 
 # DCT-based inversion
 x_est = fidelity.D_dagger(wrapped_phase)
 
-
-params_algo = {"stepsize": stepsize, "lambda": lam, "g_param": 1.0}
-model = dinv.optim.optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     data_fidelity=fidelity,
     max_iter=10,
     verbose=False,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
 )
 x_model = model(wrapped_phase, physics)
 

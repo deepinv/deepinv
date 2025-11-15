@@ -35,7 +35,7 @@ class Haze(Physics):
         r"""
         :param list, tuple x:  The input x should be a tuple/list such that x[0] = image torch.tensor :math:`I`,
          x[1] = depth torch.tensor :math:`d`, x[2] = scalar or torch.tensor of one element :math:`a`.
-        :return: (torch.tensor) hazy image.
+        :return: (torch.Tensor) hazy image.
 
         """
         im = x[0]
