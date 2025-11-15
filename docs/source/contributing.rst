@@ -39,6 +39,46 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
 How to Contribute
 -----------------
 
+Steps:
+- TODO with links
+
+1. Open a pull request in GitHub
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO follow excellent instructions from https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project
+
+Once you have created a draft pull request with your contribution, move to the next step!
+
+Mention you can allow maintainers to edit the PR
+
+2. Write tests
+~~~~~~~~~~~~~~
+
+TODO install in editable mode etc.
+
+Don't know how? Ask in Discord or skip this step and we'll help you out.
+
+3. Write docs
+~~~~~~~~~~~~~
+
+Copy instructions from below
+
+Don't know how? Ask in Discord or skip this step and we'll help you out.
+
+4. Formatting and linting
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+5. Interact with reviewers
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You're done! A maintainer will see it and will interact with you.
+They may suggest changes.
+They will also run the workflows.
+
+Explain how to pull the changes maintainers might make to the PR if they've been allowed to
+
+TODO distribute below into the above steps:
+
 To contribute, you must install `deepinv` in editable mode
 so that all your changes are visible when you run workflows.
 Make sure that you download all the required dependencies for testing
