@@ -179,7 +179,7 @@ model = ADMM(
     max_iter=10,
     verbose=False,
     stepsize=stepsize,
-    lambda_reg=lambda_reg
+    lambda_reg=lambda_reg,
 )
 x_model = model(wrapped_phase, physics)
 
