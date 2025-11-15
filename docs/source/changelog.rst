@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
 
 Changed
 ^^^^^^^
