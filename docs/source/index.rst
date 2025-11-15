@@ -3,7 +3,7 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
+|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube|
 
 .. toctree::
    :maxdepth: 3
@@ -82,7 +82,7 @@ DeepInverse is a :ref:`community-driven project <community>` and we encourage co
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
-Interested? Check out our :ref:`contributing guide <contributing>`.
+Interested? :ref:`Check out how you can contribute <contributing>`!
 
 
 Finding help
@@ -146,4 +146,5 @@ unfolded, deep equilibrium models
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
-
+.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
+   :target: https://www.youtube.com/@deepinv

@@ -13,6 +13,28 @@ View our active list of contributors `here <https://github.com/deepinv/deepinv/g
 Learn more about our code philosophy in the paper:
 `DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
 
+Finding Issues to Work On
+-------------------------
+
+We welcome contributions in all areas!
+Get started by looking for
+`good first issue <https://github.com/deepinv/deepinv/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22>`_ or
+`open to contribs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22open%20to%20contribs%22>`_.
+Or, to help you find something interesting or relevant to your
+expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issues>`_. Here are some keywords you could search for:
+
+.. list-table::
+   :widths: 25 25 25 25
+
+   * - `optimization <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+optim>`_ 
+     - `training <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+trainer>`_ 
+     - `datasets <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+dataset>`_ 
+     - `losses <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+loss>`_ 
+   * - `diffusion <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+diffusion>`_ 
+     - `mri <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+mri>`_ 
+     - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_ 
+     - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_ 
+
 
 How to Contribute
 -----------------
