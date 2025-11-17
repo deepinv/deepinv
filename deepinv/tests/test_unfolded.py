@@ -72,9 +72,9 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        prior=prior,
-        device=device,
+        prior=prior
     )
+    model.to(device)s
 
     for idx, (name, param) in enumerate(model.named_parameters()):
         assert param.requires_grad
@@ -197,7 +197,6 @@ def test_DEQ(
         max_iter=max_iter,
         prior=prior,
         anderson_acceleration=and_acc,
-        device=device,
         **kwargs,
     )
     model.to(device)

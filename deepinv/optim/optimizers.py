@@ -273,8 +273,7 @@ class BaseOptim(Reconstructor):
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = False,
         verbose: bool = False,
-        show_progress_bar: bool = False,
-        device: torch.device = torch.device("cpu"),
+        show_progress_bar: bool = False
     ):
         super(BaseOptim, self).__init__()
 
@@ -310,7 +309,6 @@ class BaseOptim(Reconstructor):
             self.anderson_acceleration_config = (
                 anderson_acceleration or AndersonAccelerationConfig()
             )
-        self.device = device
 
         # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
         if prior is None:
@@ -398,21 +396,21 @@ class BaseOptim(Reconstructor):
                     )
             else:
                 trainable_params = params_algo.keys()
-            for param_key in trainable_params:
-                if param_key in self.init_params_algo.keys():
-                    param_value = self.init_params_algo[param_key]
-                    self.init_params_algo[param_key] = nn.ParameterList(
-                        [
-                            (
-                                nn.Parameter(torch.tensor(el).float().to(device))
-                                if not isinstance(el, torch.Tensor)
-                                else nn.Parameter(el.float().to(device))
-                            )
-                            for el in param_value
-                        ]
-                    )
-            self.params_algo = nn.ParameterDict(self.init_params_algo)
-            self.init_params_algo = self.params_algo.copy()
+
+            param_dict = {}
+            for key in trainable_params:
+                if key in params_algo:
+                    values = params_algo[key]
+                    param_list = nn.ParameterList([
+                        self._make_param(el) for el in values
+                    ])
+                    param_dict[key] = param_list
+            self.params_algo = nn.ParameterDict(param_dict)
+            # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
+            self.init_params_algo = {
+                    k: [p.detach().clone() for p in plist]
+                    for k, plist in self.params_algo.items()
+                }
             # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
             self.prior = nn.ModuleList(self.prior) if self.prior else None
             self.data_fidelity = (
@@ -441,6 +439,17 @@ class BaseOptim(Reconstructor):
         from deepinv.loss.metric.distortion import PSNR
 
         self.psnr = PSNR()
+
+    @staticmethod
+    def _make_param(el):
+        r"""
+        Static method to convert a float or a torch.Tensor to a nn.Parameter.
+        """
+        if not torch.is_tensor(el):
+            el = torch.tensor(el, dtype=torch.float32)
+        else:
+            el = el.float()
+        return nn.Parameter(el)
 
     def update_params_fn(self, it: int) -> dict[str, float | Iterable]:
         r"""
@@ -533,9 +542,7 @@ class BaseOptim(Reconstructor):
             Default: ``None``.
         :return: a dictionary containing the first iterate of the algorithm.
         """
-        self.params_algo = (
-            self.init_params_algo.copy()
-        )  # reset parameters to initial values
+        self.params_algo = self.init_params_algo
         init = init if init is not None else self.custom_init
         if init is not None:
             if callable(init):
@@ -1094,7 +1101,6 @@ class ADMM(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1127,7 +1133,6 @@ class ADMM(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
 
@@ -1155,7 +1160,6 @@ class ADMM(BaseOptim):
             custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
 
@@ -1229,7 +1233,6 @@ class DRS(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the DRS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1262,7 +1265,6 @@ class DRS(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1288,7 +1290,6 @@ class DRS(BaseOptim):
             custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
 
@@ -1370,7 +1371,6 @@ class GD(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1404,7 +1404,6 @@ class GD(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1431,7 +1430,6 @@ class GD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
-            device=device,
             **kwargs,
         )
 
@@ -1514,7 +1512,6 @@ class HQS(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the HQS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1548,7 +1545,6 @@ class HQS(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1574,7 +1570,6 @@ class HQS(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
-            device=device,
             **kwargs,
         )
 
@@ -1657,7 +1652,6 @@ class PGD(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1692,7 +1686,6 @@ class PGD(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1719,7 +1712,6 @@ class PGD(BaseOptim):
             unfold=unfold,
             trainable_params=trainable_params,
             DEQ=DEQ,
-            device=device,
             **kwargs,
         )
 
@@ -1788,7 +1780,6 @@ class FISTA(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the FISTA parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `a`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1821,7 +1812,6 @@ class FISTA(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1847,7 +1837,6 @@ class FISTA(BaseOptim):
             custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
 
@@ -1910,7 +1899,6 @@ class MD(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the MD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -1942,7 +1930,6 @@ class MD(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -1967,7 +1954,6 @@ class MD(BaseOptim):
             custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
 
@@ -2032,7 +2018,6 @@ class PMD(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the PMD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -2065,7 +2050,6 @@ class PMD(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -2091,7 +2075,6 @@ class PMD(BaseOptim):
             custom_init=custom_init,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
 
@@ -2179,7 +2162,6 @@ class PDCP(BaseOptim):
             the current prior (:class:`deepinv.optim.Prior`), the current parameters (dict), and the measurement (:class:`torch.Tensor`).
             Default: ``None``.
     :param dict params_algo: optionally, directly provide the PD parameters in a dictionary. This will overwrite the parameters in the arguments `K`, `K_adjoint`, `stepsize`, `lambda_reg`, `stepsize_dual`, `g_param`, `beta`.
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -2215,7 +2197,6 @@ class PDCP(BaseOptim):
             torch.Tensor,
         ] = None,
         params_algo: dict[str, float] = None,
-        device: torch.device = torch.device("cpu"),
         **kwargs,
     ):
         if g_param is None and sigma_denoiser is not None:
@@ -2258,6 +2239,5 @@ class PDCP(BaseOptim):
             custom_metrics=custom_metrics,
             unfold=unfold,
             trainable_params=trainable_params,
-            device=device,
             **kwargs,
         )
