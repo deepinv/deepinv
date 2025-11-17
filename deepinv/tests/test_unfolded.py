@@ -72,7 +72,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        prior=prior
+        prior=prior,
     )
     model.to(device)
 
