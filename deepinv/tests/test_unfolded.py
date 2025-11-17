@@ -73,6 +73,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
+        device=device,
     )
 
     for idx, (name, param) in enumerate(model.named_parameters()):
@@ -196,6 +197,7 @@ def test_DEQ(
         max_iter=max_iter,
         prior=prior,
         anderson_acceleration=and_acc,
+        device=device,
         **kwargs,
     )
     model.to(device)
