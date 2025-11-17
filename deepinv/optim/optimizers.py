@@ -273,7 +273,7 @@ class BaseOptim(Reconstructor):
         DEQ: DEQConfig | bool = None,
         anderson_acceleration: AndersonAccelerationConfig | bool = False,
         verbose: bool = False,
-        show_progress_bar: bool = False
+        show_progress_bar: bool = False,
     ):
         super(BaseOptim, self).__init__()
 
@@ -401,16 +401,16 @@ class BaseOptim(Reconstructor):
             for key in trainable_params:
                 if key in params_algo:
                     values = params_algo[key]
-                    param_list = nn.ParameterList([
-                        self._make_param(el) for el in values
-                    ])
+                    param_list = nn.ParameterList(
+                        [self._make_param(el) for el in values]
+                    )
                     param_dict[key] = param_list
             self.params_algo = nn.ParameterDict(param_dict)
             # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
             self.init_params_algo = {
-                    k: [p.detach().clone() for p in plist]
-                    for k, plist in self.params_algo.items()
-                }
+                k: [p.detach().clone() for p in plist]
+                for k, plist in self.params_algo.items()
+            }
             # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
             self.prior = nn.ModuleList(self.prior) if self.prior else None
             self.data_fidelity = (
