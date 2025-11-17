@@ -12,10 +12,11 @@ New Features
 Changed
 ^^^^^^^
 - (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+- (Breaking) `Tomography` physics uses the true adjoint by default, and instead of FBP, implements the pseudo-inverse as the solution of a least-squares problem (:gh:`930` by `Romain Vo`_)
 
 Fixed
 ^^^^^
-
+-  test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
 
 v0.3.6
 ------
