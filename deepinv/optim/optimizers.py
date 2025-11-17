@@ -274,6 +274,7 @@ class BaseOptim(Reconstructor):
         anderson_acceleration: AndersonAccelerationConfig | bool = False,
         verbose: bool = False,
         show_progress_bar: bool = False,
+        **kwargs,
     ):
         super(BaseOptim, self).__init__()
 
@@ -439,6 +440,17 @@ class BaseOptim(Reconstructor):
         from deepinv.loss.metric.distortion import PSNR
 
         self.psnr = PSNR()
+
+        if 'device' in kwargs:
+            warnings.warn(
+                "Passing `device` as model argument will be removed in a future release. "
+                "Use `model.to(device)` instead.",
+                DeprecationWarning,
+            )
+            device = kwargs['device']
+            self.device = device
+            self.to(device)
+
 
     def update_params_fn(self, it: int) -> dict[str, float | Iterable]:
         r"""
