@@ -542,7 +542,8 @@ class BaseOptim(Reconstructor):
             Default: ``None``.
         :return: a dictionary containing the first iterate of the algorithm.
         """
-        self.params_algo = self.init_params_algo
+        # reset params to initial values
+        self.params_algo = self.init_params_algo.copy()
         init = init if init is not None else self.custom_init
         if init is not None:
             if callable(init):
