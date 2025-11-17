@@ -2,7 +2,7 @@ import pytest
 import torch
 import deepinv as dinv
 import deepinv.loss.metric as metric
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 METRICS = [
     "MAE",
