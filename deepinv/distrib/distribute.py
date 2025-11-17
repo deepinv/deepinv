@@ -38,7 +38,7 @@ from deepinv.optim.data_fidelity import DataFidelity, L2
 from deepinv.optim.prior import Prior
 from deepinv.models.base import Denoiser
 
-from deepinv.deepinv.distrib.distrib_framework import (
+from deepinv.distrib.distrib_framework import (
     DistributedContext,
     DistributedPhysics,
     DistributedLinearPhysics,
