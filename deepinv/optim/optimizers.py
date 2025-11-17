@@ -396,21 +396,21 @@ class BaseOptim(Reconstructor):
                     )
             else:
                 trainable_params = params_algo.keys()
-
-            param_dict = {}
-            for key in trainable_params:
-                if key in params_algo:
-                    values = params_algo[key]
-                    param_list = nn.ParameterList(
-                        [self._make_param(el) for el in values]
+            for param_key in trainable_params:
+                if param_key in self.init_params_algo.keys():
+                    param_value = self.init_params_algo[param_key]
+                    self.init_params_algo[param_key] = nn.ParameterList(
+                        [
+                            (
+                                nn.Parameter(torch.tensor(el).float())
+                                if not isinstance(el, torch.Tensor)
+                                else nn.Parameter(el.float())
+                            )
+                            for el in param_value
+                        ]
                     )
-                    param_dict[key] = param_list
-            self.params_algo = nn.ParameterDict(param_dict)
-            # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
-            self.init_params_algo = {
-                k: [p.detach().clone() for p in plist]
-                for k, plist in self.params_algo.items()
-            }
+            self.params_algo = nn.ParameterDict(self.init_params_algo)
+            self.init_params_algo = self.params_algo.copy()
             # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
             self.prior = nn.ModuleList(self.prior) if self.prior else None
             self.data_fidelity = (
@@ -439,17 +439,6 @@ class BaseOptim(Reconstructor):
         from deepinv.loss.metric.distortion import PSNR
 
         self.psnr = PSNR()
-
-    @staticmethod
-    def _make_param(el):
-        r"""
-        Static method to convert a float or a torch.Tensor to a nn.Parameter.
-        """
-        if not torch.is_tensor(el):
-            el = torch.tensor(el, dtype=torch.float32)
-        else:
-            el = el.float()
-        return nn.Parameter(el)
 
     def update_params_fn(self, it: int) -> dict[str, float | Iterable]:
         r"""
