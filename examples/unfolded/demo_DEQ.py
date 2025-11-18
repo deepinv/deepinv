@@ -16,7 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder
+from deepinv.optim import PGD
 from torchvision import transforms
 from deepinv.utils import load_dataset, load_degradation
 
@@ -110,8 +110,8 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :func:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
-# The chosen algorithm is here HQS (Half Quadratic Splitting).
+# We use the  :func:`deepinv.optim.PGD` with the argument `DEQ=True` to defined the DEQ architecture.
+# The chosen algorithm is here PGD (Proximal Gradient Descent).
 # Note for DEQ, the prior and regularization parameters should be common for all iterations
 # to keep a constant fixed-point operator.
 
@@ -128,29 +128,21 @@ stepsize = [1.0]  # stepsize of the algorithm
 sigma_denoiser = [0.03]  # noise level parameter of the denoiser
 jacobian_free = False  # does not perform Jacobian inversion.
 
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-}
 trainable_params = [
     "stepsize",
-    "g_param",
-]  # define which parameters from 'params_algo' are trainable
+    "sigma_denoiser",
+]  # define which parameters are trainable. Here the stepsize and noise level of the denoiser are trained.
 
 # Define the unfolded trainable model.
-model = DEQ_builder(
-    iteration="PGD",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
-    params_algo=params_algo.copy(),
+model = PGD(
+    DEQ=True,
     trainable_params=trainable_params,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
     anderson_acceleration=True,
-    anderson_acceleration_backward=True,
-    history_size_backward=3,
-    history_size=3,
-    max_iter_backward=20,
-    jacobian_free=jacobian_free,
 )
 
 # %%
