@@ -8,6 +8,9 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
+- New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
+
 
 Changed
 ^^^^^^^
@@ -25,6 +28,7 @@ New Features
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
