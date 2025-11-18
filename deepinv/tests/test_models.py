@@ -1205,6 +1205,12 @@ def test_denoiser_perf(device):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.DiffusersDenoiserWrapper(
+                mode_id="google/ddpm-ema-celebahq-256"
+            ).to(device),
+            (2.5, 7, 7),
+        ),
     ]
 
     for denoiser, expected_perf in learned_denoisers:
@@ -1395,3 +1401,30 @@ def test_swinir_upsample_without_upsampler(upscale, upsampler):
 
     with ctx:
         _ = dinv.models.SwinIR(in_chans=3, upsample=1, pretrained=None, **kwargs)
+
+
+@pytest.mark.parametrize("clip_output", [False, True])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_diffuser_wrapper(batch_size, clip_output, device):
+    pytest.importorskip(
+        "diffusers",
+        reason="This test requires diffusers. It should be "
+        "installed with `pip install diffusers`",
+    )
+    pytest.importorskip(
+        "transformers",
+        reason="This test requires transformers. It should be "
+        "installed with `pip install transformers`",
+    )
+    model = dinv.models.DiffusersDenoiserWrapper(
+        mode_id="google/ddpm-cifar10-32", clip_output=clip_output, device=device
+    )
+
+    x = torch.randn(batch_size, 3, 32, 32, device=device)
+    sigma = torch.tensor([0.01 * (i + 1) for i in range(batch_size)], device=device)
+    with torch.no_grad():
+        output = model(x, sigma.squeeze())
+
+    assert output.shape == x.shape
+    if clip_output:
+        assert torch.all(output <= 1.0) and torch.all(output >= 0.0)
