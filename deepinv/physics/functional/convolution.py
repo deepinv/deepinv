@@ -28,9 +28,10 @@ def _raise_value_error_padding_messages(padding):
         "replicate",
         "reflect",
         "zeros",
+        "constant",
     ]:
         raise ValueError(
-            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect' or 'zeros'."
+            f"padding = '{padding}' not implemented. Please use one of 'valid', 'circular', 'replicate', 'reflect', 'constant' or 'zeros'."
         )
     else:
         if padding.lower() == "zeros":
@@ -55,7 +56,7 @@ def conv2d(
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param padding: (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``). If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
+    :param padding: (options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'`` or ``'zeros'``). If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image. Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
     :return: :class:`torch.Tensor`: the blurry output.
 
     .. note::
@@ -117,9 +118,9 @@ def conv_transpose2d(
         If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
         Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'`` and ``'zeros'``.
-        If ``padding='valid'`` the output is larger than the image (padding)
-        otherwise the output has the same size as the image.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'`` or ``'zeros'``.
+        If ``padding='valid'`` the output is larger than the image (padding) the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
 
     :return: :class:`torch.Tensor` : the output
 
@@ -179,9 +180,10 @@ def conv2d_fft(
         If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
         Otherwise, each channel of each image is convolved with the corresponding kernel.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``,  ``'constant'`` or ``'zeros'``.
         If ``padding = 'valid'`` the output is smaller than the image (no padding),
-        otherwise the output has the same size as the image. Default is ``'valid'``.
+        otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
     :return: :class:`torch.Tensor`: the output of the convolution of the shape size as `x`.
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -247,7 +249,10 @@ def conv_transpose2d_fft(
         If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation.
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``,  ``'constant'`` or ``'zeros'``.
+        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent.
+        Default is ``'valid'``.
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the same shape as :math:`y`.
 
@@ -330,8 +335,9 @@ def conv3d(
 
     :param torch.Tensor x: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
-
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``,  ``'constant'`` or ``'zeros'``.
+        If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D-d+1, W-w+1, H-h+1)`` if ``padding = 'valid'`` and the same shape as ``x`` otherwise.
 
     .. note::
@@ -389,7 +395,9 @@ def conv_transpose3d(
 
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``. If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+    :param str padding: can be ``'valid'`` (default), ``'circular'``, ``'replicate'``, ``'reflect'``, ``'constant'`` or ``'zeros'``.
+        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent. Default is ``'valid'``.
     :param bool correlation: choose `True` if you want the transpose of the cross-correlation (default `False`).
 
     :return: :class:`torch.Tensor`: the output of the convolution, which has the shape ``(B, C, D+d-1, W+w-1, H+h-1)`` if ``padding = 'valid'`` and the same shape as ``y`` otherwise.
@@ -437,8 +445,10 @@ def conv3d_fft(
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
-        If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image. Default is ``'valid'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``,  ``'constant'`` or ``'zeros'``.
+        If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent.
+        Default is ``'valid'``.
 
     .. note::
 
@@ -533,8 +543,10 @@ def conv_transpose3d_fft(
     :param torch.Tensor y: Image of size ``(B, C, D, H, W)``.
     :param torch.Tensor filter: Filter of size ``(b, c, d, h, w)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :param bool real_fft: for real filters and images choose `True` (default) to accelerate computation
-    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``, ``'zeros'``.
-        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image. Default is ``'valid'``.
+    :param str padding: can be ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``,  ``'constant'`` or ``'zeros'``.
+        If ``padding = 'valid'`` the output is larger than the image (padding), otherwise the output has the same size as the image.
+        Note that ``'constant'`` and ``'zeros'`` are equivalent.
+        Default is ``'valid'``.
 
     .. note::
 
