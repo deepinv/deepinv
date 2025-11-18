@@ -517,7 +517,6 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
             g_param=sigma_denoiser,
             lambda_reg=lambda_reg,
             early_stop=True,
-            device=device,
         )
     else:
         init = None
@@ -530,8 +529,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
             stepsize=stepsize,
             g_param=sigma_denoiser,
             lambda_reg=lambda_reg,
-            early_stop=True,
-            device=device,
+            early_stop=True
         )
 
     x = pnp(y, physics, init=init)
@@ -631,8 +629,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 g_param=sigma_denoiser,
                 lambda_reg=lambda_reg,
                 stepsize_dual=stepsize_dual,
-                early_stop=True,
-                device=device,
+                early_stop=True
             )
         else:
             init = None
@@ -645,8 +642,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
                 stepsize=stepsize,
                 g_param=sigma_denoiser,
                 lambda_reg=lambda_reg,
-                early_stop=True,
-                device=device,
+                early_stop=True
             )
 
         x = opt_algo(y, physics, init=init)
@@ -707,7 +703,6 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
         g_param=sigma_denoiser,
         lambda_reg=lambda_reg,
         early_stop=True,
-        device=device,
         **kwargs,
     )
 
@@ -797,8 +792,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             K=K_forward,
             K_adjoint=K_adjoint,
             early_stop=True,
-            g_first=g_first,
-            device=device,
+            g_first=g_first
         )
 
         x_init = physics.A_adjoint(y)
@@ -884,8 +878,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         K=A_forward,
         K_adjoint=A_adjoint,
         early_stop=True,
-        g_first=g_first,
-        device=device,
+        g_first=g_first
     )
 
     x_init = physics.A_adjoint(y)
