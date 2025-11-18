@@ -1409,6 +1409,11 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
         reason="This test requires diffusers. It should be "
         "installed with `pip install diffusers`",
     )
+    pytest.importorskip(
+        "transformers",
+        reason="This test requires transformers. It should be "
+        "installed with `pip install transformers`",
+    )
     model = dinv.models.DiffusersDenoiserWrapper(
         mode_id="google/ddpm-cifar10-32", clip_output=clip_output, device=device
     )

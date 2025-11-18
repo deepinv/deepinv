@@ -5,7 +5,7 @@ from deepinv.models import Denoiser
 
 class DiffusersDenoiserWrapper(Denoiser):
     """
-    Wraps a diffusers model as a DeepInv Denoiser.
+    Wraps a `HuggingFace diffusers <https://huggingface.co/docs/diffusers/index>`_ model as a DeepInv Denoiser.
 
     :param str mode_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
         The id must work with `DiffusionPipeline`.
@@ -90,7 +90,7 @@ class DiffusersDenoiserWrapper(Denoiser):
 
     def _nearest_t_from_sigma(self, sigma: torch.Tensor) -> torch.Tensor:
         """
-        Map a sigma to the nearest training time-step index.
+        Maps a sigma to the nearest training time-step index.
         Supports scalar or per-batch tensor sigma.
         """
         sigmas = self.sigma_schedule  # [T]
@@ -112,7 +112,7 @@ class DiffusersDenoiserWrapper(Denoiser):
     ) -> torch.Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
-        The input `x` is expected to be in `[0, 1]` range and the output is also in `[0, 1]` range.
+        The input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.
 
         :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.
         :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
