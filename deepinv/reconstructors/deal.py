@@ -22,8 +22,6 @@ import torch
 import deal
 
 
-
-
 class DEALReconstructor:
     """
     Wrapper around the official DEAL solver.
@@ -87,14 +85,18 @@ class DEALReconstructor:
         scale_print: bool = False,
     ) -> None:
         # Device selection
-        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.device = torch.device(
+            device or ("cuda" if torch.cuda.is_available() else "cpu")
+        )
 
         # Instantiate DEAL model (grayscale or color) and load weights.
         self.model = deal.DEAL(color=color).to(self.device).eval()
 
         # Older checkpoints might not support weights_only=True.
         try:
-            state = torch.load(checkpoint_path, map_location=self.device, weights_only=True)
+            state = torch.load(
+                checkpoint_path, map_location=self.device, weights_only=True
+            )
         except TypeError:
             state = torch.load(checkpoint_path, map_location=self.device)
 
