@@ -28,9 +28,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.11
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -51,12 +48,14 @@ jobs:
       - name: Install deepinv and its dependencies
         shell: bash
         run: |
+          uv venv --python 3.11
           # if the extra is empty, install without optional dependencies
           if [ "${{ matrix.extra }}" = "" ]; then
             uv pip install .
           else
+            EXTRAS=""
             for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
-              EXTRAS+=" --extra $extra"
+              EXTRAS="$EXTRAS --extra $extra"
             done
             uv sync $EXTRAS
           fi

@@ -59,7 +59,10 @@ jobs:
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
       - name: Install deepinv and its dependencies
+        shell: bash
         run: |
+          uv venv --python ${{ matrix.version_python }}
+          EXTRAS=""
           for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
             EXTRAS+=" --extra $extra"
           done
