@@ -55,7 +55,10 @@ jobs:
           if [ "${{ matrix.extra }}" = "" ]; then
             uv pip install .
           else
-            uv pip install .[${{ matrix.extra }}]
+            for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
+              EXTRAS+=" --extra $extra"
+            done
+            uv sync $EXTRAS
           fi
 
       - name: "Benchmark torch+torchvision"

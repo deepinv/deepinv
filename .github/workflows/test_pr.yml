@@ -60,12 +60,10 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          extras=$(echo "${{ matrix.extra }}" | sed 's/,/ --extra /g')
-          if [ -n "$extras" ]; then
-            uv sync --extra $extras
-          else
-            uv sync
-          fi
+          for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
+            EXTRAS+=" --extra $extra"
+          done
+          uv sync $EXTRAS
 
       # For debugging purposes
       - name: Check Python version
