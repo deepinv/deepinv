@@ -11,6 +11,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -21,6 +23,7 @@ jobs:
       - uses: psf/black@stable
       - name: Install and run ruff
         run: |
+          uv venv
           uv pip install ruff
           uv run ruff check
       - name: Check Python 3.9 backward compatibility

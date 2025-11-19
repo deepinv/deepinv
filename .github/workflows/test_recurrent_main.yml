@@ -84,7 +84,12 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          uv sync --extra ${{ matrix.extra }}
+          extras=$(echo "${{ matrix.extra }}" | sed 's/,/ --extra /g')
+          if [ -n "$extras" ]; then
+            uv sync --extra $extras
+          else
+            uv sync
+          fi
 
       # For debugging purposes
       - name: Check Python version
