@@ -18,7 +18,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 
 v0.3.6
 ------

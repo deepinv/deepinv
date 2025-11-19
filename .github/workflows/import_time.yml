@@ -72,7 +72,7 @@ jobs:
 
       - name: "Checkout main branch"
         run: |
-          uv pip uninstall -y deepinv # Clean up for the next step
+          uv pip uninstall deepinv # Clean up for the next step
           git fetch origin main --depth=1
           git checkout main
           uv pip install .
