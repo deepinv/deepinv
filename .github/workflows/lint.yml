@@ -12,16 +12,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.10'   # minimum supported version
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - uses: psf/black@stable
       - name: Install and run ruff
         run: |
-          pip install ruff
-          ruff check
+          uv pip install ruff
+          uv run ruff check
       - name: Check Python 3.9 backward compatibility
         run: |
-          pip install vermin
-          vermin -vvv deepinv examples | grep "3.10" && exit 1 || true
+          uv pip install vermin
+          uv run vermin -vvv deepinv examples | grep "3.10" && exit 1 || true

@@ -21,26 +21,40 @@ permissions:
 jobs:
   docs:
     runs-on: ubuntu-latest
+    env:
+      # Configure a constant location for the uv cache
+      UV_CACHE_DIR: /tmp/.uv-cache
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.12
-          cache: 'pip' # caching pip dependencies
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.uv-cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[dataset,denoisers,doc,training]
+          uv sync --extra dataset --extra denoisers --extra doc --extra training
       - name: Sphinx build
         run: |
-          sphinx-build -W docs/source _build
+          uv run sphinx-build -W docs/source _build
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
         run: |
           # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
           # using plot_gallery=0 to avoid building examples
-          sphinx-build -M doctest docs/source docs/build -D plot_gallery=0 -v
+          uv run sphinx-build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
       - name: Notebook generation
         run: |
@@ -75,3 +89,6 @@ jobs:
           publish_dir: _build/
           force_orphan: true
           enable_jekyll: false  
+          
+      - name: Minimize uv cache
+        run: uv cache prune --ci
