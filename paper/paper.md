@@ -130,7 +130,7 @@ To the best of our knowledge, DeepInverse is the only library with a strong focu
 SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] focus on optimization-based methods.
 CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification.
 ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain linear operators. 
-MATLAB libraries [@soubies2019pocket] [@gazzola2019ir] are restricted to handcrafted methods without automatic differentiation.
+MATLAB libraries [@soubies2019pocket;@gazzola2019ir] are restricted to handcrafted methods without automatic differentiation.
 
 ![Schematic of the modular DeepInverse framework.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
@@ -145,7 +145,7 @@ deterministic (linear or non-linear) operator capturing the physics of the acqui
 $N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `y = physics(x, **params)`, unifying the wide variety of forward operators across various domains. 
 
 The library crucially introduces optional physics `params` $(\xi,\sigma)$, allowing for advanced problems, including calibration,
-blind inverse problems [@debarnot2024deep] [@chung2023parallel], co-design [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
+blind inverse problems [@debarnot2024deep;@chung2023parallel], co-design [@lazarus2019sparkling;@nehme2020deepstorm3d], and robust training [@gossard2024training;@terris2023meta].
 
 The current implemented physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
 
@@ -165,7 +165,7 @@ where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional tr
 
   The [`optim` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html) implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a variety of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
   - Traditional explicit priors [@candes2008introduction];
-  - Learned regularizers [@zoran2011epll] [@altekruger2023patchnr];
+  - Learned regularizers [@zoran2011epll;@altekruger2023patchnr];
   - Plug-and-Play priors [@venkatakrishnan2013plug] using a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2021plug].
 
   To solve these problems, `optim` includes:
@@ -180,14 +180,14 @@ x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{D}_{\sigma}, A_{\xi}, \sigma) \text
 such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$. Sampling multiple times enables uncertainty quantification.
 
   The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements generalized, modular frameworks for:
-  - Diffusion model posterior sampling [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising];
-  - Langevin-type algorithms [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo.
+  - Diffusion model posterior sampling [@chung2022diffusion;@kawar2022denoising;@zhu2023denoising];
+  - Langevin-type algorithms [@laumont2022bayesian;@pereyra2020skrock] that sample using Markov Chain Monte Carlo.
 
 - **Non-iterative**: The [`models` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html) implements:
   
   - Artifact removal models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$, which simply backproject $y$ to the image domain and apply an image-to-image denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
   
-  - Conditional/unconditional generative networks [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
+  - Conditional/unconditional generative networks [@bora2018ambientgan;@bendel2023gan;@ulyanov2018deep]
 that add a latent $z$ to a generator $\operatorname{R}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
 
   - Foundation models [@terris2025ram], trained end-to-end across a wide variety of $(A_{\xi},N_{\sigma})$, and can be finetuned to new problems.
@@ -201,11 +201,11 @@ Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the mod
 The [`loss` module](https://deepinv.github.io/deepinv/user_guide/training/loss.html) framework unifies training loss functions that are widely used across various domains. Losses are written as `loss(x_hat, x, y, physics, model)` and are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
 
 - Supervised loss between $x$ and $y$;
-- Self-supervised losses which only use $y$ [@yaman2020self] [@wang2025benchmarking];
+- Self-supervised losses which only use $y$ [@yaman2020self;@wang2025benchmarking];
 - Network regularization losses [@pesquet2021learning];
-- Adversarial losses [@bora2017compressed] [@bora2018ambientgan].
+- Adversarial losses [@bora2017compressed;@bora2018ambientgan].
 
-The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements geometric image transforms for data augmentation and equivariance [@chen2023imaging] [@wang2024perspective].
+The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements geometric image transforms for data augmentation and equivariance [@chen2023imaging;@wang2024perspective].
 
 ## Datasets
 The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics $A_{\xi_i}$.
@@ -223,8 +223,8 @@ DeepInverse is written in Python following modern test-driven practices, see [co
 
 # Research Use
 
-DeepInverse has been used in various recent computational imaging works, including self-supervised learning [@wang2024perspective] [@tachella2025unsure], 
-plug-and-play methods [@terris2024equivariant] [@park2025plug], foundation models [@terris2025ram], phase-retrieval [@hu2025structured], uncertainty quantification [@tachella2024equivariant]
+DeepInverse has been used in various recent computational imaging works, including self-supervised learning [@wang2024perspective;@tachella2025unsure], 
+plug-and-play methods [@terris2024equivariant;@park2025plug], foundation models [@terris2025ram], phase-retrieval [@hu2025structured], uncertainty quantification [@tachella2024equivariant]
 and benchmarking [@wang2025benchmarking].
 
 # Perspectives
