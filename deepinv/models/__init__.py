@@ -1,8 +1,3 @@
-__all__ = []
-
-from .deal import DEAL
-__all__ += ["DEAL"]
-
 
 from .base import Denoiser, Reconstructor
 from .drunet import DRUNet

@@ -1,5 +1,6 @@
 import torch
 from .base import Reconstructor
+from typing import Optional
 
 # Optional external dependency: official DEAL implementation.
 try:
@@ -48,7 +49,7 @@ class DEAL(Reconstructor):
         auto_scale: bool = False,
         target_y_std: float = 25.0,
         color: bool = False,
-        device: str | None = None,
+        device: Optional[str] = None,
         clamp_output: bool = True,
     ) -> None:
         if deal_lib is None:

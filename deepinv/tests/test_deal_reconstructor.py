@@ -1,9 +1,8 @@
-import sys
 import types
 import torch
 import torch.nn as nn
-
-from deepinv.models import DEAL
+from deepinv.models.deal import DEAL
+import deepinv.models.deal as deal_mod    
 from deepinv.physics import Denoising
 
 
