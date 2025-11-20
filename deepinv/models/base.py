@@ -29,9 +29,13 @@ class Denoiser(torch.nn.Module):
     def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
+        The input `x` is expected to be with pixel values in `[0, 1]` range, up to random noise. The output is also expected to be in `[0, 1]` range.
 
-        :param torch.Tensor x: noisy input.
-        :param torch.Tensor, float sigma: noise level.
+        :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.
+        :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
+            If a single `float` is provided, the same noise level is used for all samples in the batch.
+            Otherwise, batch-wise noise levels are used.
+
         :returns: (:class:`torch.Tensor`) Denoised tensor.
         """
         raise NotImplementedError()

@@ -237,6 +237,8 @@ class NCSNpp(Denoiser):
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
                 self._was_trained_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
+            self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+            self.pixel_std = 0.5
         else:
             self._was_trained_on_minus_one_one = False
         self.eval()

@@ -8,16 +8,35 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
+- New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
+
+
+Changed
+^^^^^^^
+- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+
+Fixed
+^^^^^
+
+
+v0.3.6
+------
+New Features
+^^^^^^^^^^^^
 - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh:`806` by `Vicky De Ridder`_)
 - Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
+- Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
 - load_np_url now returns tensors, load_url helper function moved to io (:gh:`768` by `Andrew Wang`_)
 - utils/signal.py renamed to signals.py to avoid stdlib conflict (:gh:`768` by `Andrew Wang`_)
 - utils.get_data_home now creates folder if not exist (:gh:`768` by `Andrew Wang`_)
+- Update attention computation to use :func:`torch.nn.functional.scaled_dot_product_attention` (:gh:`883` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -27,6 +46,10 @@ Fixed
 - Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (:gh:`860` by `Brayan Monroy`_)
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
+- Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
+
+
 
 v0.3.5
 ------
@@ -491,3 +514,4 @@ Changed
 .. _Louise Friot Giroux: https://github.com/Louisefg
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
+.. _Alexander Skorikov: https://github.com/askorikov

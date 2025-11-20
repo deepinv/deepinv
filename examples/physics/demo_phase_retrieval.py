@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP, Zero
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import PGD
 from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
@@ -102,7 +102,7 @@ data_fidelity = L2()
 prior = Zero()
 iterator = dinv.optim.optim_iterators.GDIteration()
 # Parameters for the optimizer, including stepsize and regularization coefficient.
-optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": []}
+optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": None}
 num_iter = 1000
 
 # Initial guess
@@ -219,20 +219,21 @@ denoiser_complex = to_complex_denoiser(denoiser, mode="abs_angle")
 # Algorithm parameters
 data_fidelity = L2()
 prior = PnP(denoiser=denoiser_complex)
-params_algo = {"stepsize": 0.30, "g_param": 0.04}
+stepsize = 0.3  # stepsize for the proximal gradient descent algorithm.
+sigma_denoiser = 0.04  # noise level of the denoiser, used for the regularization parameter in the PnP algorithm.
 max_iter = 100
 early_stop = True
 verbose = True
 
 # Instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
 )
 
 # Run the algorithm

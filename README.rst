@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
+|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube|
 
 
 Introduction
@@ -70,10 +70,9 @@ Contributing
 
 DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
-and we need your help to get there!
+and we need your help to get there! 
 
-Interested? Check out our `contributing guide <https://deepinv.github.io/deepinv/contributing.html>`_.
-
+Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
 
 Finding help
 ------------
@@ -134,3 +133,5 @@ Star history
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
+.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
+   :target: https://www.youtube.com/@deepinv
