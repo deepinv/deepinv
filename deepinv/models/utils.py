@@ -17,6 +17,7 @@ def tensor2array(img):
 def array2tensor(img):
     return torch.from_numpy(img).permute(2, 0, 1)
 
+
 def tensor2array(img: Tensor) -> np.ndarray:
     img = img.cpu().detach().numpy()
     if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
@@ -24,6 +25,7 @@ def tensor2array(img: Tensor) -> np.ndarray:
     else:  # Grayscale case: cast to numpy format (W,H)
         img = img[0]
     return img
+
 
 def array2tensor(img: np.ndarray) -> Tensor:
     if len(img.shape) == 3:  # Color case: back to (C,W,H)
@@ -123,7 +125,7 @@ def fix_dim(dim: str | int) -> int:
 
 
 def conv_nd(dim: int) -> nn.Module:
-    return {2: nn.Conv2d, 3: nn.Conv3d}[dim]
+    return {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}[dim]
 
 
 def batchnorm_nd(dim: int) -> nn.Module:
@@ -139,7 +141,7 @@ def maxpool_nd(dim: int) -> nn.Module:
 
 
 def avgpool_nd(dim: int) -> nn.Module:
-    return {2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
+    return {1: nn.AvgPool1d, 2: nn.AvgPool2d, 3: nn.AvgPool3d}[dim]
 
 
 def instancenorm_nd(dim: int) -> nn.Module:

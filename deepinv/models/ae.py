@@ -16,7 +16,13 @@ class AutoEncoder(Denoiser):
 
     """
 
-    def __init__(self, dim_input: int, dim_mid: int = 1000, dim_hid: int = 32, residual: bool = True):
+    def __init__(
+        self,
+        dim_input: int,
+        dim_mid: int = 1000,
+        dim_hid: int = 32,
+        residual: bool = True,
+    ):
         super().__init__()
         self.residual = residual
 

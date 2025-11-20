@@ -82,8 +82,8 @@ class ArtifactRemoval(Reconstructor):
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param dict kwargs: additional keyword arguments for the backbone network. 
-        
+        :param dict kwargs: additional keyword arguments for the backbone network.
+
         :returns: (:class:`torch.Tensor`) reconstructed tensor
         """
         if isinstance(physics, nn.DataParallel):

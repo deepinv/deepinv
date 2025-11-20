@@ -4,6 +4,7 @@ import numpy as np
 from torch import Tensor
 from deepinv.physics.forward import Physics
 
+
 class Denoiser(torch.nn.Module):
     r"""
     Base class for denoiser models.

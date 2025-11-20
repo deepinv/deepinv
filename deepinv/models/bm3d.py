@@ -3,6 +3,7 @@ from torch import Tensor
 from .base import Denoiser
 from .utils import array2tensor, tensor2array
 
+
 class BM3D(Denoiser):
     r"""
     BM3D denoiser.
@@ -31,7 +32,7 @@ class BM3D(Denoiser):
         """
         try:
             import bm3d
-        except ImportError: # pragma: no cover
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "bm3d package not found. Please install it with `pip install bm3d`."
             )
@@ -45,5 +46,3 @@ class BM3D(Denoiser):
                 bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma[i].item())
             )
         return out
-
-
