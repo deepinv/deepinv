@@ -139,12 +139,32 @@ def tiling_splitting_strategy(
         starts = sorted(list(set(starts)))
         dim_starts.append(starts)
 
+    # Pre-calculate trim information for each dimension to avoid overlaps
+    dim_configs = []
+    for i, dim_idx in enumerate(tiling_dims):
+        starts = dim_starts[i]
+        p = p_sizes[i]
+        rf = rf_sizes[i]
+
+        configs = []
+        for j, st in enumerate(starts):
+            if j == 0:
+                trim = 0
+            else:
+                prev_st = starts[j - 1]
+                trim = max(0, (prev_st + p) - st)
+
+            configs.append(
+                {"start": st, "trim": trim, "p": p, "rf": rf, "tile_size": p + 2 * rf}
+            )
+        dim_configs.append(configs)
+
     global_slices: list[Index] = []
     crop_slices: list[Index] = []
     target_slices: list[Index] = []
 
-    for starts in itertools.product(*dim_starts):
-        # starts is a tuple of start indices for each tiled dimension
+    for config_tuple in itertools.product(*dim_configs):
+        # config_tuple contains the config dict for each tiled dimension
 
         # Initialize slices as full slices
         g_sl = [slice(None)] * ndim
@@ -155,20 +175,21 @@ def tiling_splitting_strategy(
             if dim_idx < 0:
                 dim_idx += ndim
 
-            st = starts[i]
-            p = p_sizes[i]
-            rf = rf_sizes[i]
-            tile_size = p + 2 * rf
+            cfg = config_tuple[i]
+            st = cfg["start"]
+            trim = cfg["trim"]
+            p = cfg["p"]
+            rf = cfg["rf"]
+            tile_size = cfg["tile_size"]
 
             # Global slice (into padded)
             g_sl[dim_idx] = slice(st, st + tile_size)
 
-            # Crop slice (remove halo)
-            c_sl[dim_idx] = slice(rf, rf + p)
+            # Crop slice (remove halo AND trim overlap)
+            c_sl[dim_idx] = slice(rf + trim, rf + p)
 
             # Target slice (into original)
-            # In original coords, start is st.
-            t_sl[dim_idx] = slice(st, st + p)
+            t_sl[dim_idx] = slice(st + trim, st + p)
 
         global_slices.append(tuple(g_sl))
         crop_slices.append(tuple(c_sl))

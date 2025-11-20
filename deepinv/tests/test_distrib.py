@@ -268,7 +268,9 @@ def run_distributed_test(test_func, dist_config, test_args=None):
 # =============================================================================
 
 
-def test_distribute_single_process(physics_specification, gather_strategy, num_operators):
+def test_distribute_single_process(
+    physics_specification, gather_strategy, num_operators
+):
     """
     Test distribute() in single-process mode with different physics specifications
     and gather strategies.

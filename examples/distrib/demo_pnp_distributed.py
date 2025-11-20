@@ -35,6 +35,7 @@ operators and denoisers across multiple processes.
 """
 
 import torch
+import torch.nn.functional as F
 from deepinv.physics import GaussianNoise, stack
 from deepinv.physics.blur import Blur, gaussian_blur
 from deepinv.utils.demo import load_example
@@ -54,7 +55,7 @@ from deepinv.distrib import DistributedContext, distribute, DistributedLinearPhy
 # ============================================================================
 
 
-def create_physics_and_measurements(device, img_size=(256, 256), seed=42):
+def create_physics_and_measurements(device, img_size=1024, seed=42):
     """
     Create stacked physics operators and measurements using example images.
 
@@ -64,10 +65,23 @@ def create_physics_and_measurements(device, img_size=(256, 256), seed=42):
 
     :returns: Tuple of (stacked_physics, measurements, clean_image)
     """
-    # Load example image
-    clean_image = load_example(
-        "CBSD_0010.png", grayscale=False, device=device, img_size=img_size
-    )
+    # Load example image in original size
+    img = load_example("CBSD_0010.png", grayscale=False, device=device)
+
+    # Resize image so that max dimension equals img_size
+    _, _, h, w = img.shape
+    max_dim = max(h, w)
+
+    if max_dim != img_size:
+        scale_factor = img_size / max_dim
+        new_h = int(h * scale_factor)
+        new_w = int(w * scale_factor)
+
+        clean_image = F.interpolate(
+            img, size=(new_h, new_w), mode="bicubic", align_corners=False
+        )
+    else:
+        clean_image = img
 
     # Create different Gaussian blur kernels
     kernels = [
@@ -114,9 +128,9 @@ def main():
     num_iterations = 20
     step_size = 0.5
     denoiser_sigma = 0.05
-    img_size = (512, 512)
-    patch_size = 128
-    receptive_field_size = 32
+    img_size = 512
+    patch_size = 256
+    receptive_field_size = 64
 
     # ============================================================================
     # DISTRIBUTED CONTEXT
@@ -185,7 +199,6 @@ def main():
             ctx,
             patch_size=patch_size,
             receptive_field_size=receptive_field_size,
-            overlap=True,
         )
 
         if ctx.rank == 0:

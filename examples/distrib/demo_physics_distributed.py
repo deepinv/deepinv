@@ -34,6 +34,7 @@ for parallel computation of forward and adjoint operations.
 """
 
 import torch
+import torch.nn.functional as F
 from deepinv.physics import Blur, stack
 from deepinv.physics.blur import gaussian_blur
 from deepinv.utils.demo import load_example
@@ -45,7 +46,7 @@ from typing import cast
 from deepinv.distrib import DistributedContext, distribute, DistributedLinearPhysics
 
 
-def create_stacked_physics(device, img_size=(256, 256)):
+def create_stacked_physics(device, img_size=1024):
     """
     Create stacked physics operators with different Gaussian blur kernels.
 
@@ -54,9 +55,24 @@ def create_stacked_physics(device, img_size=(256, 256)):
     :returns: Tuple of (stacked_physics, clean_image)
     """
     # Load example image
-    clean_image = load_example(
+    img = load_example(
         "CBSD_0010.png", grayscale=False, device=device, img_size=img_size
     )
+
+    # Resize image so that max dimension equals img_size
+    _, _, h, w = img.shape
+    max_dim = max(h, w)
+
+    if max_dim != img_size:
+        scale_factor = img_size / max_dim
+        new_h = int(h * scale_factor)
+        new_w = int(w * scale_factor)
+
+        clean_image = F.interpolate(
+            img, size=(new_h, new_w), mode="bicubic", align_corners=False
+        )
+    else:
+        clean_image = img
 
     # Create different Gaussian blur kernels
     kernels = [
@@ -90,7 +106,7 @@ def main():
     # CONFIGURATION
     # ============================================================================
 
-    img_size = (512, 512)
+    img_size = 512
 
     # ============================================================================
     # DISTRIBUTED CONTEXT

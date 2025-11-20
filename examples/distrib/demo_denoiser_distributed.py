@@ -33,6 +33,7 @@ using image tiling for large-scale image processing.
 """
 
 import torch
+import torch.nn.functional as F
 from deepinv.models import DRUNet
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
@@ -42,7 +43,7 @@ from deepinv.loss.metric import PSNR
 from deepinv.distrib import DistributedContext, distribute
 
 
-def create_noisy_image(device, img_size=(1024, 1024), noise_sigma=0.1, seed=42):
+def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     """
     Create a noisy test image.
 
@@ -52,10 +53,23 @@ def create_noisy_image(device, img_size=(1024, 1024), noise_sigma=0.1, seed=42):
     :param int seed: Random seed for reproducible noise
     :returns: Tuple of (clean_image, noisy_image, noise_sigma)
     """
-    # Load example image
-    clean_image = load_example(
-        "CBSD_0010.png", grayscale=False, device=device, img_size=img_size
-    )
+    # Load example image in original size
+    img = load_example("CBSD_0010.png", grayscale=False, device=device)
+
+    # Resize image so that max dimension equals img_size
+    _, _, h, w = img.shape
+    max_dim = max(h, w)
+
+    if max_dim != img_size:
+        scale_factor = img_size / max_dim
+        new_h = int(h * scale_factor)
+        new_w = int(w * scale_factor)
+
+        clean_image = F.interpolate(
+            img, size=(new_h, new_w), mode="bicubic", align_corners=False
+        )
+    else:
+        clean_image = img
 
     # Set seed for reproducible noise
     torch.manual_seed(seed)
@@ -77,10 +91,10 @@ def main():
     # CONFIGURATION
     # ============================================================================
 
-    img_size = (1024, 1024)  # Large image for demonstrating tiling
+    img_size = 512  # Large image for demonstrating tiling
     noise_sigma = 0.1
     patch_size = 256  # Size of each patch
-    receptive_field_size = 32  # Overlap for smooth boundaries
+    receptive_field_size = 64  # Overlap for smooth boundaries
 
     # ============================================================================
     # DISTRIBUTED CONTEXT
