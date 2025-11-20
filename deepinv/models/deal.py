@@ -121,6 +121,10 @@ class DEAL(Reconstructor):
         # Zero initialisation
         x_init = torch.zeros_like(Ht(y))
 
+        # Set number of outer iterations on the underlying DEAL model
+        if hasattr(self.model, "max_iter"):
+            self.model.max_iter = max(int(self.max_iter), 1)
+
         # Call the official DEAL solver
         x_hat = self.model.solve_inverse_problem(
             y,
@@ -128,7 +132,6 @@ class DEAL(Reconstructor):
             Ht=Ht,
             sigma=self.sigma,
             lmbda=self.lam,
-            max_iter=self.max_iter,
             x_init=x_init,
             verbose=False,
             path=False,
