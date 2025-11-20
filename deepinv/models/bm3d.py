@@ -24,12 +24,6 @@ class BM3D(Denoiser):
     """
 
     def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
-        r"""
-        Run the denoiser on image with noise level :math:`\sigma`.
-
-        :param torch.Tensor x: noisy image
-        :param float sigma: noise level
-        """
         try:
             import bm3d
         except ImportError:  # pragma: no cover
@@ -37,7 +31,7 @@ class BM3D(Denoiser):
                 "bm3d package not found. Please install it with `pip install bm3d`."
             )
 
-        out = torch.zeros_like(x)
+        out = torch.empty_like(x)
 
         sigma = self._handle_sigma(sigma, batch_size=x.size(0))
 
