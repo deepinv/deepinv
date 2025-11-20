@@ -67,7 +67,7 @@ jobs:
             mkdir -p "$out_dir"
             base="$(basename "$rel" .py)"
             out_path="$out_dir/$base.ipynb"
-            python3 .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+            uv run .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
       - name: Upload Documentation Artifact
         id: upload-artifact
