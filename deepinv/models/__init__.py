@@ -40,4 +40,4 @@ from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper
 
-
+from .deal import DEAL
