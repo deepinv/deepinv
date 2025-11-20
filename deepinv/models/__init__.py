@@ -1,3 +1,9 @@
+__all__ = []
+
+from .deal import DEAL
+__all__ += ["DEAL"]
+
+
 from .base import Denoiser, Reconstructor
 from .drunet import DRUNet
 from .scunet import SCUNet
@@ -38,3 +44,5 @@ from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper
+
+
