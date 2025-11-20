@@ -36,6 +36,7 @@ Full Reference Metrics
     deepinv.loss.metric.SpectralAngleMapper
     deepinv.loss.metric.ERGAS
     deepinv.loss.metric.HaarPSI
+    deepinv.loss.metric.CosineSimilarity
 
 
 No Reference Metrics
