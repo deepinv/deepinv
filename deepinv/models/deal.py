@@ -1,6 +1,11 @@
 import torch
-import deal as deal_lib
 from .base import Reconstructor
+
+# Optional external dependency: official DEAL implementation.
+try:
+    import deal as deal_lib
+except ImportError:
+    deal_lib = None
 
 
 class DEAL(Reconstructor):
@@ -46,6 +51,13 @@ class DEAL(Reconstructor):
         device: str | None = None,
         clamp_output: bool = True,
     ) -> None:
+        if deal_lib is None:
+            raise ImportError(
+                "deepinv.models.DEAL requires the external 'deal' package.\n"
+                "Please install it, for example:\n"
+                "    pip install git+https://github.com/mehrsapo/DEAL.git"
+            )
+
         super().__init__()
 
         # Device selection
@@ -61,7 +73,7 @@ class DEAL(Reconstructor):
         self.target_y_std = float(target_y_std)
         self.clamp_output = bool(clamp_output)
 
-        # Create underlying DEAL model from the official package
+        # Underlying DEAL model from the official package
         self.model = deal_lib.DEAL(color=color).to(self.device).eval()
 
         # Load checkpoint (support both newer and older torch.load signatures)
@@ -105,7 +117,7 @@ class DEAL(Reconstructor):
                 scale = self.target_y_std / (y_std + 1e-12)
                 y = y * scale
 
-        # Zero initialisation for x if not provided by the user
+        # Zero initialisation
         x_init = torch.zeros_like(Ht(y))
 
         # Call the official DEAL solver
