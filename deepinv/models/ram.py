@@ -9,7 +9,6 @@ import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
-from typing import Sequence  # noqa: F401
 
 
 class RAM(Reconstructor, Denoiser):
