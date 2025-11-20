@@ -59,7 +59,7 @@ def create_noisy_image(device, img_size=(1024, 1024), noise_sigma=0.1, seed=42):
 
     # Set seed for reproducible noise
     torch.manual_seed(seed)
-    
+
     # Add Gaussian noise
     noise = torch.randn_like(clean_image) * noise_sigma
     noisy_image = clean_image + noise
@@ -165,22 +165,26 @@ def main():
             print(f"\n🔍 Comparing with non-distributed denoising...")
             with torch.no_grad():
                 denoised_ref = denoiser(noisy_image, sigma=sigma)
-            
+
             diff = torch.abs(denoised_image - denoised_ref)
             mean_diff = diff.mean().item()
             max_diff = diff.max().item()
-            
+
             print(f"   Mean absolute difference: {mean_diff:.2e}")
             print(f"   Max absolute difference:  {max_diff:.2e}")
-            
+
             # Check that differences are small (due to tiling boundary effects)
             # The distributed version uses tiling with overlapping patches and blending,
             # which can produce slightly different results at patch boundaries.
             # These differences are typically very small (< 0.01 mean, < 0.5 max).
             tolerance_mean = 0.01
             tolerance_max = 0.5
-            assert mean_diff < tolerance_mean, f"Mean difference too large: {mean_diff:.4f} (tolerance: {tolerance_mean})"
-            assert max_diff < tolerance_max, f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
+            assert (
+                mean_diff < tolerance_mean
+            ), f"Mean difference too large: {mean_diff:.4f} (tolerance: {tolerance_mean})"
+            assert (
+                max_diff < tolerance_max
+            ), f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
             print(f"   ✅ Results are very close (within tolerance)!")
 
         # ============================================================================

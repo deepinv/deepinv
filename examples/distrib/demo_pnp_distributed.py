@@ -156,7 +156,9 @@ def main():
 
         if ctx.rank == 0:
             print(f"   ✅ Distributed physics created")
-            print(f"   Local operators on this rank: {len(distributed_physics.local_idx)}")
+            print(
+                f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
+            )
 
         # ============================================================================
         # STEP 3: Create L2 data fidelity
@@ -217,7 +219,7 @@ def main():
             for it in range(num_iterations):
                 # Data fidelity gradient step using the data_fidelity.grad() method
                 grad = data_fidelity.grad(x, measurements, distributed_physics)
-                
+
                 # Gradient descent step
                 x = x - step_size * grad
 
@@ -240,7 +242,7 @@ def main():
 
         if ctx.rank == 0:
             print(f"\n🔍 Comparing with non-distributed PnP reconstruction...")
-            
+
             # Run non-distributed PnP
             x_ref = torch.zeros_like(clean_image)
             with torch.no_grad():
@@ -248,26 +250,28 @@ def main():
                     # Data fidelity gradient step using data_fidelity.grad()
                     grad_ref = data_fidelity.grad(x_ref, measurements, stacked_physics)
                     x_ref = x_ref - step_size * grad_ref
-                    
+
                     # Denoising step
                     x_ref = denoiser(x_ref, sigma=denoiser_sigma)
-            
+
             # Compare results
             diff = torch.abs(x - x_ref)
             mean_diff = diff.mean().item()
             max_diff = diff.max().item()
-            
+
             psnr_ref = psnr_metric(x_ref, clean_image).item()
             psnr_dist = psnr_metric(x, clean_image).item()
-            
+
             print(f"   Non-distributed final PSNR: {psnr_ref:.2f} dB")
             print(f"   Distributed final PSNR:     {psnr_dist:.2f} dB")
             print(f"   PSNR difference:             {abs(psnr_dist - psnr_ref):.2f} dB")
             print(f"   Mean absolute difference:    {mean_diff:.2e}")
             print(f"   Max absolute difference:     {max_diff:.2e}")
-            
+
             # Check that results are close
-            assert abs(psnr_dist - psnr_ref) < 1.0, f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
+            assert (
+                abs(psnr_dist - psnr_ref) < 1.0
+            ), f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
             print(f"   ✅ Results match well!")
 
         # ============================================================================
@@ -288,9 +292,11 @@ def main():
 
             # Plot convergence curve
             import matplotlib.pyplot as plt
-            
+
             plt.figure(figsize=(8, 5))
-            plt.plot(range(1, num_iterations + 1), psnr_history, marker='o', linewidth=2)
+            plt.plot(
+                range(1, num_iterations + 1), psnr_history, marker="o", linewidth=2
+            )
             plt.xlabel("Iteration", fontsize=12)
             plt.ylabel("PSNR (dB)", fontsize=12)
             plt.title("PnP Reconstruction Convergence", fontsize=14)

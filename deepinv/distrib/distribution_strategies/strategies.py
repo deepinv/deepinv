@@ -13,11 +13,8 @@ from typing import Optional, Sequence
 import torch
 
 from .utils import (
-    extract_and_pad_patch,
     tiling_splitting_strategy,
-    tiling2d_reduce_fn,
-    tiling3d_splitting_strategy,
-    tiling3d_reduce_fn,
+    tiling_reduce_fn,
 )
 
 Index = tuple[slice, ...]
@@ -59,7 +56,33 @@ class DistributedSignalStrategy(ABC):
         """
         pass
 
-    def apply_batching(self, patches: list[torch.Tensor], max_batch_size: Optional[int] = None) -> list[torch.Tensor]:
+    @abstractmethod
+    def reduce_patches(
+        self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
+    ) -> None:
+        r"""
+        Reduce processed patches into the output tensor.
+
+        This operates in-place on out_tensor, placing each processed patch
+        in its correct location within the complete signal.
+
+        :param torch.Tensor out_tensor: output tensor to fill (should be initialized to zeros).
+        :param list[tuple[int, torch.Tensor]] local_pairs: list of (global_index, processed_patch) pairs.
+        """
+        pass
+
+    @abstractmethod
+    def get_num_patches(self) -> int:
+        r"""
+        Get the total number of patches this strategy creates.
+
+        :return: (:class:`int`) total number of patches.
+        """
+        pass
+
+    def apply_batching(
+        self, patches: list[torch.Tensor], max_batch_size: Optional[int] = None
+    ) -> list[torch.Tensor]:
         r"""
         Group patches into batches for efficient processing.
 
@@ -73,7 +96,7 @@ class DistributedSignalStrategy(ABC):
         """
         if not patches:
             return []
-        
+
         # Verify all patches have the same shape
         expected_shape = patches[0].shape
         for i, patch in enumerate(patches):
@@ -81,27 +104,27 @@ class DistributedSignalStrategy(ABC):
                 raise RuntimeError(
                     f"Patch {i} has shape {patch.shape}, expected {expected_shape}"
                 )
-        
+
         # Store metadata for unpacking
         self._batching_metadata = {
             "num_patches": len(patches),
             "original_batch_size": patches[0].shape[0] if patches else 0,
             "patch_shape": expected_shape,
         }
-        
+
         # If max_batch_size is None or >= num patches, batch all together
         if max_batch_size is None or max_batch_size >= len(patches):
             # Concatenate all patches along batch dimension
             batch = torch.cat(patches, dim=0)
             return [batch]
-        
+
         # Otherwise, split into multiple batches
         batches = []
         for i in range(0, len(patches), max_batch_size):
-            batch_patches = patches[i:i + max_batch_size]
+            batch_patches = patches[i : i + max_batch_size]
             batch = torch.cat(batch_patches, dim=0)
             batches.append(batch)
-        
+
         return batches
 
     def unpack_batched_results(
@@ -136,44 +159,20 @@ class DistributedSignalStrategy(ABC):
         patches = []
         total_batch_size = all_batched.shape[0]
         expected_total = num_patches * original_batch_size
-        
+
         if total_batch_size != expected_total:
             raise RuntimeError(
                 f"Batch size mismatch: got {total_batch_size}, "
                 f"expected {num_patches} patches × {original_batch_size} batch size = {expected_total}"
             )
-        
+
         for i in range(num_patches):
             start = i * original_batch_size
             end = (i + 1) * original_batch_size
             patch = all_batched[start:end]
             patches.append(patch)
-        
+
         return patches
-
-    @abstractmethod
-    def reduce_patches(
-        self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
-    ) -> None:
-        r"""
-        Reduce processed patches into the output tensor.
-
-        This operates in-place on out_tensor, placing each processed patch
-        in its correct location within the complete signal.
-
-        :param torch.Tensor out_tensor: output tensor to fill (should be initialized to zeros).
-        :param list[tuple[int, torch.Tensor]] local_pairs: list of (global_index, processed_patch) pairs.
-        """
-        pass
-
-    @abstractmethod
-    def get_num_patches(self) -> int:
-        r"""
-        Get the total number of patches this strategy creates.
-
-        :return: (:class:`int`) total number of patches.
-        """
-        pass
 
 
 class BasicStrategy(DistributedSignalStrategy):
@@ -186,14 +185,14 @@ class BasicStrategy(DistributedSignalStrategy):
     - Uses simple tensor assignment for reduction
 
     :param Sequence[int] signal_shape: shape of the complete signal tensor.
-    :param tuple[int, ...] split_dims: dimensions along which to split (default: last two dimensions).
+    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If int, splits the last N dimensions (default: 2 for last two dimensions).
     :param None, tuple[int, ...] num_splits: number of splits along each dimension. If `None`, automatically computed.
     """
 
     def __init__(
         self,
         signal_shape: Sequence[int],
-        split_dims: tuple[int, ...] = (-2, -1),
+        tiling_dims: int | tuple[int, ...] = 2,
         num_splits: Optional[tuple[int, ...]] = None,
         **kwargs,
     ):
@@ -201,21 +200,33 @@ class BasicStrategy(DistributedSignalStrategy):
         Initialize basic strategy.
 
         :param Sequence[int] signal_shape: shape of the complete signal tensor.
-        :param tuple[int, ...] split_dims: dimensions along which to split (default: last two dimensions).
+        :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If int, splits the last N dimensions (default: 2 for last two dimensions).
         :param None, tuple[int, ...] num_splits: number of splits along each dimension. If `None`, automatically computed.
         """
         super().__init__(signal_shape)
-        self.split_dims = split_dims
+
+        # Normalize tiling_dims to tuple
+        if isinstance(tiling_dims, int):
+            # If tiling_dims is an int, interpret it as "split the last N dimensions"
+            n = tiling_dims
+            self.tiling_dims = tuple(range(-n, 0))
+        elif isinstance(tiling_dims, tuple):
+            self.tiling_dims = tiling_dims
+        else:
+            raise ValueError("tiling_dims must be an int or a tuple of ints")
 
         # Compute splits
         if num_splits is None:
             # Default: split into roughly square patches
             total_size = 1
-            for dim in split_dims:
+            for dim in self.tiling_dims:
                 total_size *= signal_shape[dim]
-            target_patch_size = max(64, int(total_size ** (1 / len(split_dims)) / 2))
+            target_patch_size = max(
+                64, int(total_size ** (1 / len(self.tiling_dims)) / 2)
+            )
             num_splits = tuple(
-                max(1, signal_shape[dim] // target_patch_size) for dim in split_dims
+                max(1, signal_shape[dim] // target_patch_size)
+                for dim in self.tiling_dims
             )
 
         self.num_splits_per_dim = num_splits
@@ -228,7 +239,7 @@ class BasicStrategy(DistributedSignalStrategy):
 
         # Generate all combinations of splits
         ranges = []
-        for i, dim in enumerate(self.split_dims):
+        for i, dim in enumerate(self.tiling_dims):
             size = self.signal_shape[dim]
             n_splits = self.num_splits_per_dim[i]
             split_size = size // n_splits
@@ -250,7 +261,7 @@ class BasicStrategy(DistributedSignalStrategy):
             # Create slice tuple
             slices = [slice(None)] * len(self.signal_shape)
             for i, (dim, pos) in enumerate(
-                zip(self.split_dims, positions, strict=False)
+                zip(self.tiling_dims, positions, strict=False)
             ):
                 start, end = ranges[i][pos]
                 slices[dim] = slice(start, end)
@@ -268,8 +279,6 @@ class BasicStrategy(DistributedSignalStrategy):
             patches.append((idx, patch))
         return patches
 
-    # Use base class apply_batching with max_batch_size=1 for individual processing
-
     def reduce_patches(
         self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
     ) -> None:
@@ -284,7 +293,7 @@ class BasicStrategy(DistributedSignalStrategy):
 
 class SmartTilingStrategy(DistributedSignalStrategy):
     r"""
-    Smart 2D tiling strategy with padding and efficient batching.
+    Smart tiling strategy with padding for N-dimensional data.
 
     This strategy:
     - Creates uniform patches with receptive field padding
@@ -292,340 +301,184 @@ class SmartTilingStrategy(DistributedSignalStrategy):
     - Uses optimized tensor operations for reduction
 
     :param Sequence[int] signal_shape: shape of the complete signal tensor.
-    :param int patch_size: size of each patch (assuming square patches).
-    :param int receptive_field_size: padding radius around each patch.
-    :param None, int stride: stride between patches (default: patch_size for non-overlapping).
-    :param bool non_overlap: whether patches should be non-overlapping.
+    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
+    :param int | tuple[int, ...] patch_size: size of each patch.
+    :param int | tuple[int, ...] receptive_field_size: padding radius around each patch.
+    :param int | tuple[int, ...] | None stride: stride between patches (default: patch_size for non-overlapping).
     :param str pad_mode: padding mode for edge patches.
     """
 
     def __init__(
         self,
         signal_shape: Sequence[int],
-        patch_size: int = 256,
-        receptive_field_size: int = 32,
-        stride: Optional[int] = None,
-        non_overlap: bool = True,
+        tiling_dims: Optional[int | tuple[int, ...]] = None,
+        patch_size: int | tuple[int, ...] = 256,
+        receptive_field_size: int | tuple[int, ...] = 32,
+        stride: Optional[int | tuple[int, ...]] = None,
         pad_mode: str = "reflect",
         **kwargs,
     ):
-        r"""
-        Initialize smart tiling strategy.
-
-        :param Sequence[int] signal_shape: shape of the complete signal tensor.
-        :param int patch_size: size of each patch (assuming square patches).
-        :param int receptive_field_size: padding radius around each patch.
-        :param None, int stride: stride between patches (default: patch_size for non-overlapping).
-        :param bool non_overlap: whether patches should be non-overlapping.
-        :param str pad_mode: padding mode for edge patches.
-        """
         super().__init__(signal_shape)
         self.patch_size = patch_size
         self.receptive_field_size = receptive_field_size
-        self.stride = stride or patch_size
-        self.non_overlap = non_overlap
+        self.stride = stride
         self.pad_mode = pad_mode
+        self.tiling_dims = tiling_dims
 
-        # Assume 2D tiling on last two dimensions
-        self.hw_dims = (-2, -1)
+        if self.tiling_dims is None and isinstance(patch_size, tuple):
+            n = len(patch_size)
+            self.tiling_dims = tuple(range(-n, 0))
+        elif isinstance(self.tiling_dims, int):
+            # If tiling_dims is an int, interpret it as "tile the last N dimensions"
+            n = self.tiling_dims
+            self.tiling_dims = tuple(range(-n, 0))
+        elif not isinstance(self.tiling_dims, tuple):
+            raise ValueError("tiling_dims must be an int or a tuple of ints")
+
         self._compute_tiling()
 
     def _compute_tiling(self):
         """Compute tiling layout using existing utils."""
 
-        # Get image dimensions (assume 2D tiling on last two dimensions)
-        H = self.signal_shape[self.hw_dims[0]]
-        W = self.signal_shape[self.hw_dims[1]]
+        # At this point, tiling_dims is always a tuple (ensured by __init__)
+        assert isinstance(
+            self.tiling_dims, tuple
+        ), "tiling_dims must be a tuple at this point"
 
-        # Check if patch size is larger than image dimensions
-        if self.patch_size >= max(H, W):
-            # Handle oversized patch case
-            max_dim = max(H, W)
-            min_dim = min(H, W)
+        # Normalize patch_size and receptive_field_size to tuples
+        ndim_tiled = len(self.tiling_dims)
 
-            # Reduce patch size to fit the image with some margin for receptive field
-            safe_patch_size = min_dim - 2 * self.receptive_field_size
+        def to_tuple(val):
+            if isinstance(val, int):
+                return (val,) * ndim_tiled
+            return val
 
-            if safe_patch_size <= 0:
-                # If even this doesn't work, use the whole image as a single patch
-                # and reduce receptive field radius
-                safe_patch_size = min_dim
-                safe_receptive_field = max(
-                    0, min_dim // 8
-                )  # Use 12.5% of min dimension as padding
+        p_sizes = to_tuple(self.patch_size)
+        rf_sizes = to_tuple(self.receptive_field_size)
 
-                if self.signal_shape[0] == 1:  # Only warn once per batch
+        # Check dimensions
+        shape = self.signal_shape
+
+        # We might need to adjust patch sizes if they are too big
+        new_p_sizes = list(p_sizes)
+        new_rf_sizes = list(rf_sizes)
+        modified = False
+
+        for i, dim_idx in enumerate(self.tiling_dims):
+            if dim_idx < 0:
+                dim_idx += len(shape)
+            D = shape[dim_idx]
+            p = p_sizes[i]
+            rf = rf_sizes[i]
+
+            if p > D:
+                safe_p = D - 2 * rf
+                if safe_p <= 0:
+                    safe_p = D
+                    safe_rf = max(0, D // 8)
+                    new_rf_sizes[i] = safe_rf
+                else:
+                    safe_rf = rf
+
+                new_p_sizes[i] = safe_p
+                modified = True
+
+                if shape[0] == 1:  # Warning
                     print(
-                        f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
-                        f"Using single patch mode with patch_size={safe_patch_size}, "
-                        f"receptive_field_size={safe_receptive_field}"
+                        f"Warning: patch_size[{i}] ({p}) > dim {dim_idx} ({D}). Adjusted to {safe_p}, rf {safe_rf}"
                     )
 
-                self.patch_size = safe_patch_size
-                self.receptive_field_size = safe_receptive_field
-            else:
-                if self.signal_shape[0] == 1:  # Only warn once per batch
-                    print(
-                        f"Warning: patch_size ({self.patch_size}) >= image size ({H}x{W}). "
-                        f"Reducing patch_size to {safe_patch_size}"
-                    )
-
-                self.patch_size = safe_patch_size
-
-        kwargs = {
-            "patch_size": self.patch_size,
-            "receptive_field_size": self.receptive_field_size,
-            "stride": (self.stride, self.stride) if not self.non_overlap else None,
-            "hw_dims": self.hw_dims,
-            "non_overlap": self.non_overlap,
-            "pad_mode": self.pad_mode,
-        }
-
-        try:
-            self._global_slices, self._metadata = tiling_splitting_strategy(
-                self.signal_shape, **kwargs
+        if modified:
+            self.patch_size = (
+                tuple(new_p_sizes)
+                if isinstance(self.patch_size, tuple)
+                else new_p_sizes[0]
             )
-        except Exception as e:
-            # Final fallback: use the whole image as a single patch with minimal padding
-            H = self.signal_shape[self.hw_dims[0]]
-            W = self.signal_shape[self.hw_dims[1]]
-
-            print(
-                f"Warning: Tiling strategy failed ({e}). Using whole image as single patch."
+            self.receptive_field_size = (
+                tuple(new_rf_sizes)
+                if isinstance(self.receptive_field_size, tuple)
+                else new_rf_sizes[0]
             )
 
-            # Create a single patch that covers the whole image
-            ndim = len(self.signal_shape)
-            global_slice = tuple(
-                slice(None) if i not in self.hw_dims else slice(0, self.signal_shape[i])
-                for i in range(ndim)
-            )
-
-            self._global_slices = [global_slice]
-
-            # Create minimal metadata for single patch
-            self._metadata = {
-                "pad_specs": [(0, 0, 0, 0)],  # No padding
-                "crop_slices": [tuple(slice(None) for _ in range(ndim))],
-                "target_slices": [global_slice],
-                "window_shape": self.signal_shape,
-                "original_shape": self.signal_shape,
-            }
+        self._global_slices, self._metadata = tiling_splitting_strategy(
+            self.signal_shape,
+            patch_size=self.patch_size,
+            receptive_field_size=self.receptive_field_size,
+            stride=self.stride,
+            tiling_dims=self.tiling_dims,
+            pad_mode=self.pad_mode,
+        )
 
     def get_local_patches(
         self, X: torch.Tensor, local_indices: list[int]
     ) -> list[tuple[int, torch.Tensor]]:
         r"""Extract and pad local patches."""
 
+        # Apply global padding
+        pad_specs = self._metadata.get("global_padding")
+        pad_mode = self._metadata.get("pad_mode", self.pad_mode)
+
+        if pad_specs and any(p > 0 for p in pad_specs):
+            # Trim trailing zeros from pad_specs to avoid F.pad issues with reflect mode
+            # pad_specs is (last_left, last_right, 2nd_last_left, ...)
+            pads = list(pad_specs)
+            while len(pads) >= 2 and pads[-1] == 0 and pads[-2] == 0:
+                pads.pop()
+                pads.pop()
+            trimmed_pads = tuple(pads)
+
+            try:
+                X_pad = torch.nn.functional.pad(X, trimmed_pads, mode=pad_mode)
+            except Exception:
+                # Fallback to constant padding if reflect fails
+                X_pad = torch.nn.functional.pad(X, pad_specs, mode="constant", value=0)
+        else:
+            X_pad = X
+
         patches = []
         for idx in local_indices:
-            patch = extract_and_pad_patch(X, idx, self._global_slices, self._metadata)
+            slc = self._global_slices[idx]
+            patch = X_pad[slc]
             patches.append((idx, patch))
         return patches
-
-    # Use base class apply_batching and unpack_batched_results implementations
 
     def reduce_patches(
         self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
     ) -> None:
         r"""Reduce patches using tiling metadata."""
-        tiling2d_reduce_fn(out_tensor, local_pairs, self._metadata)
+        tiling_reduce_fn(out_tensor, local_pairs, self._metadata)
 
     def get_num_patches(self) -> int:
         r"""Return total number of patches."""
         return len(self._global_slices)
 
 
-class SmartTiling3DStrategy(DistributedSignalStrategy):
-    r"""
-    Smart 3D tiling strategy with padding and efficient batching for volumetric data.
-
-    This strategy:
-    - Creates uniform cubic patches with receptive field padding
-    - Batches patches for efficient processing
-    - Uses optimized tensor operations for reduction
-
-    Designed for 3D volumetric data with shape (B, C, D, H, W).
-
-    :param Sequence[int] signal_shape: shape of the complete signal tensor (e.g., [B, C, D, H, W]).
-    :param int patch_size: size of each cubic patch (assuming cubic patches).
-    :param int receptive_field_size: padding radius around each patch.
-    :param None, int stride: stride between patches (default: patch_size for non-overlapping).
-    :param bool non_overlap: whether patches should be non-overlapping.
-    :param str pad_mode: padding mode for edge patches.
-
-    |sep|
-
-    :Examples:
-
-        Create and use a 3D tiling strategy:
-
-        >>> from deepinv.distrib.distribution_strategies.strategies import SmartTiling3DStrategy
-        >>> signal_shape = (1, 1, 64, 64, 64)
-        >>> strategy = SmartTiling3DStrategy(
-        ...     signal_shape,
-        ...     patch_size=32,
-        ...     receptive_field_size=8
-        ... )
-        >>> X = torch.randn(*signal_shape)
-        >>> patches = strategy.get_local_patches(X, [0, 1])
-        >>> print(f"Number of patches: {strategy.get_num_patches()}")
-    """
-
-    def __init__(
-        self,
-        signal_shape: Sequence[int],
-        patch_size: int = 64,
-        receptive_field_size: int = 8,
-        stride: Optional[int] = None,
-        non_overlap: bool = True,
-        pad_mode: str = "reflect",
-        **kwargs,
-    ):
-        r"""
-        Initialize smart 3D tiling strategy.
-
-        :param Sequence[int] signal_shape: shape of the complete signal tensor (e.g., [B, C, D, H, W]).
-        :param int patch_size: size of each cubic patch (assuming cubic patches).
-        :param int receptive_field_size: padding radius around each patch.
-        :param None, int stride: stride between patches (default: patch_size for non-overlapping).
-        :param bool non_overlap: whether patches should be non-overlapping.
-        :param str pad_mode: padding mode for edge patches.
-        """
-        super().__init__(signal_shape)
-        self.patch_size = patch_size
-        self.receptive_field_size = receptive_field_size
-        self.stride = stride or patch_size
-        self.non_overlap = non_overlap
-        self.pad_mode = pad_mode
-
-        # Assume 3D tiling on last three dimensions (D, H, W)
-        self.dhw_dims = (-3, -2, -1)
-        self._compute_tiling()
-
-    def _compute_tiling(self):
-        """Compute 3D tiling layout using existing utils."""
-
-        # Get volume dimensions (assume 3D tiling on last three dimensions)
-        D = self.signal_shape[self.dhw_dims[0]]
-        H = self.signal_shape[self.dhw_dims[1]]
-        W = self.signal_shape[self.dhw_dims[2]]
-
-        # Check if patch size is larger than volume dimensions
-        max_dim = max(D, H, W)
-        min_dim = min(D, H, W)
-
-        if self.patch_size >= max_dim:
-            # Handle oversized patch case
-            safe_patch_size = min_dim - 2 * self.receptive_field_size
-
-            if safe_patch_size <= 0:
-                # Use the whole volume as a single patch
-                safe_patch_size = min_dim
-                safe_receptive_field = max(0, min_dim // 8)
-
-                if self.signal_shape[0] == 1:  # Only warn once per batch
-                    print(
-                        f"Warning: patch_size ({self.patch_size}) >= volume size ({D}x{H}x{W}). "
-                        f"Using single patch mode with patch_size={safe_patch_size}, "
-                        f"receptive_field_size={safe_receptive_field}"
-                    )
-
-                self.patch_size = safe_patch_size
-                self.receptive_field_size = safe_receptive_field
-            else:
-                if self.signal_shape[0] == 1:  # Only warn once per batch
-                    print(
-                        f"Warning: patch_size ({self.patch_size}) >= volume size ({D}x{H}x{W}). "
-                        f"Reducing patch_size to {safe_patch_size}"
-                    )
-
-                self.patch_size = safe_patch_size
-
-        kwargs = {
-            "patch_size": self.patch_size,
-            "receptive_field_size": self.receptive_field_size,
-            "stride": (self.stride, self.stride, self.stride)
-            if not self.non_overlap
-            else None,
-            "dhw_dims": self.dhw_dims,
-            "non_overlap": self.non_overlap,
-            "pad_mode": self.pad_mode,
-        }
-
-        try:
-            self._global_slices, self._metadata = tiling3d_splitting_strategy(
-                self.signal_shape, **kwargs
-            )
-        except Exception as e:
-            # Final fallback: use the whole volume as a single patch
-            D = self.signal_shape[self.dhw_dims[0]]
-            H = self.signal_shape[self.dhw_dims[1]]
-            W = self.signal_shape[self.dhw_dims[2]]
-
-            print(
-                f"Warning: 3D tiling strategy failed ({e}). Using whole volume as single patch."
-            )
-
-            # Create a single patch that covers the whole volume
-            ndim = len(self.signal_shape)
-            global_slice = tuple(
-                slice(None)
-                if i not in self.dhw_dims
-                else slice(0, self.signal_shape[i])
-                for i in range(ndim)
-            )
-
-            self._global_slices = [global_slice]
-
-            # Create minimal metadata for single patch
-            self._metadata = {
-                "pad_specs": [(0, 0, 0, 0, 0, 0)],  # No padding for 3D
-                "crop_slices": [tuple(slice(None) for _ in range(ndim))],
-                "target_slices": [global_slice],
-                "window_shape": self.signal_shape,
-                "original_shape": self.signal_shape,
-            }
-
-    def get_local_patches(
-        self, X: torch.Tensor, local_indices: list[int]
-    ) -> list[tuple[int, torch.Tensor]]:
-        r"""Extract and pad local 3D patches."""
-
-        patches = []
-        for idx in local_indices:
-            patch = extract_and_pad_patch(X, idx, self._global_slices, self._metadata)
-            patches.append((idx, patch))
-        return patches
-
-    # Use base class apply_batching and unpack_batched_results implementations
-
-    def reduce_patches(
-        self, out_tensor: torch.Tensor, local_pairs: list[tuple[int, torch.Tensor]]
-    ) -> None:
-        r"""Reduce 3D patches using tiling metadata."""
-        tiling3d_reduce_fn(out_tensor, local_pairs, self._metadata)
-
-    def get_num_patches(self) -> int:
-        r"""Return total number of 3D patches."""
-        return len(self._global_slices)
-
-
 def create_strategy(
-    strategy_name: str, signal_shape: Sequence[int], **kwargs
+    strategy_name: str, signal_shape: Sequence[int], n_dimension: int, **kwargs
 ) -> DistributedSignalStrategy:
     r"""
     Create a distributed signal strategy by name.
 
-    :param str strategy_name: name of the strategy (`'basic'`, `'smart_tiling'`, `'smart_tiling_3d'`).
+    :param str strategy_name: name of the strategy (`'basic'`, `'smart_tiling'`).
     :param Sequence[int] signal_shape: shape of the signal tensor.
+    :param int n_dimension: number of dimensions of the signal (e.g., 2 for images, 3 for volumes).
     :return: (:class:`DistributedSignalStrategy`) the created strategy instance.
     """
+    # Handle tiling_dims priority: kwargs > n_dimension
+    if "tiling_dims" in kwargs and kwargs["tiling_dims"] is not None:
+        tiling_dims = kwargs.pop("tiling_dims")
+    else:
+        tiling_dims = n_dimension
+        if "tiling_dims" in kwargs:
+            kwargs.pop("tiling_dims")
+
     if strategy_name == "basic":
-        return BasicStrategy(signal_shape, **kwargs)
+        return BasicStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
     elif strategy_name == "smart_tiling":
-        return SmartTilingStrategy(signal_shape, **kwargs)
+        return SmartTilingStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
     elif strategy_name == "smart_tiling_3d":
-        return SmartTiling3DStrategy(signal_shape, **kwargs)
+        # Alias for smart_tiling with 3D defaults if not specified
+        # But since we calculate n_dimension from shape, it should be fine to just use SmartTilingStrategy
+        return SmartTilingStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")

@@ -27,14 +27,13 @@ full control and can inspect internals, swap components, and customize behavior.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, Optional, List, Sequence, Tuple, Union
+from typing import Callable, Optional, List, Union
 
 import torch
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
-from deepinv.optim.data_fidelity import DataFidelity, L2
+from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.models.base import Denoiser
 
@@ -49,14 +48,18 @@ from deepinv.distrib.distribution_strategies.strategies import DistributedSignal
 
 
 def distribute_physics(
-    physics: Union[StackedPhysics, List[Physics], Callable[[int, torch.device, Optional[dict]], Physics]],
+    physics: Union[
+        StackedPhysics,
+        List[Physics],
+        Callable[[int, torch.device, Optional[dict]], Physics],
+    ],
     ctx: DistributedContext,
     *,
     num_operators: Optional[int] = None,
     type_object: Optional[str] = "physics",
     dtype: Optional[torch.dtype] = torch.float32,
     gather_strategy: str = "concatenated",
-    **kwargs
+    **kwargs,
 ) -> Union[DistributedPhysics, DistributedLinearPhysics]:
     r"""
     Distribute a Physics object across multiple devices.
@@ -109,13 +112,21 @@ def distribute_physics(
 
     if type_object == "linear_physics":
         return DistributedLinearPhysics(
-            ctx, num_ops=num_operators, factory=physics_factory, dtype=dtype, 
-            gather_strategy=gather_strategy, **kwargs
+            ctx,
+            num_operators=num_operators,
+            factory=physics_factory,
+            dtype=dtype,
+            gather_strategy=gather_strategy,
+            **kwargs,
         )
     else:
         return DistributedPhysics(
-            ctx, num_ops=num_operators, factory=physics_factory, dtype=dtype,
-            gather_strategy=gather_strategy, **kwargs
+            ctx,
+            num_operators=num_operators,
+            factory=physics_factory,
+            dtype=dtype,
+            gather_strategy=gather_strategy,
+            **kwargs,
         )
 
 
@@ -127,10 +138,10 @@ def distribute_processor(
     tiling_strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
-    overlap: bool = False,
+    tiling_dims: Optional[int | tuple[int, ...]] = None,
     max_batch_size: Optional[int] = None,
     gather_strategy: str = "concatenated",
-    **kwargs
+    **kwargs,
 ) -> DistributedProcessing:
     r"""
     Distribute a DeepInverse prior or denoiser across multiple devices.
@@ -176,7 +187,7 @@ def distribute_processor(
         strategy_kwargs={
             "patch_size": patch_size,
             "receptive_field_size": receptive_field_size,
-            "overlap": overlap,
+            "tiling_dims": tiling_dims,
         },
         max_batch_size=max_batch_size,
     )
@@ -186,7 +197,7 @@ def distribute(
     object: Union[
         StackedPhysics,
         List[Physics],
-        Callable[[int, torch.device, Optional[dict]],Physics],
+        Callable[[int, torch.device, Optional[dict]], Physics],
         Denoiser,
         Prior,
         Callable[[int, torch.device, Optional[dict]], Union[Prior, Denoiser]],
@@ -198,11 +209,11 @@ def distribute(
     dtype: Optional[torch.dtype] = torch.float32,
     gather_strategy: str = "concatenated",
     tiling_strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
+    tiling_dims: Optional[int | tuple[int, ...]] = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
-    overlap: bool = False,
     max_batch_size: Optional[int] = None,
-    **kwargs
+    **kwargs,
 ) -> Union[DistributedPhysics, DistributedLinearPhysics, DistributedProcessing]:
     r"""
     Distribute a DeepInverse object across multiple devices.
@@ -250,8 +261,19 @@ def distribute(
     """
     # Check object type and distribute accordingly
     if type_object == "auto":
-        if isinstance(object, (StackedPhysics, StackedLinearPhysics)) or (isinstance(object, list) and len(object) > 0 and isinstance(object[0], Physics)):
-            type_object = "linear_physics" if isinstance(object, (StackedLinearPhysics, list)) and (not isinstance(object, list) or isinstance(object[0], LinearPhysics)) else "physics"
+        if isinstance(object, (StackedPhysics, StackedLinearPhysics)) or (
+            isinstance(object, list)
+            and len(object) > 0
+            and isinstance(object[0], Physics)
+        ):
+            type_object = (
+                "linear_physics"
+                if isinstance(object, (StackedLinearPhysics, list))
+                and (
+                    not isinstance(object, list) or isinstance(object[0], LinearPhysics)
+                )
+                else "physics"
+            )
         elif isinstance(object, DataFidelity):
             type_object = "data_fidelity"
         elif isinstance(object, Prior):
@@ -259,7 +281,9 @@ def distribute(
         elif isinstance(object, Denoiser):
             type_object = "denoiser"
         elif callable(object):
-            raise ValueError("For callable objects, you must specify type_object parameter")
+            raise ValueError(
+                "For callable objects, you must specify type_object parameter"
+            )
         else:
             raise ValueError(f"Cannot auto-detect type for object: {type(object)}")
 
@@ -268,10 +292,10 @@ def distribute(
             object,
             ctx,
             dtype=dtype,
-            num_operators=num_operators, 
+            num_operators=num_operators,
             type_object=type_object,
             gather_strategy=gather_strategy,
-            **kwargs
+            **kwargs,
         )
     elif type_object in ["prior", "denoiser"]:
         return distribute_processor(
@@ -282,9 +306,9 @@ def distribute(
             tiling_strategy=tiling_strategy,
             patch_size=patch_size,
             receptive_field_size=receptive_field_size,
-            overlap=overlap,
+            tiling_dims=tiling_dims,
             max_batch_size=max_batch_size,
-            **kwargs
+            **kwargs,
         )
     else:
         raise ValueError(f"Unsupported type_object: {type_object}")

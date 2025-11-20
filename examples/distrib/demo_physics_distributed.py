@@ -110,12 +110,16 @@ def main():
         # STEP 1: Create stacked physics operators
         # ============================================================================
 
-        stacked_physics, clean_image = create_stacked_physics(ctx.device, img_size=img_size)
+        stacked_physics, clean_image = create_stacked_physics(
+            ctx.device, img_size=img_size
+        )
 
         if ctx.rank == 0:
             print(f"\n✅ Created stacked physics with {len(stacked_physics)} operators")
             print(f"   Image shape: {clean_image.shape}")
-            print(f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}")
+            print(
+                f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}"
+            )
 
         # ============================================================================
         # STEP 2: Distribute physics across processes
@@ -125,7 +129,9 @@ def main():
 
         if ctx.rank == 0:
             print(f"\n🔧 Distributed physics created")
-            print(f"   Local operators on this rank: {len(distributed_physics.local_idx)}")
+            print(
+                f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
+            )
 
         # ============================================================================
         # STEP 3: Test forward operation (A)
@@ -147,7 +153,7 @@ def main():
 
             print(f"\n🔍 Comparing with non-distributed forward operation...")
             measurements_ref = stacked_physics(clean_image)
-            
+
             max_diff = 0.0
             mean_diff = 0.0
             for i in range(len(measurements)):
@@ -155,12 +161,14 @@ def main():
                 max_diff = max(max_diff, diff.max().item())
                 mean_diff += diff.mean().item()
             mean_diff /= len(measurements)
-            
+
             print(f"   Mean absolute difference: {mean_diff:.2e}")
             print(f"   Max absolute difference:  {max_diff:.2e}")
-            
+
             # Assert exact equality (should be zero for deterministic operations)
-            assert max_diff < 1e-6, f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
+            assert (
+                max_diff < 1e-6
+            ), f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
             print(f"   ✅ Results match exactly!")
 
         # ============================================================================
@@ -176,7 +184,7 @@ def main():
         if ctx.rank == 0:
             print(f"   Output shape: {adjoint_result.shape}")
             print(f"   Output norm: {torch.norm(adjoint_result).item():.4f}")
-            
+
             # Compare with non-distributed result
             print(f"\n🔍 Comparing with non-distributed adjoint operation...")
             assert measurements_ref is not None
@@ -184,9 +192,11 @@ def main():
             diff = torch.abs(adjoint_result - adjoint_ref)
             print(f"   Mean absolute difference: {diff.mean().item():.2e}")
             print(f"   Max absolute difference:  {diff.max().item():.2e}")
-            
+
             # Assert exact equality
-            assert diff.max().item() < 1e-6, f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
+            assert (
+                diff.max().item() < 1e-6
+            ), f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
             print(f"   ✅ Results match exactly!")
 
         # ============================================================================
@@ -202,16 +212,18 @@ def main():
         if ctx.rank == 0:
             print(f"   Output shape: {ata_result.shape}")
             print(f"   Output norm: {torch.norm(ata_result).item():.4f}")
-            
+
             # Compare with non-distributed result
             print(f"\n🔍 Comparing with non-distributed A^T A operation...")
             ata_ref = stacked_physics.A_adjoint_A(clean_image)
             diff = torch.abs(ata_result - ata_ref)
             print(f"   Mean absolute difference: {diff.mean().item():.2e}")
             print(f"   Max absolute difference:  {diff.max().item():.2e}")
-            
+
             # Assert exact equality
-            assert diff.max().item() < 1e-6, f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
+            assert (
+                diff.max().item() < 1e-6
+            ), f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
             print(f"   ✅ Results match exactly!")
 
         # ============================================================================
@@ -220,11 +232,13 @@ def main():
 
         if ctx.rank == 0:
             print(f"\n📊 Visualizing results...")
-            
+
             # Plot original image and measurements
             images_to_plot = [clean_image] + [m for m in measurements]
-            titles = ["Original Image"] + [f"Measurement {i+1}" for i in range(len(measurements))]
-            
+            titles = ["Original Image"] + [
+                f"Measurement {i+1}" for i in range(len(measurements))
+            ]
+
             plot(
                 images_to_plot,
                 titles=titles,
@@ -234,9 +248,13 @@ def main():
 
             # Plot adjoint and A^T A results
             # Normalize for visualization
-            adjoint_vis = (adjoint_result - adjoint_result.min()) / (adjoint_result.max() - adjoint_result.min() + 1e-8)
-            ata_vis = (ata_result - ata_result.min()) / (ata_result.max() - ata_result.min() + 1e-8)
-            
+            adjoint_vis = (adjoint_result - adjoint_result.min()) / (
+                adjoint_result.max() - adjoint_result.min() + 1e-8
+            )
+            ata_vis = (ata_result - ata_result.min()) / (
+                ata_result.max() - ata_result.min() + 1e-8
+            )
+
             plot(
                 [clean_image, adjoint_vis, ata_vis],
                 titles=["Original", r"$A^T(y)$", r"$A^T A(x)$"],
