@@ -8,7 +8,7 @@ import deepinv.physics
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.utils.compat import zip_strict
-
+from deepinv.optim.data_fidelity import L2
 
 class DiffusionSampler(BaseSampling):
     r"""
@@ -557,7 +557,7 @@ class DPS(Reconstructor):
             \end{equation*}
 
     :param torch.nn.Module model: a denoiser network that can handle different noise levels
-    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator, by default :class:`deepinv.optim.L2` (the choice in the paper).
     :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
@@ -568,7 +568,7 @@ class DPS(Reconstructor):
     def __init__(
         self,
         model,
-        data_fidelity,
+        data_fidelity=L2(),
         max_iter=1000,
         eta=1.0,
         verbose=False,
@@ -612,6 +612,15 @@ class DPS(Reconstructor):
         return a
 
     def forward(self, y, physics: deepinv.physics.Physics, seed=None, x_init=None):
+        r"""
+        Computes a random sample from the posterior distribution using the DPS algorithm.
+
+        :param torch.Tensor y: the measurements.
+        :param deepinv.physics.Physics physics: the physics operator.
+        :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the reconstruction, if not provided
+            the algorithm initializes with random noise in image space.
+        """
         if seed:
             torch.manual_seed(seed)
 
@@ -623,7 +632,12 @@ class DPS(Reconstructor):
         time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
 
         # Initial sample from x_T
-        x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
+        if x_init is not None:
+            x = (2 * x_init - 1)
+        elif isinstance(physics, deepinv.physics.LinearPhysics):
+            x = torch.randn_like(physics.A_adjoint(y))
+        else:
+            x = torch.randn_like(physics.A_dagger(y))
 
         if self.save_iterates:
             xs = [x]

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class MAE(Metric):
-    r"""
+    r"""deepinv.metric.MAE(complex_abs, reduction, norm_inputs, center_crop, **kwargs)
     Mean Absolute Error metric.
 
     Calculates :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
@@ -52,7 +52,7 @@ class MAE(Metric):
 
 
 class MSE(Metric):
-    r"""
+    r"""deepinv.metric.MSE(complex_abs, reduction, norm_inputs, center_crop, **kwargs)
     Mean Squared Error metric.
 
     Calculates :math:`\|\hat{x}-x\|_2^2` where :math:`\hat{x}=\inverse{y}`.
@@ -84,7 +84,6 @@ class MSE(Metric):
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
-
     def metric(self, x_net, x, *args, **kwargs):
         return cal_mse(x_net, x)
 
@@ -522,7 +521,7 @@ class QNR(Metric):
 
 
 class SpectralAngleMapper(Metric):
-    r"""
+    r"""deepinv.metric.SpectralAngleMapper(train_loss, reduction, norm_inputs, center_crop, **kwargs)
     Spectral Angle Mapper (SAM).
 
     Calculates spectral similarity between estimated and target multispectral images.
