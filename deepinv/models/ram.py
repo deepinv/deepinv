@@ -3,7 +3,6 @@ from pathlib import Path
 from warnings import warn
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
