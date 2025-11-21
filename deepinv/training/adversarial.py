@@ -210,7 +210,7 @@ class AdversarialTrainer(Trainer):
         logs = {}
 
         if train and step:  # remove gradient
-            self.optimizer.G.zero_grad()
+            self.optimizer.G.zero_grad(set_to_none=True)
 
         # Evaluate reconstruction network
         x_net = self.model_inference(y=y, physics=physics)
@@ -264,7 +264,7 @@ class AdversarialTrainer(Trainer):
         for _ in range(self.step_ratio_D):
             if train or self.compute_eval_losses:
 
-                self.optimizer.D.zero_grad()
+                self.optimizer.D.zero_grad(set_to_none=True)
 
                 loss_total_d = 0
                 for k, l in enumerate(self.losses_d):
