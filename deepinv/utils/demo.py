@@ -172,14 +172,14 @@ def load_image(
     dtype=torch.float32,
 ):
     r"""
-    Load an image from a file and return a torch.Tensor.
+    Load an image from a file and return a torch.Tensor with a batch dimension.
 
     :param str path: Path to the image file.
     :param int, tuple[int] img_size: Size of the image to return.
     :param bool grayscale: Whether to convert the image to grayscale.
     :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
     :param str device: Device on which to load the image (gpu or cpu).
-    :return: :class:`torch.Tensor` containing the image.
+    :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
     img = Image.open(path)
     transform_list = []
@@ -216,14 +216,14 @@ def load_url_image(
     dtype=torch.float32,
 ):
     r"""
-    Load an image from a URL and return a torch.Tensor.
+    Load an image from a URL and return a torch.Tensor with a batch dimension.
 
     :param str url: URL of the image file.
     :param int, tuple[int] img_size: Size of the image to return.
     :param bool grayscale: Whether to convert the image to grayscale.
     :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
     :param str device: Device on which to load the image (gpu or cpu).
-    :return: :class:`torch.Tensor` containing the image.
+    :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
     return load_image(
         _load_url(url),
@@ -244,9 +244,12 @@ def load_example(
     dtype=torch.float32,
 ):
     r"""
-    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using
-    :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_.
+
+    Uses :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
     or :func:`deepinv.utils.load_np_url` if numpy array in `npy` or `npz` file.
+
+    Also adds a batch dimension to the image.
 
     Available examples for `name` include (see `the HuggingFace repo <https://huggingface.co/datasets/deepinv/images>`_ for full list):
 
@@ -317,7 +320,7 @@ def load_example(
     :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
     :param torch.device, str device: Device on which to load the image (gpu or cpu).
     :param torch.dtype dtype: torch dtype to cast the image to.
-    :return: :class:`torch.Tensor` containing the image.
+    :return: :class:`torch.Tensor` containing the image with an added batch dimension.
     """
     url = get_image_url(name)
 

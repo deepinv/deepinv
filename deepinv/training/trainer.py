@@ -1278,8 +1278,8 @@ class Trainer:
         stop = epoch > self.early_stop * self.eval_interval + best_epoch
         if stop and self.verbose:
             print(
-                "Early stopping triggered as validation metrics have not improved in "
-                f"the last {self.early_stop} validation steps, disable it with early_stop=None, or"
+                f"Early stopping triggered at epoch {epoch} as validation metrics have not improved in "
+                f"the last {self.early_stop} validation steps. Disable it with early_stop=None, or "
                 f"modify early_stop>0 to wait for more validation steps."
             )
 
