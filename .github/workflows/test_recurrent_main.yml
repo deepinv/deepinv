@@ -83,10 +83,14 @@ jobs:
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
       - name: Install deepinv and its dependencies
+        shell: bash
         run: |
-          extras=$(echo "${{ matrix.extra }}" | sed 's/,/ --extra /g')
-          if [ -n "$extras" ]; then
-            uv sync --extra $extras
+          if [ -n "${{ matrix.extra }}" ]; then
+            EXTRAS=""
+            for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
+              EXTRAS+=" --extra $extra"
+            done
+            uv sync $EXTRAS
           else
             uv sync
           fi
