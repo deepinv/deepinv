@@ -644,19 +644,30 @@ class TomographyWithAstra(LinearPhysics):
 
         return out
 
-    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        r"""Pseudo-inverse estimated using filtered back-projection.
-
-        :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: filtered back-projection of shape [B,C,...,H,W]
-        """
-
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         filtered_y = self.filter(y, dim=-1)
         out = self.A_adjoint(self.fbp_weighting(filtered_y))
         if self.normalize:
             out *= self.operator_norm**2
 
         return out
+
+    def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements, or the Feldkamp-Davis-Kress algorithm (FDK) in cone-beam 3D.
+
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: input of shape [B,C,...,A,N]
+        :return: filtered back-projection of shape [B,C,...,H,W]
+        """
+
+        if fbp:
+            return self.fbp(y, **kwargs)
+        else:
+            return super(TomographyWithAstra, self).A_dagger(y, **kwargs)
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
