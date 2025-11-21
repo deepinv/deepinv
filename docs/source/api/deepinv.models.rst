@@ -86,6 +86,16 @@ Model Utils
 
    deepinv.models.complex.to_complex_denoiser
 
+Wrappers 
+--------
+.. userguide:: model-wrappers
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.DiffusersDenoiserWrapper
 
 Deep Image Prior
 ----------------
