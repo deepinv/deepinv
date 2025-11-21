@@ -21,7 +21,7 @@ Changed
 Fixed
 ^^^^^
 - Fixed :class:`deepinv.sampling.DPS` initialization when measurements have different size than image (:gh:`946` by `Julian Tachella`_)
-- Fixed :func:`deepinv.physics.Ptychography.A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
+- Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 
 v0.3.6

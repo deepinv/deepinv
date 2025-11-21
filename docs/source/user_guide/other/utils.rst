@@ -140,7 +140,7 @@ Other miscellaneous utility functions:
      - Creates a Dirac delta tensor.
    * - :func:`deepinv.utils.dirac_like`
      - Creates a Dirac delta tensor with the same shape as the input.
-   * - :func:`deepinv.utils.dirac_com`
+   * - :func:`deepinv.utils.dirac_comb`
      - Creates a Dirac delta comb tensor.
    * - :func:`deepinv.utils.dirac_comb_like`
      - Creates a Dirac delta comb tensor with the same shape as the input.
