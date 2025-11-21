@@ -313,9 +313,9 @@ class RAM(Reconstructor, Denoiser):
             physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
         if img_size is None:
-            if hasattr(physics, "img_shape"):
+            if hasattr(physics, "img_shape") and physics.img_shape is not None:
                 img_size = physics.img_shape
-            elif hasattr(physics, "img_size"):
+            elif hasattr(physics, "img_size") and physics.img_size is not None:
                 img_size = physics.img_size
             else:
                 img_size = physics.A_adjoint(y).shape[1:]
