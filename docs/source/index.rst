@@ -3,7 +3,7 @@
 DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
-|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube|
+|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube| |paper|
 
 .. toctree::
    :maxdepth: 3
@@ -100,19 +100,22 @@ Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main
 
 Citation
 --------
-If you use DeepInverse in your research, please cite `our paper on arXiv <https://arxiv.org/abs/2505.20160>`_:
+If you use DeepInverse in your research, please cite `our paper on JOSS <https://joss.theoj.org/papers/10.21105/joss.08923>`_:
 
 
 .. code-block:: bash
 
-    @software{tachella2025deepinverse,
-          title={DeepInverse: A Python package for solving imaging inverse problems with deep learning},
-          author={Julián Tachella and Matthieu Terris and Samuel Hurault and Andrew Wang and Dongdong Chen and Minh-Hai Nguyen and Maxime Song and Thomas Davies and Leo Davy and Jonathan Dong and Paul Escande and Johannes Hertrich and Zhiyuan Hu and Tobías I. Liaudat and Nils Laurent and Brett Levac and Mathurin Massias and Thomas Moreau and Thibaut Modrzyk and Brayan Monroy and Sebastian Neumayer and Jérémy Scanvic and Florian Sarron and Victor Sechaud and Georg Schramm and Romain Vo and Pierre Weiss},
-          year={2025},
-          eprint={2505.20160},
-          archivePrefix={arXiv},
-          primaryClass={eess.IV},
-          url={https://arxiv.org/abs/2505.20160},
+    @article{tachella2025deepinverse,
+        title = {DeepInverse: A Python package for solving imaging inverse problems with deep learning},
+        journal = {Journal of Open Source Software}
+        doi = {10.21105/joss.08923},
+        url = {https://doi.org/10.21105/joss.08923},
+        year = {2025},
+        publisher = {The Open Journal},
+        volume = {10},
+        number = {115},
+        pages = {8923},
+        author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
 
 Star history
@@ -148,3 +151,5 @@ unfolded, deep equilibrium models
    :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
 .. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
    :target: https://www.youtube.com/@deepinv
+.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
+   :target: https://doi.org/10.21105/joss.08923
