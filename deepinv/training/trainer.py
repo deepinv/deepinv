@@ -1114,9 +1114,10 @@ class Trainer:
                     img_name = f"{self.save_folder_im}/{titles[k]}/"
                     # make dir
                     Path(img_name).mkdir(parents=True, exist_ok=True)
-                    save_image(img, img_name + f"{self.img_counter + i}.png")
+                    entry = img[i].unsqueeze(0)
+                    save_image(entry, img_name + f"{self.img_counter + i}.png")
 
-                self.img_counter += len(imgs[0])
+            self.img_counter += len(imgs[0])
 
         if self.conv_metrics is not None:
             plot_curves(
