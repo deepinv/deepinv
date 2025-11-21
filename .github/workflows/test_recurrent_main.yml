@@ -83,6 +83,7 @@ jobs:
           sed -i "s/>=3.10/>=3.9/" pyproject.toml
 
       - name: Install deepinv and its dependencies
+        shell: bash
         run: |
           extras=$(echo "${{ matrix.extra }}" | sed 's/,/ --extra /g')
           if [ -n "$extras" ]; then
