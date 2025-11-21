@@ -1,0 +1,117 @@
+
+
+.. _sphx_glr_auto_examples_basics:
+
+Basics
+------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Follow this example to get started with DeepInverse in under 5 minutes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_quickstart_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_quickstart.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">5 minute quickstart tutorial</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Follow this example to reconstruct images using a pretrained model in one line.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_pretrained_model_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Use a pretrained model</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Follow this example to reconstruct images using an iterative algorithm.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_custom_optim_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_custom_optim.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Use iterative reconstruction algorithms</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use DeepInverse with your own dataset.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_custom_dataset_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Bring your own dataset</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This examples shows you how to use DeepInverse with your own physics.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_custom_physics_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Bring your own physics</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/basics/demo_quickstart
+   /auto_examples/basics/demo_pretrained_model
+   /auto_examples/basics/demo_custom_optim
+   /auto_examples/basics/demo_custom_dataset
+   /auto_examples/basics/demo_custom_physics
+
