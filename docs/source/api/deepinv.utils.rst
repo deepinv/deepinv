@@ -123,4 +123,7 @@ Other
    :nosignatures:
 
     deepinv.utils.get_freer_gpu
+    deepinv.utils.dirac
     deepinv.utils.dirac_like
+    deepinv.utils.dirac_comb
+    deepinv.utils.dirac_comb_like

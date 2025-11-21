@@ -136,8 +136,14 @@ Other miscellaneous utility functions:
      - **Description**
    * - :func:`deepinv.utils.get_freer_gpu`
      - Finds the GPU with the most available memory.
+   * - :func:`deepinv.utils.dirac`
+     - Creates a Dirac delta tensor.
    * - :func:`deepinv.utils.dirac_like`
-     - Creates a Dirac delta-like tensor with the same shape as the input.
+     - Creates a Dirac delta tensor with the same shape as the input.
+   * - :func:`deepinv.utils.dirac_comb`
+     - Creates a Dirac delta comb tensor.
+   * - :func:`deepinv.utils.dirac_comb_like`
+     - Creates a Dirac delta comb tensor with the same shape as the input.
 
 
 .. _tensorlist:

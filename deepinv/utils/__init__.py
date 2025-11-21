@@ -36,7 +36,10 @@ from .tensorlist import (
     zeros_like,
     randn_like,
     ones_like,
+    dirac,
+    dirac_comb,
     dirac_like,
+    dirac_comb_like,
 )
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor

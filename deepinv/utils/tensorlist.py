@@ -330,7 +330,7 @@ def zeros_like(x):
 
 def dirac(shape, device="cpu"):
     r"""
-    Returns a :class:`torch.Tensor` with a Dirac delta at the center.
+    Returns a :class:`torch.Tensor` with a Dirac delta in 2D at the center.
 
     :param tuple shape: shape of the output tensor.
     :param str device: device of the output tensor.
@@ -339,6 +339,19 @@ def dirac(shape, device="cpu"):
     center = tuple([s // 2 for s in shape[-2:]])
     slices = [slice(None)] * (len(shape) - 2) + list(center)
     out[slices] = 1
+    return out
+
+
+def dirac_comb(shape, step, device="cpu"):
+    r"""
+    Returns a :class:`torch.Tensor` with a Dirac comb in 2D (impulse train) at the given step.
+
+    :param tuple shape: shape of the output tensor.
+    :param int step: step of the Dirac comb.
+    :param str device: device of the output tensor.
+    """
+    out = torch.zeros(shape, device=device)
+    out[..., ::step, ::step] = 1
     return out
 
 
@@ -351,6 +364,17 @@ def dirac_like(x):
         return dirac(x.shape, device=x.device)
     else:
         return TensorList([dirac(xi.shape, device=xi.device) for xi in x])
+
+
+def dirac_comb_like(x, step):
+    r"""
+    Returns a :class:`deepinv.utils.TensorList` or :class:`torch.Tensor`
+    with the same type as x, filled with a Dirac comb at the given step.
+    """
+    if isinstance(x, torch.Tensor):
+        return dirac_comb(x.shape, step, device=x.device)
+    else:
+        return TensorList([dirac_comb(xi.shape, step, device=xi.device) for xi in x])
 
 
 def ones_like(x):
