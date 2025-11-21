@@ -10,6 +10,7 @@ from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.utils.compat import zip_strict
 from deepinv.optim.data_fidelity import L2
 
+
 class DiffusionSampler(BaseSampling):
     r"""
     Turns a diffusion method into a Monte Carlo sampler
@@ -633,7 +634,7 @@ class DPS(Reconstructor):
 
         # Initial sample from x_T
         if x_init is not None:
-            x = (2 * x_init - 1)
+            x = 2 * x_init - 1
         elif isinstance(physics, deepinv.physics.LinearPhysics):
             x = torch.randn_like(physics.A_adjoint(y))
         else:

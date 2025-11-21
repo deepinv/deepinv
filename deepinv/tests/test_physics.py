@@ -1102,6 +1102,7 @@ def test_phase_retrieval(name, device):
     x_hat = physics.A_dagger(physics(x))
     assert x_hat.shape == x.shape
 
+
 def test_phase_retrieval_Avjp(device):
     r"""
     Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.

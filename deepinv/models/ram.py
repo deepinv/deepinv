@@ -188,7 +188,9 @@ class RAM(Reconstructor, Denoiser):
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         gamma = gamma * self.fact_realign
         gamma = gamma.clamp(min=1e-8)  # clamp to avoid negative or zero gamma
-        model_input = physics.base.prox_l2(x, y, gamma=gamma) # use base physics for prox in case it has a fast implementation (e.g. DecomposablePhysics)
+        model_input = physics.base.prox_l2(
+            x, y, gamma=gamma
+        )  # use base physics for prox in case it has a fast implementation (e.g. DecomposablePhysics)
 
         return model_input
 
@@ -207,9 +209,13 @@ class RAM(Reconstructor, Denoiser):
 
         y_list = []
         for scale in [0, 1, 2, 3]:
-            factor = 2 ** scale
+            factor = 2**scale
             physics.set_scale(scale)
-            y_list.append(krylov_embeddings(physics.downsample(x0, scale=scale), physics, factor, N=2))
+            y_list.append(
+                krylov_embeddings(
+                    physics.downsample(x0, scale=scale), physics, factor, N=2
+                )
+            )
 
         physics.set_scale(0)
 
@@ -225,25 +231,39 @@ class RAM(Reconstructor, Denoiser):
 
         x1 = self.m_head(x0)
 
-        x1_ = self.m_down1(x1, physics=physics, y=y_list[0], img_channels=img_channels, scale=0)
+        x1_ = self.m_down1(
+            x1, physics=physics, y=y_list[0], img_channels=img_channels, scale=0
+        )
         x2 = self.pool1(x1_)
 
-        x3_ = self.m_down2(x2, physics=physics, y=y_list[1], img_channels=img_channels, scale=1)
+        x3_ = self.m_down2(
+            x2, physics=physics, y=y_list[1], img_channels=img_channels, scale=1
+        )
         x3 = self.pool2(x3_)
 
-        x4_ = self.m_down3(x3, physics=physics, y=y_list[2], img_channels=img_channels, scale=2)
+        x4_ = self.m_down3(
+            x3, physics=physics, y=y_list[2], img_channels=img_channels, scale=2
+        )
         x4 = self.pool3(x4_)
 
-        x = self.m_body(x4, physics=physics, y=y_list[3], img_channels=img_channels, scale=3)
+        x = self.m_body(
+            x4, physics=physics, y=y_list[3], img_channels=img_channels, scale=3
+        )
 
         x = self.up3(x + x4)
-        x = self.m_up3(x, physics=physics, y=y_list[2], img_channels=img_channels, scale=2)
+        x = self.m_up3(
+            x, physics=physics, y=y_list[2], img_channels=img_channels, scale=2
+        )
 
         x = self.up2(x + x3)
-        x = self.m_up2(x, physics=physics, y=y_list[1], img_channels=img_channels, scale=1)
+        x = self.m_up2(
+            x, physics=physics, y=y_list[1], img_channels=img_channels, scale=1
+        )
 
         x = self.up1(x + x2)
-        x = self.m_up1(x, physics=physics, y=y_list[0], img_channels=img_channels, scale=0)
+        x = self.m_up1(
+            x, physics=physics, y=y_list[0], img_channels=img_channels, scale=0
+        )
 
         x = self.m_tail(x + x1, img_channels)
 
@@ -292,7 +312,6 @@ class RAM(Reconstructor, Denoiser):
         if physics is None:
             physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
 
-
         if img_size is None:
             if hasattr(physics, "img_shape"):
                 img_size = physics.img_shape
@@ -333,9 +352,7 @@ class RAM(Reconstructor, Denoiser):
         if self.use_pad:
             out = physics.remove_pad(out)
 
-        out = out * rescale_val.view(
-            [out.shape[0]] + [1] * (out.ndim - 1)
-        )
+        out = out * rescale_val.view([out.shape[0]] + [1] * (out.ndim - 1))
 
         return out
 
@@ -462,16 +479,16 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     if x_init is None:
         x = y
     else:
-        x = x_init #.clone()
+        x = x_init  # .clone()
 
     norm = factor**2  # Precompute normalization factor
     AtA = lambda u: p.A_adjoint_A(u) * norm  # Define the linear operator
 
     v = v if v is not None else torch.zeros_like(x)
 
-    out = x #.clone()
+    out = x  # .clone()
     # Compute Krylov basis
-    x_k = x #.clone()
+    x_k = x  # .clone()
     for i in range(N - 1):
         x_k = AtA(x_k) - v
         out = torch.cat([out, x_k], dim=1)
@@ -665,9 +682,7 @@ class InHead(torch.nn.Module):
     :param bool input_layer: If True, this will be considered as an input layer (necessitating a channel number adjustment), otherwise it will not.
     """
 
-    def __init__(
-        self, in_channels_list, out_channels, bias=False, input_layer=False
-    ):
+    def __init__(self, in_channels_list, out_channels, bias=False, input_layer=False):
         super(InHead, self).__init__()
         self.in_channels_list = in_channels_list
         self.input_layer = input_layer
@@ -956,6 +971,7 @@ class HeadBlock(torch.nn.Module):
             x = aux_0 + aux_1
 
         return x
+
 
 def sequential(*args):
     r"""

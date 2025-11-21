@@ -84,6 +84,7 @@ class MSE(Metric):
         If `tuple` of `int`, cropping is performed over the last `len(center_crop)` dimensions. If positive values are provided, a standard center crop is applied.
         If negative (or zero) values are passed, cropping will be done by removing `center_crop` pixels from the borders (useful when tensors vary in size across the dataset).
     """
+
     def metric(self, x_net, x, *args, **kwargs):
         return cal_mse(x_net, x)
 
