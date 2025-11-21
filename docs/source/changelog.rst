@@ -8,16 +8,20 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
+- Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
+- Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 
 
 Changed
 ^^^^^^^
-- (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+- Faster :class:`deepinv.models.RAM` implementation by avoiding certain redundant computations (:gh:`946` by `Julian Tachella`_)
+- (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 
 Fixed
 ^^^^^
+- Fixed :class:`deepinv.sampling.DPS` initialization when measurements have different size than image (:gh:`946` by `Julian Tachella`_)
+- Fixed :func:`deepinv.physics.Ptychography.A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 
 
 v0.3.6
@@ -25,8 +29,8 @@ v0.3.6
 New Features
 ^^^^^^^^^^^^
 - Add dataset for patch sampling from (large) nD images without loading entire images into memory (:gh:`806` by `Vicky De Ridder`_)
-- Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`)
-- Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
+- Add support for 3D CNNs (:gh:`869` by `Vicky De Ridder`_)
+- Add support for complex dtypes in :class:`deepinv.models.WaveletDenoiser`, :class:`deepinv.models.WaveletDictDenoiser` and :class:`deepinv.optim.WaveletPrior` (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 
