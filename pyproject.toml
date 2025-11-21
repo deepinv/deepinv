@@ -67,7 +67,8 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
-    "sphinxcontrib.bibtex"
+    "sphinxcontrib.bibtex",
+    "nbformat",
 ]
 
 lint = [
@@ -90,6 +91,8 @@ denoisers = [
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
     "spyrit>=3.0.0; platform_system=='Linux'",
+    "diffusers", 
+    "transformers",
 ]
 
 # optional dependencies for specific datasets
@@ -154,3 +157,4 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
+ 
