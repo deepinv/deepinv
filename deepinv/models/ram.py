@@ -329,11 +329,11 @@ class RAM(Reconstructor, Denoiser):
         )
 
         pad = (-img_size[-2] % 8, -img_size[-1] % 8)
+
+        use_pad = False
         if pad[0] != 0 or pad[1] != 0:
             physics = PhysicsCropper(physics, pad)
-            self.use_pad = True
-        else:
-            self.use_pad = False
+            use_pad = True
 
         x_in = physics.A_adjoint(y)
 
@@ -349,7 +349,7 @@ class RAM(Reconstructor, Denoiser):
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
-        if self.use_pad:
+        if use_pad:
             out = physics.remove_pad(out)
 
         out = out * rescale_val.view([out.shape[0]] + [1] * (out.ndim - 1))
@@ -552,13 +552,13 @@ class MeasCondBlock(nn.Module):
         physics.set_scale(scale)
         dec = self.decoding_conv(x, img_channels)
         factor = 2 ** (scale)
-        meas_y = krylov_embeddings(y, physics, factor, N=self.N)
+        meas_y = y
         meas_dec = krylov_embeddings(
-            y, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
+            None, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
         )
         for c in range(1, self.c_mult):
             meas_cur = krylov_embeddings(
-                y,
+                None,
                 physics,
                 factor,
                 N=self.N,
