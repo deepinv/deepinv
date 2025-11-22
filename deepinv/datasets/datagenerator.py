@@ -154,7 +154,7 @@ class HDF5Dataset(ImageDataset):
 
 def generate_dataset(
     train_dataset: Dataset,
-    physics: Physics,
+    physics: Physics | list[Physics],
     save_dir: str,
     test_dataset: Dataset = None,
     val_dataset: Dataset = None,
@@ -259,7 +259,12 @@ def generate_dataset(
         n_val = min(len(val_dataset), val_datapoints or len(val_dataset))
         n_val_g = int(n_val / G)
 
-    hf_paths = []
+    hf_paths: list[str] = []
+
+    def _is_cpu(dev: torch.device | str) -> bool:
+        if isinstance(dev, str):
+            return dev.lower() == "cpu"
+        return isinstance(dev, torch.device) and dev.type == "cpu"
 
     for g in range(G):
         hf_path = f"{save_dir}/{dataset_filename}{g}.h5"
@@ -278,235 +283,152 @@ def generate_dataset(
 
         hf = h5py.File(hf_path, "w")
 
-        hf.attrs["operator"] = physics[g].__class__.__name__
-        if isinstance(physics[g], StackedPhysics):
-            hf.attrs["stacked"] = len(physics[g])
-
-        # get initial image for image size
-        if train_dataset is not None:
-            x0 = train_dataset[0]
-        elif test_dataset is not None:
-            x0 = test_dataset[0]
-        elif val_dataset is not None:
-            x0 = val_dataset[0]
-
-        x0 = x0[0] if isinstance(x0, (list, tuple)) else x0
-        x0 = x0.to(device).unsqueeze(0)
-
-        # get initial measurement for initial image
-        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, dict | None]:
-            if physics_generator is None:
-                return physics[g](x), None
-            else:
-                params = physics_generator.step(batch_size=b)
-                return physics[g](x, **params), params
-
-        y0, params0 = measure(x0, b=1, g=g)
-
+        op_g = physics[g]
+        hf.attrs["operator"] = op_g.__class__.__name__
+        if isinstance(op_g, StackedPhysics):
+            hf.attrs["stacked"] = len(op_g)
         if physics_generator is not None:
-            # Reset physics generator so it starts again at initial rng
             physics_generator.reset_rng()
 
-        # save physics
-        torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
+        def measure(x: Tensor, b: int) -> tuple[Tensor | TensorList, dict | None]:
+            if physics_generator is None:
+                return op_g(x), None
+            params = physics_generator.step(batch_size=b)
+            return op_g(x, **params), params
 
-        if train_dataset is not None:
-            if isinstance(y0, TensorList):
-                for i in range(len(y0)):
-                    hf.create_dataset(
-                        f"y{i}_train",
-                        (n_train_g,) + y0[i].shape[1:],
-                        dtype=y0[0].cpu().numpy().dtype,
+        torch.save(op_g.state_dict(), f"{save_dir}/physics{g}.pt")
+
+        created_splits: set[str] = set()
+
+        def process_batch(
+            hf_ds: HDF5Dataset,
+            x_batch,
+            split_name: str,
+            index: int,
+            n_split: int,
+        ) -> int:
+            """Process one batch for a given split and return updated index."""
+            x = x_batch[0] if isinstance(x_batch, (list, tuple)) else x_batch
+            x = x.to(device)
+
+            bsize = x.size(0)
+            if split_name == "train" and index + bsize > n_split:
+                bsize = n_split - index
+            if bsize <= 0:
+                return index
+            y, params = measure(x, b=bsize)
+
+            # lazily create datasets for split on first use
+            if split_name not in created_splits:
+                if isinstance(y, TensorList):
+                    for i in range(len(y)):
+                        hf_ds.create_dataset(
+                            f"y{i}_{split_name}",
+                            (n_split,) + y[i].shape[1:],
+                            dtype=y[0].cpu().numpy().dtype,
+                        )
+                else:
+                    hf_ds.create_dataset(
+                        f"y_{split_name}",
+                        (n_split,) + y.shape[1:],
+                        dtype=y.cpu().numpy().dtype,
                     )
+
+                if split_name != "train" or supervised:
+                    hf_ds.create_dataset(
+                        f"x_{split_name}",
+                        (n_split,) + x.shape[1:],
+                        dtype=x.cpu().numpy().dtype,
+                    )
+                if save_physics_generator_params and params is not None:
+                    for k, p in params.items():
+                        hf_ds.create_dataset(
+                            f"{k}_{split_name}",
+                            (n_split,) + p.shape[1:],
+                            dtype=p.cpu().numpy().dtype,
+                        )
+                created_splits.add(split_name)
+
+            sl = slice(index, index + bsize)
+
+            if isinstance(y, TensorList):
+                for i in range(len(y)):
+                    hf_ds[f"y{i}_{split_name}"][sl] = y[i][:bsize].cpu().numpy()
             else:
-                hf.create_dataset(
-                    "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.cpu().numpy().dtype
-                )
-            if supervised:
-                hf.create_dataset(
-                    "x_train", (n_train_g,) + x0.shape[1:], dtype=x0.cpu().numpy().dtype
-                )
-            if save_physics_generator_params:
-                for k, p in params0.items():
-                    hf.create_dataset(
-                        f"{k}_train",
-                        (n_train_g,) + p.shape[1:],
-                        dtype=p.cpu().numpy().dtype,
-                    )
+                hf_ds[f"y_{split_name}"][sl] = y[:bsize].cpu().numpy()
 
-            index = 0
+            if split_name != "train" or supervised:
+                hf_ds[f"x_{split_name}"][sl] = x[:bsize].cpu().numpy()
 
+            if save_physics_generator_params and params is not None:
+                for k, p in params.items():
+                    hf_ds[f"{k}_{split_name}"][sl] = p[:bsize].cpu().numpy()
+
+            return index + bsize
+
+        split_specs = []
+        if train_dataset is not None:
             epochs = int(n_train_g / len(train_dataset)) + 1
-            for e in (
-                progress_bar := tqdm(
-                    range(epochs),
+            train_indices = list(range(g * n_dataset_g, (g + 1) * n_dataset_g))
+            split_specs.append(
+                ("train", train_dataset, n_train_g, train_indices, epochs)
+            )
+
+        if test_dataset is not None:
+            test_indices = list(range(g * n_test_g, (g + 1) * n_test_g))
+            split_specs.append(("test", test_dataset, n_test_g, test_indices, 1))
+
+        if val_dataset is not None:
+            val_indices = list(range(g * n_val_g, (g + 1) * n_val_g))
+            split_specs.append(("val", val_dataset, n_val_g, val_indices, 1))
+
+        for split_name, dataset, n_split, indices, epochs in split_specs:
+            if n_split <= 0:
+                continue
+
+            subset = Subset(dataset, indices=indices)
+
+            epoch_iter = range(epochs)
+            if split_name == "train":
+                epoch_iter = tqdm(
+                    epoch_iter,
                     ncols=150,
                     disable=(not verbose or not show_progress_bar),
                 )
-            ):
-                desc = (
-                    f"Generating dataset operator {g + 1}"
-                    if G > 1
-                    else "Generating train dataset"
-                )
-                progress_bar.set_description(desc)
 
-                train_dataloader = DataLoader(
-                    Subset(
-                        train_dataset,
-                        indices=list(range(g * n_dataset_g, (g + 1) * n_dataset_g)),
-                    ),
+            index = 0
+            for e in epoch_iter:
+                if split_name == "train":
+                    desc = (
+                        f"Generating dataset operator {g + 1}"
+                        if G > 1
+                        else f"Generating {split_name} dataset"
+                    )
+                    epoch_iter.set_description(desc)
+
+                dataloader = DataLoader(
+                    subset,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory=False if device == "cpu" else True,
+                    pin_memory=not _is_cpu(device),
+                    drop_last=False,
                 )
 
-                iterator = iter(train_dataloader)
-                for _ in range(len(train_dataloader) - int(train_dataloader.drop_last)):
-                    x = next(iterator)
-                    x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
-                    x = x.to(device)
-
-                    # calculate batch size
-                    bsize = x.size()[0]
-                    if bsize + index > n_train_g:
-                        bsize = n_train_g - index
-
-                    if bsize == 0:
-                        continue
-
-                    # choose operator and generate measurement
-                    y, params = measure(x, b=bsize, g=g)
-
-                    # Add new data to it
-                    if isinstance(y, TensorList):
-                        for i in range(len(y)):
-                            hf[f"y{i}_train"][index : index + bsize] = (
-                                y[i][:bsize, :].to("cpu").numpy()
-                            )
-                    else:
-                        hf["y_train"][index : index + bsize] = (
-                            y[:bsize, :].to("cpu").numpy()
-                        )
-                    if supervised:
-                        hf["x_train"][index : index + bsize] = (
-                            x[:bsize, ...].to("cpu").numpy()
-                        )
-                    if save_physics_generator_params:
-                        for p in params.keys():
-                            hf[f"{p}_train"][index : index + bsize] = (
-                                params[p][:bsize, ...].to("cpu").numpy()
-                            )
-                    index = index + bsize
-
-        if test_dataset is not None:
-            index = 0
-            test_dataloader = DataLoader(
-                Subset(
-                    test_dataset, indices=list(range(g * n_test_g, (g + 1) * n_test_g))
-                ),
-                batch_size=batch_size,
-                num_workers=num_workers,
-                pin_memory=True,
-            )
-
-            iterator = iter(test_dataloader)
-            for i in range(len(test_dataloader) - int(test_dataloader.drop_last)):
-                x = next(iterator)
-                x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
-                x = x.to(device)
-
-                bsize = x.size()[0]
-
-                # choose operator and generate measurement
-                y, params = measure(x, b=bsize, g=g)
-
-                if i == 0:
-                    hf.create_dataset(
-                        "x_test", (n_test_g,) + x.shape[1:], dtype=x.cpu().numpy().dtype
+                for x_batch in dataloader:
+                    index = process_batch(
+                        hf,
+                        x_batch,
+                        split_name,
+                        index,
+                        n_split,
                     )
-                    if isinstance(y, TensorList):
-                        for i in range(len(y)):
-                            hf.create_dataset(
-                                f"y{i}_test",
-                                (n_test_g,) + y[i].shape[1:],
-                                dtype=y[0].cpu().numpy().dtype,
-                            )
-                    else:
-                        hf.create_dataset(
-                            "y_test",
-                            (n_test_g,) + y.shape[1:],
-                            dtype=y.cpu().numpy().dtype,
-                        )
-                    if save_physics_generator_params:
-                        for k, p in params.items():
-                            hf.create_dataset(
-                                f"{k}_test",
-                                (n_test_g,) + p.shape[1:],
-                                dtype=p.cpu().numpy().dtype,
-                            )
 
-                if isinstance(y, TensorList):
-                    for i in range(len(y)):
-                        hf[f"y{i}_test"][index : index + bsize] = y[i].to("cpu").numpy()
-                else:
-                    hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
+                    # for train, once we've filled n_split samples, we stop
+                    if split_name == "train" and index >= n_split:
+                        break
 
-                hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
-
-                if save_physics_generator_params:
-                    for p in params.keys():
-                        hf[f"{p}_test"][index : index + bsize] = (
-                            params[p].to("cpu").numpy()
-                        )
-                index = index + bsize
-
-        if val_dataset is not None:
-            index = 0
-            val_dataloader = DataLoader(
-                Subset(
-                    val_dataset, indices=list(range(g * n_val_g, (g + 1) * n_val_g))
-                ),
-                batch_size=batch_size,
-                num_workers=num_workers,
-                pin_memory=True,
-            )
-
-            iterator = iter(val_dataloader)
-            for i in range(len(val_dataloader) - int(val_dataloader.drop_last)):
-                x = next(iterator)
-                x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
-                x = x.to(device)
-
-                bsize = x.size()[0]
-
-                # choose operator and generate measurement
-                y, params = measure(x, b=bsize, g=g)
-
-                if i == 0:
-                    hf.create_dataset(
-                        "x_val", (n_val_g,) + x.shape[1:], dtype=x.cpu().numpy().dtype
-                    )
-                    hf.create_dataset(
-                        "y_val", (n_val_g,) + y.shape[1:], dtype=y.cpu().numpy().dtype
-                    )
-                    if save_physics_generator_params:
-                        for k, p in params.items():
-                            hf.create_dataset(
-                                f"{k}_val",
-                                (n_val_g,) + p.shape[1:],
-                                dtype=p.cpu().numpy().dtype,
-                            )
-
-                hf["x_val"][index : index + bsize] = x.to("cpu").numpy()
-                hf["y_val"][index : index + bsize] = y.to("cpu").numpy()
-
-                if save_physics_generator_params:
-                    for p in params.keys():
-                        hf[f"{p}_val"][index : index + bsize] = (
-                            params[p].to("cpu").numpy()
-                        )
-                index = index + bsize
+                if split_name == "train" and index >= n_split:
+                    break
 
         hf.close()
 
