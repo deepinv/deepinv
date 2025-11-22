@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Callable
 from tqdm import tqdm
 import os
 from warnings import warn
+import copy
+import inspect
 
 try:
     import h5py
@@ -12,6 +14,7 @@ except ImportError:  # pragma: no cover
         "The h5py package is not installed. Please install it with `pip install h5py`."
     )  # pragma: no cover
 import torch
+import numpy as np
 
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
@@ -150,6 +153,60 @@ class HDF5Dataset(ImageDataset):
         if hasattr(self, "hd5") and self.hd5:
             self.hd5.close()
             self.hd5 = None
+
+
+def collate(dataset: Dataset):
+    example_output = dataset[0]
+    example_output = (
+        example_output[0]
+        if (isinstance(example_output, list) or isinstance(example_output, tuple))
+        else example_output
+    )
+
+    if isinstance(example_output, torch.Tensor):
+        return None
+    elif isinstance(
+        example_output, np.ndarray
+    ):  # torch dataloader autoconverts to tensor
+        return None
+    else:
+        try:
+            from PIL import Image
+
+            def pil_to_tensor(img: Image.Image) -> torch.Tensor:
+
+                if arr.ndim == 2:
+                    arr = arr[:, :, None]
+
+                arr = arr.transpose(2, 0, 1) / 255.0
+
+                return torch.from_numpy(arr)
+
+            if isinstance(example_output, Image.Image):
+
+                def collate_pillow(
+                    batch: list[Image.Image | list[Image.Image]],
+                ) -> torch.Tensor:
+                    tensors = []
+                    for sample in batch:
+                        if isinstance(sample, Image.Image):
+                            img = sample
+                        elif isinstance(sample, (list, tuple)):
+                            # only keeping the first is same behavior as when list of tensors!
+                            img = sample[0]
+                        arr = np.array(img, dtype=np.float32)
+                        if arr.ndim == 2:
+                            arr = arr[:, :, None]
+                        arr = arr.transpose(2, 0, 1) / 255.0
+                        tensors.append(torch.from_numpy(arr))
+                    return torch.stack(tensors, dim=0)
+
+                return collate_pillow
+
+        except ImportError:
+            raise RuntimeError(
+                f"Tried to convert dataset so it outputs Tensors, but original dataset does not return Tensors or Arrays, and PIL is not installed. Original output type is {type(example_output)}"
+            )
 
 
 def generate_dataset(
@@ -412,6 +469,7 @@ def generate_dataset(
                     num_workers=num_workers,
                     pin_memory=not _is_cpu(device),
                     drop_last=False,
+                    collate_fn=collate(dataset),
                 )
 
                 for x_batch in dataloader:
