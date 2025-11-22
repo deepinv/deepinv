@@ -76,4 +76,3 @@ if sys.version_info < (3, 10):  # pragma: no cover
         "Running on < 3.10 may work, but it is unsupported, unstable and may lead to unexpected bugs. "
         "For more information on updating to Python 3.10, see https://www.python.org/downloads"
     )
-

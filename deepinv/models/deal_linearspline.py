@@ -6,7 +6,6 @@ from abc import ABC
 from . import deal_spline_autograd_func as spline_autograd_func
 
 
-
 class LinearSpline(ABC, nn.Module):
     """
     Class for LinearSpline activation functions

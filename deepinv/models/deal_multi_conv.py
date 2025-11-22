@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.utils.parametrize as P
 
+
 ms = torch
 
 
@@ -91,23 +92,37 @@ def symmetric_pad_transpose(tensor: ms.Tensor, pad_size) -> ms.Tensor:
 
 
 class MultiConv2d(nn.Module):
-    class MultiConv2d(nn.Module):
-        def __init__(
-                self,
-                num_channels=None,
-                size_kernels=None,
-                zero_mean=True,
-                sn_size=256,
-                color=True,
-        ):
-            if num_channels is None:
-                num_channels = [1, 64]
-            if size_kernels is None:
-                size_kernels = [3]
+    def __init__(
+        self,
+        num_channels=None,
+        size_kernels=None,
+        zero_mean: bool = True,
+        sn_size: int = 256,
+        color: bool = False,
+    ) -> None:
+        """
+        Multi-layer convolution with spectral norm control.
 
-        """ """
-
+        Parameters
+        ----------
+        num_channels : list[int], optional
+            Number of channels per layer. Defaults to [1, 64].
+        size_kernels : list[int], optional
+            Kernel sizes per layer. Defaults to [3].
+        zero_mean : bool, optional
+            If True, enforce zero-mean filters for the first conv layer.
+        sn_size : int, optional
+            Spatial size used for spectral-norm estimation.
+        color : bool, optional
+            If True, use 3-channel (color) version; otherwise grayscale.
+        """
         super().__init__()
+
+        if num_channels is None:
+            num_channels = [1, 64]
+        if size_kernels is None:
+            size_kernels = [3]
+
         # parameters and options
         self.size_kernels = size_kernels
         self.num_channels = num_channels
@@ -116,7 +131,7 @@ class MultiConv2d(nn.Module):
         self.padding = self.size_kernels[0] // 2
         self.color = color
 
-        # list of convolutionnal layers
+        # list of convolutional layers
         self.conv_layers = nn.ModuleList()
 
         for j in range(len(num_channels) - 1):
@@ -137,16 +152,16 @@ class MultiConv2d(nn.Module):
         # cache the estimation of the spectral norm
         self.L = torch.tensor(1.0, requires_grad=True)
         # cache dirac impulse used to estimate the spectral norm
-        self.padding_total = sum([kernel_size // 2 for kernel_size in size_kernels])
+        self.padding_total = sum(kernel_size // 2 for kernel_size in size_kernels)
 
         if color:
             self.dirac = torch.zeros(
-                (1, 3) + (4 * self.padding_total + 1, 4 * self.padding_total + 1)
+                (1, 3, 4 * self.padding_total + 1, 4 * self.padding_total + 1)
             )
             self.dirac[0, 1, 2 * self.padding_total, 2 * self.padding_total] = 1
         else:
             self.dirac = torch.zeros(
-                (1, 1) + (4 * self.padding_total + 1, 4 * self.padding_total + 1)
+                (1, 1, 4 * self.padding_total + 1, 4 * self.padding_total + 1)
             )
             self.dirac[0, 0, 2 * self.padding_total, 2 * self.padding_total] = 1
 
