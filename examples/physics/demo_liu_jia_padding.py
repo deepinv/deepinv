@@ -12,23 +12,27 @@ from scipy.signal import convolve2d
 import cv2
 import random
 
-def liu_jia_pad(img, img_size):
-
+def liu_jia_pad(y, padding):
     """
     Reducing boundary artifacts in image deconvolution
     Renting Liu, Jiaya Jia
     ICIP 2008
     """
-    if img.ndim == 2:
-        ret = wrap_boundary(img, img_size)
-    elif img.ndim == 3:
-        ret = [wrap_boundary(img[:, :, i], img_size) for i in range(3)]
-        ret = np.stack(ret, 2)
-    return ret
+    # (B, C, H, W) -> (BC, H, W)
+    BC = y.shape[:2]
+    y = y.flatten(start_dim=0, end_dim=1)
+
+    zs = []
+    for z in torch.unbind(y, dim=0):
+        z = _liu_jia_pad(z, padding)
+        zs.append(z)
+    y = torch.stack(zs, 0)
+
+    # (BC, H, W) -> (B, C, H, W)
+    return y.unflatten(dim=0, sizes=BC)
 
 
-def wrap_boundary(img, img_size):
-
+def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     """
     python code from:
     https://github.com/ys-koshelev/nla_deblur/blob/90fe0ab98c26c791dcbdf231fe6f938fca80e2a0/boundaries.py
@@ -36,121 +40,97 @@ def wrap_boundary(img, img_size):
     Renting Liu, Jiaya Jia
     ICIP 2008
     """
-    (H, W) = np.shape(img)
-    H_w = int(img_size[0]) - H
-    W_w = int(img_size[1]) - W
+    if z.ndim != 2:
+        raise ValueError("The input tensor must have exactly two dimensions.")
 
-    # ret = np.zeros((img_size[0], img_size[1]));
-    alpha = 1
-    HG = img[:, :]
+    padding_h = 2 * padding[0]
+    padding_w = 2 * padding[1]
 
-    r_A = np.zeros((alpha*2+H_w, W))
-    r_A[:alpha, :] = HG[-alpha:, :]
-    r_A[-alpha:, :] = HG[:alpha, :]
-    a = np.arange(H_w)/(H_w-1)
-    # r_A(alpha+1:end-alpha, 1) = (1-a)*r_A(alpha,1) + a*r_A(end-alpha+1,1)
-    r_A[alpha:-alpha, 0] = (1-a)*r_A[alpha-1, 0] + a*r_A[-alpha, 0]
-    # r_A(alpha+1:end-alpha, end) = (1-a)*r_A(alpha,end) + a*r_A(end-alpha+1,end)
-    r_A[alpha:-alpha, -1] = (1-a)*r_A[alpha-1, -1] + a*r_A[-alpha, -1]
+    BC = tuple(z.shape[:-2])
+    H, W = z.shape[-2:]
 
-    r_B = np.zeros((H, alpha*2+W_w))
-    r_B[:, :alpha] = HG[:, -alpha:]
-    r_B[:, -alpha:] = HG[:, :alpha]
-    a = np.arange(W_w)/(W_w-1)
-    r_B[0, alpha:-alpha] = (1-a)*r_B[0, alpha-1] + a*r_B[0, -alpha]
-    r_B[-1, alpha:-alpha] = (1-a)*r_B[-1, alpha-1] + a*r_B[-1, -alpha]
+    A = torch.zeros(BC + (2 * marginp1 + padding_h, W))
+    A[..., :marginp1, :] = z[..., -marginp1:, :]
+    A[..., -marginp1:, :] = z[..., :marginp1, :]
+    a = torch.arange(padding_h) / (padding_h-1)
+    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0] + a * A[..., -marginp1, 0]
+    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1] + a * A[..., -marginp1, -1]
 
-    if alpha == 1:
-        A2 = solve_min_laplacian(r_A[alpha-1:, :])
-        B2 = solve_min_laplacian(r_B[:, alpha-1:])
-        r_A[alpha-1:, :] = A2
-        r_B[:, alpha-1:] = B2
+    B = torch.zeros(BC + (H, 2 * marginp1 + padding_w))
+    B[..., :, :marginp1] = z[..., :, -marginp1:]
+    B[..., :, -marginp1:] = z[..., :, :marginp1]
+    a = torch.arange(padding_w) / (padding_w-1)
+    B[..., 0, marginp1:-marginp1] = (1 - a) * B[..., 0, marginp1 - 1] + a * B[..., 0, -marginp1]
+    B[..., -1, marginp1:-marginp1] = (1 - a) * B[..., -1, marginp1 - 1] + a * B[..., -1, -marginp1]
+
+    if marginp1 == 1:
+        A = solve_min_laplacian(A)
+        B = solve_min_laplacian(B)
     else:
-        A2 = solve_min_laplacian(r_A[alpha-1:-alpha+1, :])
-        r_A[alpha-1:-alpha+1, :] = A2
-        B2 = solve_min_laplacian(r_B[:, alpha-1:-alpha+1])
-        r_B[:, alpha-1:-alpha+1] = B2
-    A = r_A
-    B = r_B
+        A[..., marginp1-1:-marginp1+1, :] = solve_min_laplacian(A[..., marginp1-1:-marginp1+1, :])
+        B[..., :, marginp1-1:-marginp1+1] = solve_min_laplacian(B[..., :, marginp1-1:-marginp1+1])
 
-    r_C = np.zeros((alpha*2+H_w, alpha*2+W_w))
-    r_C[:alpha, :] = B[-alpha:, :]
-    r_C[-alpha:, :] = B[:alpha, :]
-    r_C[:, :alpha] = A[:, -alpha:]
-    r_C[:, -alpha:] = A[:, :alpha]
+    C = torch.zeros(BC + (2 * marginp1 + padding_h, 2 * marginp1 + padding_w))
+    C[..., :marginp1, :] = B[..., -marginp1:, :]
+    C[..., -marginp1:, :] = B[..., :marginp1, :]
+    C[..., :, :marginp1] = A[..., :, -marginp1:]
+    C[..., :, -marginp1:] = A[..., :, :marginp1]
 
-    if alpha == 1:
-        C2 = C2 = solve_min_laplacian(r_C[alpha-1:, alpha-1:])
-        r_C[alpha-1:, alpha-1:] = C2
+    if marginp1 == 1:
+        C = solve_min_laplacian(C)
     else:
-        C2 = solve_min_laplacian(r_C[alpha-1:-alpha+1, alpha-1:-alpha+1])
-        r_C[alpha-1:-alpha+1, alpha-1:-alpha+1] = C2
-    C = r_C
-    # return C
-    A = A[alpha-1:-alpha-1, :]
-    B = B[:, alpha:-alpha]
-    C = C[alpha:-alpha, alpha:-alpha]
-    ret = np.vstack((np.hstack((img, B)), np.hstack((A, C))))
-    return ret
+        C[..., marginp1-1:-marginp1+1, marginp1-1:-marginp1+1] = solve_min_laplacian(C[..., marginp1-1:-marginp1+1, marginp1-1:-marginp1+1])
+
+    A = A[..., marginp1-1:-marginp1-1, :]
+    B = B[..., :, marginp1:-marginp1]
+    C = C[..., marginp1:-marginp1, marginp1:-marginp1]
+    zB = torch.hstack((z, B))
+    AC = torch.hstack((A, C))
+    zBAC = torch.vstack((zB, AC))
+    zBAC = zBAC.roll(shifts=padding, dims=(-2, -1))
+    zBAC = zBAC.to(z.device)
+    return zBAC
 
 
-def solve_min_laplacian(boundary_image):
-    (H, W) = np.shape(boundary_image)
+def solve_min_laplacian(mat):
+    H, W = mat.shape[-2:]
+
+    mat[..., 1:-1, 1:-1] = 0
 
     # Laplacian
-    f = np.zeros((H, W))
     # boundary image contains image intensities at boundaries
-    boundary_image[1:-1, 1:-1] = 0
-    j = np.arange(2, H)-1
-    k = np.arange(2, W)-1
-    f_bp = np.zeros((H, W))
-    f_bp[np.ix_(j, k)] = -4*boundary_image[np.ix_(j, k)] + boundary_image[np.ix_(j, k+1)] + boundary_image[np.ix_(j, k-1)] + boundary_image[np.ix_(j-1, k)] + boundary_image[np.ix_(j+1, k)]
+    laplacian = torch.zeros_like(mat)
+    laplacian_bp = torch.zeros_like(mat)
+    laplacian_bp[..., 1:H-1, 1:W-1] = mat[..., 1:-1, 2:] + mat[..., 1:-1, :-2] + mat[..., 2:, 1:-1] + mat[..., :-2, 1:-1] -4 * mat[..., 1:-1, 1:-1]
 
-    del(j, k)
-    f1 = f - f_bp  # subtract boundary points contribution
-    del(f_bp, f)
+    laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
 
     # DST Sine Transform algo starts here
-    f2 = f1[1:-1,1:-1]
-    del(f1)
+    laplacian = laplacian[..., 1:-1,1:-1]
 
     # compute sine tranform
-    if f2.shape[1] == 1:
-        tt = fftpack.dst(f2, type=1, axis=0)/2
-    else:
-        tt = fftpack.dst(f2, type=1)/2
-
-    if tt.shape[0] == 1:
-        f2sin = np.transpose(fftpack.dst(np.transpose(tt), type=1, axis=0)/2)
-    else:
-        f2sin = np.transpose(fftpack.dst(np.transpose(tt), type=1)/2)
-    del(f2)
+    laplacian = laplacian.numpy()
+    laplacian = fftpack.dst(laplacian, type=1, axis=-2) / 2
+    laplacian = fftpack.dst(laplacian, type=1, axis=-1) / 2
+    laplacian = torch.from_numpy(laplacian)
 
     # compute Eigen Values
-    [x, y] = np.meshgrid(np.arange(1, W-1), np.arange(1, H-1))
-    denom = (2*np.cos(np.pi*x/(W-1))-2) + (2*np.cos(np.pi*y/(H-1)) - 2)
-
-    # divide
-    f3 = f2sin/denom
-    del(f2sin, x, y)
+    u = torch.arange(1, H - 1)
+    v = torch.arange(1, W - 1)
+    u, v = torch.meshgrid(u, v, indexing='ij')
+    laplacian = laplacian / ((2 * torch.cos(torch.pi * u / (H - 1)) - 2) + (2 * torch.cos(torch.pi * v / (W - 1)) - 2))
 
     # compute Inverse Sine Transform
-    if f3.shape[0] == 1:
-        tt = fftpack.idst(f3*2, type=1, axis=1)/(2*(f3.shape[1]+1))
-    else:
-        tt = fftpack.idst(f3*2, type=1, axis=0)/(2*(f3.shape[0]+1))
-    del(f3)
-    if tt.shape[1] == 1:
-        img_tt = np.transpose(fftpack.idst(np.transpose(tt)*2, type=1)/(2*(tt.shape[0]+1)))
-    else:
-        img_tt = np.transpose(fftpack.idst(np.transpose(tt)*2, type=1, axis=0)/(2*(tt.shape[1]+1)))
-    del(tt)
+    laplacian = laplacian.numpy()
+    laplacian = fftpack.idst(laplacian, type=1, axis=-2)
+    laplacian = fftpack.idst(laplacian, type=1, axis=-1)
+    laplacian = torch.from_numpy(laplacian)
+    laplacian = laplacian / (laplacian.shape[0] + 1)
+    laplacian = laplacian / (laplacian.shape[1] + 1)
 
     # put solution in inner points; outer points obtained from boundary image
-    img_direct = boundary_image
-    img_direct[1:-1, 1:-1] = 0
-    img_direct[1:-1, 1:-1] = img_tt
-    return img_direct
+    mat[..., 1:-1, 1:-1] = laplacian
+    return mat
 
 
 device = "cpu"
@@ -178,9 +158,7 @@ x = x[..., margin[0]: -margin[0], margin[1]: -margin[1]]
 # Liu-Jia Padding
 H, W = y.shape[-2:]
 padding = (H // 4, W // 4)
-y = liu_jia_pad(y.squeeze(0).permute(1, 2, 0).cpu().numpy(), (H + 2 * padding[0], W + 2 * padding[1]))
-y = torch.from_numpy(y).permute(2, 0, 1).unsqueeze(0)
-y = y.roll(shifts=padding, dims=(2, 3))
+y = liu_jia_pad(y, padding=padding)
 
 # Deconvolution
 # 1. Pad k to make it the size of y with the central tap at (0,0)
