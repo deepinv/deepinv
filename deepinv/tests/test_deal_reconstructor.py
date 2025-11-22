@@ -9,7 +9,7 @@ from deepinv.physics import Denoising
 
 class DummyInnerDEAL(nn.Module):
     """
-    Tiny fake version of the external deal.DEAL class,
+    Tiny fake version of the internal DEAL class,
     just enough so that our wrapper and the test can run.
     """
 
@@ -56,7 +56,7 @@ def test_deal_model_runs(monkeypatch):
     """
     import deepinv.models.deal as deal_mod
 
-    # 1) Replace the external 'deal' library by our tiny dummy class
+    # 1) Replace the internal DEAL implementation by our tiny dummy class
     deal_mod.deal_lib = types.SimpleNamespace(DEAL=DummyInnerDEAL)
 
     # 2) Replace torch.load used inside deepinv.models.deal.DEAL.__init__

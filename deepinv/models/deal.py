@@ -1,12 +1,7 @@
 import torch
 from .base import Reconstructor
+from . import deal_impl as deal_lib
 from typing import Optional
-
-# Optional external dependency: official DEAL implementation.
-try:
-    import deal as deal_lib
-except ImportError:
-    deal_lib = None
 
 
 class DEAL(Reconstructor):
@@ -52,12 +47,6 @@ class DEAL(Reconstructor):
         device: Optional[str] = None,
         clamp_output: bool = True,
     ) -> None:
-        if deal_lib is None:
-            raise ImportError(
-                "deepinv.models.DEAL requires the external 'deal' package.\n"
-                "Please install it, for example:\n"
-                "    pip install git+https://github.com/mehrsapo/DEAL.git"
-            )
 
         super().__init__()
 
