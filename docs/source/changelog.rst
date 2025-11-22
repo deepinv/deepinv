@@ -18,7 +18,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 
 v0.3.6
 ------
@@ -29,12 +29,14 @@ New Features
 - Add support for complex dtypes in WaveletDenoiser, WaveletDictDenoiser and WaveletPrior (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
 - load_np_url now returns tensors, load_url helper function moved to io (:gh:`768` by `Andrew Wang`_)
 - utils/signal.py renamed to signals.py to avoid stdlib conflict (:gh:`768` by `Andrew Wang`_)
 - utils.get_data_home now creates folder if not exist (:gh:`768` by `Andrew Wang`_)
+- Update attention computation to use :func:`torch.nn.functional.scaled_dot_product_attention` (:gh:`883` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -45,6 +47,7 @@ Fixed
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 - Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
 
