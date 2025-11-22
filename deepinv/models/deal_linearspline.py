@@ -2,11 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from abc import ABC, abstractproperty, abstractmethod
+from abc import ABC
 from . import deal_spline_autograd_func as spline_autograd_func
 
-
-import time
 
 
 class LinearSpline(ABC, nn.Module):

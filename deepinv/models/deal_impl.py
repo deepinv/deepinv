@@ -287,7 +287,7 @@ class DEAL(nn.Module):
             for id in range(n_out):
                 self.cal_mask(c_k)
                 c_k, self.last_cg_iter = self.cg(y, c_k_old, n_in, eps=eps_in)
-                res = torch.norm(c_k - c_k_old) / (torch.norm(c_k_old))
+                res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
                 if (res < eps_out).all():
                     break
@@ -360,7 +360,8 @@ class DEAL(nn.Module):
                     Ht=Ht,
                 )
 
-                res = torch.norm(c_k - c_k_old) / (torch.norm(c_k_old))
+                res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
+
                 c_k_old = c_k.clone()
 
                 if verbose:

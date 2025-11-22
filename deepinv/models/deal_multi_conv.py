@@ -1,10 +1,6 @@
 import torch
-from torch import nn, optim
+from torch import nn
 import torch.nn.utils.parametrize as P
-import math
-from math import sqrt
-
-import numpy as np
 
 ms = torch
 
@@ -95,14 +91,20 @@ def symmetric_pad_transpose(tensor: ms.Tensor, pad_size) -> ms.Tensor:
 
 
 class MultiConv2d(nn.Module):
-    def __init__(
-        self,
-        num_channels=[1, 64],
-        size_kernels=[3],
-        zero_mean=True,
-        sn_size=256,
-        color=False,
-    ):
+    class MultiConv2d(nn.Module):
+        def __init__(
+                self,
+                num_channels=None,
+                size_kernels=None,
+                zero_mean=True,
+                sn_size=256,
+                color=True,
+        ):
+            if num_channels is None:
+                num_channels = [1, 64]
+            if size_kernels is None:
+                size_kernels = [3]
+
         """ """
 
         super().__init__()

@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import torch
 from .base import Reconstructor
 from . import deal_impl as deal_lib
-from typing import Optional
 
 
 class DEAL(Reconstructor):
@@ -44,7 +45,7 @@ class DEAL(Reconstructor):
         auto_scale: bool = False,
         target_y_std: float = 25.0,
         color: bool = False,
-        device: Optional[str] = None,
+        device: str | None = None,
         clamp_output: bool = True,
     ) -> None:
 
