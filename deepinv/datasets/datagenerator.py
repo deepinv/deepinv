@@ -316,7 +316,7 @@ def generate_dataset(
         n_val = min(len(val_dataset), val_datapoints or len(val_dataset))
         n_val_g = int(n_val / G)
 
-    hf_paths: list[str] = []
+    hf_paths = []
 
     def _is_cpu(dev: torch.device | str) -> bool:
         if isinstance(dev, str):
