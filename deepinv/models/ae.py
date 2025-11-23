@@ -37,7 +37,7 @@ class AutoEncoder(Denoiser):
             torch.nn.Linear(dim_mid, dim_input),
         )
 
-    def forward(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         B, *S = x.shape
 
         x = x.reshape(B, -1)
