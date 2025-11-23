@@ -167,41 +167,44 @@ def collate(dataset: Dataset):
         return None
     elif isinstance(
         example_output, np.ndarray
-    ):  # torch dataloader autoconverts to tensor
+    ):  # torch dataloader autoconverts this to tensor
         return None
     else:
         try:
             from PIL import Image
 
-            def pil_to_tensor(img: Image.Image) -> torch.Tensor:
-
-                if arr.ndim == 2:
-                    arr = arr[:, :, None]
-
-                arr = arr.transpose(2, 0, 1) / 255.0
-
-                return torch.from_numpy(arr)
-
             if isinstance(example_output, Image.Image):
+                from torchvision.transforms.functional import crop
 
                 def collate_pillow(
                     batch: list[Image.Image | list[Image.Image]],
                 ) -> torch.Tensor:
                     tensors = []
+                    shapes = set()
                     for sample in batch:
                         if isinstance(sample, Image.Image):
                             img = sample
                         elif isinstance(sample, (list, tuple)):
-                            # only keeping the first is same behavior as when list of tensors!
+                            # only keeping the first element is same behavior as when dataset returns list of tensors!
                             img = sample[0]
                         arr = np.array(img, dtype=np.float32)
                         if arr.ndim == 2:
                             arr = arr[:, :, None]
-                        arr = arr.transpose(2, 0, 1) / 255.0
-                        tensors.append(torch.from_numpy(arr))
+                        t = torch.from_numpy(arr.transpose(2, 0, 1) / 255.0)
+
+                        tensors.append(t)
+                        shapes.add(t.shape)
+                    if len(shapes) != 1:
+                        raise RuntimeError(
+                            f"generate_dataset expects dataset to return elements of same shape, but received at least two different shapes: {list(shapes)[0]} and {list(shapes)[1]}. Please add a crop/pad or other shape handling to your dataset."
+                        )
                     return torch.stack(tensors, dim=0)
 
                 return collate_pillow
+            else:
+                raise RuntimeError(
+                    f"Dataset must return either numpy array, torch tensor, or PIL image, but got type {type(example_output)}"
+                )
 
         except ImportError:
             raise RuntimeError(
@@ -375,7 +378,6 @@ def generate_dataset(
                 return index
             y, params = measure(x, b=bsize)
 
-            # lazily create datasets for split on first use
             if split_name not in created_splits:
                 if isinstance(y, TensorList):
                     for i in range(len(y)):
