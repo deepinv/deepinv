@@ -243,7 +243,7 @@ def test_generate_dataset():
         RuntimeError,
         match="generate_dataset expects dataset to return elements of same shape",
     ):
-        _ = dinv.datasets.generate_dataset(
+        _ = generate_dataset(
             train_dataset=ds,
             batch_size=4,
             physics=physics,
@@ -252,7 +252,7 @@ def test_generate_dataset():
         )
     # Test that no error is raised when we add crop
     ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
-    _ = dinv.datasets.generate_dataset(
+    _ = generate_dataset(
         train_dataset=ds,
         batch_size=1,
         physics=physics,
