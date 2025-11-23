@@ -85,7 +85,7 @@ def idst1(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
 
 
 def liu_jia_pad(
-    x: torch.Tensor, *, padding: tuple(int, int), alpha: int = 1
+    x: torch.Tensor, *, padding: tuple[int, int], alpha: int = 1
 ) -> torch.Tensor:
     """
     Liu-Jia Padding
@@ -262,7 +262,13 @@ otf = torch.fft.fft2(k)
 # 3. Compute the DFT of y
 x_hat = torch.fft.fft2(y)
 # 4. Apply the inverse filter formula
-x_hat = x_hat / (otf + 1e-3)
+filter_kind = "wiener"
+if filter_kind == "inverse":
+    x_hat = x_hat / (otf + 1e-3)
+elif filter_kind == "wiener":
+    x_hat = torch.conj(otf) * x_hat / (torch.abs(otf) ** 2 + 1e-3)
+else:
+    raise ValueError(f"Unknown filter kind: {filter_kind}")
 # 5. Compute the inverse DFT
 x_hat = torch.fft.ifft2(x_hat).real
 # 6. Clip and quantize
