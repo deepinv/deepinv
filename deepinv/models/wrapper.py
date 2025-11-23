@@ -197,7 +197,7 @@ class ComplexDenoiserWrapper(Denoiser):
 
         \hat x = \denoisername(x_{\mathrm{real}}, \sigma) + i \, \denoisername(x_{\mathrm{imag}}, \sigma).
 
-    If the provided input tensor is real (i.e. :class:`torch.is_complex(x)` is ``False``), it is interpreted as :math:`x_{\mathrm{real}}` with :math:`x_{\mathrm{imag}}=0` and the output is returned as
+    If the provided input tensor is real (i.e. :func:`torch.is_complex(x)` is ``False``), it is interpreted as :math:`x_{\mathrm{real}}` with :math:`x_{\mathrm{imag}}=0` and the output is returned as
     :math:`\denoisername(x_{\mathrm{real}},\sigma) + i 0` (complex dtype ensured).
 
     |sep|

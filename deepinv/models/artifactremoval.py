@@ -74,7 +74,7 @@ class ArtifactRemoval(Reconstructor):
         :param torch.Tensor y: input measurements y
         :return: (:class:`torch.Tensor`): reconstructed image
         """
-        return self.backbone_net(tensor_in, **kwargs)
+        return self.backbone_net(tensor_in, getattr(physics.noise_model, "sigma", None), **kwargs)
 
     def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
         r"""
