@@ -6,74 +6,82 @@ import torch
 import torch.fft
 
 
-def dst(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+def _dst1(x: torch.Tensor, *, dim: int = -1, inverse: bool) -> torch.Tensor:
+    r"""
+    Compute the one-dimensional discrete sine transform of type I (DST-I) or its inverse (IDST-I)
+
+    This implementation computes the real discrete Fourier transform of the input tensor along one of its dimensions using the formula:
+
+    .. math::
+
+        \mathrm{DST-I}(x_k) = - \frac{1}{2} \Im(\mathrm{DFT}(y_(k+1))),
+
+    .. math::
+
+        \mathrm{IDST-I}(x_k) = - \frac{1}{N + 1} \Im(\mathrm{DFT}(y_(k+1))).
+
+    :param torch.Tensor x: Input tensor.
+    :param int dim: Dimension along which to compute the transform. Default is -1 (the last dimension).
+    :param bool inverse: If True, compute the inverse DST-I (IDST-I). If False, compute the DST-I.
+    :return: Transformed tensor.
     """
-    Computes the Discrete Sine Transform Type 1 (DST-I).
-    Matches scipy.fftpack.dst(type=1).
+    # Compute the DST-I or IDST-I from the DFT of y
+    N = x.shape[dim]
 
-    The DST-I is equivalent to the imaginary part of the DFT of an
-    odd-symmetric extension of the input signal.
-
-    Args:
-        x (torch.Tensor): Input tensor.
-        dim (int): Dimension along which to compute the transform. Default is -1.
-
-    Returns:
-        torch.Tensor: The DST-I transformed tensor.
-    """
-    # 1. Setup dimensions
-    n = x.shape[dim]
-
-    # 2. Create the odd extension: [0, x, 0, -flip(x)]
-    # We need to construct the padding and reversed parts carefully handling dimensions.
-
-    # Slice to get a tensor of shape [..., 1, ...] for zeros
+    # Compute y the odd extension of x
+    # y = (0, x_1, ..., x_N, 0, -x_N, ..., -x_1)
     shape_zeros = list(x.shape)
     shape_zeros[dim] = 1
     zeros = torch.zeros(shape_zeros, dtype=x.dtype, device=x.device)
-
-    # Flip x along the specified dimension
     x_flipped = torch.flip(x, dims=[dim])
+    y = torch.cat([zeros, x, zeros, -x_flipped], dim=dim)
 
-    # Construct the odd extension
-    # Sequence: [0, x_0, x_1, ..., x_{N-1}, 0, -x_{N-1}, ..., -x_0]
-    # Length: 1 + N + 1 + N = 2N + 2
-    odd_ext = torch.cat([zeros, x, zeros, -x_flipped], dim=dim)
+    # Compute the DFT of y
+    y = torch.fft.rfft(y, dim=dim, norm="backward")
+    y = y.narrow(dim, 1, N)
 
-    # 3. Compute RFFT
-    # The RFFT of a real, odd sequence is purely imaginary.
-    spec = torch.fft.rfft(odd_ext, dim=dim)
+    # Set the coefficient for forward and inverse transforms
+    if not inverse:
+        c = -1 / 2
+    else:
+        c = -1 / (N + 1)
 
-    # 4. Extract DST-I
-    # Scipy DST-I definition: y[k] = 2 * sum(x[n] * sin(pi*(k+1)*(n+1)/(N+1)))
-    # The Imaginary part of DFT of odd extension gives: -2 * sum(x[n] * sin(...))
-    # So we take the negative imaginary part.
-    # We slice [1:n+1] because index 0 is DC (0), and we need indices 1..N.
-
-    slices = [slice(None)] * spec.ndim
-    slices[dim] = slice(1, n + 1)
-
-    return -spec.imag[tuple(slices)]
+    # Compute the transform
+    return c * y.imag
 
 
-def idst(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+def dst1(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    r"""
+    Compute the one-dimensional discrete sine transform of type I (DST-I)
+
+    This implementation computes the real discrete Fourier transform of the input tensor along one of its dimensions using the formula:
+
+    .. math::
+
+        \mathrm{DST-I}(x_k) = - \frac{1}{2} \Im(\mathrm{DFT}(y_(k+1))).
+
+    :param torch.Tensor x: Input tensor.
+    :param int dim: Dimension along which to compute the transform. Default is -1 (the last dimension).
+    :return: Transformed tensor.
     """
-    Computes the Inverse Discrete Sine Transform Type 1 (IDST-I).
-    Matches scipy.fftpack.idst(type=1).
+    return _dst1(x, dim=dim, inverse=False)
 
-    NOTE: scipy.fftpack.idst(type=1) is UNNORMALIZED by default.
-    It is identical to dst(type=1).
-    To get the true mathematical inverse, the result must be
-    scaled by 1 / (2 * (N + 1)).
 
-    Args:
-        x (torch.Tensor): Input tensor.
-        dim (int): Dimension along which to compute the transform. Default is -1.
+def idst1(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    r"""
+    Compute the one-dimensional inverse discrete sine transform of type I (IDST-I)
 
-    Returns:
-        torch.Tensor: The IDST-I transformed tensor (unscaled).
+    This implementation computes the real discrete Fourier transform of the input tensor along one of its dimensions using the formula:
+
+    .. math::
+
+        \mathrm{IDST-I}(x_k) = - \frac{1}{N + 1} \Im(\mathrm{DFT}(y_(k+1))).
+
+    :param torch.Tensor x: Input tensor.
+    :param int dim: Dimension along which to compute the transform. Default is -1 (the last dimension).
+    :return: Transformed tensor.
     """
-    return dst(x, dim=dim)
+    return _dst1(x, dim=dim, inverse=True)
 
 
 def liu_jia_pad(z, padding, *, marginp1: int = 1):
@@ -173,8 +181,8 @@ def solve_min_laplacian(mat):
     laplacian = laplacian[..., 1:-1, 1:-1]
 
     # compute sine tranform
-    laplacian = dst(laplacian, dim=-2) / 2
-    laplacian = dst(laplacian, dim=-1) / 2
+    laplacian = dst1(laplacian, dim=-2)
+    laplacian = dst1(laplacian, dim=-1)
 
     # compute Eigen Values
     u = torch.arange(1, H - 1)
@@ -186,10 +194,8 @@ def solve_min_laplacian(mat):
     )
 
     # compute Inverse Sine Transform
-    laplacian = idst(laplacian, dim=-2)
-    laplacian = idst(laplacian, dim=-1)
-    laplacian = laplacian / (laplacian.shape[-2] + 1)
-    laplacian = laplacian / (laplacian.shape[-1] + 1)
+    laplacian = idst1(laplacian, dim=-2)
+    laplacian = idst1(laplacian, dim=-1)
 
     # put solution in inner points; outer points obtained from boundary image
     mat[..., 1:-1, 1:-1] = laplacian
