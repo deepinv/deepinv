@@ -69,7 +69,7 @@ class HDF5Dataset(ImageDataset):
         self.load_physics_generator_params = load_physics_generator_params
         self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
 
-        if isinstance(h5py, ImportError):
+        if isinstance(h5py, ImportError):  # pragma: no cover
             raise h5py
 
         self.hd5 = h5py.File(path, "r")
@@ -105,7 +105,7 @@ class HDF5Dataset(ImageDataset):
 
         :param int index: Index of the pair to return.
         """
-        if self.hd5 is None:
+        if self.hd5 is None:  # pragma: no cover
             raise ValueError(
                 "Dataset has been closed. Redefine the dataset to continue."
             )
@@ -194,19 +194,19 @@ def collate(dataset: Dataset):
 
                         tensors.append(t)
                         shapes.add(t.shape)
-                    if len(shapes) != 1:
+                    if len(shapes) != 1:  # pragma: no cover
                         raise RuntimeError(
                             f"generate_dataset expects dataset to return elements of same shape, but received at least two different shapes: {list(shapes)[0]} and {list(shapes)[1]}. Please add a crop/pad or other shape handling to your dataset."
                         )
                     return torch.stack(tensors, dim=0)
 
                 return collate_pillow
-            else:
+            else:  # pragma: no cover
                 raise RuntimeError(
                     f"Dataset must return either numpy array, torch tensor, or PIL image, but got type {type(example_output)}"
                 )
 
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise RuntimeError(
                 f"Tried to convert dataset so it outputs Tensors, but original dataset does not return Tensors or Arrays, and PIL is not installed. Original output type is {type(example_output)}"
             )
