@@ -230,6 +230,7 @@ kernel /= kernel.sum()
 kernel = kernel.unsqueeze(0).unsqueeze(0)
 physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
+
 # Compute the blur in linear sRGB space
 def oetf(x: torch.Tensor) -> torch.Tensor:
     return x
@@ -240,6 +241,7 @@ def oetf(x: torch.Tensor) -> torch.Tensor:
         ((x + 0.055) / 1.055) ** 2.4,
     )
 
+
 def eotf(x: torch.Tensor) -> torch.Tensor:
     return x
     # Map from linear sRGB to sRGB
@@ -248,6 +250,7 @@ def eotf(x: torch.Tensor) -> torch.Tensor:
         x * 12.92,
         1.055 * (x ** (1 / 2.4)) - 0.055,
     )
+
 
 y = physics(oetf(x))
 
@@ -261,7 +264,15 @@ margin = (
 )
 x = x[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
-def deblur(y: torch.Tensor, *, kernel: torch.Tensor, liu_jia_padding: bool, deconvolution_kind: str, eps: float = 1e-3) -> torch.Tensor:
+
+def deblur(
+    y: torch.Tensor,
+    *,
+    kernel: torch.Tensor,
+    liu_jia_padding: bool,
+    deconvolution_kind: str,
+    eps: float = 1e-3,
+) -> torch.Tensor:
     # Liu-Jia Padding
     if liu_jia_padding:
         H, W = y.shape[-2:]
@@ -314,30 +325,49 @@ def deblur(y: torch.Tensor, *, kernel: torch.Tensor, liu_jia_padding: bool, deco
 
     return x_hat
 
+
 # Comparisons
 psnr_fn = dinv.metric.PSNR()
 base_psnr = psnr_fn(eotf(y), x).item()
 
 # Compare Liu-Jia padding vs no padding for inverse filtering
-x_hat_liu_jia_padding = deblur(y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="inverse", eps=1e-1)
-x_hat_no_padding = deblur(y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="inverse", eps=1e-1)
+x_hat_liu_jia_padding = deblur(
+    y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="inverse", eps=1e-1
+)
+x_hat_no_padding = deblur(
+    y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="inverse", eps=1e-1
+)
 
 psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
     [x, eotf(y), x_hat_liu_jia_padding, x_hat_no_padding],
-    [f"GT", f"Blurry {base_psnr:.1f} dB", f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB", f"No Padding {psnr_no_padding:.1f} dB"],
+    [
+        f"GT",
+        f"Blurry {base_psnr:.1f} dB",
+        f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB",
+        f"No Padding {psnr_no_padding:.1f} dB",
+    ],
 )
 
 # Compare Liu-Jia padding vs no padding for Wiener deconvolution
-x_hat_liu_jia_padding = deblur(y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="wiener")
-x_hat_no_padding = deblur(y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="wiener")
+x_hat_liu_jia_padding = deblur(
+    y, kernel=kernel, liu_jia_padding=True, deconvolution_kind="wiener"
+)
+x_hat_no_padding = deblur(
+    y, kernel=kernel, liu_jia_padding=False, deconvolution_kind="wiener"
+)
 
 psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
     [x, eotf(y), x_hat_liu_jia_padding, x_hat_no_padding],
-    [f"GT", f"Blurry {base_psnr:.1f} dB", f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB", f"No Padding {psnr_no_padding:.1f} dB"],
+    [
+        f"GT",
+        f"Blurry {base_psnr:.1f} dB",
+        f"Liu-Jia Padding {psnr_liu_jia_padding:.1f} dB",
+        f"No Padding {psnr_no_padding:.1f} dB",
+    ],
 )
