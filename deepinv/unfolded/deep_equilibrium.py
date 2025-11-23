@@ -170,7 +170,7 @@ def DEQ_builder(
 
     .. note::
 
-        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
