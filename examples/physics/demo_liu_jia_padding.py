@@ -1,30 +1,82 @@
 import deepinv as dinv
 
-from scipy import fftpack
 import torch
 
+import torch
+import torch.fft
 
-def liu_jia_pad(y, padding):
+
+def dst(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
     """
-    Reducing boundary artifacts in image deconvolution
-    Renting Liu, Jiaya Jia
-    ICIP 2008
+    Computes the Discrete Sine Transform Type 1 (DST-I).
+    Matches scipy.fftpack.dst(type=1).
+
+    The DST-I is equivalent to the imaginary part of the DFT of an
+    odd-symmetric extension of the input signal.
+
+    Args:
+        x (torch.Tensor): Input tensor.
+        dim (int): Dimension along which to compute the transform. Default is -1.
+
+    Returns:
+        torch.Tensor: The DST-I transformed tensor.
     """
-    # (B, C, H, W) -> (BC, H, W)
-    BC = y.shape[:2]
-    y = y.flatten(start_dim=0, end_dim=1)
+    # 1. Setup dimensions
+    n = x.shape[dim]
 
-    zs = []
-    for z in torch.unbind(y, dim=0):
-        z = _liu_jia_pad(z, padding)
-        zs.append(z)
-    y = torch.stack(zs, 0)
+    # 2. Create the odd extension: [0, x, 0, -flip(x)]
+    # We need to construct the padding and reversed parts carefully handling dimensions.
 
-    # (BC, H, W) -> (B, C, H, W)
-    return y.unflatten(dim=0, sizes=BC)
+    # Slice to get a tensor of shape [..., 1, ...] for zeros
+    shape_zeros = list(x.shape)
+    shape_zeros[dim] = 1
+    zeros = torch.zeros(shape_zeros, dtype=x.dtype, device=x.device)
+
+    # Flip x along the specified dimension
+    x_flipped = torch.flip(x, dims=[dim])
+
+    # Construct the odd extension
+    # Sequence: [0, x_0, x_1, ..., x_{N-1}, 0, -x_{N-1}, ..., -x_0]
+    # Length: 1 + N + 1 + N = 2N + 2
+    odd_ext = torch.cat([zeros, x, zeros, -x_flipped], dim=dim)
+
+    # 3. Compute RFFT
+    # The RFFT of a real, odd sequence is purely imaginary.
+    spec = torch.fft.rfft(odd_ext, dim=dim)
+
+    # 4. Extract DST-I
+    # Scipy DST-I definition: y[k] = 2 * sum(x[n] * sin(pi*(k+1)*(n+1)/(N+1)))
+    # The Imaginary part of DFT of odd extension gives: -2 * sum(x[n] * sin(...))
+    # So we take the negative imaginary part.
+    # We slice [1:n+1] because index 0 is DC (0), and we need indices 1..N.
+
+    slices = [slice(None)] * spec.ndim
+    slices[dim] = slice(1, n + 1)
+
+    return -spec.imag[tuple(slices)]
 
 
-def _liu_jia_pad(z, padding, *, marginp1: int = 1):
+def idst(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    """
+    Computes the Inverse Discrete Sine Transform Type 1 (IDST-I).
+    Matches scipy.fftpack.idst(type=1).
+
+    NOTE: scipy.fftpack.idst(type=1) is UNNORMALIZED by default.
+    It is identical to dst(type=1).
+    To get the true mathematical inverse, the result must be
+    scaled by 1 / (2 * (N + 1)).
+
+    Args:
+        x (torch.Tensor): Input tensor.
+        dim (int): Dimension along which to compute the transform. Default is -1.
+
+    Returns:
+        torch.Tensor: The IDST-I transformed tensor (unscaled).
+    """
+    return dst(x, dim=dim)
+
+
+def liu_jia_pad(z, padding, *, marginp1: int = 1):
     """
     python code from:
     https://github.com/ys-koshelev/nla_deblur/blob/90fe0ab98c26c791dcbdf231fe6f938fca80e2a0/boundaries.py
@@ -32,9 +84,6 @@ def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     Renting Liu, Jiaya Jia
     ICIP 2008
     """
-    if z.ndim != 2:
-        raise ValueError("The input tensor must have exactly two dimensions.")
-
     padding_h = 2 * padding[0]
     padding_w = 2 * padding[1]
 
@@ -45,22 +94,24 @@ def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     A[..., :marginp1, :] = z[..., -marginp1:, :]
     A[..., -marginp1:, :] = z[..., :marginp1, :]
     a = torch.arange(padding_h) / (padding_h - 1)
-    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0] + a * A[
-        ..., -marginp1, 0
+    a = a.view((1,) * len(BC) + a.shape)
+    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0, None] + a * A[
+        ..., -marginp1, 0, None
     ]
-    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1] + a * A[
-        ..., -marginp1, -1
+    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1, None] + a * A[
+        ..., -marginp1, -1, None
     ]
 
     B = torch.zeros(BC + (H, 2 * marginp1 + padding_w))
     B[..., :, :marginp1] = z[..., :, -marginp1:]
     B[..., :, -marginp1:] = z[..., :, :marginp1]
-    a = torch.arange(padding_w) / (padding_w - 1)
-    B[..., 0, marginp1:-marginp1] = (1 - a) * B[..., 0, marginp1 - 1] + a * B[
-        ..., 0, -marginp1
+    b = torch.arange(padding_w) / (padding_w - 1)
+    b = b.view((1,) * len(BC) + b.shape)
+    B[..., 0, marginp1:-marginp1] = (1 - b) * B[..., 0, marginp1 - 1, None] + b * B[
+        ..., 0, -marginp1, None
     ]
-    B[..., -1, marginp1:-marginp1] = (1 - a) * B[..., -1, marginp1 - 1] + a * B[
-        ..., -1, -marginp1
+    B[..., -1, marginp1:-marginp1] = (1 - b) * B[..., -1, marginp1 - 1, None] + b * B[
+        ..., -1, -marginp1, None
     ]
 
     if marginp1 == 1:
@@ -92,11 +143,10 @@ def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     A = A[..., marginp1 - 1 : -marginp1 - 1, :]
     B = B[..., :, marginp1:-marginp1]
     C = C[..., marginp1:-marginp1, marginp1:-marginp1]
-    zB = torch.hstack((z, B))
-    AC = torch.hstack((A, C))
-    zBAC = torch.vstack((zB, AC))
+    zB = torch.cat((z, B), dim=-1)
+    AC = torch.cat((A, C), dim=-1)
+    zBAC = torch.cat((zB, AC), dim=-2)
     zBAC = zBAC.roll(shifts=padding, dims=(-2, -1))
-    zBAC = zBAC.to(z.device)
     return zBAC
 
 
@@ -123,10 +173,8 @@ def solve_min_laplacian(mat):
     laplacian = laplacian[..., 1:-1, 1:-1]
 
     # compute sine tranform
-    laplacian = laplacian.numpy()
-    laplacian = fftpack.dst(laplacian, type=1, axis=-2) / 2
-    laplacian = fftpack.dst(laplacian, type=1, axis=-1) / 2
-    laplacian = torch.from_numpy(laplacian)
+    laplacian = dst(laplacian, dim=-2) / 2
+    laplacian = dst(laplacian, dim=-1) / 2
 
     # compute Eigen Values
     u = torch.arange(1, H - 1)
@@ -138,12 +186,10 @@ def solve_min_laplacian(mat):
     )
 
     # compute Inverse Sine Transform
-    laplacian = laplacian.numpy()
-    laplacian = fftpack.idst(laplacian, type=1, axis=-2)
-    laplacian = fftpack.idst(laplacian, type=1, axis=-1)
-    laplacian = torch.from_numpy(laplacian)
-    laplacian = laplacian / (laplacian.shape[0] + 1)
-    laplacian = laplacian / (laplacian.shape[1] + 1)
+    laplacian = idst(laplacian, dim=-2)
+    laplacian = idst(laplacian, dim=-1)
+    laplacian = laplacian / (laplacian.shape[-2] + 1)
+    laplacian = laplacian / (laplacian.shape[-1] + 1)
 
     # put solution in inner points; outer points obtained from boundary image
     mat[..., 1:-1, 1:-1] = laplacian
