@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING, Callable
 from tqdm import tqdm
 import os
 from warnings import warn
-import copy
-import inspect
 
 try:
     import h5py
@@ -174,7 +172,6 @@ def collate(dataset: Dataset):
             from PIL import Image
 
             if isinstance(example_output, Image.Image):
-                from torchvision.transforms.functional import crop
 
                 def collate_pillow(
                     batch: list[Image.Image | list[Image.Image]],
