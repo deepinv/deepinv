@@ -193,7 +193,7 @@ def collate(dataset: Dataset):
                         shapes.add(t.shape)
                     if len(shapes) != 1:  # pragma: no cover
                         raise RuntimeError(
-                            f"generate_dataset expects dataset to return elements of same shape, but received at least two different shapes: {list(shapes)[0]} and {list(shapes)[1]}. Please add a crop/pad or other shape handling to your dataset."
+                            f"generate_dataset expects dataset to return elements of same shape, but received at least two different shapes: {list(shapes)[0]} and {list(shapes)[1]}. Please use a batch size of 1 or add a crop/pad or other shape handling to your dataset."
                         )
                     return torch.stack(tensors, dim=0)
 
