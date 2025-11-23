@@ -1235,13 +1235,14 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device):
+@pytest.mark.parametrize("ksize", [3, 4, 5, 6, 7, 8])
+def test_blur(device, ksize):
     r"""
     Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
     x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
-    h = torch.ones((1, 1, 5, 5)) / 25.0
+    h = torch.ones((1, 1, ksize, ksize)) / ksize ** 2
 
     physics_blur = dinv.physics.Blur(
         filter=h,

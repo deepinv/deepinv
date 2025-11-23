@@ -48,11 +48,12 @@ def conv2d(
         filter = filter.expand(B, -1, -1, -1)
 
     if padding != "valid":
-        ph = h // 2
-        ih = (h - 1) % 2
-        pw = w // 2
-        iw = (w - 1) % 2
-        pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
+        pad = (
+            (w - 1) // 2,
+            w // 2,
+            (h - 1) // 2,
+            h // 2,
+        )
 
         x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
