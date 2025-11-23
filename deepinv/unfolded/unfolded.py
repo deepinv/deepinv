@@ -29,10 +29,6 @@ class BaseUnfold(BaseOptim):
     These modules encompass trainable parameters of the algorithm (e.g. stepsize :math:`\gamma`, regularization parameter :math:`\lambda`, prior parameter (`g_param`) :math:`\sigma` ...)
     as well as trainable priors (e.g. a deep denoiser).
 
-    .. deprecated:: 0.2.3
-
-        This class is deprecated and will be removed in future versions. Use the :class:`deepinv.optim.BaseOptim` class instead, with `unfold=True`.
-
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent),
