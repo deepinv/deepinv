@@ -1,16 +1,9 @@
 import deepinv as dinv
 
-import numpy as np
-import scipy
 from scipy import fftpack
 import torch
 
-from math import cos, sin
-from numpy import zeros, ones, prod, array, pi, log, min, mod, arange, sum, mgrid, exp, pad, round
-from numpy.random import randn, rand
-from scipy.signal import convolve2d
-import cv2
-import random
+
 
 def liu_jia_pad(y, padding):
     """
@@ -52,23 +45,35 @@ def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     A = torch.zeros(BC + (2 * marginp1 + padding_h, W))
     A[..., :marginp1, :] = z[..., -marginp1:, :]
     A[..., -marginp1:, :] = z[..., :marginp1, :]
-    a = torch.arange(padding_h) / (padding_h-1)
-    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0] + a * A[..., -marginp1, 0]
-    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1] + a * A[..., -marginp1, -1]
+    a = torch.arange(padding_h) / (padding_h - 1)
+    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0] + a * A[
+        ..., -marginp1, 0
+    ]
+    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1] + a * A[
+        ..., -marginp1, -1
+    ]
 
     B = torch.zeros(BC + (H, 2 * marginp1 + padding_w))
     B[..., :, :marginp1] = z[..., :, -marginp1:]
     B[..., :, -marginp1:] = z[..., :, :marginp1]
-    a = torch.arange(padding_w) / (padding_w-1)
-    B[..., 0, marginp1:-marginp1] = (1 - a) * B[..., 0, marginp1 - 1] + a * B[..., 0, -marginp1]
-    B[..., -1, marginp1:-marginp1] = (1 - a) * B[..., -1, marginp1 - 1] + a * B[..., -1, -marginp1]
+    a = torch.arange(padding_w) / (padding_w - 1)
+    B[..., 0, marginp1:-marginp1] = (1 - a) * B[..., 0, marginp1 - 1] + a * B[
+        ..., 0, -marginp1
+    ]
+    B[..., -1, marginp1:-marginp1] = (1 - a) * B[..., -1, marginp1 - 1] + a * B[
+        ..., -1, -marginp1
+    ]
 
     if marginp1 == 1:
         A = solve_min_laplacian(A)
         B = solve_min_laplacian(B)
     else:
-        A[..., marginp1-1:-marginp1+1, :] = solve_min_laplacian(A[..., marginp1-1:-marginp1+1, :])
-        B[..., :, marginp1-1:-marginp1+1] = solve_min_laplacian(B[..., :, marginp1-1:-marginp1+1])
+        A[..., marginp1 - 1 : -marginp1 + 1, :] = solve_min_laplacian(
+            A[..., marginp1 - 1 : -marginp1 + 1, :]
+        )
+        B[..., :, marginp1 - 1 : -marginp1 + 1] = solve_min_laplacian(
+            B[..., :, marginp1 - 1 : -marginp1 + 1]
+        )
 
     C = torch.zeros(BC + (2 * marginp1 + padding_h, 2 * marginp1 + padding_w))
     C[..., :marginp1, :] = B[..., -marginp1:, :]
@@ -79,9 +84,13 @@ def _liu_jia_pad(z, padding, *, marginp1: int = 1):
     if marginp1 == 1:
         C = solve_min_laplacian(C)
     else:
-        C[..., marginp1-1:-marginp1+1, marginp1-1:-marginp1+1] = solve_min_laplacian(C[..., marginp1-1:-marginp1+1, marginp1-1:-marginp1+1])
+        C[..., marginp1 - 1 : -marginp1 + 1, marginp1 - 1 : -marginp1 + 1] = (
+            solve_min_laplacian(
+                C[..., marginp1 - 1 : -marginp1 + 1, marginp1 - 1 : -marginp1 + 1]
+            )
+        )
 
-    A = A[..., marginp1-1:-marginp1-1, :]
+    A = A[..., marginp1 - 1 : -marginp1 - 1, :]
     B = B[..., :, marginp1:-marginp1]
     C = C[..., marginp1:-marginp1, marginp1:-marginp1]
     zB = torch.hstack((z, B))
@@ -101,12 +110,18 @@ def solve_min_laplacian(mat):
     # boundary image contains image intensities at boundaries
     laplacian = torch.zeros_like(mat)
     laplacian_bp = torch.zeros_like(mat)
-    laplacian_bp[..., 1:H-1, 1:W-1] = mat[..., 1:-1, 2:] + mat[..., 1:-1, :-2] + mat[..., 2:, 1:-1] + mat[..., :-2, 1:-1] -4 * mat[..., 1:-1, 1:-1]
+    laplacian_bp[..., 1 : H - 1, 1 : W - 1] = (
+        mat[..., 1:-1, 2:]
+        + mat[..., 1:-1, :-2]
+        + mat[..., 2:, 1:-1]
+        + mat[..., :-2, 1:-1]
+        - 4 * mat[..., 1:-1, 1:-1]
+    )
 
     laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
 
     # DST Sine Transform algo starts here
-    laplacian = laplacian[..., 1:-1,1:-1]
+    laplacian = laplacian[..., 1:-1, 1:-1]
 
     # compute sine tranform
     laplacian = laplacian.numpy()
@@ -117,8 +132,11 @@ def solve_min_laplacian(mat):
     # compute Eigen Values
     u = torch.arange(1, H - 1)
     v = torch.arange(1, W - 1)
-    u, v = torch.meshgrid(u, v, indexing='ij')
-    laplacian = laplacian / ((2 * torch.cos(torch.pi * u / (H - 1)) - 2) + (2 * torch.cos(torch.pi * v / (W - 1)) - 2))
+    u, v = torch.meshgrid(u, v, indexing="ij")
+    laplacian = laplacian / (
+        (2 * torch.cos(torch.pi * u / (H - 1)) - 2)
+        + (2 * torch.cos(torch.pi * v / (W - 1)) - 2)
+    )
 
     # compute Inverse Sine Transform
     laplacian = laplacian.numpy()
@@ -137,9 +155,10 @@ device = "cpu"
 x = dinv.utils.load_example("butterfly.png", img_size=64).to(device)
 
 # Define blur kernel and physics
-kernel = torch.tensor([[1/16, 2/16, 1/16],
-                           [2/16, 4/16, 2/16],
-                           [1/16, 2/16, 1/16]], device=device)
+kernel = torch.tensor(
+    [[1 / 16, 2 / 16, 1 / 16], [2 / 16, 4 / 16, 2 / 16], [1 / 16, 2 / 16, 1 / 16]],
+    device=device,
+)
 kernel /= kernel.sum()
 kernel = kernel.unsqueeze(0).unsqueeze(0)
 physics = dinv.physics.Blur(filter=kernel, padding="valid")
@@ -153,7 +172,7 @@ margin = (
     (kernel.shape[-2] - 1) // 2,
     (kernel.shape[-1] - 1) // 2,
 )
-x = x[..., margin[0]: -margin[0], margin[1]: -margin[1]]
+x = x[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
 # Liu-Jia Padding
 H, W = y.shape[-2:]
@@ -189,14 +208,16 @@ margin = (
     (y.shape[-2] - H) // 2,
     (y.shape[-1] - W) // 2,
 )
-y = y[..., margin[0]: -margin[0], margin[1]: -margin[1]]
-x_hat = x_hat[..., margin[0]: -margin[0], margin[1]: -margin[1]]
+y = y[..., margin[0] : -margin[0], margin[1] : -margin[1]]
+x_hat = x_hat[..., margin[0] : -margin[0], margin[1] : -margin[1]]
 
 if x.shape != y.shape:
     raise ValueError("Shapes do not match after cropping")
 
 psnr_fn = dinv.metric.PSNR()
 psnr = psnr_fn(y, x).item()
-psnr_x_hat = psnr_fn(x_hat ,x).item()
+psnr_x_hat = psnr_fn(x_hat, x).item()
 
-dinv.utils.plot([x, y, x_hat], ["x", f"y ({psnr:.1f} dB)", f"x_hat ({psnr_x_hat:.1f} dB)"])
+dinv.utils.plot(
+    [x, y, x_hat], ["x", f"y ({psnr:.1f} dB)", f"x_hat ({psnr_x_hat:.1f} dB)"]
+)
