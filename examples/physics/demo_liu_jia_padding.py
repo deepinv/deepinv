@@ -232,8 +232,7 @@ physics = dinv.physics.Blur(filter=kernel, padding="valid")
 
 
 # Compute the blur in linear sRGB space
-def oetf(x: torch.Tensor) -> torch.Tensor:
-    return x
+def eotf(x: torch.Tensor) -> torch.Tensor:
     # Map from sRGB to linear sRGB
     return torch.where(
         x <= 0.04045,
@@ -242,8 +241,7 @@ def oetf(x: torch.Tensor) -> torch.Tensor:
     )
 
 
-def eotf(x: torch.Tensor) -> torch.Tensor:
-    return x
+def oetf(x: torch.Tensor) -> torch.Tensor:
     # Map from linear sRGB to sRGB
     return torch.where(
         x <= 0.0031308,
@@ -252,7 +250,7 @@ def eotf(x: torch.Tensor) -> torch.Tensor:
     )
 
 
-y = physics(oetf(x))
+y = physics(eotf(x))
 
 # Crop for comparison
 if kernel.shape[-2] % 2 != 1 or kernel.shape[-1] % 2 != 1:
@@ -315,7 +313,7 @@ def deblur(
     # 6. Clip
     x_hat = torch.clamp(x_hat, 0, 1)
     # 7. Move to sRGB space
-    x_hat = eotf(x_hat)
+    x_hat = oetf(x_hat)
     # 8. Quantize
     x_hat = torch.round(x_hat * 255) / 255
 
@@ -328,7 +326,7 @@ def deblur(
 
 # Comparisons
 psnr_fn = dinv.metric.PSNR()
-base_psnr = psnr_fn(eotf(y), x).item()
+base_psnr = psnr_fn(oetf(y), x).item()
 
 # Compare Liu-Jia padding vs no padding for inverse filtering
 x_hat_liu_jia_padding = deblur(
@@ -342,7 +340,7 @@ psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
-    [x, eotf(y), x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, oetf(y), x_hat_liu_jia_padding, x_hat_no_padding],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
@@ -363,7 +361,7 @@ psnr_liu_jia_padding = psnr_fn(x_hat_liu_jia_padding, x).item()
 psnr_no_padding = psnr_fn(x_hat_no_padding, x).item()
 
 dinv.utils.plot(
-    [x, eotf(y), x_hat_liu_jia_padding, x_hat_no_padding],
+    [x, oetf(y), x_hat_liu_jia_padding, x_hat_no_padding],
     [
         f"GT",
         f"Blurry {base_psnr:.1f} dB",
