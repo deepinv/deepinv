@@ -74,6 +74,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         max_iter=max_iter,
         prior=prior,
     )
+    model.to(device)
 
     for idx, (name, param) in enumerate(model.named_parameters()):
         assert param.requires_grad
