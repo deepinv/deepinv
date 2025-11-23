@@ -175,10 +175,12 @@ class DiffusionSDE(BaseSDE):
         *args,
         **kwargs,
     ):
-        if not callable(alpha):
+        if not isinstance(alpha, Callable):
+            alpha_value = alpha
+
             def alpha(t: Tensor | float) -> Tensor:
                 t = self._handle_time_step(t)
-                return alpha * torch.ones_like(t)
+                return alpha_value * torch.ones_like(t)
 
         def backward_drift(x, t, *args, **kwargs):
             return -forward_drift(x, t) + ((1 + alpha(t)) / 2) * forward_diffusion(
@@ -186,7 +188,7 @@ class DiffusionSDE(BaseSDE):
             ) ** 2 * self.score(x, t, *args, **kwargs)
 
         def backward_diffusion(t):
-            return (alpha(t)**0.5) * forward_diffusion(t)
+            return (alpha(t) ** 0.5) * forward_diffusion(t)
 
         super().__init__(
             drift=backward_drift,
