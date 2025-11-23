@@ -148,7 +148,7 @@ unfolded, deep equilibrium models
 .. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
+   :target: https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb
 .. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
    :target: https://www.youtube.com/@deepinv
 .. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
