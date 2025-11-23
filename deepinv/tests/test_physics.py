@@ -1242,7 +1242,7 @@ def test_blur(device, ksize):
     """
     torch.manual_seed(0)
     x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
-    h = torch.ones((1, 1, ksize, ksize)) / ksize ** 2
+    h = torch.ones((1, 1, ksize, ksize)) / ksize**2
 
     physics_blur = dinv.physics.Blur(
         filter=h,
