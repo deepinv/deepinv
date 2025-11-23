@@ -8,10 +8,11 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, CenterCrop
 from deepinv.loss import Metric
 import numpy as np
 
+import deepinv as dinv
 from deepinv.datasets import (
     DIV2K,
     Urban100HR,
@@ -230,6 +231,36 @@ def test_hdfdataset(physgen):
     check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
     dataset.close()
     assert dataset.hd5 is None
+
+
+def test_generate_dataset():
+    tmp_data_dir = "set14"
+    # Dataset returns PIL images, no cropping so different sizes
+    ds = Set14HR(tmp_data_dir, download=True)
+
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+    with pytest.raises(
+        RuntimeError,
+        match="generate_dataset expects dataset to return elements of same shape",
+    ):
+        _ = dinv.datasets.generate_dataset(
+            train_dataset=ds,
+            batch_size=4,
+            physics=physics,
+            device="cpu",
+            save_dir="./measurements",
+        )
+    # Test that no error is raised when we add crop
+    ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
+    _ = dinv.datasets.generate_dataset(
+        train_dataset=ds,
+        batch_size=1,
+        physics=physics,
+        device="cpu",
+        save_dir="./measurements",
+    )
+    shutil.rmtree("./measurements")
+    shutil.rmtree("./set14")
 
 
 def test_tensordataset():
