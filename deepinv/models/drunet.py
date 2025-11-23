@@ -15,11 +15,7 @@ from .utils import (
     avgpool_nd,
 )
 from .base import Denoiser
-from typing import Sequence  # noqa: F401
 from collections import OrderedDict
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
 class DRUNet(Denoiser):

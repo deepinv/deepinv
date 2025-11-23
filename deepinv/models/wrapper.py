@@ -1,8 +1,7 @@
 from __future__ import annotations
 import torch
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .base import Denoiser
+from .base import Denoiser
+
 
 class DiffusersDenoiserWrapper(Denoiser):
     """
@@ -172,51 +171,58 @@ class DiffusersDenoiserWrapper(Denoiser):
         return x0
 
 
-
 class ComplexDenoiserWrapper(Denoiser):
     r"""
     Complex-valued wrapper for a real-valued denoiser :math:`\denoisername(\cdot, \sigma)`.
 
     This class lifts any real-valued denoiser to the complex domain by applying it separately to a chosen *pair* of real representations of the complex input and recombining the outputs.
 
-    Let the input be :math:`x \in \mathbb{C}^{B\times C\times H\times W}` and a noise level :math:`\sigma > 0` (scalar or batch of size :math:`B`). 
+    Let the input be :math:`x \in \mathbb{C}^{B\times C\times H\times W}` and a noise level :math:`\sigma > 0` (scalar or batch of size :math:`B`).
     The underlying denoiser (given by `denoiser`) :math:`\denoisername` acts on real tensors only. Two processing modes are supported:
 
-    **1. `'real_imag'` mode**
-
-        We decompose
-        .. math::
-        
-            x = x_{\mathrm{real}} + i x_{\mathrm{imag}}.
-        
-        The denoiser is applied on the real and imaginary parts (same :math:`\sigma` broadcast across both halves). 
-        The complex reconstruction is
-        .. math::
-
-            \hat x = \denoisername(x_{\mathrm{real}}, \sigma) + i \, \denoisername(x_{\mathrm{imag}}, \sigma).
-
-        If the provided input tensor is real (i.e. :class:`torch.is_complex(x)` is ``False``), it is interpreted as :math:`x_{\mathrm{real}}` with :math:`x_{\mathrm{imag}}=0` and the output is returned as
-        :math:`\denoisername(x_{\mathrm{real}},\sigma) + i 0` (complex dtype ensured).
-
-    **2. `'abs_angle'` mode**
-
-        We use the polar decomposition
-        .. math::
-        
-            x = m \exp(i\phi), \qquad m = |x|,\; \phi = \mathrm{arg}(x) \in (-\pi,\pi].
-        
-        The denoiser is applied on the magnitude and phase parts (same :math:`\sigma` broadcast across both halves).
-        The reconstructed complex output is
-        .. math::
-        
-            \hat x = \denoisername(m, \sigma) \exp \big(i\, \denoisername(\phi, \sigma)\big).
-    
-    Note that the phase estimate :math:`\denoisername(\phi,\sigma)` is **clipped** back to :math:`(-\pi,\pi]`.
-    
     |sep|
-    
-    .. Examples:
-    
+
+    1. `'real_imag'` mode
+
+    We decompose
+
+    .. math::
+
+        x = x_{\mathrm{real}} + i x_{\mathrm{imag}}.
+
+    The denoiser is applied on the real and imaginary parts (same :math:`\sigma` broadcast across both halves).
+    The complex reconstruction is
+
+    .. math::
+
+        \hat x = \denoisername(x_{\mathrm{real}}, \sigma) + i \, \denoisername(x_{\mathrm{imag}}, \sigma).
+
+    If the provided input tensor is real (i.e. :class:`torch.is_complex(x)` is ``False``), it is interpreted as :math:`x_{\mathrm{real}}` with :math:`x_{\mathrm{imag}}=0` and the output is returned as
+    :math:`\denoisername(x_{\mathrm{real}},\sigma) + i 0` (complex dtype ensured).
+
+    |sep|
+
+    2. `'abs_angle'` mode
+
+    We use the polar decomposition
+
+    .. math::
+
+        x = m \exp(i\phi), \qquad m = |x|,\; \phi = \mathrm{arg}(x) \in (-\pi,\pi].
+
+    The denoiser is applied on the magnitude and phase parts (same :math:`\sigma` broadcast across both halves).
+    The reconstructed complex output is
+
+    .. math::
+
+        \hat x = \denoisername(m, \sigma) \exp \big(i\, \denoisername(\phi, \sigma)\big).
+
+    Note that the phase estimate :math:`\denoisername(\phi,\sigma)` is **clipped** back to :math:`(-\pi,\pi]`.
+
+    |sep|
+
+    :Examples:
+
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
@@ -227,8 +233,8 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> with torch.no_grad():
         ...     denoised = complex_denoiser(y, sigma)
         >>> print(denoised.dtype)  # should be complex dtype
-        torch.complex64   
-        
+        torch.complex64
+
     :param deepinv.models.Denoiser denoiser: Real-valued denoiser :math:`\denoisername` to wrap.
     :param str mode: Either ``'real_imag'`` or ``'abs_angle'``. Default ``'real_imag'``.
     :raises ValueError: If an unsupported mode string is provided.

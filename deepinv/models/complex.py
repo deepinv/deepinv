@@ -1,8 +1,7 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .base import Denoiser
-    from .wrapper import ComplexDenoiserWrapper   
+
+from .base import Denoiser
+from .wrapper import ComplexDenoiserWrapper
 
 
 def to_complex_denoiser(denoiser: Denoiser, mode="real_imag") -> ComplexDenoiserWrapper:

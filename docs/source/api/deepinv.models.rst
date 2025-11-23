@@ -96,6 +96,7 @@ Wrappers
    :nosignatures:
 
    deepinv.models.DiffusersDenoiserWrapper
+   deepinv.models.ComplexDenoiserWrapper
 
 Deep Image Prior
 ----------------

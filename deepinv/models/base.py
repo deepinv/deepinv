@@ -2,7 +2,10 @@ from __future__ import annotations
 import torch
 import numpy as np
 from torch import Tensor
-from deepinv.physics.forward import Physics
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class Denoiser(torch.nn.Module):
