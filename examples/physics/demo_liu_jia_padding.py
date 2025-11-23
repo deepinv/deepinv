@@ -84,95 +84,110 @@ def idst1(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
     return _dst1(x, dim=dim, inverse=True)
 
 
-def liu_jia_pad(z, padding, *, marginp1: int = 1):
+def liu_jia_pad(
+    x: torch.Tensor, *, padding: tuple(int, int), alpha: int = 1
+) -> torch.Tensor:
     """
+    Liu-Jia Padding
+
     python code from:
     https://github.com/ys-koshelev/nla_deblur/blob/90fe0ab98c26c791dcbdf231fe6f938fca80e2a0/boundaries.py
     Reducing boundary artifacts in image deconvolution
     Renting Liu, Jiaya Jia
     ICIP 2008
+
+    :param torch.Tensor x: Input tensor of shape (B, C, H, W)
+    :param tuple(int, int) padding: Tuple specifying the amount of padding (pad_h, pad_w)
+    :param int alpha: Border width for Liu-Jia padding (default: 1)
+    :return: Padded tensor of shape (B, C, H + 2 * pad_h, W + 2 * pad_w)
     """
+    if x.ndim != 4:
+        raise ValueError("Input tensor must be 4-dimensional (B, C, H, W)")
+
     padding_h = 2 * padding[0]
     padding_w = 2 * padding[1]
 
-    BC = tuple(z.shape[:-2])
-    H, W = z.shape[-2:]
+    BC = tuple(x.shape[:-2])
+    H, W = x.shape[-2:]
 
-    A = torch.zeros(BC + (2 * marginp1 + padding_h, W))
-    A[..., :marginp1, :] = z[..., -marginp1:, :]
-    A[..., -marginp1:, :] = z[..., :marginp1, :]
+    A = torch.zeros(BC + (2 * alpha + padding_h, W))
+    A[..., :alpha, :] = x[..., -alpha:, :]
+    A[..., -alpha:, :] = x[..., :alpha, :]
     a = torch.arange(padding_h) / (padding_h - 1)
     a = a.view((1,) * len(BC) + a.shape)
-    A[..., marginp1:-marginp1, 0] = (1 - a) * A[..., marginp1 - 1, 0, None] + a * A[
-        ..., -marginp1, 0, None
+    A[..., alpha:-alpha, 0] = (1 - a) * A[..., alpha - 1, 0, None] + a * A[
+        ..., -alpha, 0, None
     ]
-    A[..., marginp1:-marginp1, -1] = (1 - a) * A[..., marginp1 - 1, -1, None] + a * A[
-        ..., -marginp1, -1, None
+    A[..., alpha:-alpha, -1] = (1 - a) * A[..., alpha - 1, -1, None] + a * A[
+        ..., -alpha, -1, None
     ]
 
-    B = torch.zeros(BC + (H, 2 * marginp1 + padding_w))
-    B[..., :, :marginp1] = z[..., :, -marginp1:]
-    B[..., :, -marginp1:] = z[..., :, :marginp1]
+    B = torch.zeros(BC + (H, 2 * alpha + padding_w))
+    B[..., :, :alpha] = x[..., :, -alpha:]
+    B[..., :, -alpha:] = x[..., :, :alpha]
     b = torch.arange(padding_w) / (padding_w - 1)
     b = b.view((1,) * len(BC) + b.shape)
-    B[..., 0, marginp1:-marginp1] = (1 - b) * B[..., 0, marginp1 - 1, None] + b * B[
-        ..., 0, -marginp1, None
+    B[..., 0, alpha:-alpha] = (1 - b) * B[..., 0, alpha - 1, None] + b * B[
+        ..., 0, -alpha, None
     ]
-    B[..., -1, marginp1:-marginp1] = (1 - b) * B[..., -1, marginp1 - 1, None] + b * B[
-        ..., -1, -marginp1, None
+    B[..., -1, alpha:-alpha] = (1 - b) * B[..., -1, alpha - 1, None] + b * B[
+        ..., -1, -alpha, None
     ]
 
-    if marginp1 == 1:
-        A = solve_min_laplacian(A)
-        B = solve_min_laplacian(B)
+    if alpha == 1:
+        A = compute_padding(A)
+        B = compute_padding(B)
     else:
-        A[..., marginp1 - 1 : -marginp1 + 1, :] = solve_min_laplacian(
-            A[..., marginp1 - 1 : -marginp1 + 1, :]
+        A[..., alpha - 1 : -alpha + 1, :] = compute_padding(
+            A[..., alpha - 1 : -alpha + 1, :]
         )
-        B[..., :, marginp1 - 1 : -marginp1 + 1] = solve_min_laplacian(
-            B[..., :, marginp1 - 1 : -marginp1 + 1]
+        B[..., :, alpha - 1 : -alpha + 1] = compute_padding(
+            B[..., :, alpha - 1 : -alpha + 1]
         )
 
-    C = torch.zeros(BC + (2 * marginp1 + padding_h, 2 * marginp1 + padding_w))
-    C[..., :marginp1, :] = B[..., -marginp1:, :]
-    C[..., -marginp1:, :] = B[..., :marginp1, :]
-    C[..., :, :marginp1] = A[..., :, -marginp1:]
-    C[..., :, -marginp1:] = A[..., :, :marginp1]
+    C = torch.zeros(BC + (2 * alpha + padding_h, 2 * alpha + padding_w))
+    C[..., :alpha, :] = B[..., -alpha:, :]
+    C[..., -alpha:, :] = B[..., :alpha, :]
+    C[..., :, :alpha] = A[..., :, -alpha:]
+    C[..., :, -alpha:] = A[..., :, :alpha]
 
-    if marginp1 == 1:
-        C = solve_min_laplacian(C)
+    if alpha == 1:
+        C = compute_padding(C)
     else:
-        C[..., marginp1 - 1 : -marginp1 + 1, marginp1 - 1 : -marginp1 + 1] = (
-            solve_min_laplacian(
-                C[..., marginp1 - 1 : -marginp1 + 1, marginp1 - 1 : -marginp1 + 1]
-            )
+        C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1] = compute_padding(
+            C[..., alpha - 1 : -alpha + 1, alpha - 1 : -alpha + 1]
         )
 
-    A = A[..., marginp1 - 1 : -marginp1 - 1, :]
-    B = B[..., :, marginp1:-marginp1]
-    C = C[..., marginp1:-marginp1, marginp1:-marginp1]
-    zB = torch.cat((z, B), dim=-1)
+    # Combine the original image and the padding images to form the final padded image
+    A = A[..., alpha - 1 : -alpha - 1, :]
+    B = B[..., :, alpha:-alpha]
+    C = C[..., alpha:-alpha, alpha:-alpha]
+    zB = torch.cat((x, B), dim=-1)
     AC = torch.cat((A, C), dim=-1)
     zBAC = torch.cat((zB, AC), dim=-2)
+
+    # Center the original image
     zBAC = zBAC.roll(shifts=padding, dims=(-2, -1))
+
     return zBAC
 
 
-def solve_min_laplacian(mat):
-    H, W = mat.shape[-2:]
+def compute_padding(x: torch.Tensor) -> torch.Tensor:
+    H, W = x.shape[-2:]
 
-    mat[..., 1:-1, 1:-1] = 0
+    # Set the inner points to zero
+    x[..., 1:-1, 1:-1] = 0
 
     # Laplacian
     # boundary image contains image intensities at boundaries
-    laplacian = torch.zeros_like(mat)
-    laplacian_bp = torch.zeros_like(mat)
+    laplacian = torch.zeros_like(x)
+    laplacian_bp = torch.zeros_like(x)
     laplacian_bp[..., 1 : H - 1, 1 : W - 1] = (
-        mat[..., 1:-1, 2:]
-        + mat[..., 1:-1, :-2]
-        + mat[..., 2:, 1:-1]
-        + mat[..., :-2, 1:-1]
-        - 4 * mat[..., 1:-1, 1:-1]
+        x[..., 1:-1, 2:]
+        + x[..., 1:-1, :-2]
+        + x[..., 2:, 1:-1]
+        + x[..., :-2, 1:-1]
+        - 4 * x[..., 1:-1, 1:-1]
     )
 
     laplacian = laplacian - laplacian_bp  # subtract boundary points contribution
@@ -198,8 +213,8 @@ def solve_min_laplacian(mat):
     laplacian = idst1(laplacian, dim=-1)
 
     # put solution in inner points; outer points obtained from boundary image
-    mat[..., 1:-1, 1:-1] = laplacian
-    return mat
+    x[..., 1:-1, 1:-1] = laplacian
+    return x
 
 
 device = "cpu"
