@@ -16,6 +16,9 @@ class ConvLista(nn.Module):
 
     The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is well suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).
 
+    .. note:
+
+        The decoder expects images with a dynamic range normalized between zero and one.
 
     :param int in_channels: Number of channels in the input image.
     :param int out_channels: Number of channels in the output image.
@@ -258,6 +261,10 @@ class Poisson2Sparse(Denoiser):
     .. note::
 
         This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics object can be omitted when calling the model and specifying it will have no effect.
+        
+    .. note:
+
+        The denoiser expects images with a dynamic range normalized between zero and one.
 
     :param torch.nn.Module | None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.
     :param float lr: Learning rate of the AdamW optimizer (default: 1e-4).
