@@ -146,7 +146,7 @@ class DiffusionSDE(BaseSDE):
 
     :param Callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param Callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
-    :param Callable alpha, float: a (possibly time-dependent) scalar weighting the diffusion term. :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
+    :param Callable, float alpha: a (possibly time-dependent) scalar weighting the diffusion term. :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
