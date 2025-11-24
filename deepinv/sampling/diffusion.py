@@ -68,7 +68,7 @@ class DiffusionSampler(BaseSampling):
         :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the samples
-        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        :return: (tuple of torch.Tensor) containing the posterior mean and variance.
         """
         return self.sample(y, physics, seed=seed, g_statistics=self.g_statistics)
 
