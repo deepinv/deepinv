@@ -266,7 +266,7 @@ class Poisson2Sparse(Denoiser):
 
         The denoiser expects images with a dynamic range normalized between zero and one.
 
-    :param torch.nn.Module | None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.
+    :param torch.nn.Module, None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.
     :param float lr: Learning rate of the AdamW optimizer (default: 1e-4).
     :param float weight_n2n: Weight of the Neighbor2Neighbor loss term (default: 2.0).
     :param float weight_l1_regularization: Weight of the sparsity-inducing :math:`\ell^1` regularization on the weights (default: 1e-5).
