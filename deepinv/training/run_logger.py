@@ -28,11 +28,7 @@ def get_timestamp() -> str:
 class RunLogger(ABC):
     """
     Abstract base class for logging training runs.
-
-    TODO
     """
-
-    log_dir: str
 
     @abstractmethod
     def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
@@ -107,24 +103,20 @@ class RunLogger(ABC):
         pass
 
     @abstractmethod
-    def load_from_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]) -> None:
         """
         Resume the logger by restoring from a training checkpoint.
 
-        :param dict state: Contains model weights, optimizer states, LR scheduler, etc.
+        :param dict checkpoint_dict: Contains model weights, optimizer states, LR scheduler, etc.
         """
         pass
 
     @abstractmethod
-    def log_checkpoint(
-        self, epoch: int, state: dict[str, Any], name: str | None = None
-    ) -> None:
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
         """
-        Log training checkpoint (always save in a folder on the local machine).
+        Add logger specific information in training checkpoint.
 
-        :param int epoch: Save checkpoint at the end of an epoch.
-        :param dict state: Contains model weights, optimizer states, LR scheduler, etc.
-        :param str name: Checkpoint filename.
+        :param dict checkpoint_dict: Contains model weights, optimizer states, LR scheduler, etc.
         """
         pass
 
@@ -143,9 +135,8 @@ class WandbLogger(RunLogger):
 
     def __init__(
         self,
-        local_checkpoint_dir: str,
-        log_dir: str,
-        project_name: str,
+        log_dir: str = "logs",
+        project_name: str = "default_project",
         run_name: str | None = None,
         logging_mode: str = "online",
         resume_id: str = None,
@@ -153,14 +144,14 @@ class WandbLogger(RunLogger):
         """
         TODO
         """
-        self.local_checkpoint_dir = Path(local_checkpoint_dir)
-        self.log_dir = Path(log_dir)
         self.proj_name = project_name
         if run_name is None:
             run_name = get_timestamp()
         self.run_name = run_name
         self.logging_mode = logging_mode
         self.resume_id = resume_id
+
+        self.run_log_dir = Path(log_dir) / Path(self.project_name) / self.run_name
 
     @classmethod
     def get_wandb_setup(
@@ -205,7 +196,7 @@ class WandbLogger(RunLogger):
 
         # Get a dict that contains wandb settings and experiment metadata, necessary to launch a Wandb run
         wandb_setup = self.get_wandb_setup(
-            wandb_save_dir=self.log_dir,
+            wandb_save_dir=self.run_log_dir,
             wandb_proj_name=self.proj_name,
             wandb_run_name=self.run_name,
             wandb_hp_config=hyperparams,
@@ -314,40 +305,22 @@ class WandbLogger(RunLogger):
                         {f"{phase} samples: {name_img}_{j}": wandb_images}, step=epoch
                     )
 
-    def load_from_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]) -> None:
         """
-        TODO
+        Get from checkpoint the resume_id.
         """
-        if "resume_id" in checkpoint:
-            self.resume_id = checkpoint["resume_id"]
+        if "resume_id" in checkpoint_dict:
+            self.resume_id = checkpoint_dict["resume_id"]
 
-    def log_checkpoint(
-        self, epoch: int, state: dict[str, Any], name: str | None = None
-    ) -> None:
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
         """
-        TODO
+        Add the resume_id to the checkpoint.
         """
-        if state is None:
-            state = {}
+        if checkpoint_dict is None:
+            checkpoint_dict = {}
 
-        if name is not None:
-            checkpoint_file = self.local_checkpoint_dir / f"{name}.pth.tar"
-        else:
-            checkpoint_file = (
-                self.local_checkpoint_dir / f"checkpoint_epoch_{epoch}.pth.tar"
-            )
-
-        # Add wandb run id to either an existing checkpoint or a new checkpoint
-        if os.path.isfile(checkpoint_file):
-            checkpoint = torch.load(
-                checkpoint_file, map_location="cpu", weights_only=False
-            )  # this is a costly operation
-            checkpoint["wandb_id"] = self.wandb_run.id
-            torch.save(checkpoint, checkpoint_file)
-        else:
-            os.makedirs(self.local_checkpoint_dir, exist_ok=True)
-            state["wandb_id"] = self.wandb_run.id
-            torch.save(state)
+        checkpoint_dict["wandb_id"] = self.wandb_run.id
+        return checkpoint_dict
 
     def finish_run(self) -> None:
         """
@@ -366,36 +339,37 @@ class LocalLogger(RunLogger):
     def __init__(
         self,
         log_dir: str = "logs",
-        project_name: str | None = "default_project",
+        project_name: str = "default_project",
         run_name: str | None = None,
-        config: dict[str, Any] | None = None,
     ) -> None:
+        self.project_name = project_name
         if run_name is None:
             run_name = get_timestamp()
         self.run_name = run_name
-        self.stdout_logger = getLogger("stdout_logger")
-        self.stdout_logger.setLevel("INFO")
-        self.log_dir = Path(log_dir) / Path(project_name) / self.run_name
-        self.loss_dir = self.log_dir / "losses"
-        self.metrics_dir = self.log_dir / "metrics"
-        self.images_dir = self.log_dir / "images"
-        self.checkpoints_dir = self.log_dir / "checkpoints"
+
+        self.run_log_dir = Path(log_dir) / Path(self.project_name) / self.run_name
+        self.loss_dir = self.run_log_dir / "losses"
+        self.metrics_dir = self.run_log_dir / "metrics"
+        self.images_dir = self.run_log_dir / "images"
+
         self.loss_history = []
 
+        self.stdout_logger = getLogger("stdout_logger")
+        self.stdout_logger.setLevel("INFO")
+
     def init_logger(self, hyperparams: dict[str, Any] | None = None) -> None:
-        os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.run_log_dir, exist_ok=True)
         os.makedirs(self.loss_dir, exist_ok=True)
         os.makedirs(self.metrics_dir, exist_ok=True)
         os.makedirs(self.images_dir, exist_ok=True)
-        os.makedirs(self.checkpoints_dir, exist_ok=True)
 
         # Save hyperparameters
         if hyperparams:
-            with open(self.log_dir / "hyperparams.json", "w") as f:
+            with open(self.run_log_dir / "hyperparams.json", "w") as f:
                 json.dump(hyperparams, f, indent=4)
 
         # Setup logging to file
-        fh = logging.FileHandler(self.log_dir / "training.log")
+        fh = logging.FileHandler(self.run_log_dir / "training.log")
         fh.setLevel("INFO")
         self.stdout_logger.addHandler(fh)
 
@@ -412,7 +386,7 @@ class LocalLogger(RunLogger):
 
         self.loss_history = []
 
-        self.stdout_logger.info(f"Log directory initialized: {self.log_dir}")
+        self.stdout_logger.info(f"Log directory initialized: {self.run_log_dir}")
 
     def setLevel(self, level: str) -> None:
         """
@@ -521,31 +495,16 @@ class LocalLogger(RunLogger):
                 img_name = f"{dir_path}/{name}_{k}_{self.img_counter + i}.png"
                 save_image(img[i], img_name)
 
-    def load_from_checkpoint(self, checkpoint: dict[str, Any]):
+    def load_from_checkpoint(self, checkpoint_dict: dict[str, Any]):
         """
-        TODO
+        Do nothing.
         """
         pass
 
-    def log_checkpoint(
-        self,
-        epoch: int,
-        state: dict[str, Any] | None = None,
-        name: str | None = None,
-    ):
-        if state is None:
-            state = {}
-
-        if name is not None:
-            ckpt_path = self.checkpoints_dir / f"{name}.pth.tar"
-        else:
-            ckpt_path = self.checkpoints_dir / f"checkpoint_epoch_{epoch}.pth.tar"
-
-        torch.save(
-            state,
-            ckpt_path,
-        )
-        self.stdout_logger.info(f"Checkpoint saved at epoch {epoch}: {ckpt_path}")
+    def prepare_checkpoint(self, checkpoint_dict: dict) -> dict:
+        if checkpoint_dict is None:
+            checkpoint_dict = {}
+        return checkpoint_dict
 
     def finish_run(self):
         self.stdout_logger.info(f"Run finished: {self.run_name}")

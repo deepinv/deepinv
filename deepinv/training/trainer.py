@@ -2,8 +2,10 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from logging import getLogger
+from pathlib import Path
 import inspect
 import warnings
+
 
 # Third-party libraries
 from tqdm import tqdm
@@ -13,9 +15,9 @@ import torch.nn as nn
 
 # DeepInv libraries
 from deepinv.datasets.base import check_dataset
-from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
+from deepinv.models import Reconstructor
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.training.run_logger import RunLogger, LocalLogger
@@ -27,8 +29,8 @@ from deepinv.utils.tensorlist import TensorList
 
 @dataclass
 class Trainer:
-    r"""Trainer(model, physics, optimizer, train_dataloader, ...)
-    Trainer class for training a reconstruction network.
+    r"""Trainer(model, physics, train_dataloader, optimizer, ...)
+    Trainer class for training a reconstruction network on image inverse problem.
 
     .. seealso::
 
@@ -36,13 +38,20 @@ class Trainer:
 
         See :ref:`sphx_glr_auto_examples_models_demo_training.py` for a simple example of how to use the trainer.
 
-    The trainer provides a unified interface for both **offline** (pre-computed measurements) and **online** (generated on-the-fly) training setups, supports multiple datasets and physics operators, and integrates seamlessly with both local and remote logging tools via :class:`deepinv.training.run_logger.RunLogger`.
+    The trainer provides an interface for:
+        - both **offline** (pre-computed measurements) and **online** (on-the-fly generated measurements) training setup
+        - training simultaneously multiple pairs of (dataset, physics operator)
+        - generating on-the-fly appropriate physics' parameters at each training step
+        - performing gradient clipping
+        - tracking losses and metrics
+        - saving/loading checkpoints
+        - a seamless integration of both local and remote logging tools via :class:`deepinv.training.run_logger.RunLogger`.
 
     ---
 
     **Dataset interface**
 
-    The dataloaders should return samples formatted according to :func:`deepinv.datasets.check_dataset`. These are automatically validated at setup.
+    The dataloaders should return samples formatted according to :func:`deepinv.datasets.check_dataset`. These are automatically validated during `setup_run`.
 
     - If ``online_measurements=False`` (default), dataloaders must return tuples ``(x, y)`` or ``(x, y, params)``.
     - If ``online_measurements=True``, dataloaders may return only ``x`` or ``(x, params)``, and measurements will be generated online via ``y = physics(x, **params)``.
@@ -59,7 +68,8 @@ class Trainer:
     **Checkpoints and Logging**
 
     Training state is saved automatically every ``ckpt_interval`` epochs, and can be resumed with ``ckpt_pretrained``.
-    Each checkpoint contains:
+
+    Each checkpoint contains at least:
         {
             "epoch": current epoch,
             "state_dict": model weights,
@@ -69,7 +79,7 @@ class Trainer:
             "val_metrics": validation metrics history
         }
 
-    Checkpoints are handled by configured :class:`RunLogger` instances (e.g. :class:`LocalLogger`, :class:`WandbLogger`, etc.).
+    Checkpoints saving logic are handled by configured :class:`RunLogger` instances (e.g. :class:`LocalLogger`, :class:`WandbLogger`, etc.).
 
     ---
 
@@ -81,6 +91,7 @@ class Trainer:
           ``y`` is the measurement vector,
           ``physics`` is the forward operator,
            and ``model`` is the reconstruction network.
+
     Note that not all inputs need to be used by the loss, e.g., self-supervised losses will not make use of ``x``.
 
     Likewise, metrics should have ``reduction=None``.
@@ -89,17 +100,6 @@ class Trainer:
 
     .. note::
         The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
-    ---
-
-    **Main Features**
-
-    - Supports multiple datasets and physics operators
-    - Online measurement generation
-    - Gradient clipping and logging
-    - Custom or multiple loss functions
-    - Automatic metrics tracking
-    - Local, WANDB, or MLflow logging via :class:`RunLogger`
-    - Checkpoint save/load for experiment resuming
 
     ---
 
@@ -108,44 +108,27 @@ class Trainer:
     :Basics:
         :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
-        :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
         :param bool iterative_model_returns_different_outputs: If True, indicate that the model returns an additional output.
+        :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
 
     |sep|
 
     :Data and Measurements:
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Validation data loader(s).
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s).
+        :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
+        :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] val_dataloader: Validation data loader(s) used for early stopping and performance tracking.
+        :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) for final evaluation after complete training.
         :param bool online_measurements: If True, measurements ``y`` are generated online as ``physics(x)``, else they are provided by the dataset.
-        :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating the physics operators. If not `None`, the physics operators are randomly sampled at each iteration using the generator.
-        :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch, so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch. Used in conjunction with ``online_measurements=True`` and `physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
-
-    Training details are saved every ``ckp_interval`` epochs in the following format
-
-    ::
-
-        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
-
-    where ``.pth.tar`` file contains a dictionary with the keys:
-
-    - `epoch`: current epoch number when saved
-    - `state_dict`: model parameters state dictionary
-    - `loss`: loss history on train set
-    - `train_metrics`: metric history on train set
-    - `eval_loss`: loss history on eval set
-    - `eval_metrics`: metric history on eval set
-    - `optimizer`: optimizer state dictionary, or ``None`` if not used
-    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
+        :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating parameters for the physics operators.
+        :param bool reproduce_same_online_measurements: If `True`, resets the physics **and** noise model back to its initial state at the beginning of each epoch, so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders.
 
     |sep|
 
     :Optimization:
         :param None, torch.optim.Optimizer optimizer: Torch optimizer for training the network.
         :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
-        :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
-        :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
-        :param int epochs: Number of training epochs.
+        :param None, float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
+        :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed after seeing one batch from each dataset. If ``False``, the optimizer step is performed on each dataset separately.
+        :param int epochs: Max number of training epochs.
         :param int max_batch_steps: Max number of training batches the model sees. Default is `1e10`.
         :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``. The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
 
@@ -160,9 +143,10 @@ class Trainer:
     |sep|
 
     :Checkpointing and Logging:
-        :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
+        :param str ckpt_dir: folder path where to save checkpoints.
+        :param None, str ckpt_pretrained: path of a pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
         :param int ckpt_interval: The model is saved every ``ckpt_interval`` epochs. Default is ``1``.
-        :param RunLogger or list[RunLogger] loggers: Logging backends (e.g. LocalLogger, WandbLogger, MLflowLogger, etc.).
+        :param None, RunLogger, list[RunLogger] loggers: Logging backends (e.g. LocalLogger, WandbLogger, MLflowLogger, etc.).
         :param bool log_images: Log the last batch reconstructions for each epoch. Default is ``False``.
         :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
         :param bool log_grad: Whether to log the gradient norm at each optimization step. Default is ``False``.
@@ -186,35 +170,34 @@ class Trainer:
         )
         trainer.train()
         ```
-
     """
 
     ## Core Components
-    model: torch.nn.Module
+    model: Reconstructor | torch.nn.Module
     physics: Physics | list[Physics]
     iterative_model_returns_different_outputs: bool = False
     device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ## Data Loading
     train_dataloader: (
-        torch.utils.data.DataLoader | list[torch.utils.data.DataLoader]
+        torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None
     ) = None
-    val_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = (
-        None
-    )
-    test_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] = (
-        None
-    )
+    val_dataloader: (
+        torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None
+    ) = None
+    test_dataloader: (
+        torch.utils.data.DataLoader | list[torch.utils.data.DataLoader] | None
+    ) = None
 
     ## Generate measurements for training purpose with `physics`
     online_measurements: bool = False
     physics_generator: PhysicsGenerator | list[PhysicsGenerator] | None = None
-    loop_random_online_physics: bool = False
+    reproduce_same_online_measurements: bool = False
 
     ## Training Control
-    optimizer: torch.optim.Optimizer = None
-    scheduler: torch.optim.lr_scheduler.LRScheduler = None
-    grad_clip: float = None
+    optimizer: torch.optim.Optimizer | None = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler | None = None
+    grad_clip: float | None = None
     optimizer_step_multi_dataset: bool = True
 
     ## Training Duration & Stopping
@@ -229,12 +212,13 @@ class Trainer:
     no_learning_method: str = "A_adjoint"
 
     ## Checkpointing & Persistence (at the end of epoch)
-    ckpt_pretrained: str = None
+    ckpt_dir: str | Path = Path("./checkpoints")
+    ckpt_pretrained: str | Path | None = None
     ckpt_interval: int = 1
 
     ## Logging & Monitoring
     loggers: RunLogger | list[RunLogger] | None = field(
-        default_factory=lambda: [LocalLogger("./logs")]
+        default_factory=lambda: [LocalLogger(Path("./logs"))]
     )
     log_images: bool = False
     rescale_mode: str = "clip"
@@ -244,12 +228,13 @@ class Trainer:
 
     def setup_run(self) -> None:
         r"""
-        Set up the training/testing process.
+        Set up the training/testing.
 
         """
         # resume state from a training checkpoint
         self.epoch_start = 0
         self.load_ckpt(self.ckpt_pretrained)
+
         self._setup_data()
         self._setup_logging()
 
@@ -289,7 +274,7 @@ class Trainer:
                 warnings.warn(
                     "Since `online_measurement` is False, `physics` will not be used to generate degraded images."
                 )
-            elif self.loop_random_online_physics:
+            elif self.reproduce_same_online_measurements:
                 warnings.warn(
                     "Generated measurements repeat each epoch."
                     "Ensure that dataloader is not shuffling."
@@ -301,7 +286,7 @@ class Trainer:
 
     def _setup_logging(self) -> None:
         r"""
-        Set up the monitoring before running an experience..
+        Set up the monitoring before running an experience.
         """
         # losses processing
         if self.losses is None:
@@ -333,8 +318,8 @@ class Trainer:
             )
             for l in self.losses
         }
-        if not hasattr(self, "train_loss_history"):
-            self.train_loss_history = []
+        if not hasattr(self, "train_loss_history_per_epoch"):
+            self.train_loss_history_per_epoch = []
 
         # metrics computed during an epoch
         self.meters_metrics_train = {
@@ -374,7 +359,6 @@ class Trainer:
         for logger in self.loggers:
             if not isinstance(logger, RunLogger):
                 raise ValueError("loggers should be a list of RunLogger instances.")
-            # TODO: handle the case where we resume from a checkpoint
             logger.init_logger()
 
         # Set verbosity level of the logger
@@ -399,12 +383,24 @@ class Trainer:
             "state_dict": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-            "loss": self.train_loss_history,
+            "train_loss": self.train_loss_history_per_epoch,
             "val_metrics": self.val_metrics_history_per_epoch,
         }
 
+        # Enrich checkpoint with logger-specific metadata
         for logger in self.loggers:
-            logger.log_checkpoint(epoch=epoch, state=state, name=name)
+            state = logger.prepare_checkpoint(checkpoint_dict=state)
+
+        Path(self.ckpt_dir).mkdir(parents=True, exist_ok=True)
+        if name is not None:
+            ckpt_path = Path(self.ckpt_dir) / f"{name}.pth.tar"
+        else:
+            ckpt_path = Path(self.ckpt_dir) / f"checkpoint_epoch_{epoch}.pth.tar"
+
+        torch.save(
+            state,
+            ckpt_path,
+        )
 
     def load_ckpt(
         self,
@@ -428,7 +424,7 @@ class Trainer:
 
         self.epoch_start = checkpoint["epoch"] + 1
         self.model.load_state_dict(checkpoint["state_dict"], strict=True)
-        self.train_loss_history = checkpoint["loss"]
+        self.train_loss_history_per_epoch = checkpoint["train_loss"]
         self.val_metrics_history_per_epoch = checkpoint["val_metrics"]
 
         # Optimizer and Scheduler may be None
@@ -438,24 +434,7 @@ class Trainer:
             self.scheduler.load_state_dict(checkpoint["scheduler"])
 
         for logger in self.loggers:
-            logger.load_from_checkpoint(checkpoint)
-
-    def apply_grad_clip(self) -> float | None:
-        r"""
-        Perform gradient clipping.
-        """
-        if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
-
-        if self.log_grad:
-            # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.model.parameters()
-                if param.grad is not None
-            ]
-            return torch.cat(grads).norm().item()
-        return None
+            logger.load_from_checkpoint(checkpoint_dict=checkpoint)
 
     def get_samples_online(
         self, iterators: list, g: int
@@ -830,16 +809,17 @@ class Trainer:
                 y=y, physics=physics_cur, x=x, train=training_step
             )
 
-            # Compute the loss for the batch
-            loss_cur = self.compute_loss(
-                x,
-                x_net,
-                y,
-                physics_cur,
-                train=training_step,
-                epoch=epoch,
-            )
-            loss_multi_dataset_step += loss_cur.item()
+            if phase != "test":  # during test, we only compute metrics
+                # Compute the loss for the batch
+                loss_cur = self.compute_loss(
+                    x,
+                    x_net,
+                    y,
+                    physics_cur,
+                    train=training_step,
+                    epoch=epoch,
+                )
+                loss_multi_dataset_step += loss_cur.item()
 
             # Backward + Optimizer
             if training_step:
@@ -849,10 +829,19 @@ class Trainer:
                 loss_logs = {}
                 loss_logs["Loss"] = loss_cur.item()
 
-                # Gradient clipping
-                grad_norm = self.apply_grad_clip()
+                # Gradient operation
+                if self.grad_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.grad_clip
+                    )
                 if self.log_grad:
-                    loss_logs["gradient_norm"] = grad_norm
+                    # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+                    grads = [
+                        param.grad.detach().flatten()
+                        for param in self.model.parameters()
+                        if param.grad is not None
+                    ]
+                    loss_logs["gradient_norm"] = torch.cat(grads).norm().item()
 
                 # Optimizer step
                 self.optimizer.step()
@@ -881,10 +870,17 @@ class Trainer:
             loss_logs = {}
             loss_logs["Loss"] = loss_multi_dataset_step
 
-            # Gradient clipping
-            grad_norm = self.apply_grad_clip()
+            # Gradient operation
+            if self.grad_clip is not None:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
             if self.log_grad:
-                loss_logs["gradient_norm"] = grad_norm
+                # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+                grads = [
+                    param.grad.detach().flatten()
+                    for param in self.model.parameters()
+                    if param.grad is not None
+                ]
+                loss_logs["gradient_norm"] = torch.cat(grads).norm().item()
 
             # Optimizer step
             self.optimizer.step()
@@ -997,8 +993,7 @@ class Trainer:
         r"""
         Save the best model using validation metrics.
 
-        By default, uses validation based on first metric. If no metric is provided (e.g. in self-supervised learning),
-        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
+        By default, uses validation based on first metric.
 
         Override this method to provide custom criterion.
 
@@ -1018,22 +1013,23 @@ class Trainer:
                 f"Best model saved at epoch {epoch + 1}, {self.metrics[k].__class__.__name__}: {curr_metric:.4f}"
             )
 
-    def stop_criterion(self, epoch: int, train_ite: int, **kwargs) -> bool:
+    def load_best_model(self) -> Reconstructor | torch.nn.Module:
+        r"""
+        Load the best model saved in the checkpoints folder.
+        """
+        if (Path(self.ckpt_dir) / f"ckpt_best.pth.tar").exists():
+            self.load_ckpt(Path(self.ckpt_dir) / f"ckpt_best.pth.tar")
+        return self.model
+
+    def stop_criterion(self, epoch: int) -> bool:
         r"""
         Stop criterion for early stopping.
 
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
 
-        If `early_stop_on_losses=True` (default is `False`)
-        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
-
         Override this method to early stop on a custom condition.
 
         :param int epoch: Current epoch.
-        :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times` number
-            of batches) + current batch within epoch
-        :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
-        :param list metrics: List of metrics used for evaluation.
         """
         k = 0  # use first metric
 
@@ -1085,9 +1081,10 @@ class Trainer:
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
 
-            if self.loop_random_online_physics and self.physics_generator is not None:
-                for physics_generator in self.physics_generator:
-                    physics_generator.reset_rng()
+            if self.reproduce_same_online_measurements:
+                if self.physics_generator is not None:
+                    for physics_generator in self.physics_generator:
+                        physics_generator.reset_rng()
 
                 for physics in self.physics:
                     if hasattr(physics.noise_model, "reset_rng"):
@@ -1148,7 +1145,7 @@ class Trainer:
                     )
 
             ## Early stopping
-            self.train_loss_history.append(self.meter_total_loss_train.avg)
+            self.train_loss_history_per_epoch.append(self.meter_total_loss_train.avg)
             for m in self.metrics:
                 self.val_metrics_history_per_epoch[m.__class__.__name__].append(
                     self.meters_metrics_val[m.__class__.__name__].avg
@@ -1159,7 +1156,7 @@ class Trainer:
                 self.save_ckpt(epoch=epoch)
 
             if self.early_stop:
-                stop_flag = self.stop_criterion(epoch, train_ite)
+                stop_flag = self.stop_criterion(epoch)
             if stop_flag:
                 break
 
