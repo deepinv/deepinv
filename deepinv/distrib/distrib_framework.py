@@ -7,6 +7,7 @@ import torch
 import torch.distributed as dist
 
 from deepinv.physics import Physics, LinearPhysics
+from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.utils.tensorlist import TensorList
 
 from .distribution_strategies.strategies import DistributedSignalStrategy
@@ -128,14 +129,28 @@ class DistributedContext:
                 raise RuntimeError(
                     "GPU mode requested but CUDA not available or no visible GPUs"
                 )
-            dev_index = self.local_rank % visible_gpus
+            if visible_gpus == 1:
+                # GPU isolation is handled externally - use the only visible GPU
+                dev_index = 0
+            else:
+                # Multiple GPUs visible - map local_rank to device index
+                dev_index = self.local_rank % visible_gpus
             self.device = torch.device(f"cuda:{dev_index}")
             torch.cuda.set_device(self.device)
         else:
             # Auto mode
             if torch.cuda.is_available() and visible_gpus > 0:
-                # map local_rank onto *visible* devices
-                dev_index = self.local_rank % visible_gpus
+                # When CUDA_VISIBLE_DEVICES is set externally (e.g., by SLURM/submitit),
+                # each process sees only its assigned GPU(s). In this case, if there's
+                # only 1 visible GPU per process, just use cuda:0 for all processes.
+                # Otherwise, map local_rank onto visible devices.
+                if visible_gpus == 1:
+                    # GPU isolation is handled externally - use the only visible GPU
+                    dev_index = 0
+                else:
+                    # Multiple GPUs visible - map local_rank to device index
+                    dev_index = self.local_rank % visible_gpus
+
                 self.device = torch.device(f"cuda:{dev_index}")
                 torch.cuda.set_device(self.device)
             else:
@@ -1205,3 +1220,179 @@ class DistributedProcessing:
             self.ctx.all_reduce_(out_local, op="sum")
 
         return out_local
+
+
+# =========================
+# Distributed Data Fidelity
+# =========================
+class DistributedDataFidelity:
+    r"""
+    Distributed data fidelity term for use with distributed physics operators.
+
+    This class wraps a standard DataFidelity object and makes it compatible with
+    DistributedLinearPhysics by implementing efficient distributed computation patterns.
+    It computes data fidelity terms and gradients using local operations followed by
+    a single reduction, avoiding redundant communication.
+
+    The key operations are:
+    - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`
+    - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`
+
+    Both operations use an efficient pattern:
+    1. Compute local forward operations (A_local)
+    2. Apply distance function and compute gradients locally
+    3. Perform a single reduction across ranks
+
+    :param DistributedContext ctx: distributed context manager.
+    :param DataFidelity data_fidelity: base data fidelity term to distribute.
+    :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
+        Default is ``'sum'``.
+
+    |sep|
+
+    :Example:
+
+        >>> from deepinv.distrib import DistributedContext, distribute
+        >>> from deepinv.optim import L2
+        >>> # Create distributed physics and data fidelity
+        >>> with DistributedContext(device_mode="cpu") as ctx:
+        ...     physics_list = [create_physics(i) for i in range(4)]
+        ...     dist_physics = distribute(physics_list, ctx=ctx)
+        ...     data_fidelity = L2()
+        ...     dist_fidelity = DistributedDataFidelity(ctx, data_fidelity)
+        ...     # Compute fidelity and gradient
+        ...     x = torch.randn(1, 1, 16, 16)
+        ...     y = dist_physics(x)
+        ...     fid = dist_fidelity.fn(x, y, dist_physics)
+        ...     grad = dist_fidelity.grad(x, y, dist_physics)
+    """
+
+    def __init__(
+        self,
+        ctx: DistributedContext,
+        factory: Callable[[int, torch.device, Optional[dict]], DataFidelity],
+        num_operators: int,
+        *,
+        shared: Optional[dict] = None,
+        reduction: str = "sum",
+    ):
+        r"""
+        Initialize distributed data fidelity.
+
+        :param DistributedContext ctx: distributed context manager.
+        :param DataFidelity data_fidelity: base data fidelity term to distribute.
+        :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``.
+        """
+        self.ctx = ctx
+        self.reduction_mode = reduction
+        self.local_data_fidelities = []
+
+        if factory is not None and num_operators is not None:
+            # Create local data fidelity instances using factory
+            local_indexes = list(ctx.local_indices(num_operators))
+            for i in local_indexes:
+                df = factory(i, ctx.device, shared)
+                self.local_data_fidelities.append(df)
+        else:
+            raise ValueError("Factory and num_operators must be provided.")
+
+    def fn(
+        self,
+        x: torch.Tensor,
+        y: list[torch.Tensor],
+        physics: DistributedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute the distributed data fidelity term.
+
+        For distributed physics with operators :math:`\{A_i\}` and measurements :math:`\{y_i\}`,
+        computes:
+
+        .. math::
+
+            f(x) = \sum_i d(A_i(x), y_i)
+
+        This is computed efficiently by:
+        1. Each rank computes :math:`A_i(x)` for its local operators
+        2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`
+        3. Results are reduced across all ranks
+
+        :param torch.Tensor x: input signal at which to evaluate the data fidelity.
+        :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
+        :param DistributedLinearPhysics physics: distributed physics operator.
+        :param dict kwargs: additional arguments passed to the distance function.
+        :return: (torch.Tensor) scalar data fidelity value.
+        """
+        # Get local measurements
+        y_local = [y[i] for i in physics.local_indexes]
+
+        # Compute A(x) locally
+        Ax_local = physics.A_local(x, **kwargs)
+
+        # Compute distance function for each local operator
+        if len(Ax_local) == 0:
+            # Empty local set - return zero contribution
+            result_local = torch.tensor(0.0, device=self.ctx.device)
+        else:
+            contribs = [
+                self.local_data_fidelities[i].d.fn(Ax_i, y_i, *args, **kwargs)
+                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
+            ]
+            result_local = torch.stack(contribs, dim=0).sum(0)
+
+        # Reduce across ranks
+        return self.ctx.all_reduce_(result_local, op=self.reduction_mode)
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: list[torch.Tensor],
+        physics: DistributedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute the gradient of the distributed data fidelity term.
+
+        For distributed physics with operators :math:`\{A_i\}` and measurements :math:`\{y_i\}`,
+        computes:
+
+        .. math::
+
+            \nabla_x f(x) = \sum_i A_i^T \nabla d(A_i(x), y_i)
+
+        This is computed efficiently by:
+        1. Each rank computes :math:`A_i(x)` for its local operators
+        2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
+        3. Each rank computes :math:`\sum_{i \in \text{local}} A_i^T \nabla d(A_i(x), y_i)` using A_vjp_local
+        4. Results are reduced across all ranks
+
+        :param torch.Tensor x: input signal at which to compute the gradient.
+        :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
+        :param DistributedLinearPhysics physics: distributed physics operator.
+        :param dict kwargs: additional arguments passed to the distance function gradient.
+        :return: (torch.Tensor) gradient with same shape as x.
+        """
+        # Get local measurements
+        y_local = [y[i] for i in physics.local_indexes]
+
+        # Compute A(x) locally
+        Ax_local = physics.A_local(x, **kwargs)
+
+        # Compute gradient of distance for each local operator
+        if len(Ax_local) == 0:
+            # Empty local set - return zero contribution
+            grad_local = torch.zeros_like(x)
+        else:
+            # Compute gradients w.r.t. Ax
+            grad_d_local = [
+                self.local_data_fidelities[i].d.grad(Ax_i, y_i, *args, **kwargs)
+                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
+            ]
+            # Apply A_vjp locally (this is A^T @ grad_d)
+            grad_local = physics.A_vjp_local(x, grad_d_local, **kwargs)
+
+        # Reduce across ranks
+        return self.ctx.all_reduce_(grad_local, op=self.reduction_mode)

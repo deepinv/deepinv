@@ -141,9 +141,9 @@ def main():
 
         if ctx.rank == 0:
             print("=" * 70)
-            print("🚀 Distributed PnP Reconstruction")
+            print("Distributed PnP Reconstruction")
             print("=" * 70)
-            print(f"\n📊 Running on {ctx.world_size} process(es)")
+            print(f"\nRunning on {ctx.world_size} process(es)")
             print(f"   Device: {ctx.device}")
 
         # ============================================================================
@@ -155,7 +155,7 @@ def main():
         )
 
         if ctx.rank == 0:
-            print(f"\n✅ Created stacked physics with {len(stacked_physics)} operators")
+            print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
             print(f"   Image shape: {clean_image.shape}")
             print(f"   Measurements type: {type(measurements).__name__}")
 
@@ -169,7 +169,7 @@ def main():
         distributed_physics = distribute(stacked_physics, ctx)
 
         if ctx.rank == 0:
-            print(f"   ✅ Distributed physics created")
+            print(f"   Distributed physics created")
             print(
                 f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
             )
@@ -181,7 +181,7 @@ def main():
         data_fidelity = L2()
 
         if ctx.rank == 0:
-            print(f"\n✅ Created L2 data fidelity")
+            print(f"\nCreated L2 data fidelity")
 
         # ============================================================================
         # STEP 4: Distribute denoiser with tiling
@@ -202,7 +202,7 @@ def main():
         )
 
         if ctx.rank == 0:
-            print(f"   ✅ Distributed denoiser created")
+            print(f"   Distributed denoiser created")
 
         # ============================================================================
         # STEP 5: Create PnP prior with distributed denoiser
@@ -211,14 +211,14 @@ def main():
         prior = PnP(denoiser=distributed_denoiser)
 
         if ctx.rank == 0:
-            print(f"\n✅ Created PnP prior with distributed denoiser")
+            print(f"\nCreated PnP prior with distributed denoiser")
 
         # ============================================================================
         # STEP 6: Run distributed PnP algorithm
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔄 Running PnP reconstruction ({num_iterations} iterations)...")
+            print(f"\nRunning PnP reconstruction ({num_iterations} iterations)...")
 
         # Initialize reconstruction with zeros
         x = torch.zeros_like(clean_image)
@@ -254,7 +254,7 @@ def main():
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔍 Comparing with non-distributed PnP reconstruction...")
+            print(f"\nComparing with non-distributed PnP reconstruction...")
 
             # Run non-distributed PnP
             x_ref = torch.zeros_like(clean_image)
@@ -285,14 +285,14 @@ def main():
             assert (
                 abs(psnr_dist - psnr_ref) < 1.0
             ), f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
-            print(f"   ✅ Results match well!")
+            print(f"   Results match well!")
 
         # ============================================================================
         # STEP 8: Visualize results (only on rank 0)
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n✅ Reconstruction completed!")
+            print(f"\nReconstruction completed!")
             print(f"   Final PSNR: {psnr_history[-1]:.2f} dB")
 
             # Plot results
@@ -318,7 +318,7 @@ def main():
             plt.savefig("distributed_pnp_convergence.png", dpi=150)
             plt.close()
 
-            print(f"\n📊 Results saved:")
+            print(f"\nResults saved:")
             print(f"   - distributed_pnp_result.png")
             print(f"   - distributed_pnp_convergence.png")
             print("\n" + "=" * 70)

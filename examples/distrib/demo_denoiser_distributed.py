@@ -105,9 +105,9 @@ def main():
 
         if ctx.rank == 0:
             print("=" * 70)
-            print("🚀 Distributed Denoiser Demo")
+            print("Distributed Denoiser Demo")
             print("=" * 70)
-            print(f"\n📊 Running on {ctx.world_size} process(es)")
+            print(f"\nRunning on {ctx.world_size} process(es)")
             print(f"   Device: {ctx.device}")
 
         # ============================================================================
@@ -123,7 +123,7 @@ def main():
         input_psnr = psnr_metric(noisy_image, clean_image).item()
 
         if ctx.rank == 0:
-            print(f"\n✅ Created test image")
+            print(f"\nCreated test image")
             print(f"   Image shape: {clean_image.shape}")
             print(f"   Noise sigma: {sigma}")
             print(f"   Input PSNR: {input_psnr:.2f} dB")
@@ -133,19 +133,19 @@ def main():
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔄 Loading DRUNet denoiser...")
+            print(f"\nLoading DRUNet denoiser...")
 
         denoiser = DRUNet(pretrained="download").to(ctx.device)
 
         if ctx.rank == 0:
-            print(f"   ✅ Denoiser loaded")
+            print(f"   Denoiser loaded")
 
         # ============================================================================
         # STEP 3: Distribute denoiser with tiling configuration
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔧 Configuring distributed denoiser")
+            print(f"\nConfiguring distributed denoiser")
             print(f"   Patch size: {patch_size}x{patch_size}")
             print(f"   Receptive field radius: {receptive_field_size}")
             print(f"   Tiling strategy: smart_tiling")
@@ -158,25 +158,25 @@ def main():
         )
 
         if ctx.rank == 0:
-            print(f"   ✅ Distributed denoiser created")
+            print(f"   Distributed denoiser created")
 
         # ============================================================================
         # STEP 4: Apply distributed denoising
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔄 Applying distributed denoising...")
+            print(f"\nApplying distributed denoising...")
 
         with torch.no_grad():
             denoised_image = distributed_denoiser(noisy_image, sigma=sigma)
 
         if ctx.rank == 0:
-            print(f"   ✅ Denoising completed")
+            print(f"   Denoising completed")
             print(f"   Output shape: {denoised_image.shape}")
 
         # Compare with non-distributed result (only on rank 0)
         if ctx.rank == 0:
-            print(f"\n🔍 Comparing with non-distributed denoising...")
+            print(f"\nComparing with non-distributed denoising...")
             with torch.no_grad():
                 denoised_ref = denoiser(noisy_image, sigma=sigma)
 
@@ -199,7 +199,7 @@ def main():
             assert (
                 max_diff < tolerance_max
             ), f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
-            print(f"   ✅ Results are very close (within tolerance)!")
+            print(f"   Results are very close (within tolerance)!")
 
         # ============================================================================
         # STEP 5: Compute metrics and visualize results (only on rank 0)
@@ -210,7 +210,7 @@ def main():
             output_psnr = psnr_metric(denoised_image, clean_image).item()
             psnr_improvement = output_psnr - input_psnr
 
-            print(f"\n📊 Results:")
+            print(f"\nResults:")
             print(f"   Input PSNR:  {input_psnr:.2f} dB")
             print(f"   Output PSNR: {output_psnr:.2f} dB")
             print(f"   Improvement: {psnr_improvement:.2f} dB")
@@ -244,7 +244,7 @@ def main():
                 figsize=(15, 4),
             )
 
-            print(f"\n✅ Demo completed successfully!")
+            print(f"\nDemo completed successfully!")
             print(f"   Results saved to:")
             print(f"   - distributed_denoiser_result.png")
             print(f"   - distributed_denoiser_zoom.png")

@@ -1603,3 +1603,345 @@ def test_distribute_with_mismatched_types():
         )
 
         assert isinstance(distributed, DistributedProcessing)
+
+
+# =============================================================================
+# Tests for DistributedDataFidelity
+# =============================================================================
+
+from deepinv.optim import L2, L1
+from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
+from deepinv.distrib.distrib_framework import DistributedDataFidelity
+
+
+def test_distributed_data_fidelity_single_process():
+    """Test DistributedDataFidelity in single-process mode."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        # Create distributed physics
+        num_operators = 4
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics, _ = create_physics_specification(
+            "physics_list", ctx.device, num_operators
+        )
+        from deepinv.distrib.distribute import distribute
+
+        dist_physics = distribute(dist_physics, ctx=ctx)
+
+        # Create data fidelity using distribute()
+        dist_fidelity = distribute(
+            L2(), ctx=ctx, type_object="data_fidelity", num_operators=num_operators
+        )
+
+        # Test input
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y = dist_physics(x)
+
+        # Compute using distributed fidelity
+        fid_dist = dist_fidelity.fn(x, y, dist_physics)
+        grad_dist = dist_fidelity.grad(x, y, dist_physics)
+
+        # Compare with direct computation on stacked physics
+        from deepinv.physics.forward import StackedLinearPhysics
+
+        stacked_physics = StackedLinearPhysics(physics_list)
+        stacked_data_fidelity = StackedPhysicsDataFidelity(
+            [L2() for _ in range(num_operators)]
+        )
+        fid_direct = stacked_data_fidelity.fn(x, y, stacked_physics)
+        grad_direct = stacked_data_fidelity.grad(x, y, stacked_physics)
+
+        # Should be the same
+        assert torch.allclose(
+            fid_dist, fid_direct, rtol=1e-4
+        ), f"Fidelity mismatch: {fid_dist} vs {fid_direct}"
+        assert torch.allclose(
+            grad_dist, grad_direct, rtol=1e-4
+        ), f"Gradient mismatch: max diff = {torch.max(torch.abs(grad_dist - grad_direct))}"
+
+
+def _test_distributed_data_fidelity_worker(rank, world_size, args):
+    """Worker function for multi-process data fidelity tests."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+
+        # Create distributed physics
+        num_operators = args["num_operators"]
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics = distribute(physics_list, ctx=ctx)
+
+        # Create data fidelity using distribute()
+        dist_fidelity = distribute(
+            L2(), ctx=ctx, type_object="data_fidelity", num_operators=num_operators
+        )
+
+        # Test input (same on all ranks)
+        torch.manual_seed(42)
+        x = args["x"].to(ctx.device)
+        y = dist_physics(x)
+
+        # Compute using distributed fidelity
+        fid_dist = dist_fidelity.fn(x, y, dist_physics)
+        grad_dist = dist_fidelity.grad(x, y, dist_physics)
+
+        return {
+            "fid_norm": fid_dist.item(),
+            "grad_norm": torch.norm(grad_dist).item(),
+        }
+
+
+def test_distributed_data_fidelity_multiprocess(dist_config):
+    """Test DistributedDataFidelity in multi-process mode."""
+    # Prepare test data
+    x = torch.randn(1, 1, 16, 16)
+    test_args = {"num_operators": 4, "x": x}
+
+    # Run distributed test
+    results = run_distributed_test(
+        _test_distributed_data_fidelity_worker, dist_config, test_args
+    )
+
+    # All ranks should compute the same values
+    fid_norms = [r["fid_norm"] for r in results]
+    grad_norms = [r["grad_norm"] for r in results]
+
+    # Check consistency across ranks
+    assert all(
+        abs(f - fid_norms[0]) < 1e-4 for f in fid_norms
+    ), f"Fidelity differs across ranks: {fid_norms}"
+    assert all(
+        abs(g - grad_norms[0]) < 1e-4 for g in grad_norms
+    ), f"Gradient norms differ across ranks: {grad_norms}"
+
+
+def test_distributed_data_fidelity_vs_stacked():
+    """Test that DistributedDataFidelity gives the same results as StackedPhysicsDataFidelity."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+
+        # Create physics operators
+        num_operators = 6
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+
+        # Create distributed physics
+        dist_physics = distribute(physics_list, ctx=ctx)
+
+        # Create stacked physics for comparison (using same physics_list)
+        from deepinv.physics.forward import StackedLinearPhysics
+
+        stacked_physics = StackedLinearPhysics(physics_list)
+
+        # Create data fidelities
+        dist_fidelity = distribute(
+            L2(), ctx=ctx, type_object="data_fidelity", num_operators=num_operators
+        )
+        stacked_data_fidelity = StackedPhysicsDataFidelity(
+            [L2() for _ in range(num_operators)]
+        )
+
+        # Test input
+        torch.manual_seed(123)
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+
+        # Generate measurements (should be identical since using same physics_list)
+        y = dist_physics(x)
+
+        # Test fn
+        fid_dist = dist_fidelity.fn(x, y, dist_physics)
+        fid_stacked = stacked_data_fidelity.fn(x, y, stacked_physics)
+
+        assert torch.allclose(
+            fid_dist, fid_stacked, rtol=1e-4
+        ), f"Fidelity mismatch: {fid_dist} vs {fid_stacked}"
+
+        # Test grad
+        grad_dist = dist_fidelity.grad(x, y, dist_physics)
+        grad_stacked = stacked_data_fidelity.grad(x, y, stacked_physics)
+
+        max_diff = torch.max(torch.abs(grad_dist - grad_stacked)).item()
+        assert max_diff < 1e-4, f"Gradient mismatch: max diff = {max_diff}"
+
+
+def test_distributed_data_fidelity_different_fidelities():
+    """Test DistributedDataFidelity with different fidelity types."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+        from deepinv.physics.forward import StackedLinearPhysics
+
+        num_operators = 4
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics = distribute(physics_list, ctx=ctx)
+        stacked_physics = StackedLinearPhysics(physics_list)
+
+        # Test with L2
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+
+        for fidelity_class in [L2]:  # Add L1 when ready
+            dist_fidelity = distribute(
+                fidelity_class(),
+                ctx=ctx,
+                type_object="data_fidelity",
+                num_operators=num_operators,
+            )
+            stacked_data_fidelity = StackedPhysicsDataFidelity(
+                [fidelity_class() for _ in range(num_operators)]
+            )
+
+            y = dist_physics(x)
+
+            # Test fn
+            fid_dist = dist_fidelity.fn(x, y, dist_physics)
+            fid_stacked = stacked_data_fidelity.fn(x, y, stacked_physics)
+
+            assert torch.allclose(
+                fid_dist, fid_stacked, rtol=1e-4
+            ), f"{fidelity_class.__name__}: Fidelity mismatch"
+
+            # Test grad
+            grad_dist = dist_fidelity.grad(x, y, dist_physics)
+            grad_stacked = stacked_data_fidelity.grad(x, y, stacked_physics)
+
+            max_diff = torch.max(torch.abs(grad_dist - grad_stacked)).item()
+            assert (
+                max_diff < 1e-4
+            ), f"{fidelity_class.__name__}: Gradient mismatch (max diff = {max_diff})"
+
+
+def test_distributed_data_fidelity_with_mean_reduction():
+    """Test DistributedDataFidelity with mean reduction mode."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+
+        # Create distributed physics with mean reduction
+        num_operators = 4
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics = distribute(physics_list, ctx=ctx, reduction="mean")
+
+        # Create data fidelity with mean reduction using distribute()
+        dist_fidelity = distribute(
+            L2(),
+            ctx=ctx,
+            type_object="data_fidelity",
+            num_operators=num_operators,
+            reduction="mean",
+        )
+
+        # Test input
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y = dist_physics(x)
+
+        # Compute fidelity and gradient
+        fid = dist_fidelity.fn(x, y, dist_physics)
+        grad = dist_fidelity.grad(x, y, dist_physics)
+
+        # Should produce valid results (specific values depend on reduction mode)
+        assert fid.item() >= 0, "Fidelity should be non-negative"
+        assert grad.shape == x.shape, "Gradient should have same shape as input"
+
+
+def _test_distributed_data_fidelity_consistency_worker(rank, world_size, args):
+    """Worker function to test consistency of distributed data fidelity."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+        from deepinv.physics.forward import StackedLinearPhysics
+
+        # Create distributed and stacked physics
+        num_operators = args["num_operators"]
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics = distribute(physics_list, ctx=ctx)
+        stacked_physics = StackedLinearPhysics(physics_list)
+
+        # Create data fidelities
+        dist_fidelity = distribute(
+            L2(), ctx=ctx, type_object="data_fidelity", num_operators=num_operators
+        )
+        stacked_data_fidelity = StackedPhysicsDataFidelity(
+            [L2() for _ in range(num_operators)]
+        )
+
+        # Same input on all ranks
+        torch.manual_seed(42)
+        x = args["x"].to(ctx.device)
+
+        # Generate measurements (use same y for both)
+        y = dist_physics(x)
+
+        # Compute using both methods
+        fid_dist = dist_fidelity.fn(x, y, dist_physics)
+        fid_stacked = stacked_data_fidelity.fn(x, y, stacked_physics)
+
+        grad_dist = dist_fidelity.grad(x, y, dist_physics)
+        grad_stacked = stacked_data_fidelity.grad(x, y, stacked_physics)
+
+        return {
+            "fid_dist": fid_dist.item(),
+            "fid_stacked": fid_stacked.item(),
+            "grad_dist_norm": torch.norm(grad_dist).item(),
+            "grad_stacked_norm": torch.norm(grad_stacked).item(),
+            "grad_max_diff": torch.max(torch.abs(grad_dist - grad_stacked)).item(),
+        }
+
+
+def test_distributed_data_fidelity_multiprocess_consistency(dist_config):
+    """Test that distributed and stacked data fidelity give same results in multi-process mode."""
+    x = torch.randn(1, 1, 16, 16)
+    test_args = {"num_operators": 4, "x": x}
+
+    # Run distributed test
+    results = run_distributed_test(
+        _test_distributed_data_fidelity_consistency_worker, dist_config, test_args
+    )
+
+    # Check consistency within each rank
+    for rank, result in enumerate(results):
+        fid_dist = result["fid_dist"]
+        fid_stacked = result["fid_stacked"]
+        grad_max_diff = result["grad_max_diff"]
+
+        assert abs(fid_dist - fid_stacked) < 1e-4, (
+            f"Rank {rank}: Fidelity mismatch between distributed and stacked: "
+            f"{fid_dist} vs {fid_stacked}"
+        )
+
+        assert grad_max_diff < 1e-4, (
+            f"Rank {rank}: Gradient mismatch between distributed and stacked: "
+            f"max diff = {grad_max_diff}"
+        )
+
+    # Check consistency across ranks
+    fid_dists = [r["fid_dist"] for r in results]
+    fid_stackeds = [r["fid_stacked"] for r in results]
+
+    assert all(
+        abs(f - fid_dists[0]) < 1e-4 for f in fid_dists
+    ), f"Distributed fidelity differs across ranks: {fid_dists}"
+
+    assert all(
+        abs(f - fid_stackeds[0]) < 1e-4 for f in fid_stackeds
+    ), f"Stacked fidelity differs across ranks: {fid_stackeds}"
+
+
+def test_distributed_data_fidelity_empty_local_set():
+    """Test DistributedDataFidelity handles empty local operator sets gracefully."""
+    with DistributedContext(device_mode="cpu") as ctx:
+        from deepinv.distrib.distribute import distribute
+
+        # Create fewer operators than typical to test edge case
+        num_operators = 1  # Only one operator, some ranks might have none
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        dist_physics = distribute(physics_list, ctx=ctx)
+
+        # Create data fidelity using distribute()
+        dist_fidelity = distribute(
+            L2(), ctx=ctx, type_object="data_fidelity", num_operators=num_operators
+        )
+
+        # Test input
+        x = torch.randn(1, 1, 8, 8, device=ctx.device)
+        y = dist_physics(x)
+
+        # Should handle empty local sets gracefully
+        fid = dist_fidelity.fn(x, y, dist_physics)
+        grad = dist_fidelity.grad(x, y, dist_physics)
+
+        assert fid.item() >= 0, "Fidelity should be non-negative"
+        assert grad.shape == x.shape, "Gradient should have same shape as input"

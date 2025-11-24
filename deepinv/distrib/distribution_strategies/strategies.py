@@ -113,7 +113,11 @@ class DistributedSignalStrategy(ABC):
         }
 
         # If max_batch_size is None or >= num patches, batch all together
-        if max_batch_size is None or max_batch_size >= len(patches):
+        if (
+            max_batch_size is None
+            or max_batch_size >= len(patches)
+            or max_batch_size <= 0
+        ):
             # Concatenate all patches along batch dimension
             batch = torch.cat(patches, dim=0)
             return [batch]

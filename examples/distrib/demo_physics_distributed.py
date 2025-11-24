@@ -117,9 +117,9 @@ def main():
 
         if ctx.rank == 0:
             print("=" * 70)
-            print("🚀 Distributed Physics Operators Demo")
+            print("Distributed Physics Operators Demo")
             print("=" * 70)
-            print(f"\n📊 Running on {ctx.world_size} process(es)")
+            print(f"\nRunning on {ctx.world_size} process(es)")
             print(f"   Device: {ctx.device}")
 
         # ============================================================================
@@ -131,7 +131,7 @@ def main():
         )
 
         if ctx.rank == 0:
-            print(f"\n✅ Created stacked physics with {len(stacked_physics)} operators")
+            print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
             print(f"   Image shape: {clean_image.shape}")
             print(
                 f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}"
@@ -185,14 +185,14 @@ def main():
             assert (
                 max_diff < 1e-6
             ), f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
-            print(f"   ✅ Results match exactly!")
+            print(f"   Results match exactly!")
 
         # ============================================================================
         # STEP 4: Test adjoint operation (A^T)
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔄 Testing adjoint operation (A^T)...")
+            print(f"\nTesting adjoint operation (A^T)...")
 
         # Apply adjoint operation
         adjoint_result = distributed_physics.A_adjoint(measurements)
@@ -202,7 +202,7 @@ def main():
             print(f"   Output norm: {torch.norm(adjoint_result).item():.4f}")
 
             # Compare with non-distributed result
-            print(f"\n🔍 Comparing with non-distributed adjoint operation...")
+            print(f"\nComparing with non-distributed adjoint operation...")
             assert measurements_ref is not None
             adjoint_ref = stacked_physics.A_adjoint(measurements_ref)
             diff = torch.abs(adjoint_result - adjoint_ref)
@@ -213,14 +213,14 @@ def main():
             assert (
                 diff.max().item() < 1e-6
             ), f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
-            print(f"   ✅ Results match exactly!")
+            print(f"   Results match exactly!")
 
         # ============================================================================
         # STEP 5: Test composition (A^T A)
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n🔄 Testing composition (A^T A)...")
+            print(f"\nTesting composition (A^T A)...")
 
         # Apply composition
         ata_result = distributed_physics.A_adjoint_A(clean_image)
@@ -230,7 +230,7 @@ def main():
             print(f"   Output norm: {torch.norm(ata_result).item():.4f}")
 
             # Compare with non-distributed result
-            print(f"\n🔍 Comparing with non-distributed A^T A operation...")
+            print(f"\nComparing with non-distributed A^T A operation...")
             ata_ref = stacked_physics.A_adjoint_A(clean_image)
             diff = torch.abs(ata_result - ata_ref)
             print(f"   Mean absolute difference: {diff.mean().item():.2e}")
@@ -240,14 +240,14 @@ def main():
             assert (
                 diff.max().item() < 1e-6
             ), f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
-            print(f"   ✅ Results match exactly!")
+            print(f"   Results match exactly!")
 
         # ============================================================================
         # STEP 6: Visualize results (only on rank 0)
         # ============================================================================
 
         if ctx.rank == 0:
-            print(f"\n📊 Visualizing results...")
+            print(f"\nVisualizing results...")
 
             # Plot original image and measurements
             images_to_plot = [clean_image] + [m for m in measurements]

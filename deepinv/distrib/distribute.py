@@ -33,7 +33,7 @@ import torch
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
-from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.optim.data_fidelity import DataFidelity, StackedPhysicsDataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.models.base import Denoiser
 
@@ -42,6 +42,7 @@ from deepinv.distrib.distrib_framework import (
     DistributedPhysics,
     DistributedLinearPhysics,
     DistributedProcessing,
+    DistributedDataFidelity,
 )
 
 from deepinv.distrib.distribution_strategies.strategies import DistributedSignalStrategy
@@ -193,6 +194,80 @@ def distribute_processor(
     )
 
 
+def distribute_data_fidelity(
+    data_fidelity: Union[
+        DataFidelity,
+        StackedPhysicsDataFidelity,
+        List[DataFidelity],
+        Callable[[int, torch.device, Optional[dict]], DataFidelity],
+    ],
+    ctx: DistributedContext,
+    num_operators: int,
+    **kwargs,
+) -> DistributedDataFidelity:
+    r"""
+    Distribute a DataFidelity object across multiple devices.
+
+    :param DataFidelity data_fidelity: DataFidelity object to distribute
+    :param DistributedContext ctx: distributed context manager
+    :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
+    :param kwargs: additional keyword arguments for DistributedDataFidelity
+
+    :returns: Distributed version of the input DataFidelity object
+    :rtype: DistributedDataFidelity
+
+    |sep|
+
+    :Examples:
+
+        Distribute a DataFidelity object:
+
+        >>> from deepinv.optim.data_fidelity import L2
+        >>> data_fidelity = L2()
+        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
+        >>> ddata_fidelity = distribute_data_fidelity(data_fidelity, ctx)
+    """
+    # DataFidelity factory
+
+    if isinstance(data_fidelity, DataFidelity):
+
+        def data_fidelity_factory(
+            idx: int, device: torch.device, shared: Optional[dict]
+        ):
+            return data_fidelity.to(device)
+
+    elif isinstance(data_fidelity, StackedPhysicsDataFidelity):
+        data_fidelity_list_extracted = data_fidelity.data_fidelity_list
+        num_operators = len(data_fidelity_list_extracted)
+
+        def data_fidelity_factory(
+            idx: int, device: torch.device, shared: Optional[dict]
+        ):
+            return data_fidelity_list_extracted[idx].to(device)
+
+    elif callable(data_fidelity):
+        data_fidelity_factory = data_fidelity
+        if num_operators is None or not isinstance(num_operators, int):
+            raise ValueError(
+                "When using a factory for data_fidelity, you must provide num_operators."
+            )
+    else:
+        data_fidelity_list_extracted = data_fidelity
+        num_operators = len(data_fidelity_list_extracted)
+
+        def data_fidelity_factory(
+            idx: int, device: torch.device, shared: Optional[dict]
+        ):
+            return data_fidelity_list_extracted[idx].to(device)
+
+    return DistributedDataFidelity(
+        ctx,
+        factory=data_fidelity_factory,
+        num_operators=num_operators,
+        **kwargs,
+    )
+
+
 def distribute(
     object: Union[
         StackedPhysics,
@@ -201,6 +276,10 @@ def distribute(
         Denoiser,
         Prior,
         Callable[[int, torch.device, Optional[dict]], Union[Prior, Denoiser]],
+        DataFidelity,
+        List[DataFidelity],
+        StackedPhysicsDataFidelity,
+        Callable[[int, torch.device, Optional[dict]], DataFidelity],
     ],
     ctx: DistributedContext,
     *,
@@ -214,7 +293,12 @@ def distribute(
     receptive_field_size: int = 64,
     max_batch_size: Optional[int] = None,
     **kwargs,
-) -> Union[DistributedPhysics, DistributedLinearPhysics, DistributedProcessing]:
+) -> Union[
+    DistributedPhysics,
+    DistributedLinearPhysics,
+    DistributedProcessing,
+    DistributedDataFidelity,
+]:
     r"""
     Distribute a DeepInverse object across multiple devices.
 
@@ -274,7 +358,11 @@ def distribute(
                 )
                 else "physics"
             )
-        elif isinstance(object, DataFidelity):
+        elif isinstance(object, (DataFidelity, StackedPhysicsDataFidelity)) or (
+            isinstance(object, list)
+            and len(object) > 0
+            and isinstance(object[0], DataFidelity)
+        ):
             type_object = "data_fidelity"
         elif isinstance(object, Prior):
             type_object = "prior"
@@ -308,6 +396,17 @@ def distribute(
             receptive_field_size=receptive_field_size,
             tiling_dims=tiling_dims,
             max_batch_size=max_batch_size,
+            **kwargs,
+        )
+    elif type_object == "data_fidelity":
+        if num_operators is None:
+            raise ValueError(
+                "num_operators must be provided when distributing data_fidelity"
+            )
+        return distribute_data_fidelity(
+            object,
+            ctx,
+            num_operators=num_operators,
             **kwargs,
         )
     else:
