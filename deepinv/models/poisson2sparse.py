@@ -14,7 +14,7 @@ class ConvLista(nn.Module):
     r"""
     Convolutional LISTA network.
 
-    The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is wel suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).
+    The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is well suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).
 
 
     :param int in_channels: Number of channels in the input image.
