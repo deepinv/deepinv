@@ -284,7 +284,9 @@ class Radon(nn.Module):
         N, C, W, _ = x.shape
 
         if self.parallel_computation:
-            rotated_par = grid_sample(x, self.all_grids.expand(N, -1, -1, -1).to(x.device))
+            rotated_par = grid_sample(
+                x, self.all_grids.expand(N, -1, -1, -1).to(x.device)
+            )
             out = (
                 rotated_par.sum(2).reshape(N, C, len(self.theta), -1).transpose(-2, -1)
             )
