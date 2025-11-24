@@ -1,5 +1,4 @@
 from __future__ import annotations
-from deepinv.models.base import Denoiser
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -7,6 +6,7 @@ import torch.nn.functional as F
 from tqdm import trange
 from functools import wraps
 from typing import Callable
+from deepinv.models.base import Denoiser
 from deepinv.utils.compat import zip_strict
 
 
