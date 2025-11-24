@@ -261,7 +261,7 @@ class Poisson2Sparse(Denoiser):
     .. note::
 
         This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics object can be omitted when calling the model and specifying it will have no effect.
-        
+
     .. note::
 
         The denoiser expects images with a dynamic range normalized between zero and one.
