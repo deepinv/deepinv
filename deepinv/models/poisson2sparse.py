@@ -16,7 +16,7 @@ class ConvLista(nn.Module):
 
     The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is well suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).
 
-    .. note:
+    .. note::
 
         The decoder expects images with a dynamic range normalized between zero and one.
 
@@ -262,7 +262,7 @@ class Poisson2Sparse(Denoiser):
 
         This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics object can be omitted when calling the model and specifying it will have no effect.
         
-    .. note:
+    .. note::
 
         The denoiser expects images with a dynamic range normalized between zero and one.
 
