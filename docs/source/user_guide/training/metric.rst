@@ -105,7 +105,7 @@ Full reference metrics are used to measure the difference between the original `
      - HaarPSI meric tuned for natural and medical images.
 
    * - :class:`deepinv.loss.metric.CosineSimilarity`
-     -- :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
+     - :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
 
 
 
