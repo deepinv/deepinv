@@ -1,6 +1,7 @@
 import deepinv.deepinv as dinv
 import torch
 
+
 class Emission_Tomography(dinv.physics.LinearPhysics):
     r"""
     Emission Tomography forward operator :math:`A` using the `pytomography` package (see : :footcite:t:`polson2025pytomography`).
@@ -16,7 +17,7 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
     image to reconstruct, :math:`s` is an optional additive scatter term and :math:`y` are the measured projections.
 
     :math:`x` is of shape (B, C, D, H, W) where B is the batch size, C is the number of channels (C=1 for emission tomography),
-    D is the depth, H is the height and W is the width of the 3D image. 
+    D is the depth, H is the height and W is the width of the 3D image.
     :math:`y` is of shape (B, C, N_proj, H', W') where B is the batch size, C is the number of channels (C=1 for emission tomography),
     N_proj is the number of projections, H' is the height and W' is the width of the projections.
 
@@ -33,21 +34,20 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
         att_transform.configure(object_meta, proj_meta)
 
         system_matrix = SPECTSystemMatrix(
-            obj2obj_transforms = [att_transform,psf_transform],
-            proj2proj_transforms = [],
-            object_meta = object_meta,
-            proj_meta = proj_meta)
-        
+            obj2obj_transforms=[att_transform, psf_transform],
+            proj2proj_transforms=[],
+            object_meta=object_meta,
+            proj_meta=proj_meta,
+        )
+
         self.system_matrix = system_matrix
-        
-    def A(
-        self, x: torch.Tensor, **kwargs
-    ) -> torch.Tensor:
+
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward operator.
 
         .. note::
             Pytomography does not support batch dimension, so we loop over the batch dimension.
-            Channel dimension is squeezed since it should always be equal to 1, Pytomography 
+            Channel dimension is squeezed since it should always be equal to 1, Pytomography
             only supports input of shape (D, H, W).
 
         :param torch.Tensor x: input tensor of shape (B, C, D, H, W).
@@ -62,14 +62,12 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
                 y = torch.cat((y, y_batch.unsqueeze(0)), dim=0)
         return y.unsqueeze(1)
 
-    def A_adjoint(
-        self, y: torch.Tensor, **kwargs
-    ) -> torch.Tensor:
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Closed-form adjoint operator.
 
         .. note::
             Pytomography does not support batch dimension, so we loop over the batch dimension.
-            Channel dimension is squeezed since it should always be equal to 1, Pytomography 
+            Channel dimension is squeezed since it should always be equal to 1, Pytomography
             only supports input of shape (D, H, W).
 
         :param torch.Tensor y: input tensor of shape (B, C, N_proj, H', W').
@@ -83,4 +81,3 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
             else:
                 x = torch.cat((x, x_batch.unsqueeze(0)), dim=0)
         return x.unsqueeze(1)
-        
