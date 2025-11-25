@@ -32,9 +32,9 @@ from .noise import (
     LogPoissonNoise,
     GammaNoise,
     SaltPepperNoise,
-    ZeroNoise,
     FisherTippettNoise,
     RicianNoise,
+    LaplaceNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
