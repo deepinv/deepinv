@@ -1108,7 +1108,7 @@ class Trainer:
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
-            for k, img in enumerate(imgs):
+            for k, img in enumerate(imgs):  # ground truths, reconstructions, etc.
                 img_name = f"{self.save_folder_im}/{titles[k]}/"
                 Path(img_name).mkdir(parents=True, exist_ok=True)
                 for i in range(img.size(0)):
