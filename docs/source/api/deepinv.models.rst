@@ -109,6 +109,8 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.Poisson2Sparse
+   deepinv.models.ConvLista
 
 
 Adversarial Networks
