@@ -450,5 +450,5 @@ def initialize_3d_from_2d(model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor])
                 else:
                     module.weight[:] = ckpt_2d[f"{name}.weight"][:,:,None] / module.kernel_size[0]
 
-            if module.bias is not None:
-                module.bias[:] = ckpt_2d[f"{name}.bias"]
+                if module.bias is not None:
+                    module.bias[:] = ckpt_2d[f"{name}.bias"]
