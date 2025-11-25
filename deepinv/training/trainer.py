@@ -1109,9 +1109,9 @@ class Trainer:
 
         if save_images:
             for k, img in enumerate(imgs):
+                img_name = f"{self.save_folder_im}/{titles[k]}/"
+                Path(img_name).mkdir(parents=True, exist_ok=True)
                 for i in range(img.size(0)):
-                    img_name = f"{self.save_folder_im}/{titles[k]}/"
-                    Path(img_name).mkdir(parents=True, exist_ok=True)
                     entry = img[i].unsqueeze(0)
                     save_image(entry, img_name + f"{self.img_counter + i}.png")
 
