@@ -107,7 +107,7 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 
     @article{tachella2025deepinverse,
         title = {DeepInverse: A Python package for solving imaging inverse problems with deep learning},
-        journal = {Journal of Open Source Software}
+        journal = {Journal of Open Source Software},
         doi = {10.21105/joss.08923},
         url = {https://doi.org/10.21105/joss.08923},
         year = {2025},
