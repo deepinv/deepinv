@@ -1115,7 +1115,7 @@ class Trainer:
                     entry = img[i].unsqueeze(0)
                     save_image(entry, img_name + f"{self.img_counter + i}.png")
 
-            self.img_counter += len(imgs[0])
+            self.img_counter += imgs[0].size(0)
 
         if self.conv_metrics is not None:
             plot_curves(
