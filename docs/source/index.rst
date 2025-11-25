@@ -45,7 +45,7 @@ Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/a
 Mailing list
 ~~~~~~~~~~~~
 
-`Join our mailing list <https://forms.gle/TFyT7M2HAWkJYfvQ7>`_ for occasional updates on releases and new features:
+Join our **mailing list** for occasional updates on releases and new features:
 
 .. raw:: html
 
