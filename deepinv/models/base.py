@@ -133,13 +133,13 @@ class Reconstructor(torch.nn.Module):
         super().__init__()
         self.to(device)
 
-    def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
+    def forward(self, y: Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Applies reconstruction model :math:`\inversef{y}{A}`.
 
         :param torch.Tensor y: measurements.
         :param deepinv.physics.Physics physics: forward model :math:`A`.
-        :returns: (:class:`torch.Tensor`) reconstructed tensor.
+        :return: reconstructed images.
         """
 
         raise NotImplementedError()

@@ -72,13 +72,13 @@ class ArtifactRemoval(Reconstructor):
         :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
         :param torch.Tensor y: input measurements y
-        :return: (:class:`torch.Tensor`): reconstructed image
+        :return: reconstructed image
         """
         return self.backbone_net(
             tensor_in, getattr(physics.noise_model, "sigma", None), **kwargs
         )
 
-    def forward(self, y: Tensor, physics: Physics, **kwargs) -> Tensor:
+    def forward(self, y: Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Reconstructs a signal estimate from measurements y
 
@@ -86,7 +86,7 @@ class ArtifactRemoval(Reconstructor):
         :param deepinv.physics.Physics physics: forward operator
         :param dict kwargs: additional keyword arguments for the backbone network.
 
-        :returns: (:class:`torch.Tensor`) reconstructed tensor
+        :return: reconstructed image
         """
         if isinstance(physics, nn.DataParallel):
             physics = physics.module
