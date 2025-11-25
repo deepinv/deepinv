@@ -42,6 +42,20 @@ Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/a
 * :ref:`Sampling algorithms and diffusion models <sampling>` for uncertainty quantification
 * A framework for :ref:`building datasets <datasets>` for inverse problems
 
+Mailing list
+~~~~~~~~~~~~
+
+Join our **mailing list** for occasional updates on releases and new features:
+
+.. raw:: html
+
+   <link rel="stylesheet" href="_static/subscribe/subscribe.css">
+   <div id="subscribe-container"><div class="substack-clone-box"><div class="substack-clone-row">
+   <input id="emailInput" type="email" placeholder="Type your email…" class="substack-clone-input" oninput="validateEmail()"/>
+   <button id="subscribeBtn" class="substack-clone-button" disabled onclick="submitAndRedirect()">Subscribe</button>
+   </div></div></div>
+   <script src="_static/subscribe/subscribe.js"></script>
+
 Install
 -------
 
@@ -75,15 +89,6 @@ Or, for updating an existing installation:
 
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-Contributing
-------------
-
-DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
-We are building a comprehensive library of inverse problems and deep learning,
-and we need your help to get there!
-
-Interested? :ref:`Check out how you can contribute <contributing>`!
-
 
 Finding help
 ------------
@@ -93,10 +98,18 @@ If you have any questions or suggestions, please join the conversation in our
 `open an issue <https://github.com/deepinv/deepinv/issues>`_.
 
 Maintainers
------------
+~~~~~~~~~~~
 
 Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
+Contributing
+------------
+
+DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there!
+
+Interested? :ref:`Check out how you can contribute <contributing>`!
 
 Citation
 --------
