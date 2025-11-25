@@ -118,7 +118,8 @@ class RAM(Reconstructor, Denoiser):
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
-                    )
+                    ),
+                    strict=False,
                 )
 
         if device is not None:
@@ -187,9 +188,7 @@ class RAM(Reconstructor, Denoiser):
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         gamma = gamma * self.fact_realign
         gamma = gamma.clamp(min=1e-8)  # clamp to avoid negative or zero gamma
-        model_input = physics.base.prox_l2(
-            x, y, gamma=gamma
-        )  # use base physics for prox in case it has a fast implementation (e.g. DecomposablePhysics)
+        model_input = physics.prox_l2(x, y, gamma=gamma)
 
         return model_input
 
@@ -478,16 +477,16 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     if x_init is None:
         x = y
     else:
-        x = x_init  # .clone()
+        x = x_init
 
     norm = factor**2  # Precompute normalization factor
     AtA = lambda u: p.A_adjoint_A(u) * norm  # Define the linear operator
 
     v = v if v is not None else torch.zeros_like(x)
 
-    out = x  # .clone()
+    out = x
     # Compute Krylov basis
-    x_k = x  # .clone()
+    x_k = x.clone()
     for i in range(N - 1):
         x_k = AtA(x_k) - v
         out = torch.cat([out, x_k], dim=1)
@@ -540,12 +539,6 @@ class MeasCondBlock(nn.Module):
             relu_in=False,
             skip_in=True,
         )
-
-        self.gain = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
-        self.gain_gradx = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_grady = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_pinvx = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_pinvy = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
 
     def forward(self, x, y, physics, img_channels=None, scale=1):
         physics.set_scale(scale)

@@ -558,7 +558,7 @@ class DPS(Reconstructor):
             \end{equation*}
 
     :param torch.nn.Module model: a denoiser network that can handle different noise levels
-    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator, by default :class:`deepinv.optim.L2` (the choice in the paper).
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator, if kept to `None`, defaults to :class:`deepinv.optim.L2` (the choice in the paper).
     :param int max_iter: the number of diffusion iterations to run the algorithm (default: 1000)
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
@@ -569,7 +569,7 @@ class DPS(Reconstructor):
     def __init__(
         self,
         model,
-        data_fidelity=L2(),
+        data_fidelity=None,
         max_iter=1000,
         eta=1.0,
         verbose=False,
@@ -579,6 +579,8 @@ class DPS(Reconstructor):
         super(DPS, self).__init__()
         self.model = model
         self.model.requires_grad_(True)
+        if data_fidelity is None:
+            data_fidelity = L2()
         self.data_fidelity = data_fidelity
         self.max_iter = max_iter
         self.eta = eta

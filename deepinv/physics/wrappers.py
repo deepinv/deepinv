@@ -129,6 +129,14 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         else:
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
 
+    def A_dagger(self, y, scale=None, **kwargs):
+        self.set_scale(scale)
+        if self.scale == 0:
+            # use efficient implementation if available (eg SVD-based)
+            return self.base.A_dagger(y, **kwargs)
+        else:
+            return self.super().A_dagger(y, **kwargs)
+
 
 class PhysicsCropper(LinearPhysics):
     r"""
@@ -146,11 +154,11 @@ class PhysicsCropper(LinearPhysics):
         self.base = physics
         self.crop = crop
 
-    def A(self, x):
-        return self.base.A(self.remove_pad(x))
+    def A(self, x, **kwargs):
+        return self.base.A(self.remove_pad(x), **kwargs)
 
-    def A_adjoint(self, y):
-        y = self.pad(self.base.A_adjoint(y))
+    def A_adjoint(self, y, **kwargs):
+        y = self.pad(self.base.A_adjoint(y, **kwargs))
         return y
 
     def remove_pad(self, x):
