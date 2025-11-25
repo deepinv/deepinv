@@ -13,6 +13,7 @@ from .utils import (
     instancenorm_nd,
     maxpool_nd,
     avgpool_nd,
+    initialize_3d_from_2d
 )
 from .base import Denoiser
 from typing import Sequence  # noqa: F401
@@ -150,11 +151,7 @@ class DRUNet(Denoiser):
 
         self.m_tail = conv(nc[0], out_channels, bias=False, mode="C", dim=dim)
         if pretrained is not None:
-            if pretrained == "download":
-                if dim == 3:  # pragma: no cover
-                    raise ValueError(
-                        "No 3D weights for DRUNet are available for download. Please set pretrained to None or path to your own pretrained weights."
-                    )
+            if pretrained == "download" or pretrained == "download_2d":
                 if in_channels == 4:
                     name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
@@ -163,12 +160,20 @@ class DRUNet(Denoiser):
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
+                
+                if dim == 3 and pretrained == 'download':  # pragma: no cover
+                    raise ValueError(
+                        "No 3D weights for DRUNet are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
+                    )                
             else:
                 ckpt_drunet = torch.load(
                     pretrained, map_location=lambda storage, loc: storage
                 )
 
-            self.load_state_dict(ckpt_drunet, strict=True)
+            if dim == 3 and pretrained == "download_2d":
+                initialize_3d_from_2d(self, ckpt_drunet)
+            else:
+                self.load_state_dict(ckpt_drunet, strict=True)
             self.eval()
         else:
             self.apply(weights_init_drunet)
