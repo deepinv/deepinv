@@ -10,15 +10,17 @@ New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
-
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Change `TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+- (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
 
 Fixed
 ^^^^^
-
+- Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
+- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
 
 v0.3.6
 ------
