@@ -17,12 +17,16 @@ Changed
 ^^^^^^^
 - Faster :class:`deepinv.models.RAM` implementation by avoiding certain redundant computations (:gh:`946` by `Julian Tachella`_)
 - (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
+- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
+- (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
+
 
 Fixed
 ^^^^^
 - Fixed :class:`deepinv.sampling.DPS` initialization when measurements have different size than image (:gh:`946` by `Julian Tachella`_)
 - Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
+- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
 
 v0.3.6
 ------
