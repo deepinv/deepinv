@@ -78,6 +78,8 @@ OPERATORS = [
     "structured_random",
     "cassi",
     "ptychography_linear",
+    "2DParallelBeamCT",
+    "2DFanBeamCT",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -226,12 +228,22 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
-    elif name == "Tomography":
+    elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
-            img_width=img_size[-1], angles=img_size[-1], device=device
+            img_width=img_size[-1], angles=img_size[-1], fan_beam=False, device=device
         )
-        params = ["theta"]
+
+        params = []
+    elif name == "2DFanBeamCT":
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.Tomography(
+            img_width=img_size[-1],
+            angles=img_size[-1],
+            fan_beam=True,
+            device=device,
+        )
+        params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
@@ -1237,8 +1249,7 @@ def test_noise_domain(device):
 
 def test_blur(device):
     r"""
-    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
-    n=0 where Ax=0.
+    Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
     x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
@@ -1310,6 +1321,7 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("circle", [True, False])
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+@pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1317,6 +1329,7 @@ def test_tomography(
     circle,
     adjoint_via_backprop,
     fbp_interpolate_boundary,
+    fbp_pseudo_inverse,
     device,
 ):
     r"""
@@ -1352,11 +1365,16 @@ def test_tomography(
         assert physics.normalize is True
         assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
 
-    r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
+    r_tol = 0.05 if not fbp_pseudo_inverse else 0.65
+    r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
-    assert error < epsilon
+
+    error = torch.linalg.vector_norm(
+        physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r
+    ) / torch.linalg.vector_norm(r)
+    assert (
+        error < r_tol
+    ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
 @pytest.mark.parametrize(
@@ -1784,7 +1802,10 @@ def test_physics_state_dict(name, device):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
-            if isinstance(attr, torch.Tensor):
+            if (
+                isinstance(attr, torch.Tensor)
+                and name not in module._non_persistent_buffers_set
+            ):
                 tensor_attrs[full_name] = attr
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
