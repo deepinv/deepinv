@@ -27,10 +27,10 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import deepinv as dinv
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import PDCP
 
 # %%
 # Setup paths for data loading and results.
@@ -88,7 +88,7 @@ physics = dinv.physics.Inpainting(
 )
 
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
@@ -158,43 +158,27 @@ stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 sigma_denoiser = [
-    0.01 * torch.ones(level, 3)
-] * max_iter  # thresholding parameters \sigma
+    0.01 * torch.ones(1, level, 3)
+] * max_iter  # thresholding parameter of the wavelet denoiser.
 
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
-# Define the parameters of the unfolded Primal-Dual Chambolle-Pock algorithm
-# The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed.
-# See the documentation of the CP algorithm :class:`deepinv.optim.optim_iterators.CPIteration` for more details.
-params_algo = {
-    "stepsize": stepsize,  # Stepsize for the primal update.
-    "g_param": sigma_denoiser,  # prior parameter.
-    "stepsize_dual": stepsize_dual,  # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
-    "K": physics.A,
-    "K_adjoint": physics.A_adjoint,
-}
 
-# define which parameters from 'params_algo' are trainable
-trainable_params = ["g_param", "stepsize"]
+# define which parameters are trainable : here, both the regularization parameters and the primal/dual stepsizes are learned.
+trainable_params = ["sigma_denoiser", "stepsize", "stepsize_dual"]
 
-
-# Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-def custom_init_CP(y, physics):
-    x_init = physics.A_adjoint(y)
-    u_init = y
-    return {"est": (x_init, x_init, u_init)}
-
-
-# Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="CP",
+# Define the unfolded trainable model. # See the documentation of the Primal Dual CP algorithm :class:`deepinv.optim.PDCP` for more details.
+model = PDCP(
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
+    stepsize_dual=stepsize_dual,
+    K=physics.A,
+    K_adjoint=physics.A_adjoint,
     trainable_params=trainable_params,
-    params_algo=params_algo.copy(),
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    g_first=False,
-    custom_init=custom_init_CP,
+    unfold=True,
 )
 
 # %%
@@ -215,7 +199,6 @@ epochs = 10 if torch.cuda.is_available() else 5  # choose training epochs
 learning_rate = 1e-3
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # choose training losses
 losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
@@ -235,7 +218,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
     epochs=epochs,
 )
 
@@ -286,31 +268,47 @@ prior_new = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
+sigma_denoiser = [0.01 * torch.ones(1, level, 3)] * max_iter
 stepsize_dual = 1.0  # stepsize for Chambolle-Pock
 
-params_algo_new = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "stepsize_dual": stepsize_dual,
-    "K": physics.A,
-    "K_adjoint": physics.A_adjoint,
-}
 
-model_new = unfolded_builder(
-    "CP",
+model_new = PDCP(
+    unfold=True,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
+    stepsize_dual=stepsize_dual,
+    K=physics.A,
+    K_adjoint=physics.A_adjoint,
     trainable_params=trainable_params,
-    params_algo=params_algo_new,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior_new,
     g_first=False,
-    custom_init=custom_init_CP,
 )
+
 model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
 
-# Test the model and check that the results are the same as before saving
+
+# Test the model and check that the results are the same as before saving.
 dinv.training.test(
     model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
+)
+
+# Plot the results
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
 )

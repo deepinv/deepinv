@@ -2,11 +2,11 @@ r"""
 Implementing DiffPIR
 ====================
 
-In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from
-`Zhou et al. <https://arxiv.org/abs/2305.08995>`_. The full algorithm is implemented in
-:class:`deepinv.sampling.DiffPIR`.
+In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from :footcite:t:`zhu2023denoising`.
+The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
+# %%
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -14,12 +14,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_example
-
-# Use matplotlib config from deepinv to get nice plots
-from deepinv.utils.plotting import config_matplotlib
-
-config_matplotlib()
+from deepinv.utils import load_example
 
 # %%
 # Generate an inverse problem
@@ -54,10 +49,11 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 
-imgs = [y, x_true]
 plot(
-    imgs,
-    titles=["measurement", "ground-truth"],
+    {
+        "Measurement": y,
+        "Ground Truth": x_true,
+    }
 )
 # %%
 # The DiffPIR algorithm
@@ -102,7 +98,7 @@ plot(
 #
 # In this section, we show how to use the denoising diffusion model from DiffPIR.
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
-# of DiffPIR use a U-Net architecture from `Ho et al. <https://arxiv.org/abs/2108.02938>`_,
+# of DiffPIR use a U-Net architecture from :footcite:t:`ho2020denoising`,
 # which can be loaded as follows:
 
 model = dinv.models.DiffUNet(large_model=False).to(device)
@@ -152,10 +148,12 @@ x_noisy = x_true + torch.randn_like(x_true) * sigmas[t]
 
 den = model(x_noisy, sigmas[t])
 
-imgs = [x_noisy, den, den - x_true]
 plot(
-    imgs,
-    titles=["noisy input", "denoised image", "error"],
+    {
+        "Noisy Input": x_noisy,
+        "Denoised Image": den,
+        "Error": den - x_true,
+    }
 )
 
 # %%
@@ -175,12 +173,15 @@ y_denoised = model(y, sigmas[t_temp] / 2.0)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
-x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=1 / sigmas[t])
+x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(device))
 
-imgs = [y, y_denoised, x_prox]
 plot(
-    imgs,
-    titles=["measurement", "denoised measurement", "data fidelity step"],
+    {
+        "Measurement": y,
+        "Denoised Measurement": y_denoised,
+        "Data Fidelity Step": x_prox,
+    },
+    tight=False,
 )
 
 # %%
@@ -218,9 +219,13 @@ x_sampled_scaled = alphas_cumprod[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
 
 x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
 
-imgs = [y, y_denoised, x_prox, x_sampled]
-titles = ["measurement", "denoised measurement", "data fidelity step", "sampling step"]
-plot(imgs, titles=titles)
+imgs = {
+    "Measurement": y,
+    "Denoised Measurement": y_denoised,
+    "Data Fidelity Step": x_prox,
+    "Sampling Step": x_sampled,
+}
+plot(imgs, tight=False)
 
 # %%
 # (notice that noise has been added everywhere in the image, including in the masked region)
@@ -288,11 +293,10 @@ plt.show()
 # In the algorithm, we will only use sub-sampled versions of the noise and regularization schedules. Let's visualize
 # those.
 
-list_sigmas_algo = [sigmas[seq[i]] for i in range(max_iter)]
-list_rhos_algo = [rhos[seq[i]] for i in range(max_iter)]
+list_sigmas_algo = [sigmas[seq[i]].cpu().item() for i in range(max_iter)]
+list_rhos_algo = [rhos[seq[i]].cpu().item() for i in range(max_iter)]
 
 plt.figure(figsize=(6, 3))
-plt.rcParams.update({"font.size": 9})
 plt.subplot(121)
 plt.plot(
     2 / torch.tensor(list_rhos_algo).cpu().numpy()
@@ -349,7 +353,7 @@ with torch.no_grad():
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
             t_im1 = find_nearest(
-                sigmas, next_sigma
+                sigmas.cpu().numpy(), next_sigma
             )  # time step associated with the next noise level
 
             eps = (x - alphas_cumprod[t_i].sqrt() * x0) / torch.sqrt(
@@ -369,10 +373,12 @@ with torch.no_grad():
 x = (x + 1) / 2
 
 # Plotting the results
-imgs = [y, x, x_true]
 plot(
-    imgs,
-    titles=["measurement", "model output", "ground-truth"],
+    {
+        "Measurement": y,
+        "Model Output": x,
+        "Ground Truth": x_true,
+    }
 )
 
 # %%
@@ -382,19 +388,20 @@ plot(
 # sphinx_gallery_multi_image = "single"
 plot(
     list_noisy,
-    titles=[f"noisy sample step {i}" for i in save_steps],
+    titles=[f"Noisy Sample Step {i}" for i in save_steps],
     dpi=1500,
+    tight=False,
 )
 
 plot(
     list_denoised,
-    titles=[f"denoised step {i}" for i in save_steps],
+    titles=[f"Denoised Step {i}" for i in save_steps],
     dpi=1500,
 )
 
 plot(
     list_prox,
-    titles=[f"proximal step {i}" for i in save_steps],
+    titles=[f"Proximal Step {i}" for i in save_steps],
     dpi=1500,
 )
 
@@ -409,3 +416,8 @@ plot(
 #       model = dinv.sampling.DiffPIR(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
+
+# %%
+# :References:
+#
+# .. footbibliography::

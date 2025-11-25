@@ -10,20 +10,22 @@ from .utils import (
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from .utils import get_weights_url
+from typing import Sequence
 
 
 class NCSNpp(Denoiser):
-    r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
+    r"""Implementation of the DDPM++ and NCSN++ architectures.
 
-    Equivalent to the original implementation by Song et al., available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
+    Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
 
-    The model is also pre-conditioned by the method described in the paper `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+    The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
     The model also supports an additional class condition model.
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
+    :param str model_name: Model name, 'ncsn' or 'ddpm'.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
@@ -45,49 +47,67 @@ class NCSNpp(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+
+
 
     """
 
     def __init__(
         self,
+        model_name: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
         img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
         label_dim: int = 0,  # Number of class labels, 0 = unconditional.
         augment_dim: int = 9,  # Augmentation label dimensionality, 0 = no augmentation.
         model_channels: int = 128,  # Base multiplier for the number of channels.
-        channel_mult: list = [
+        channel_mult: Sequence = (
             1,
             2,
             2,
             2,
-        ],  # Per-resolution multipliers for the number of channels.
+        ),  # Per-resolution multipliers for the number of channels.
         channel_mult_emb: int = 4,  # Multiplier for the dimensionality of the embedding vector.
         num_blocks: int = 4,  # Number of residual blocks per resolution.
-        attn_resolutions: list = [16],  # List of resolutions with self-attention.
+        attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
         embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
         channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
         encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
         decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter: list = [
+        resample_filter: Sequence = (
             1,
             3,
             3,
             1,
-        ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-        pretrained: str = None,
+        ),  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
+        pretrained: str = "download",
         pixel_std: float = 0.75,
         device=None,
     ):
+        model_name = model_name.lower()
+        assert model_name in ["ncsn", "ddpm"]
+        if model_name == "ncsn":
+            embedding_type = "fourier"
+            channel_mult_noise = 2
+            encoder_type = "residual"
+            decoder_type = "standard"
+            resample_filter = [1, 3, 3, 1]
+        elif model_name == "ddpm":
+            embedding_type = "positional"
+            channel_mult_noise = 1
+            encoder_type = "standard"
+            decoder_type = "standard"
+            resample_filter = [1, 1]
+
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
-
         super().__init__()
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
@@ -218,22 +238,34 @@ class NCSNpp(Denoiser):
                 )
 
         if pretrained is not None:
-            if (
-                pretrained.lower() == "edm-ffhq64-uncond-ve"
-                or pretrained.lower() == "download"
+            if pretrained.lower() == "edm-ffhq64-uncond-ve" or (
+                pretrained.lower() == "download" and model_name == "ncsn"
             ):
-                name = "ncsnpp-ffhq64-uncond-ve.pt"
+                name = "edm-ffhq-64x64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
-                self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self.pixel_std = 0.5
+            elif pretrained.lower() == "edm-ffhq64-uncond-vp" or (
+                pretrained.lower() == "download" and model_name == "ddpm"
+            ):
+                name = "edm-ffhq-64x64-uncond-vp.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+                self._was_trained_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
+            self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+            self.pixel_std = 0.5
         else:
-            self._train_on_minus_one_one = False
+            self._was_trained_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
@@ -310,54 +342,35 @@ class NCSNpp(Denoiser):
         """
         dtype = x.dtype
         x = x.to(torch.float32)
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.to(torch.float32)
 
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
 
         # Rescale [0,1] input to [-1,-1]
-        if hasattr(self, "_train_on_minus_one_one"):
-            if self._train_on_minus_one_one:
-                x = (x - 0.5) * 2.0
-                sigma = sigma * 2.0
+        if getattr(self, "_was_trained_on_minus_one_one", False):
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
         c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
         c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
-            c_in.view(-1, 1, 1, 1) * x,
+            c_in * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
 
-        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
+        D_x = c_skip * x + c_out * F_x
 
         D_x = D_x.to(dtype)
         # Rescale [-1,1] output to [0,-1]
-        if self._train_on_minus_one_one:
+        if getattr(self, "_was_trained_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x
-
-    @staticmethod
-    def _handle_sigma(sigma, dtype, device, batch_size):
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze()
-            if sigma.ndim == 0:
-                return sigma[None].to(device, dtype).expand(batch_size)
-            elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
-            else:
-                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
-
-        elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype).expand(batch_size)
-        else:
-            raise ValueError("Unsupported sigma type.")

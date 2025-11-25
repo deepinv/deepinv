@@ -2,37 +2,31 @@ r"""
 Image reconstruction with a diffusion model
 ====================================================================================================
 
-This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the
+This code shows you how to use the DDRM diffusion algorithm :footcite:t:`kawar2022denoising` to reconstruct images and also compute the
 uncertainty of a reconstruction from incomplete and noisy measurements.
-
-The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
 The DDRM method requires that:
 
 * The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
-
 """
 
+# %%
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
 import numpy as np
-from deepinv.utils.demo import load_url_image
+from deepinv.utils import load_example
 
 # %%
 # Load example image from the internet
 # --------------------------------------------------------------
 #
-# This example uses an image of Lionel Messi from Wikipedia.
+# This example uses an image of Messi.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-)
-x = load_url_image(url=url, img_size=32).to(device)
+x = load_example("messi.jpg", img_size=32).to(device)
 
 
 # %%
@@ -143,3 +137,8 @@ plot(
         "abs. error",
     ],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

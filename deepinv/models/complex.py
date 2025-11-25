@@ -1,6 +1,6 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
-from typing import Union
 
 
 def to_complex_denoiser(denoiser, mode="real_imag"):
@@ -14,9 +14,9 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
     :return: (torch.nn.Module) the denoiser which takes in complex-valued inputs.
     """
 
-    class complex_denoiser(Denoiser):
+    class ComplexDenoiser(Denoiser):
         def __init__(
-            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs
+            self, denoiser: torch.nn.Module | Denoiser, mode: str, *args, **kwargs
         ):
             super().__init__(*args, **kwargs)
             self.mode = mode
@@ -43,4 +43,4 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
             else:
                 raise ValueError("style must be 'real_imag' or 'abs_angle'.")
 
-    return complex_denoiser(denoiser, mode)
+    return ComplexDenoiser(denoiser, mode)

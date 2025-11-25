@@ -1,175 +1,11 @@
-from typing import Optional, Union
+from __future__ import annotations
+from warnings import warn
 import numpy as np
 import torch
 from torch import Tensor
-from torchvision.transforms import CenterCrop, Resize
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
-from deepinv.physics.time import TimeMixin
-
-
-class MRIMixin:
-    r"""
-    Mixin base class for MRI functionality.
-
-    Base class that provides helper functions for FFT and mask checking.
-    """
-
-    def check_mask(
-        self, mask: Tensor = None, three_d: bool = False, device: str = "cpu", **kwargs
-    ) -> None:
-        r"""
-        Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
-
-        :param torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
-        :param torch.device, str device: mask intended device.
-        """
-        if mask is not None:
-            if isinstance(mask, np.ndarray):
-                mask = torch.from_numpy(mask)
-
-            mask = mask.to(device)
-
-            while len(mask.shape) < (
-                4 if not three_d else 5
-            ):  # to B,C,H,W or B,C,D,H,W
-                mask = mask.unsqueeze(0)
-
-            if mask.shape[1] == 1:  # make complex if real
-                mask = torch.cat([mask, mask], dim=1)
-
-        return mask
-
-    @staticmethod
-    def to_torch_complex(x: Tensor):
-        """[B,2,...,H,W] real -> [B,...,H,W] complex"""
-        return torch.view_as_complex(x.moveaxis(1, -1).contiguous())
-
-    @staticmethod
-    def from_torch_complex(x: Tensor):
-        """[B,...,H,W] complex -> [B,2,...,H,W] real"""
-        return torch.view_as_real(x).moveaxis(-1, 1)
-
-    @staticmethod
-    def ifft(x: Tensor, dim=(-2, -1), norm="ortho"):
-        """Centered, orthogonal ifft
-
-        :param torch.Tensor x: input kspace of complex dtype of shape [B,...] where ... is all dims to be transformed
-        :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
-        """
-        x = torch.fft.ifftshift(x, dim=dim)
-        x = torch.fft.ifftn(x, dim=dim, norm=norm)
-        return torch.fft.fftshift(x, dim=dim)
-
-    @staticmethod
-    def fft(x: Tensor, dim=(-2, -1), norm="ortho"):
-        """Centered, orthogonal fft
-
-        :param torch.Tensor x: input image of complex dtype of shape [B,...] where ... is all dims to be transformed
-        :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
-        """
-        x = torch.fft.ifftshift(x, dim=dim)
-        x = torch.fft.fftn(x, dim=dim, norm=norm)
-        return torch.fft.fftshift(x, dim=dim)
-
-    def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
-        """Convenience method that wraps fft.
-
-        :param torch.Tensor x: input image of shape (B,2,...) of real dtype
-        :param bool three_d: whether MRI data is 3D or not, defaults to False
-        :return: Tensor: output measurements of shape (B,2,...) of real dtype
-        """
-        return self.from_torch_complex(
-            self.fft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if three_d else (-2, -1)
-            )
-        )
-
-    def kspace_to_im(self, y: Tensor, three_d: bool = False) -> Tensor:
-        """Convenience method that wraps inverse fft.
-
-        :param torch.Tensor y: input measurements of shape (B,2,...) of real dtype
-        :param bool three_d: whether MRI data is 3D or not, defaults to False
-        :return: Tensor: output image of shape (B,2,...) of real dtype
-        """
-        return self.from_torch_complex(
-            self.ifft(
-                self.to_torch_complex(y), dim=(-3, -2, -1) if three_d else (-2, -1)
-            )
-        )
-
-    def crop(
-        self,
-        x: Tensor,
-        crop: bool = True,
-        shape: tuple[int, int] = None,
-        rescale: bool = False,
-    ) -> Tensor:
-        """Center crop 2D image according to ``img_size``.
-
-        This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
-
-        If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
-
-        :param torch.Tensor x: input tensor of shape (...,H,W)
-        :param bool crop: whether to perform crop, defaults to `True`. If `True`, `rescale` must be `False`.
-        :param tuple[int, int] shape: optional shape (..., H,W) to crop to. If `None`, crops to `img_size` attribute.
-        :param bool rescale: whether to rescale instead of cropping. If `True`, `crop` must be `False`.
-            Note to be careful here as resizing will change aspect ratio.
-        """
-        crop_size = shape[-2:] if shape is not None else self.img_size[-2:]
-        odd_h = crop_size[0] % 2 == 1
-
-        if odd_h:
-            crop_size = (crop_size[0] + 1, crop_size[1])
-
-        if rescale and crop:
-            raise ValueError("Only one of rescale or crop can be used.")
-        elif rescale:
-            cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(
-                *x.shape[:-2], *crop_size
-            )
-        elif crop:
-            cropped = CenterCrop(crop_size)(x)
-        else:
-            return x
-
-        if odd_h:
-            cropped = cropped[..., :-1, :]
-
-        return cropped
-
-    @staticmethod
-    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
-        r"""Perform root-sum-square reconstruction on multicoil data, defined as
-
-        .. math::
-
-                \operatorname{RSS}(x) = \sqrt{\sum_{n=1}^N |x_n|^2}
-
-        where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
-        and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
-
-        :param torch.Tensor x: input image of shape (B,2,...) where 2 represents
-            real and imaginary channels
-        :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
-            and reduce over coil dimension N too.
-        """
-        assert (
-            x.shape[1] == 2 and not x.is_complex()
-        ), "x should be of shape (B,2,...) and not of complex dtype."
-
-        mc_dim = 1 if multicoil else 0
-        th_dim = 1 if three_d else 0
-        assert (
-            len(x.shape) == 4 + mc_dim + th_dim
-        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
-
-        ss = x.pow(2).sum(dim=1, keepdim=True)
-        return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+from deepinv.utils.mixins import MRIMixin, TimeMixin
 
 
 class MRI(MRIMixin, DecomposablePhysics):
@@ -243,8 +79,8 @@ class MRI(MRIMixin, DecomposablePhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device="cpu",
         **kwargs,
@@ -389,9 +225,9 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        coil_maps: Optional[Union[Tensor, int]] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        coil_maps: Tensor | int | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device=torch.device("cpu"),
         **kwargs,
@@ -548,7 +384,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         """
         try:
             from sigpy.mri import birdcage_maps
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to simulate coil maps. Install it using pip install sigpy"
             )
@@ -560,32 +396,70 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         return torch.tensor(coil_maps).type(torch.complex64)
 
     @staticmethod
-    def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
+    def estimate_coil_maps(
+        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+    ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
         This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
+        Optionally use `cupy` to accelerate on GPU, only if `cupy` is installed and a GPU is available.
+
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
+        :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
             from sigpy.mri.app import EspiritCalib
-        except ImportError:
+            import sigpy as sp  # pragma: no cover
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to estimate sens maps. Install it using pip install sigpy"
             )
 
-        return torch.from_numpy(
-            np.stack(
+        if use_cupy:  # pragma: no cover
+            try:
+                import cupy as cp
+
+                use_cupy = cp.cuda.is_available()
+            except ImportError:
+                warn(
+                    "cupy is not installed, using cpu for coil map estimation. Install cupy to speed up computation."
+                )
+                use_cupy = False
+
+        complex_y = MRIMixin.to_torch_complex(y)
+        if use_cupy:  # pragma: no cover
+            if y.device.type == "cuda":
+                cupy_y = cp.from_dlpack(complex_y)
+            else:
+                cupy_y = cp.from_dlpack(complex_y.to("cuda"))
+
+            cupy_maps = cp.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False).run()
-                    for yb in MRIMixin.to_torch_complex(y).numpy()
+                    EspiritCalib(
+                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                    ).run()
+                    for yb in cupy_y
                 ]
             )
-        )
+            torch_maps = torch.from_dlpack(cupy_maps)
+
+        else:
+            device = sp.Device(-1)
+            maps = np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    for yb in complex_y.numpy(force=True)
+                ]
+            )
+
+            torch_maps = torch.from_numpy(maps)
+
+        return torch_maps
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -701,7 +575,7 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: Optional[torch.Tensor] = None) -> MRI:
+    def to_static(self, mask: torch.Tensor | None = None) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.

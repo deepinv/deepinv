@@ -1,10 +1,16 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import numpy as np
-from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
+from .utils import conv_nd, batchnorm_nd
 from deepinv.utils.decorators import _deprecated_alias
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 def add_module(self, module):
@@ -16,9 +22,9 @@ torch.nn.Module.add = add_module
 
 class ConvDecoder(nn.Module):
     r"""
-    Convolutional decoder network.
+    Convolutional decoder network. Supports 2D and 3D data, depending on img_size & in_size
 
-    The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
+    The architecture was introduced by :footcite:t:`darestani2021accelerated`,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
@@ -26,12 +32,27 @@ class ConvDecoder(nn.Module):
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
+
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
     @_deprecated_alias(img_shape="img_size")
-    def __init__(self, img_size, in_size=(4, 4), layers=7, channels=256):
+    def __init__(
+        self,
+        img_size: tuple[int, ...],
+        in_size: tuple[int, ...] = (4, 4),
+        layers: int = 7,
+        channels: int = 256,
+    ):
         super(ConvDecoder, self).__init__()
+
+        if len(img_size) != len(in_size) + 1:  # pragma: no cover
+            raise ValueError(
+                f"in_size must be one element smaller than img_size (which contains channels as well); got {img_size} and {in_size}"
+            )
+        dim = len(in_size)
+        conv = conv_nd(dim)
+        batchnorm = batchnorm_nd(dim)
 
         out_size = img_size[1:]
         output_channels = img_size[0]
@@ -41,15 +62,13 @@ class ConvDecoder(nn.Module):
         strides = [1] * (layers - 1)
 
         # compute up-sampling factor from one layer to another
-        scale_x, scale_y = (
-            (out_size[0] / in_size[0]) ** (1.0 / (layers - 1)),
-            (out_size[1] / in_size[1]) ** (1.0 / (layers - 1)),
+        scales = tuple(
+            (out_s / in_s) ** (1.0 / (layers - 1))
+            for out_s, in_s in zip(out_size, in_size)
         )
+
         hidden_size = [
-            (
-                int(np.ceil(scale_x**n * in_size[0])),
-                int(np.ceil(scale_y**n * in_size[1])),
-            )
+            tuple(int(np.ceil(scales[i] ** n * in_size[i])) for i in range(len(scales)))
             for n in range(1, (layers - 1))
         ] + [out_size]
 
@@ -57,20 +76,21 @@ class ConvDecoder(nn.Module):
         self.net = nn.Sequential()
         for i in range(layers - 1):
             self.net.add(nn.Upsample(size=hidden_size[i], mode="nearest"))
-            conv = nn.Conv2d(
-                channels,
-                channels,
-                kernel_size,
-                strides[i],
-                padding=(kernel_size - 1) // 2,
-                bias=True,
+            self.net.add(
+                conv(
+                    channels,
+                    channels,
+                    kernel_size,
+                    strides[i],
+                    padding=(kernel_size - 1) // 2,
+                    bias=True,
+                )
             )
-            self.net.add(conv)
             self.net.add(nn.ReLU())
-            self.net.add(nn.BatchNorm2d(channels, affine=True))
+            self.net.add(batchnorm(channels, affine=True))
         # final layer
         self.net.add(
-            nn.Conv2d(
+            conv(
                 channels,
                 channels,
                 kernel_size,
@@ -80,10 +100,10 @@ class ConvDecoder(nn.Module):
             )
         )
         self.net.add(nn.ReLU())
-        self.net.add(nn.BatchNorm2d(channels, affine=True))
-        self.net.add(nn.Conv2d(channels, output_channels, 1, 1, padding=0, bias=True))
+        self.net.add(batchnorm(channels, affine=True))
+        self.net.add(conv(channels, output_channels, 1, 1, padding=0, bias=True))
 
-    def forward(self, x, scale_out=1):
+    def forward(self, x: torch.Tensor, scale_out: float = 1) -> torch.Tensor:
         r"""
         Forward pass through the ConvDecoder network.
 
@@ -98,9 +118,7 @@ class DeepImagePrior(Reconstructor):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-    <https://arxiv.org/abs/1711.10925>`_, and reconstructs
-    an image by minimizing the loss function
+    This method, introduced by :footcite:t:`ulyanov2018deep`, reconstructs an image by minimizing the loss function
 
     .. math::
 
@@ -127,29 +145,31 @@ class DeepImagePrior(Reconstructor):
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
-
     """
 
     @_deprecated_alias(input_size="img_size")
     def __init__(
         self,
-        generator,
-        img_size,
-        iterations=2500,
-        learning_rate=1e-2,
-        verbose=False,
-        re_init=False,
+        generator: nn.Module,
+        img_size: list[int] | tuple[int, ...],
+        iterations: int = 2500,
+        learning_rate: float = 1e-2,
+        verbose: bool = False,
+        re_init: bool = False,
     ):
         super().__init__()
         self.generator = generator
         self.max_iter = int(iterations)
         self.lr = learning_rate
-        self.loss = MCLoss()
         self.verbose = verbose
         self.re_init = re_init
         self.img_size = img_size
 
-    def forward(self, y, physics, **kwargs):
+        from deepinv.loss.mc import MCLoss
+
+        self.loss = MCLoss()
+
+    def forward(self, y: torch.Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
@@ -173,7 +193,7 @@ class DeepImagePrior(Reconstructor):
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y, x, physics)
+            error = self.loss(y=y, x_net=x, physics=physics)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()

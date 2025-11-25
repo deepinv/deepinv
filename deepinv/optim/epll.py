@@ -1,9 +1,16 @@
+from __future__ import annotations
 import torch.nn as nn
 import torch
 from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
+from deepinv.models.base import Denoiser
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
 
 
 class EPLL(nn.Module):
@@ -30,17 +37,17 @@ class EPLL(nn.Module):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
-    :param str device: defines device (``cpu`` or ``cuda``)
+    :param str, torch.device device: defines device (``cpu`` or ``cuda``)
     """
 
     def __init__(
         self,
-        GMM=None,
-        n_components=200,
-        pretrained="download",
-        patch_size=6,
-        channels=1,
-        device="cpu",
+        GMM: GaussianMixtureModel = None,
+        n_components: int = 200,
+        pretrained: str | None = "download",
+        patch_size: int = 6,
+        channels: int = 1,
+        device: str | torch.device = "cpu",
     ):
         super(EPLL, self).__init__()
         if GMM is None:
@@ -81,7 +88,15 @@ class EPLL(nn.Module):
                 )
             self.load_state_dict(ckpt)
 
-    def forward(self, y, physics, sigma=None, x_init=None, betas=None, batch_size=-1):
+    def forward(
+        self,
+        y: torch.Tensor,
+        physics: LinearPhysics,
+        sigma: float | torch.Tensor = None,
+        x_init: torch.Tensor = None,
+        betas: list[float] = None,
+        batch_size: int = -1,
+    ) -> torch.Tensor:
         r"""
         Approximated half-quadratic splitting method for image reconstruction as proposed by Zoran and Weiss.
 
@@ -104,30 +119,43 @@ class EPLL(nn.Module):
                     "Noise level sigma has to be provided if not present in the physics model."
                 )
 
+        sigma = Denoiser._handle_sigma(
+            sigma, batch_size=y.shape[0], device=y.device, dtype=y.dtype
+        )
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
-        if y.shape[0] > 1:
-            # vectorization over a batch of images not implemented....
-            return torch.cat(
-                [
-                    self.reconstruction(
-                        y[i : i + 1],
-                        x_init[i : i + 1],
-                        betas=betas,
-                        batch_size=batch_size,
-                    )
-                    for i in range(y.shape[0])
-                ],
-                0,
-            )
+        else:
+            betas = [
+                Denoiser._handle_sigma(
+                    beta, batch_size=y.shape[0], device=y.device, dtype=y.dtype
+                )
+                for beta in betas
+            ]
+
         x = x_init
         Aty = physics.A_adjoint(y)
-        for beta in betas:
-            x = self._reconstruction_step(Aty, x, sigma**2, beta, physics, batch_size)
-        return x
+        if y.shape[0] > 1:
+            # vectorization over a batch of images not implemented....
+            out = []
+            for i in range(y.shape[0]):
+                xi = x[i : i + 1]
+                for beta in betas:
+                    xi = self._reconstruction_step(
+                        Aty[i : i + 1], xi, sigma[i] ** 2, beta[i], physics, batch_size
+                    )
+                out.append(xi)
 
-    def negative_log_likelihood(self, x):
+            return torch.cat(out, dim=0)
+
+        else:
+            for beta in betas:
+                x = self._reconstruction_step(
+                    Aty, x, sigma[0] ** 2, beta[0], physics, batch_size
+                )
+            return x
+
+    def negative_log_likelihood(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         Takes patches and returns the negative log likelihood of the GMM for each patch.
 
@@ -137,7 +165,15 @@ class EPLL(nn.Module):
         logpz = self.GMM(x.view(B * n_patches, -1))
         return logpz.view(B, n_patches)
 
-    def _reconstruction_step(self, Aty, x, sigma_sq, beta, physics, batch_size):
+    def _reconstruction_step(
+        self,
+        Aty: torch.Tensor,
+        x: torch.Tensor,
+        sigma_sq: float | torch.Tensor,
+        beta: float,
+        physics: LinearPhysics,
+        batch_size: int,
+    ):
         # precomputations for GMM with covariance regularization
         self.GMM.set_cov_reg(1.0 / beta)
         N, M = x.shape[2:4]
@@ -154,7 +190,9 @@ class EPLL(nn.Module):
         while ind < total_patch_number:
             # extract patches
             n_patches = min(batch_size, total_patch_number - ind)
-            patch_inds = torch.LongTensor(range(ind, ind + n_patches)).to(x.device)
+            patch_inds = torch.arange(
+                ind, ind + n_patches, device=x.device, dtype=torch.long
+            )
             patches, linear_inds = patch_extractor(
                 x, n_patches, self.patch_size, position_inds_linear=patch_inds
             )

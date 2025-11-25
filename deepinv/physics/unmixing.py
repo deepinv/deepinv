@@ -1,3 +1,4 @@
+from __future__ import annotations
 from math import sqrt
 import torch
 from deepinv.physics.forward import LinearPhysics
@@ -12,7 +13,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 
-    Please see the survey `Hyperspectral Unmixing Overview: Geometrical, Statistical, and Sparse Regression-Based Approaches <https://core.ac.uk/download/pdf/12043173.pdf>`_ for more details.
+    Please see the survey :footcite:t:`bioucas2012hyperspectral` for details.
 
     Hyperspectral mixing is modelled using a Linear Mixing Model (LMM).
 
@@ -28,7 +29,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     If the endmember matrix :math:`\mathbf{M}` is unknown, then this must be estimated too.
 
     :param torch.Tensor M: Matrix of endmembers of shape :math:`(E,C)`. Overrides ``E`` and ``C`` parameters.
-        If ``None``, then a random normalised matrix is simulated from a uniform distribution. Default ``None``.
+        If ``None``, then a random normalized matrix is simulated from a uniform distribution. Default ``None``.
     :param int E: Number of endmembers (e.g. number of materials). Ignored if ``M`` is set.  Default: ``15``.
     :param int C: Number of hyperspectral bands. Ignored if ``M`` is set. Default: ``64``.
     :param torch.device, str device: torch device, cpu or gpu.
@@ -48,15 +49,21 @@ class HyperSpectralUnmixing(LinearPhysics):
         >>> print(x.shape, y.shape, physics.M.shape)
         torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
 
+
     """
 
     def __init__(
-        self, M: torch.Tensor = None, E: int = 15, C: int = 64, device="cpu", **kwargs
+        self,
+        M: torch.Tensor = None,
+        E: int = 15,
+        C: int = 64,
+        device: torch.device | str = "cpu",
+        **kwargs,
     ):
         super(HyperSpectralUnmixing, self).__init__()
 
         if M is None:
-            # Simulate random normalised M
+            # Simulate random normalized M
             M = torch.rand((E, C), dtype=torch.float32, device=device)
             M /= M.sum(dim=0, keepdim=True) * sqrt(C / E)
 
@@ -66,7 +73,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         self.register_buffer("M_pinv", torch.linalg.pinv(self.M))
         self.to(device)
 
-    def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs) -> torch.Tensor:
         r"""
         Applies the endmembers matrix to the input abundances x.
 
@@ -80,7 +87,9 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         return torch.einsum("ec,behw->bchw", self.M, x)
 
-    def A_dagger(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A_dagger(
+        self, y: torch.Tensor, M: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         r"""
         Applies the pseudoinverse endmember matrix to the image y.
 
@@ -94,7 +103,9 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         return torch.einsum("ce,bchw->behw", self.M_pinv, y)
 
-    def A_adjoint(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+    def A_adjoint(
+        self, y: torch.Tensor, M: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         r"""
         Applies the transpose endmember matrix to the image y.
 

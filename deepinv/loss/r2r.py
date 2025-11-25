@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 import torch
 import math
 import warnings
@@ -51,11 +50,10 @@ class R2RLoss(Loss):
     where, :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.
 
-    The loss was first introduced in the `Recorrupted2Recorrupted <https://ieeexplore.ieee.org/document/9577798>`_ paper
-    for the specific case of Gaussian noise, formalizing the `Noisier2Noise <https://arxiv.org/abs/1910.11908>`_ loss
+    The loss was first introduced by :footcite:t:`pang2021recorrupted`
+    for the specific case of Gaussian noise, formalizing the Noise2Noisier loss from :footcite:t:`moran2020noisier2noise`,
     such that it is statistically equivalent to the supervised loss function defined on noisy/clean image pairs.
-    The loss was later extended to other exponential family noise distributions in
-    `Generalized Recorrupted2Recorrupted <https://arxiv.org/abs/2412.04648>`_ paper, including Poisson,
+    The loss was later extended to other exponential family noise distributions by :footcite:t:`monroy2025generalized`, including Poisson,
     Gamma and Binomial noise distributions.
 
     .. warning::
@@ -104,12 +102,14 @@ class R2RLoss(Loss):
 
     def __init__(
         self,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | torch.nn.Module | None = None,
         noise_model: NoiseModel = None,
         alpha=0.15,
         sigma=None,
         eval_n_samples=5,
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super(R2RLoss, self).__init__()
         self.name = "gr2r"
         self.metric = metric

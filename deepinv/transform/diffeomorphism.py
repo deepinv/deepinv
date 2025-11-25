@@ -1,4 +1,5 @@
-from typing import Union, Iterable
+from __future__ import annotations
+from typing import Iterable
 import torch
 from deepinv.transform.base import Transform, TransformParam
 
@@ -11,7 +12,7 @@ class CPABDiffeomorphism(Transform):
     using ``pip install libcpab``.
 
     Wraps CPAB from a modified version of the `original implementation <https://github.com/SkafteNicki/libcpab>`_.
-    From the paper Freifeld et al. `Transformations Based on Continuous Piecewise-Affine Velocity Fields <https://ieeexplore.ieee.org/abstract/document/7814343>`_.
+    from :footcite:t:`freifeld2017transformations`.
 
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 
@@ -32,6 +33,8 @@ class CPABDiffeomorphism(Transform):
     :param bool volume_perservation: see ``libcpab.Cpab`` docs.
     :param bool override: see ``libcpab.Cpab`` docs.
     :param str, torch.device device: torch device.
+
+
     """
 
     def __init__(
@@ -42,7 +45,7 @@ class CPABDiffeomorphism(Transform):
         zero_boundary: bool = True,
         volume_perservation: bool = True,
         override: bool = True,
-        device: Union[str, torch.device] = "cpu",
+        device: str | torch.device = "cpu",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -51,8 +54,10 @@ class CPABDiffeomorphism(Transform):
 
         try:
             from libcpab import Cpab
-        except ImportError:
-            raise ImportError("Install libcpab using pip install libcpab")
+        except ImportError:  # pragma: no cover
+            raise ImportError(
+                "Install libcpab using pip install libcpab"
+            )  # pragma: no cover
 
         self.cpab = Cpab(
             [n_tesselation, n_tesselation],
@@ -78,7 +83,7 @@ class CPABDiffeomorphism(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        diffeo: Union[torch.Tensor, Iterable, TransformParam] = [],
+        diffeo: torch.Tensor | Iterable | TransformParam = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Transform image deterministically.

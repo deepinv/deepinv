@@ -7,11 +7,9 @@ from .base import GeneratorLoss, DiscriminatorLoss
 class SupAdversarialGeneratorLoss(GeneratorLoss):
     r"""Supervised adversarial consistency loss for generator.
 
-    This loss was used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-    Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-    Models".
+    This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
-    Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator.
+    Constructs adversarial loss between reconstructed image and the ground truth, to be minimized by generator.
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
@@ -54,11 +52,9 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Supervised adversarial consistency loss for discriminator.
 
-     This loss was as used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-     Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-     Models".
+    This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
-    Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
+    Constructs adversarial loss between reconstructed image and the ground truth, to be maximized by discriminator.
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
@@ -88,10 +84,9 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     r"""Unsupervised adversarial consistency loss for generator.
 
-    This loss was used in unsupervised generative models such as Bora et al.,
-    "AmbientGAN: Generative models from lossy measurements".
+    This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator.
+    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimized by generator.
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
@@ -137,10 +132,9 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
 class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Unsupervised adversarial consistency loss for discriminator.
 
-    This loss was used in unsupervised generative models such as
-    Bora et al., "AmbientGAN: Generative models from lossy measurements".
+    This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximised
+    Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximized
     by discriminator.
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`

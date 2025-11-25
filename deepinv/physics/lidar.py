@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import PoissonNoise
@@ -7,7 +8,7 @@ class SinglePhotonLidar(Physics):
     r"""
     Single photon lidar operator for depth ranging.
 
-    See https://ieeexplore.ieee.org/abstract/document/9127841 for a review of this imaging method.
+    See :footcite:t:`rapp2020advances` for a review of this imaging method.
 
     The forward operator is given by
 
@@ -28,9 +29,17 @@ class SinglePhotonLidar(Physics):
     :param str device: Device to use (gpu or cpu).
     :param torch.Generator rng: (optional) a pseudorandom random number generator for
         the Poisson noise model :class:`deepinv.physics.PoissonNoise`
+
+
     """
 
-    def __init__(self, sigma=1.0, bins=50, device="cpu", rng: torch.Generator = None):
+    def __init__(
+        self,
+        sigma: float = 1.0,
+        bins: int = 50,
+        device: torch.device | str = "cpu",
+        rng: torch.Generator = None,
+    ):
         super().__init__()
 
         self.T = bins
@@ -49,7 +58,7 @@ class SinglePhotonLidar(Physics):
         self.register_buffer("sigma", torch.tensor(sigma, device=device))
         self.to(device)
 
-    def A(self, x, **kwargs):
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the forward operator.
 
@@ -64,7 +73,7 @@ class SinglePhotonLidar(Physics):
         y = x[:, 1, :, :] * h + x[:, 2, :, :]
         return y
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies Matched filtering to find the peaks.
 

@@ -51,7 +51,7 @@ We implement various data-fidelity terms in `the user guide <https://deepinv.git
 # In this first example, we use the Variance-Exploding SDE, whose forward process is defined as:
 #
 # .. math::
-#     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
+#     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.
 
 import torch
 import deepinv as dinv
@@ -81,7 +81,6 @@ num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-
 
 sigma_min = 0.005
 sigma_max = 5
@@ -177,7 +176,7 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 1.0  # guidance strength
+weight = 3.0  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(
@@ -204,7 +203,6 @@ dinv.utils.plot(
     [x, y, x_hat],
     show=True,
     titles=["Original", "Measurement", "Posterior sample"],
-    save_fn="posterior_sample.png",
     figsize=(figsize * 3, figsize),
 )
 # We can also save the trajectory of the posterior sample
@@ -226,7 +224,6 @@ try:
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
     shutil.move("posterior_trajectory.gif", final_dir / "posterior_trajectory.gif")
-    shutil.move("posterior_sample.png", final_dir / "posterior_sample.png")
 
 except FileNotFoundError:
     pass
@@ -238,11 +235,6 @@ except FileNotFoundError:
 # We obtain the following posterior sample and trajectory
 #
 # .. container:: image-col
-#
-#    .. image-sg-ignore:: /auto_examples/images/posterior_sample.png
-#       :alt: example of posterior sample
-#       :srcset: /auto_examples/images/posterior_sample.png
-#       :ignore_missing: true
 #
 #    .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
 #       :alt: example of posterior trajectory
@@ -274,11 +266,13 @@ except FileNotFoundError:
 from deepinv.sampling import VariancePreservingDiffusion
 
 del trajectory
+# denoiser = NCSNpp(pretrained="download", model_name='ddpm').to(device)
 sde = VariancePreservingDiffusion(device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
     sde=sde,
+    alpha=0.0,
     solver=solver,
     device=device,
     dtype=dtype,
@@ -298,8 +292,7 @@ dinv.utils.plot(
         "posterior sample with VE",
         "posterior sample with VP",
     ],
-    save_fn="posterior_sample_ve_vp.png",
-    figsize=(figsize * 3, figsize),
+    figsize=(figsize * 2, figsize),
 )
 
 
@@ -322,7 +315,6 @@ try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
-    shutil.move("posterior_sample_ve_vp.png", final_dir / "posterior_sample_ve_vp.png")
     shutil.move(
         "posterior_trajectory_vp.gif", final_dir / "posterior_trajectory_vp.gif"
     )
@@ -337,10 +329,6 @@ except FileNotFoundError:
 #
 # .. container:: image-col
 #
-#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_ve_vp.png
-#       :alt: posterior sample with VP
-#       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
-#       :ignore_missing: true
 #    .. container:: image-row
 #
 #       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
@@ -404,7 +392,7 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y=y,
     physics=physics,
-    seed=12,
+    seed=1,
     get_trajectory=True,
 )
 
@@ -413,7 +401,6 @@ dinv.utils.plot(
     [x, y, x_hat.clip(0, 1)],
     titles=["Original", "Measurement", "Posterior sample DRUNet"],
     figsize=(figsize * 3, figsize),
-    save_fn="posterior_sample_DRUNet.png",
 )
 
 # We can also save the trajectory of the posterior sample
@@ -436,9 +423,6 @@ try:
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
     shutil.move(
-        "posterior_sample_DRUNet.png", final_dir / "posterior_sample_DRUNet.png"
-    )
-    shutil.move(
         "posterior_sample_DRUNet.gif", final_dir / "posterior_sample_DRUNet.gif"
     )
 
@@ -451,11 +435,6 @@ except FileNotFoundError:
 # We obtain the following posterior trajectory
 #
 # .. container:: image-col
-#
-#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.png
-#       :alt: posterior sample DRUNet
-#       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
-#       :ignore_missing: true
 #
 #    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.gif
 #       :alt: posterior trajectory DRUNet

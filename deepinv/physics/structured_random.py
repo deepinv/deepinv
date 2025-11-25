@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 from deepinv.physics.functional import dst1
 import numpy as np
@@ -87,11 +88,13 @@ def generate_diagonal(
     mode: str,
     dtype=torch.cfloat,
     device="cpu",
-    generator=torch.Generator("cpu"),
+    generator: torch.Generator | None = None,
 ):
     r"""
     Generate a random tensor as the diagonal matrix.
     """
+    if generator is None:
+        generator = torch.Generator(device)
 
     if mode == "uniform_phase":
         diag = torch.rand(shape)
@@ -118,7 +121,7 @@ class StructuredRandom(LinearPhysics):
 
     :param tuple img_size: input shape. If (C, H, W), i.e., the input is a 2D signal with C channels, then zero-padding will be used for oversampling and cropping will be used for undersampling.
     :param tuple output_size: shape of outputs.
-    :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`. Default is 1.
+    :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math:`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`. Default is 1.
     :param Callable transform_func: structured transform function. Default is :func:`deepinv.physics.functional.dst1`.
     :param Callable transform_func_inv: structured inverse transform function. Default is :func:`deepinv.physics.functional.dst1`.
     :param list diagonals: list of diagonal matrices. If None, a random :math:`{-1,+1}` mask matrix will be used. Default is None.

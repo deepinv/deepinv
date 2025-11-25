@@ -2,15 +2,20 @@ import pytest
 import torch
 
 import deepinv as dinv
-from deepinv.optim.prior import PnP
+from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded_builder, DEQ_builder
+from deepinv import optim
+
+UNFOLDED_ALGO = [
+    "PGD",
+    "HQS",
+    "GD",
+    "ADMM",
+    "FISTA",
+]
 
 
-OPTIM_ALGO = ["PGD", "HQS"]
-
-
-@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
+@pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
@@ -23,10 +28,24 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
-    prior = [
-        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
-        for i in range(max_iter)
-    ]
+    if not unfolded_algo == "GD":
+        prior = [
+            PnP(
+                denoiser=dinv.models.WaveletDenoiser(
+                    wv="db8", level=level, device=device
+                )
+            )
+            for i in range(max_iter)
+        ]
+    else:
+        prior = [
+            RED(
+                denoiser=dinv.models.WaveletDenoiser(
+                    wv="db8", level=level, device=device
+                )
+            )
+            for i in range(max_iter)
+        ]
 
     # Unrolled optimization algorithm parameters
     lamb = [
@@ -37,36 +56,78 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
     sigma_denoiser_init = 0.01
-    sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
+    sigma_denoiser = [sigma_denoiser_init * torch.ones(1, level, 3)] * max_iter
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-    }
-
     trainable_params = [
         "g_param",
         "stepsize",
-    ]  # define which parameters from 'params_algo' are trainable
+    ]  # define which parameters  are trainable
 
     # Define the unfolded trainable model.
-    model = unfolded_builder(
-        unfolded_algo,
-        params_algo=params_algo,
+    model = getattr(optim, unfolded_algo)(
+        unfold=True,
+        stepsize=stepsize,
+        g_param=sigma_denoiser,
+        lambda_reg=lamb,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
     )
+    model.to(device)
 
     for idx, (name, param) in enumerate(model.named_parameters()):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
+    # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+    batch_size = 5
+    n_channels, img_size_w, img_size_h = imsize
+    noise_level = 0.01
 
-@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
-def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
+    torch.manual_seed(0)
+    test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
+    groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
+        device
+    )
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(n_channels, img_size_w, img_size_h),
+        filter=dinv.physics.blur.gaussian_blur(),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+    )
+
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    out = model(y, physics=physics)
+
+    assert out.shape == test_sample.shape
+
+    loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
+    loss = loss_fn(groundtruth_sample, out)
+    loss.backward()
+
+
+DEQ_ALGO = ["PGD", "HQS"]
+
+
+@pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
+@pytest.mark.parametrize("and_acc", [False, True])
+@pytest.mark.parametrize("jac_free", [False, True])
+@pytest.mark.parametrize("default_params_algo", [False, True])
+@pytest.mark.parametrize("default_data_fidelity", [False, True])
+def test_DEQ(
+    unfolded_algo,
+    imsize,
+    dummy_dataset,
+    device,
+    and_acc,
+    jac_free,
+    default_params_algo,
+    default_data_fidelity,
+):
+
     pytest.importorskip("ptwt")
     torch.set_grad_enabled(
         True
@@ -95,66 +156,79 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
     sigma_denoiser_init = 0.01
-    sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-    # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-    }
+    sigma_denoiser = [sigma_denoiser_init * torch.ones(1, level, 3)] * max_iter
 
     trainable_params = [
         "g_param",
         "stepsize",
     ]  # define which parameters from 'params_algo' are trainable
 
+    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+        "stepsize": stepsize,
+        "g_param": sigma_denoiser,
+        "lambda": lamb,
+    }
+
+    kwargs = {}
+
+    if not default_params_algo:
+        kwargs["params_algo"] = params_algo
+
+    if not default_data_fidelity:
+        kwargs["data_fidelity"] = data_fidelity
+
+    DEQ_config = dinv.optim.DEQConfig(
+        jacobian_free=jac_free,
+        anderson_acceleration_backward=and_acc,
+        history_size_backward=2,
+        beta_backward=1.0,
+        eps_backward=1e-4,
+        max_iter_backward=5,
+    )
+
     # Define the unfolded trainable model.
-    for and_acc in [False, True]:
-        for jac_free in [False, True]:
-            # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
+    # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
+    model = getattr(optim, unfolded_algo)(
+        stepsize=stepsize,
+        g_param=sigma_denoiser,
+        lambda_reg=lamb,
+        DEQ=DEQ_config,
+        trainable_params=trainable_params,
+        max_iter=max_iter,
+        prior=prior,
+        anderson_acceleration=and_acc,
+        **kwargs,
+    )
+    model.to(device)
 
-            model = DEQ_builder(
-                unfolded_algo,
-                params_algo=params_algo,
-                trainable_params=trainable_params,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                prior=prior,
-                anderson_acceleration=and_acc,
-                anderson_acceleration_backward=and_acc,
-                jacobian_free=jac_free,
-            )
+    for idx, (name, param) in enumerate(model.named_parameters()):
+        assert param.requires_grad
+        assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
-            for idx, (name, param) in enumerate(model.named_parameters()):
-                assert param.requires_grad
-                assert (trainable_params[0] in name) or (trainable_params[1] in name)
+    # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+    batch_size = 5
+    n_channels, img_size_w, img_size_h = imsize
+    noise_level = 0.01
 
-            # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
-            batch_size = 5
-            n_channels, img_size_w, img_size_h = imsize
-            noise_level = 0.01
+    torch.manual_seed(0)
+    test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
+    groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
+        device
+    )
 
-            torch.manual_seed(0)
-            test_sample = torch.randn(
-                batch_size, n_channels, img_size_w, img_size_h
-            ).to(device)
-            groundtruth_sample = torch.randn(
-                batch_size, n_channels, img_size_w, img_size_h
-            ).to(device)
+    physics = dinv.physics.BlurFFT(
+        img_size=(n_channels, img_size_w, img_size_h),
+        filter=dinv.physics.blur.gaussian_blur(),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+    )
 
-            physics = dinv.physics.BlurFFT(
-                img_size=(n_channels, img_size_w, img_size_h),
-                filter=dinv.physics.blur.gaussian_blur(),
-                device=device,
-                noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
-            )
+    y = physics(test_sample).type(test_sample.dtype).to(device)
 
-            y = physics(test_sample).type(test_sample.dtype).to(device)
+    out = model(y, physics=physics)
 
-            out = model(y, physics=physics)
+    assert out.shape == test_sample.shape
 
-            assert out.shape == test_sample.shape
-
-            loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
-            loss = loss_fn(groundtruth_sample, out)
-            loss.backward()
+    loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
+    loss = loss_fn(groundtruth_sample, out)
+    loss.backward()

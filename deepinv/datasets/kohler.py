@@ -1,12 +1,15 @@
+from __future__ import annotations
 import torch
-from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
 from urllib.parse import urlparse
 from os.path import basename, join
-from typing import Callable, Union
+from typing import Callable
+from types import MappingProxyType
 from pathlib import Path
+
+from deepinv.datasets.base import ImageDataset
 
 
 def url_basename(url: str) -> str:
@@ -15,8 +18,10 @@ def url_basename(url: str) -> str:
     return basename(path)
 
 
-class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
+class Kohler(ImageDataset):
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
+
+    Published in :footcite:t:`kohler2012recording`.
 
     The dataset consists of blurry shots and sharp frames, each blurry shot
     being associated with about 200 sharp frames. There are 48 blurry shots in
@@ -77,44 +82,49 @@ class Kohler(Dataset):
             # Convenience method to directly index the printouts and trajectories
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
             print(sharp_frame.shape, blurry_shot.shape)
+
     """
 
     # The Köhler dataset is split into multiple archives available online.
-    archive_urls = [
+    _archive_urls = (
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image1.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image2.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image3.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image4.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/BlurryImages.zip",
-    ]
+    )
 
     # The checksums are used to verify the integrity of the downloaded
     # archives.
-    archive_checksums = {
-        "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
-        "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
-        "GroundTruth_pngs_Image3.zip": "3a77c41c951367f35db52eb18496bbac",
-        "GroundTruth_pngs_Image4.zip": "72ce9690c3ed1296358653396cf9576d",
-        "BlurryImages.zip": "61ffb1434d93fca6c508976a7216d723",
-    }
+    _archive_checksums = MappingProxyType(
+        {
+            "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
+            "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
+            "GroundTruth_pngs_Image3.zip": "3a77c41c951367f35db52eb18496bbac",
+            "GroundTruth_pngs_Image4.zip": "72ce9690c3ed1296358653396cf9576d",
+            "BlurryImages.zip": "61ffb1434d93fca6c508976a7216d723",
+        }
+    )
 
     # Most of the acquisitions of sharp images span exactly 199 frames but not
     # all of them and this lookup table gives each frame count for them all.
-    frame_count_table = {
-        (2, 11): 200,
-        (1, 10): 198,
-        (1, 12): 198,
-        (2, 10): 198,
-        (3, 7): 198,
-        (3, 12): 198,
-        (4, 12): 198,
-        "others": 199,
-    }
+    _frame_count_table = MappingProxyType(
+        {
+            (2, 11): 200,
+            (1, 10): 198,
+            (1, 12): 198,
+            (2, 10): 198,
+            (3, 7): 198,
+            (3, 12): 198,
+            (4, 12): 198,
+            "others": 199,
+        }
+    )
 
     def __init__(
         self,
-        root: Union[str, Path],
-        frames: Union[int, str, list[Union[int, str]]] = "middle",
+        root: str | Path,
+        frames: int | str | list[int | str] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
@@ -128,7 +138,7 @@ class Kohler(Dataset):
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: Union[str, Path], remove_finished: bool = False) -> None:
+    def download(cls, root: str | Path, remove_finished: bool = False) -> None:
         """Download the dataset.
 
         :param Union[str, pathlib.Path] root: Root directory of the dataset.
@@ -143,9 +153,9 @@ class Kohler(Dataset):
                 from deepinv.datasets import Kohler
                 Kohler.download("datasets/Kohler")
         """
-        for url in cls.archive_urls:
+        for url in cls._archive_urls:
             archive_name = url_basename(url)
-            checksum = cls.archive_checksums[archive_name]
+            checksum = cls._archive_checksums[archive_name]
 
             # Download the archive and verify its integrity
             download_and_extract_archive(
@@ -194,7 +204,7 @@ class Kohler(Dataset):
         self,
         printout_index: int,
         trajectory_index: int,
-        frames: Union[None, int, str, list[Union[int, str]]] = None,
+        frames: None | int | str | list[int | str] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get a sharp frame and a blurry shot from the dataset.
 
@@ -246,7 +256,7 @@ class Kohler(Dataset):
 
     def get_sharp_frame(
         self, printout_index: int, trajectory_index: int, frame_index: int
-    ) -> Union[torch.Tensor, Image.Image, any]:
+    ) -> torch.Tensor | Image.Image | any:
         path = join(
             self.root,
             f"Image{printout_index}",
@@ -260,7 +270,7 @@ class Kohler(Dataset):
 
     def get_blurry_shot(
         self, printout_index: int, trajectory_index: int
-    ) -> Union[torch.Tensor, Image.Image, any]:
+    ) -> torch.Tensor | Image.Image | any:
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)
         if self.transform is not None:
@@ -269,7 +279,7 @@ class Kohler(Dataset):
 
     @classmethod
     def select_frame(
-        cls, printout_index: int, trajectory_index: int, frame: Union[int, str]
+        cls, printout_index: int, trajectory_index: int, frame: int | str
     ) -> int:
         if isinstance(frame, int):
             frame_index = frame
@@ -291,9 +301,9 @@ class Kohler(Dataset):
     def get_frame_count(cls, printout_index: int, trajectory_index: int) -> int:
         index = (printout_index, trajectory_index)
 
-        if index in cls.frame_count_table:
-            count = cls.frame_count_table[index]
+        if index in cls._frame_count_table:
+            count = cls._frame_count_table[index]
         else:
-            count = cls.frame_count_table["others"]
+            count = cls._frame_count_table["others"]
 
         return count

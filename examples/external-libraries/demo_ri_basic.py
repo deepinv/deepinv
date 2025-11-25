@@ -3,9 +3,8 @@ Radio interferometric imaging with deepinverse
 ==============================================
 
 In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.
-The following example and data are taken from `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
+The following example and data are taken from :footcite:t:`aghabiglou2024r2d2`.
 If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check `BASPLib <https://basp-group.github.io/BASPLib/>`_.
-
 """
 
 # %%
@@ -20,8 +19,9 @@ import torchkbnufft as tkbn
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
-from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
+from deepinv.utils import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
+from deepinv.optim import FISTA
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -147,15 +147,16 @@ class RadioInterferometry(LinearPhysics):
 #
 # Groundtruth image
 # ----------------------------------------------------------------------------------------
-# The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
+# The following data is our groundtruth with the settings of Experiment II in :footcite:t:`aghabiglou2024r2d2`.
 # The groundtruth data has been normalized in the [0, 1] range.
 # As usual in radio interferometric imaging, the data has high dynamic range,
 # i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision tasks.
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
-image_gdth = load_np_url(get_image_url("3c353_gdth.npy"))
-image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
+image_gdth = (
+    load_np_url(get_image_url("3c353_gdth.npy")).unsqueeze(0).unsqueeze(0).to(device)
+)
 
 
 def to_logimage(im, rescale=False, dr=5000):
@@ -173,7 +174,7 @@ def to_logimage(im, rescale=False, dr=5000):
 imgs = [image_gdth, to_logimage(image_gdth)]
 plot(
     imgs,
-    titles=[f"Groundtruth", f"Groundtruth in logarithmic scale"],
+    titles=[f"Groundtruth", f"Groundtruth \nin logarithmic scale"],
     cmap="inferno",
     cbar=True,
 )
@@ -187,8 +188,7 @@ plot(
 # so that the possibility of point sources appearing on the boundaries of pixels can be reduced.
 # Here, this factor is ``1.5``.
 
-uv = load_np_url(get_degradation_url("uv_coordinates.npy"))
-uv = torch.from_numpy(uv).to(device)
+uv = load_np_url(get_degradation_url("uv_coordinates.npy")).to(device)
 
 scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 
@@ -198,7 +198,7 @@ scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 # We now have all the data and tools to generate our measurements!
 # The noise level :math:`\tau` in the spacial Fourier domain is set to ``0.5976 * 2e-3``.
 # This value will preserve the dynamic range of the groundtruth image in this case.
-# Please check `Terris et al. (2024) <https://doi.org/10.1093/mnras/stac2672>`_ and `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_
+# Please check :footcite:t:`terris2023image` and :footcite:t:`aghabiglou2024r2d2`.
 # for more information about the relationship between the noise level in the Fourier domain and the dynamic range of the target image.
 
 tau = 0.5976 * 2e-3
@@ -207,7 +207,7 @@ tau = 0.5976 * 2e-3
 physics = RadioInterferometry(
     img_size=image_gdth.shape[-2:],
     samples_loc=uv.permute((1, 0)),
-    real=True,
+    real_projection=True,
     device=device,
 )
 
@@ -225,8 +225,9 @@ y = y + tau * noise
 # We here provide the Briggs-weighting scheme associated to the above uv-sampling pattern.
 
 # load pre-computed Briggs weighting
-nWimag = load_np_url(get_degradation_url("briggs_weight.npy"))
-nWimag = torch.from_numpy(nWimag).reshape(1, 1, -1).to(device)
+nWimag = (
+    load_np_url(get_degradation_url("briggs_weight.npy")).reshape(1, 1, -1).to(device)
+)
 
 # apply natural weighting and Briggs weighting to measurements
 y *= nWimag / tau
@@ -235,8 +236,11 @@ y *= nWimag / tau
 physics.setWeight(nWimag / tau)
 
 # compute operator norm (note: increase the iteration number for higher precision)
-opnorm = physics.compute_norm(
-    torch.randn_like(image_gdth, device=device), max_iter=20, tol=1e-6, verbose=False
+opnorm = physics.compute_sqnorm(
+    torch.randn_like(image_gdth, device=device),
+    max_iter=20,
+    tol=1e-6,
+    verbose=False,
 ).item()
 print("Operator norm: ", opnorm)
 
@@ -268,7 +272,7 @@ back = physics.A_adjoint(y)
 imgs = [to_logimage(image_gdth), to_logimage(back, rescale=True)]
 plot(
     imgs,
-    titles=[f"Groundtruth (logscale)", f"Backprojection (logscale)"],
+    titles=[f"Groundtruth \n(logscale)", f"Backprojection \n(logscale)"],
     cmap="inferno",
 )
 
@@ -298,18 +302,15 @@ prior = WaveletPrior(level=3, wv=wv_list, p=1, device="cpu", clamp_min=0)
 
 
 # %%
-# The problem is quite challenging and to reduce optimization time,
-# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
 
 
 def custom_init(y, physics):
     x_init = torch.clamp(physics.A_dagger(y), 0)
-    return {"est": (x_init, x_init)}
+    return x_init
 
 
 # %%
 # We are now ready to implement the FISTA algorithm.
-from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
@@ -320,25 +321,29 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1e-3 * opnorm  # wavelet regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-3 * opnorm  # wavelet regularisation parameter
 max_iter = 50
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="FISTA",
+model = FISTA(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     custom_init=custom_init,
 )
 
 # reconstruction with FISTA algorithm
-x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
+# The problem is quite challenging and to reduce optimization time,
+# we can start from an approximate guess of the solution that is pseudo-inverse reconstruction.
+init = torch.clamp(physics.A_dagger(y), 0), torch.clamp(
+    physics.A_dagger(y), 0
+)  # initialization of the x and z variables in FISTA
+x_model, metrics = model(y, physics, init=init, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(
@@ -355,6 +360,7 @@ imgs = [
     to_logimage(back, rescale=True),
     to_logimage(x_model, rescale=True),
 ]
+# %%
 plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno", cbar=True)
 
 # plot convergence curves
@@ -370,3 +376,8 @@ if plot_convergence_metrics:
 # `AIRI <https://basp-group.github.io/BASPLib/AIRI.html>`_,
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
+
+# %%
+# :References:
+#
+# .. footbibliography::

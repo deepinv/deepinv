@@ -1,4 +1,3 @@
-import torch
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
 
@@ -7,7 +6,7 @@ def test(
     model,
     test_dataloader,
     physics,
-    metrics=PSNR(),
+    metrics=None,
     online_measurements=False,
     physics_generator=None,
     device="cpu",
@@ -17,7 +16,8 @@ def test(
     verbose=True,
     rescale_mode="clip",
     show_progress_bar=True,
-    no_learning_method="A_dagger",
+    compare_no_learning=True,
+    no_learning_method="A_adjoint",
     **kwargs,
 ):
     r"""
@@ -33,7 +33,7 @@ def test(
         See :ref:`datasets <datasets>` for more details.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)
         used by the reconstruction network at test time.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] metrics: Metric or list of metrics used for evaluating the model. Defaults to :class:`deepinv.loss.metric.PSNR`.
         :ref:`See the libraries' evaluation metrics <loss>`.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``.
@@ -48,12 +48,15 @@ def test(
     :param bool verbose: Output training progress information in the console.
     :param bool plot_measurements: Plot the measurements y. default=True.
     :param bool show_progress_bar: Show progress bar.
+    :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``,
-        ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can modify the no-learning method
+        ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can modify the no-learning method
         by overwriting the :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
+    if metrics is None:
+        metrics = PSNR()
     trainer = Trainer(
         model,
         physics=physics,
@@ -68,8 +71,12 @@ def test(
         plot_convergence_metrics=plot_convergence_metrics,
         verbose=verbose,
         rescale_mode=rescale_mode,
+        compare_no_learning=compare_no_learning,
         no_learning_method=no_learning_method,
         show_progress_bar=show_progress_bar,
+        save_path=save_folder,
         **kwargs,
     )
-    return trainer.test(test_dataloader, save_path=save_folder)
+    return trainer.test(
+        test_dataloader, save_path=save_folder, compare_no_learning=compare_no_learning
+    )

@@ -1,10 +1,13 @@
-from typing import Union
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
 from deepinv.loss.loss import Loss
-from deepinv.loss.metric.metric import Metric
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.transform.base import Transform
 
 
 class EILoss(Loss):
@@ -12,9 +15,8 @@ class EILoss(Loss):
     Equivariant imaging self-supervised loss.
 
     Assumes that the set of signals is invariant to a group of transformations (rotations, translations, etc.)
-    in order to learn from incomplete measurement data alone https://https://arxiv.org/pdf/2103.14756.pdf.
-
-    The EI loss is defined as
+    in order to learn from incomplete measurement data alone.
+    The EI loss, as proposed by :footcite:t:`chen2021equivariant`, is defined as
 
     .. math::
 
@@ -37,19 +39,22 @@ class EILoss(Loss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
-        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
+        This option is useful for super-resolution problems, see :footcite:t:`scanvic2025scale` for details.
+
     """
 
     def __init__(
         self,
         transform: Transform,
-        metric: Union[Metric, nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | nn.Module | None = None,
         apply_noise=True,
         weight=1.0,
         no_grad=False,
         *args,
         **kwargs,
     ):
+        if metric is None:
+            metric = nn.MSELoss()
         super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
         self.metric = metric

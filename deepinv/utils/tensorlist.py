@@ -1,5 +1,6 @@
 import torch
 import warnings
+from deepinv.utils.compat import zip_strict
 
 
 class TensorList:
@@ -22,7 +23,12 @@ class TensorList:
         else:
             raise TypeError("x must be a list of torch.Tensor or a single torch.Tensor")
 
-        self.shape = [xi.shape for xi in self.x]
+    @property
+    def shape(self):
+        """
+        Returns a list of the Tensor shapes.
+        """
+        return [xi.shape for xi in self.x]
 
     def __repr__(self):
         return f"TensorList({self.x})"
@@ -50,6 +56,18 @@ class TensorList:
         Moves the TensorList to the cpu.
         """
         return TensorList([xi.cpu() for xi in self.x])
+
+    def abs(self):
+        r"""
+        Returns a TensorList with the absolute value of each tensor.
+        """
+        return TensorList([xi.abs() for xi in self.x])
+
+    def max(self):
+        r"""
+        Returns a TensorList with the maximum value of each tensor.
+        """
+        return TensorList([xi.max() for xi in self.x])
 
     def numpy(self):
         r"""
@@ -119,7 +137,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi + other for xi in self.x])
         else:
-            return TensorList([xi + otheri for xi, otheri in zip(self.x, other)])
+            return TensorList([xi + otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __mul__(self, other):
         r"""
@@ -130,7 +148,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __rmul__(self, other):
         r"""
@@ -141,7 +159,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+            return TensorList([xi * otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __truediv__(self, other):
         r"""
@@ -152,7 +170,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi / other for xi in self.x])
         else:
-            return TensorList([xi / otheri for xi, otheri in zip(self.x, other)])
+            return TensorList([xi / otheri for xi, otheri in zip_strict(self.x, other)])
 
     def __neg__(self):
         r"""
@@ -170,7 +188,7 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi - other for xi in self.x])
         else:
-            return TensorList([xi - otheri for xi, otheri in zip(self.x, other)])
+            return TensorList([xi - otheri for xi, otheri in zip_strict(self.x, other)])
 
     def conj(self):
         r"""
@@ -204,6 +222,14 @@ class TensorList:
         """
         return any([xi.any() for xi in self.x])
 
+    def any(self):
+        r"""
+
+        Returns True if any of the elements of the TensorList is True.
+
+        """
+        return self.__any__()
+
     def __all__(self):
         r"""
 
@@ -211,6 +237,12 @@ class TensorList:
 
         """
         return all([xi.all() for xi in self.x])
+
+    def all(self):
+        """
+        Returns True if all the elements of the TensorList are True.
+        """
+        return self.__all__()
 
     def __gt__(self, other):
         r"""
@@ -231,9 +263,15 @@ class TensorList:
         return TensorList([xi < other for xi in self.x])
 
     def squeeze(self, dim=None):
-        return TensorList([xi.squeeze(dim=dim) for xi in self.x])
+        # NOTE: It is not possible to rely on Tensor.squeeze(dim=None) as it
+        # fails so we use a kwargs dictionary with the parameter dim if it is
+        # provided.
+        kwargs = {}
+        if dim is not None:
+            kwargs["dim"] = dim
+        return TensorList([xi.squeeze(**kwargs) for xi in self.x])
 
-    def unsqueeze(self, dim=None):
+    def unsqueeze(self, dim):
         return TensorList([xi.unsqueeze(dim=dim) for xi in self.x])
 
     @property
@@ -243,6 +281,18 @@ class TensorList:
                 "The tensors in the TensorList are not in the same device! Returning the device of the first tensor."
             )
         return self.x[0].device
+
+    def isnan(self):
+        """
+        Returns a TensorList of booleans where each tensor indicates the NaN positions.
+        """
+        return TensorList([torch.isnan(xi) for xi in self.x])
+
+    def numel(self):
+        """
+        Returns the total number of elements in the TensorList.
+        """
+        return sum([xi.numel() for xi in self.x])
 
 
 def randn_like(x):
@@ -278,13 +328,14 @@ def zeros_like(x):
         return TensorList([torch.zeros_like(xi) for xi in x])
 
 
-def dirac(shape):
+def dirac(shape, device="cpu"):
     r"""
     Returns a :class:`torch.Tensor` with a Dirac delta at the center.
 
     :param tuple shape: shape of the output tensor.
+    :param str device: device of the output tensor.
     """
-    out = torch.zeros(shape)
+    out = torch.zeros(shape, device=device)
     center = tuple([s // 2 for s in shape[-2:]])
     slices = [slice(None)] * (len(shape) - 2) + list(center)
     out[slices] = 1
@@ -297,9 +348,9 @@ def dirac_like(x):
     with the same type as x, filled with zeros.
     """
     if isinstance(x, torch.Tensor):
-        return dirac(x.shape)
+        return dirac(x.shape, device=x.device)
     else:
-        return TensorList([dirac(xi.shape) for xi in x])
+        return TensorList([dirac(xi.shape, device=xi.device) for xi in x])
 
 
 def ones_like(x):

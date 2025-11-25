@@ -3,19 +3,19 @@ import pytest
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from dummy import DummyCircles, DummyModel
-from deepinv.unfolded import unfolded_builder
-from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
+from dummy import DummyCircles
+from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen, Denoising
 from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     SigmaGenerator,
     DiffractionBlurGenerator,
 )
+from deepinv.datasets.base import ImageDataset
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -72,7 +72,7 @@ def test_generate_dataset_physics_generator(
 ):
     N = 10
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __getitem__(self, i):
             return torch.ones(imsize)
 
@@ -89,7 +89,7 @@ def test_generate_dataset_physics_generator(
             physics = Inpainting(img_size=imsize, mask=0.1)
             physics_generator = BernoulliSplittingMaskGenerator(imsize, 0.6)
         elif phys_gen == "sigma":
-            physics = GaussianNoise()
+            physics = Denoising(noise_model=GaussianNoise())
             physics_generator = SigmaGenerator()
         elif phys_gen == "diffraction":
             physics = Blur()
@@ -220,43 +220,19 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [
-        0.01
-        * torch.ones(
-            level,
-        )
-    ] * max_iter
-    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-    }
-
-    # define which parameters from 'params_algo' are trainable
+    g_param = [0.01 * torch.ones(1, level)] * max_iter
+    # define which parameters are trainable
     trainable_params = ["g_param", "stepsize"]
 
-    # Define the unfolded trainable model.
-
-    # Because the CP algorithm uses more than 2 variables, we need to define a custom initialization.
-    if name_algo == "CP":
-
-        def custom_init(y, physics):
-            x_init = physics.A_adjoint(y)
-            u_init = y
-            return {"est": (x_init, x_init, u_init)}
-
-        params_algo["sigma"] = 1.0
-    else:
-        custom_init = None
-
-    model_unfolded = unfolded_builder(
-        name_algo,
-        params_algo=params_algo,
+    model_unfolded = getattr(dinv.optim, name_algo)(
+        unfold=True,
+        stepsize=stepsize,
+        g_param=g_param,
+        lambda_reg=lamb,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
         prior=prior,
-        custom_init=custom_init,
     )
 
     for idx, (name, param) in enumerate(model_unfolded.named_parameters()):

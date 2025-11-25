@@ -5,9 +5,7 @@ Self-supervised MRI reconstruction with Artifact2Artifact
 We demonstrate the self-supervised Artifact2Artifact loss for solving an
 undersampled sequential MRI reconstruction problem without ground truth.
 
-The Artifact2Artifact loss was introduced in Liu et al. `RARE: Image
-Reconstruction using Deep Priors Learned without
-Groundtruth <https://ieeexplore.ieee.org/document/9103213>`__.
+The Artifact2Artifact loss was introduced by :footcite:t:`liu2020rare`.
 
 In our example, we use it to reconstruct **static** images, where the
 k-space measurements is a time-sequence, where each time step (phase)
@@ -24,9 +22,8 @@ Phase2Phase.
 
 """
 
-from pathlib import Path
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import deepinv as dinv
@@ -89,7 +86,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # We simulate a sequential k-space sampler, that, over the course of 4
 # phases (i.e. frames), samples 64 lines (i.e 2x total undersampling from
 # 128) with Gaussian weighting (plus a few extra for the ACS signals in
-# the centre of the k-space). We use
+# the center of the k-space). We use
 # :class:`deepinv.physics.SequentialMRI` to do this.
 #
 # First, we define a static 2x acceleration mask that all measurements use
@@ -134,16 +131,16 @@ mask = torch.stack([mask] * H, -2)
 # Now define physics using this time-varying mask of shape [B,C,T,H,W]:
 #
 
-physics = dinv.physics.SequentialMRI(mask=mask)
+physics = dinv.physics.SequentialMRI(mask=mask, device=device)
 
 
 # %%
-# Let's visualise the sequential measurements using a sample image (run
-# this notebook yourself to display the video). We also visualise the
+# Let's visualize the sequential measurements using a sample image (run
+# this notebook yourself to display the video). We also visualize the
 # frame-by-frame no-learning zero-filled reconstruction.
 #
 
-x = next(iter(train_dataloader))
+x = next(iter(train_dataloader)).to(device)
 y = physics(x)
 dinv.utils.plot_videos(
     [physics.repeat(x, mask), y, mask, physics.A_adjoint(y, keep_time_dim=True)],
@@ -153,7 +150,7 @@ dinv.utils.plot_videos(
 
 
 # %%
-# Also visualise the flattened time-series, recovering the original 2x
+# Also visualize the flattened time-series, recovering the original 2x
 # undersampling mask (note the actual undersampling factor is much lower
 # due to ACS lines):
 #
@@ -172,11 +169,11 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+# DnCNN architecture which was proposed in MoDL :footcite:t:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL()
+model = MoDL().to(device)
 
 
 # %%
@@ -204,6 +201,13 @@ model = loss.adapt_model(model)
 # train from scratch, simply comment out the model loading code and
 # increase the number of epochs.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -225,12 +229,15 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,
+    eval_dataloader=test_dataloader,
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     online_measurements=True,
     device=device,
     save_path=None,
     verbose=True,
-    wandb_vis=False,
     show_progress_bar=False,
 )
 
@@ -241,6 +248,14 @@ model = trainer.train()
 # Test the model
 # ==============
 #
+# We now assume that we have access to a small test set of ground-truth images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
+#
 
 trainer.plot_images = True
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()])
+
+# %%
+# :References:
+#
+# .. footbibliography::

@@ -4,123 +4,138 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube| |paper|
 
 
 Introduction
 ------------
-DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standardizing forward imaging models and simplifying the creation of imaging datasets.
+`DeepInverse <https://deepinv.github.io/deepinv>`_ is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
-``deepinv`` features
-
-
-* A large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
-* `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.)
-* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/weights.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_
-* A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
-* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.)
-* `Sampling algorithms <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.)
-* A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, from basics to state-of-the-art methods
 
 .. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_schematic.png
    :width: 1000px
    :alt: deepinv schematic
    :align: center
 
+Get started
+-----------
 
-Documentation
--------------
+Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 
-Read the documentation and examples at `https://deepinv.github.io <https://deepinv.github.io>`_.
+``deepinv`` features
+
+* A large framework of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`_
+* Many `state-of-the-art deep neural networks <https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html>`_, including pretrained out-of-the-box `reconstruction models <https://deepinv.github.io/deepinv/user_guide/reconstruction/pretrained-models.html>`_ and `denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/denoisers.html>`_ 
+* Comprehensive frameworks for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_, `optimization <https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html>`_ and `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_
+* `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems
+* `Sampling algorithms and diffusion models <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
+* A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
 
 Install
 -------
 
-To install the latest stable release of ``deepinv``, you can simply do:
+Install the latest stable release of ``deepinv``:
 
 .. code-block:: bash
 
-    pip install deepinv
+   pip install deepinv
 
-You can also install the latest version of ``deepinv`` directly from github:
-
-.. code-block:: bash
-
-    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-You can also install additional dependencies needed for some modules in deepinv.datasets and deepinv.models:
+Or, use `uv` for a faster install:
 
 .. code-block:: bash
 
-    pip install deepinv[dataset,denoisers]
+   uv pip install deepinv
 
-    # or
-
-    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
-
-Since ``deepinv`` is under active development, you can update to the latest version easily using:
+Or, to also install optional dependencies:
 
 .. code-block:: bash
 
-    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+   pip install deepinv[dataset,denoisers]
 
+Since ``deepinv`` is under active development, you can install the latest nightly version using:
 
-Quickstart
-----------
-Try out the following plug-and-play image inpainting example:
+.. code-block:: bash
 
-.. code-block:: python
+   pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-   import deepinv as dinv
-   from deepinv.utils import load_example
+Or, for updating an existing installation:
 
-   x = load_example("cameraman.png", img_size=512, grayscale=True, device='cpu')
+.. code-block:: bash
 
-   physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
-                                       noise_model=dinv.physics.GaussianNoise(sigma=0.01))
+   pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
-   data_fidelity = dinv.optim.data_fidelity.L2()
-   prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-   model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
-                                    params_algo={"stepsize": 1.0, "g_param": 0.1})
-   y = physics(x)
-   x_hat = model(y, physics)
-   dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
-
-
-Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 
 Contributing
 ------------
 
-DeepInverse is a community-driven project and welcomes contributions of all forms.
-We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
-and we need your help to get there!
-The preferred way to contribute to ``deepinv`` is to fork the `main
-repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
-then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/contributing.html>`_
-for more details.
+DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there! 
 
+Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
 
 Finding help
 ------------
 
 If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers is to open an issue on the
-`issue tracker <https://github.com/deepinv/deepinv/issues>`_.
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_.
+
+Maintainers
+-----------
+
+Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
+
+Citation
+--------
+If you use DeepInverse in your research, please cite `our paper on JOSS <https://joss.theoj.org/papers/10.21105/joss.08923>`_:
+
+
+.. code-block:: bash
+
+    @article{tachella2025deepinverse,
+        title = {DeepInverse: A Python package for solving imaging inverse problems with deep learning},
+        journal = {Journal of Open Source Software}
+        doi = {10.21105/joss.08923},
+        url = {https://doi.org/10.21105/joss.08923},
+        year = {2025},
+        publisher = {The Open Journal},
+        volume = {10},
+        number = {115},
+        pages = {8923},
+        author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
+    }
+
+Star history
+------------
+
+.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :alt: Star History Chart
+   :target: https://www.star-history.com/#deepinv/deepinv&Date
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
-   :target: https://www.python.org/downloads/release/python-390/
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
+.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+   :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
-.. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
+.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
+   :target: https://pypistats.org/packages/deepinv
+.. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/drive/1XhCO5S1dYN3eKm4NEkczzVU7ZLBuE42J
+   :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
+.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
+   :target: https://www.youtube.com/@deepinv
+.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
+   :target: https://doi.org/10.21105/joss.08923

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
 from warnings import warn
 
 import torch
@@ -9,21 +8,15 @@ import torch.nn as nn
 from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
-from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
-
-if TYPE_CHECKING:
-    from deepinv.physics.forward import Physics
+from deepinv.physics.mri import MRI, MultiCoilMRI
+from deepinv.utils.mixins import MRIMixin
 
 
 class VarNet(ArtifactRemoval, MRIMixin):
     """
     VarNet or E2E-VarNet model.
 
-    These models are from the papers
-    `Sriram et al., End-to-End Variational Networks for Accelerated MRI Reconstruction <https://arxiv.org/abs/2004.06688>`_
-    and
-    `Hammernik et al., Learning a variational network for reconstruction of accelerated MRI data <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`_.
-
+    These models are from the papers :footcite:t:`sriram2020end` and :footcite:t:`hammernik2018learning`.
     This performs unrolled iterations on the image estimate x (as per the original VarNet paper)
     or the kspace y (as per E2E-VarNet).
 
@@ -35,7 +28,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     Code loosely adapted from E2E-VarNet implementation from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/models/varnet.py.
 
-    :param Denoiser, torch.nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
+    :param Denoiser, torch.nn.Module denoiser: backbone network that parametrizes the grad of the regulariser.
         If ``None``, a small DnCNN is used.
     :param torch.nn.Module sensitivity_model: network to jointly estimate coil sensitivity maps for multi-coil MRI. If ``None``, do not perform any map estimation. For single-coil MRI, unused.
     :param int num_cascades: number of unrolled iterations ('cascades').
@@ -45,7 +38,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     def __init__(
         self,
-        denoiser: Union[Denoiser, nn.Module] = None,
+        denoiser: Denoiser | nn.Module = None,
         sensitivity_model: nn.Module = None,
         num_cascades: int = 12,
         mode: str = "varnet",
@@ -84,7 +77,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
         )
 
     def backbone_inference(
-        self, tensor_in: Tensor, physics: Union[MRI, MultiCoilMRI], y: Tensor
+        self, tensor_in: Tensor, physics: MRI | MultiCoilMRI, y: Tensor
     ) -> torch.Tensor:
         """Perform inference on input tensor.
 
@@ -129,7 +122,7 @@ class VarNetBlock(nn.Module):
     :param bool estimate_x: whether estimate images x, or kspaces y.
     """
 
-    def __init__(self, denoiser: Union[Denoiser, nn.Module], estimate_x: bool = True):
+    def __init__(self, denoiser: Denoiser | nn.Module, estimate_x: bool = True):
         super().__init__()
 
         self.denoiser = denoiser

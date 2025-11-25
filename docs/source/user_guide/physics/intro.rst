@@ -3,7 +3,7 @@
 Introduction
 ---------------
 
-This package contains a large collection of forward operators appearing in imaging applications.
+This module contains a large collection of forward operators appearing in imaging applications.
 The acquisition models are of the form
 
 .. math::
@@ -60,13 +60,13 @@ Composition and linear combinations of linear operators is still a linear operat
 
 More details can be found in the doc of each class.
 
-
+.. _parameter-dependent-operators:
 
 Parameter-dependent operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, i.e.
-:math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of parameters as an extra input.
+Many (linear or non-linear) operators depend on (optional) `params` :math:`\theta` that describe the imaging system, i.e.
+:math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of `params` as an extra input.
 The explicit dependency on :math:`\theta` is often useful for blind inverse problems, model identification,
 imaging system optimization, etc. The following example shows how operators and their parameter can be instantiated and called as:
 
@@ -90,8 +90,8 @@ imaging system optimization, etc. The following example shows how operators and 
    >>>
    >>> # The same can be done by passing in a dictionary including 'filter' as a key
    >>> physics = Blur() # a blur operator without convolution filter
-   >>> dict_params = {'filter': theta, 'dummy': None}
-   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
+   >>> params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **params) # # we define the blur by passing in the dictionary
 
 
 One can also differentiate the parameter as:
@@ -111,7 +111,7 @@ One can also differentiate the parameter as:
 	>>> print(theta_2.grad.shape)
 	torch.Size([1, 1, 3, 3])
 
-and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py`
+and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_physics_demo_optimizing_physics_parameter.py`
 
 .. _physics_generators:
 
@@ -175,7 +175,7 @@ can be done with :func:`deepinv.physics.stack`. The stacked operator is
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics1 = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=dinv.physics.blur.gaussian_blur(.2))
-    >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
+    >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
     >>> physics3 = dinv.physics.stack(physics1, physics2)
     >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
     >>> y = physics3(x) #
@@ -219,9 +219,50 @@ can be done by multiplying the operators:
     >>> import torch
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
+    >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
     >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
     >>> physics = physics2 * physics1
     >>> y = physics(x) # equivalent to y = physics2(physics1.A(x))
     >>> print(y.shape)
     torch.Size([1, 1, 4, 4])
+
+.. _physics_wrappers:
+
+Physics Wrappers
+^^^^^^^^^^^^^^^^
+
+Some wrappers are provided to adapt existing operators to a new problem.
+
+For example, given an operator :math:`A \column \mathbb{R}^N\to\mathbb{R}^M` and an image :math:`x\in\mathbb{R}^P` with :math:`P\neq N`, we need to resize the image to the operator's input size.
+This can be done with the :class:`deepinv.physics.LinearPhysicsMultiScaler` class:
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> x = torch.rand((1, 1, 8, 8))  # define an image 4 times smaller than the physics input size (scale = 2)
+    >>> new_physics = dinv.physics.LinearPhysicsMultiScaler(physics, (1, 32, 32), factors=[2, 4, 8])  # define a multiscale physics with base img size (1, 32, 32)
+    >>> y = new_physics(x, scale=2)  # compute the measurements with the new physics
+    >>> print(y.shape)
+    torch.Size([1, 1, 32, 32])
+    >>> Aty = new_physics.A_adjoint(y, scale=2)  # compute the adjoint operator
+    >>> print(Aty.shape)  # the output is the same size as the input image
+    torch.Size([1, 1, 8, 8])
+
+
+Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads the input image to the operator's input size.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> x = torch.rand((1, 1, 18, 21))  # define an input image larger than the physics input size
+    >>> new_physics = dinv.physics.PhysicsCropper(physics, crop=(2,5))  # define a padded physics
+    >>> y = new_physics(x)  # compute the measurements with cropping
+    >>> print(y.shape)
+    torch.Size([1, 1, 16, 16])
+    >>> Aty = new_physics.A_adjoint(y)  # compute the adjoint operator with cropping
+    >>> print(Aty.shape)  # the output is the same size as the input image
+    torch.Size([1, 1, 18, 21])

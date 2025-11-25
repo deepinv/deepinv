@@ -3,20 +3,24 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor
 
+
 import deepinv.physics
-from deepinv.sampling.langevin import MonteCarlo
-from deepinv.utils.plotting import plot
+from deepinv.sampling import BaseSampling
+from deepinv.sampling.sampling_iterators import DiffusionIterator
+from deepinv.utils.compat import zip_strict
 
 
-class DiffusionSampler(MonteCarlo):
+class DiffusionSampler(BaseSampling):
     r"""
     Turns a diffusion method into a Monte Carlo sampler
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
 
+    See the docs for :class:`deepinv.sampling.BaseSampling` for more information. It uses the helper class :class:`deepinv.sampling.DiffusionIterator`.
+
     :param torch.nn.Module diffusion: a diffusion model
-    :param int max_iter: the maximum number of iterations
+    :param int max_iter: the number of samples to generate
     :param tuple clip: the clip range
     :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
     :param float thres_conv: the convergence threshold for the mean and variance
@@ -24,7 +28,6 @@ class DiffusionSampler(MonteCarlo):
     :param bool save_chain: whether to save the chain
     :param int thinning: the thinning factor
     :param float burnin_ratio: the burnin ratio
-
     """
 
     def __init__(
@@ -42,32 +45,39 @@ class DiffusionSampler(MonteCarlo):
         data_fidelity = None
         diffusion.verbose = False
         prior = diffusion
-
-        def iterator(x, y, physics, likelihood, prior):
-            # run one sampling kernel iteration
-            x = prior(y, physics)
-            return x
+        iterator = DiffusionIterator(clip=clip)
 
         super().__init__(
             iterator,
-            prior,
             data_fidelity,
+            prior,
             max_iter=max_iter,
             thinning=1,
-            save_chain=save_chain,
-            burnin_ratio=0.0,
-            clip=clip,
-            verbose=verbose,
             thresh_conv=thres_conv,
-            g_statistic=g_statistic,
+            history_size=save_chain,
+            burnin_ratio=0.0,
+            verbose=verbose,
+            # thresh_conv=thres_conv,
         )
+        self.g_statistics = [lambda d: g_statistic(d["x"])]
+
+    def forward(self, y, physics, seed=None):
+        r"""
+        Runs the diffusion model to obtain the posterior mean and variance of the reconstruction of the measurements y.
+
+        :param torch.Tensor y: Measurements
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param float seed: Random seed for generating the samples
+        :return: (tuple of torch.Tensor) containing the posterior mean and variance.
+        """
+        return self.sample(y, physics, seed=seed, g_statistics=self.g_statistics)
 
 
 class DDRM(Reconstructor):
-    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
+    r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the denoising diffusion restoration model (DDRM) described in https://arxiv.org/abs/2201.11793.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -76,7 +86,7 @@ class DDRM(Reconstructor):
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
     :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
-        order from 1 to 0.
+        order from 1 to 0. Defaults to ``np.linspace(1, 0, 100)``, i.e., 100 equally spaced noise levels from 1 to 0.
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
@@ -104,17 +114,21 @@ class DDRM(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
+
+
     """
 
     def __init__(
         self,
         denoiser,
-        sigmas=np.linspace(1, 0, 100),
+        sigmas=None,
         eta=0.85,
         etab=1.0,
         verbose=False,
         eps=1e-6,
     ):
+        if sigmas is None:
+            sigmas = np.linspace(1, 0, 100)
         super(DDRM, self).__init__()
         self.denoiser = denoiser
         self.sigmas = sigmas
@@ -164,7 +178,7 @@ class DDRM(Reconstructor):
             mean[case] = y_bar[case]
             std[case] = (self.sigmas[0] ** 2 - nsr[case].pow(2)).sqrt()
             x_bar = mean + std * torch.randn_like(y_bar) / np.sqrt(2.0)
-            x_bar_prev = x_bar.clone()
+            x_bar_prev = x_bar
 
             # denoise
             x = self.denoiser(physics.V(x_bar), self.sigmas[0])
@@ -195,7 +209,7 @@ class DDRM(Reconstructor):
                 )
 
                 x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
-                x_bar_prev = x_bar.clone()
+                x_bar_prev = x_bar
                 # denoise
                 x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
@@ -206,8 +220,7 @@ class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described
-    in https://arxiv.org/abs/2305.08995.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
@@ -270,6 +283,8 @@ class DiffPIR(Reconstructor):
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
+
+
 
     """
 
@@ -505,8 +520,7 @@ class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 
-    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in
-    https://arxiv.org/abs/2209.14687.
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.
 
     DPS is an approximation of a gradient-based posterior sampling algorithm,
     which has minimal assumptions on the forward model. The only restriction is that
@@ -548,6 +562,7 @@ class DPS(Reconstructor):
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
+
     """
 
     def __init__(
@@ -605,7 +620,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+        time_pairs = list(zip_strict(reversed(seq), reversed(seq_next)))
 
         # Initial sample from x_T
         x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
@@ -656,7 +671,7 @@ class DPS(Reconstructor):
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))
-            xt = xt_next.clone()
+            xt = xt_next
 
         if self.save_iterates:
             return xs

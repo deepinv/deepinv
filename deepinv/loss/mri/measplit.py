@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Union
-from copy import deepcopy
+from warnings import warn
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -12,7 +11,7 @@ from deepinv.physics.generator import (
     Artifact2ArtifactSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.utils.decorators import _deprecated_alias
@@ -22,7 +21,7 @@ class WeightedSplittingLoss(SplittingLoss):
     r"""
     K-Weighted Splitting Loss
 
-    Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    Implements the K-weighted Noisier2Noise-SSDU loss from :footcite:t:`millard2023theoretical`.
     The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx`,
     where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform.
     The loss is defined as follows, using notation from :class:`deepinv.loss.SplittingLoss`:
@@ -49,9 +48,10 @@ class WeightedSplittingLoss(SplittingLoss):
 
         Note also that we assume that all masks are 1D mask in the image width dimension repeated in all other dimensions.
 
+    If the input data varies in shape, the loss will dynamically recalculate the weight. However, this will be slower every time the weight must be recalculated.
+
     :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
     :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
-    :param float eps: small value to avoid division by zero.
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
 
     |sep|
@@ -71,56 +71,98 @@ class WeightedSplittingLoss(SplittingLoss):
     class WeightedMetric(torch.nn.Module):
         """Wraps metric to apply weight on inputs
 
+        Note `mask_generator` and `physics_generator` are only used to regenerate the weight in the case that y has different shapes during training.
+
         :param torch.Tensor: loss weight.
-        :param Metric, torch.nn.Module metric: loss metric.
+        :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+        :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
+        :param Metric, torch.nn.Module pixel_metric: loss metric.
         :param bool expand: whether expand weight to input dims
         """
 
         def __init__(
             self,
-            weight: torch.Tensor,
-            metric: Union[Metric, torch.nn.Module],
-            expand: bool = True,
+            mask_generator: BernoulliSplittingMaskGenerator,
+            physics_generator: BaseMaskGenerator,
+            pixel_metric: Metric | torch.nn.Module,
         ):
             super().__init__()
-            self.weight = weight
-            self.metric = metric
-            self.expand = lambda w, y: w.expand_as(y) if expand else w
+            self.pixel_metric = pixel_metric
+            self.mask_generator = mask_generator
+            self.physics_generator = physics_generator
+
+            weight = WeightedSplittingLoss.compute_weight(
+                mask_generator=self.mask_generator,
+                physics_generator=self.physics_generator,
+            )
+            self.weights = {weight.shape[-1]: weight}
 
         def forward(self, y1, y2):
             """Weighted metric forward pass."""
-            return self.metric(
-                self.expand(self.weight, y1) * y1, self.expand(self.weight, y2) * y2
+
+            if y1.shape[-2:] != y2.shape[-2:]:
+                raise ValueError(
+                    f"Metric input tensors should be same image size but got {y1.shape[-2:]}, {y2.shape[-2:]}."
+                )
+
+            if y1.shape[-1] in self.weights:
+                weight = self.weights[y1.shape[-1]]
+            else:
+                warn(
+                    f"WeightedSplittingLoss detected new y width {y1.shape[-1]} in forward pass. Recalculating weight (this may take a second)..."
+                )
+                weight = WeightedSplittingLoss.compute_weight(
+                    mask_generator=self.mask_generator,
+                    physics_generator=self.physics_generator,
+                    img_size=y1.shape[-2:],
+                )
+                self.weights[y1.shape[-1]] = weight
+
+            weight = weight.to(y1.device)
+
+            return self.pixel_metric(
+                weight.expand_as(y1) * y1, weight.expand_as(y2) * y2
             )
 
     def __init__(
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
-        eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | torch.nn.Module | None = None,
     ):
-
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(eval_split_input=False, pixelwise=True)
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
-        self.name = "WeightedSplitting"
-        self.k = self.compute_k(eps=eps)
-        self.weight = (1 - self.k).clamp(min=eps) ** (-0.5)
-        self.metric = self.WeightedMetric(self.weight, metric)
+        self.metric = self.WeightedMetric(
+            mask_generator=mask_generator,
+            physics_generator=physics_generator,
+            pixel_metric=metric,
+        )
         self.normalize_loss = False
 
-    def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
+    @staticmethod
+    def compute_weight(
+        mask_generator: BernoulliSplittingMaskGenerator,
+        physics_generator: BaseMaskGenerator,
+        eps: float = 1e-9,
+        img_size: tuple = None,
+    ) -> torch.Tensor:
         """
-        Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
+        Compute weight for K-weighted splitting loss where K is a diagonal matrix of shape `(H, W)`,
+        and returned weight is a tensor of shape `(1, W)`.
 
         Estimates the 1D PDFs of the mask generators empirically.
 
+        :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+        :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
         :param float eps: small value to avoid division by zero.
+        :param tuple img_size: desired mask shape `(H, W)`. If `None`, use default provided in `physics_generator` and `mask_generator`.
         """
 
-        P = self.physics_generator.average()["mask"]
-        P_tilde = self.mask_generator.average()["mask"]
+        P = physics_generator.average(img_size=img_size)["mask"]
+        P_tilde = mask_generator.average(img_size=img_size)["mask"]
 
         if P.shape != P_tilde.shape:
             raise ValueError(
@@ -141,14 +183,20 @@ class WeightedSplittingLoss(SplittingLoss):
 
         # element-wise multiplication to get K
         k_weight = inv_diag_1_minus_PtP * diag_1_minus_P
-        return k_weight.unsqueeze(0)
+        k_weight = k_weight.unsqueeze(0)  # (1, W)
+
+        if img_size is not None:
+            assert img_size[-1] == k_weight.shape[-1]
+
+        # Calculate weight from K
+        return (1 - k_weight).clamp(min=eps) ** (-0.5)
 
 
 class RobustSplittingLoss(WeightedSplittingLoss):
     r"""
     Robust Weighted Splitting Loss
 
-    Implements the Robust-SSDU loss from `"Clean self-supervised MRI reconstruction from noisy, sub-sampled training data with Robust SSDU" <https://arxiv.org/abs/2210.01696>`_.
+    Implements the Robust-SSDU loss from :footcite:t:`millard2024clean`.
     The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx+\epsilon`,
     where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform,
     and :math:`\epsilon` is Gaussian noise.
@@ -159,7 +207,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         \mathcal{L}_\text{Robust-SSDU}=\mathcal{L}_\text{Weighted-SSDU}(\tilde{y};y) + \lVert(1+\frac{1}{\alpha^2}) M_1 M (\forw{\inverse{\tilde{y},A} - y}\rVert_2^2
 
     where :math:`\tilde{y}\sim\mathcal{N}(y,\alpha^2\sigma^2\mathbf{I})` is further noised (i.e. "noisier") measurement, and :math:`\alpha` is a hyperparameter.
-    This is derived from Eqs. 34 & 35 of the `paper <https://arxiv.org/abs/2210.01696>`_.
+    This is derived from Eqs. 34 & 35 of the paper :footcite:`millard2024clean`.
     At inference, the original measurement :math:`y` is used as input.
 
     .. note::
@@ -171,7 +219,6 @@ class RobustSplittingLoss(WeightedSplittingLoss):
     :param deepinv.physics.NoiseModel noise_model: noise model for adding further noise, must be of same type as original measurement noise.
         Note this loss only supports :class:`deepinv.physics.GaussianNoise`.
     :param float alpha: hyperparameter controlling further noise std.
-    :param float eps: small value to avoid division by zero.
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     """
 
@@ -179,22 +226,51 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
-        noise_model: GaussianNoise = GaussianNoise(sigma=0.1),
+        noise_model: GaussianNoise | None = None,
         alpha: float = 0.75,
-        eps: float = 1e-9,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | torch.nn.Module | None = None,
     ):
-        super().__init__(mask_generator, physics_generator, eps=eps, metric=metric)
+        if noise_model is None:
+            noise_model = GaussianNoise(sigma=0.1)
+        if metric is None:
+            metric = torch.nn.MSELoss()
+        super().__init__(mask_generator, physics_generator, metric=metric)
         self.alpha = alpha
         self.noise_model = noise_model
         self.noise_model.update_parameters(sigma=noise_model.sigma * alpha)
 
+    @staticmethod
+    def expand_mask(mask, y):
+        """Expand mask intermediate dimensions to match those of y, where intermediate
+        dimensions are those (e.g. depth, coils, time) that are not the first two dims (batch, channel),
+        nor the final two dims (H, W).
+        """
+        return mask.view(
+            *mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[2:]
+        )
+
+    class Noisier2NoiseMetric(torch.nn.Module):
+        """Helper metric for computing weighted Noisier2Noise"""
+
+        def __init__(
+            self, weight: torch.Tensor, pixel_metric: Metric | torch.nn.Module
+        ):
+            super().__init__()
+            self.pixel_metric = pixel_metric
+            self.weight = weight
+
+        def forward(self, y1, y2):
+            return self.pixel_metric(self.weight * y1, self.weight * y2)
+
     def forward(self, x_net, y, physics, model, **kwargs):
+        # Usual weighted splitting loss
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
 
         mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
-        n2n_metric = self.WeightedMetric(
-            (1 + 1 / (self.alpha**2)) * mask, self.metric.metric, expand=False
+
+        n2n_metric = self.Noisier2NoiseMetric(
+            weight=(1 + 1 / (self.alpha**2)) * self.expand_mask(mask, y),
+            pixel_metric=self.metric.pixel_metric,
         )
 
         return recon_loss + n2n_metric(physics.A(x_net), y)
@@ -223,15 +299,15 @@ class RobustSplittingLoss(WeightedSplittingLoss):
 
         def split(self, mask, y, physics=None):
             y1, physics1 = SplittingLoss.split(mask, y, physics)
-            return (mask * self.noise_model(y1) if self.training else y1), physics1
+            y1_noisy = RobustSplittingLoss.expand_mask(mask, y1) * self.noise_model(y1)
+            return (y1_noisy if self.training else y1), physics1
 
 
 class Phase2PhaseLoss(SplittingLoss):
     r"""
     Phase2Phase loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
-    for free-breathing MRI.
+    Implements dynamic measurement splitting loss from :footcite:t:`eldeniz2021phase2phase` for free-breathing MRI.
     This is a special (temporal) case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
     Splits the dynamic measurements into even time frames ("phases") at model input and odd phases to use for constructing the loss.
@@ -311,9 +387,11 @@ class Phase2PhaseLoss(SplittingLoss):
         self,
         img_size: tuple[int],
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | torch.nn.Module | None = None,
         device="cpu",
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "phase2phase"
         self.img_size = img_size
@@ -339,7 +417,7 @@ class Phase2PhaseLoss(SplittingLoss):
             self.metric = TimeAveragingMetric(self.metric)
 
     @staticmethod
-    def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
+    def split(mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None):
         r"""Override splitting to actually remove masked pixels. In Phase2Phase, this corresponds to masked phases (i.e. time steps).
 
         :param torch.Tensor mask: Phase2Phase mask
@@ -370,7 +448,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if physics is None:
             return y_split_reduced
 
-        physics_split_reduced = deepcopy(physics_split)
+        physics_split_reduced = physics_split.clone()
         physics_split_reduced.update_parameters(
             mask=remove_zeros(physics_split.mask, mask)
         )
@@ -390,7 +468,7 @@ class Phase2PhaseLoss(SplittingLoss):
         class Phase2PhaseModel(self.SplittingModel):
             @staticmethod
             def split(
-                mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None
+                mask: torch.Tensor, y: torch.Tensor, physics: Physics | None = None
             ):
                 return Phase2PhaseLoss.split(mask, y, physics)
 
@@ -417,8 +495,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     r"""
     Artifact2Artifact loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
-    for free-breathing MRI.
+    Implements dynamic measurement splitting loss from :footcite:t:`liu2020rare` for free-breathing MRI.
     This is a special case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
     At model input, choose a random time-chunk from the dynamic measurements ("Artifact..."), and another random chunk for constructing the loss ("...2Artifact").
@@ -497,11 +574,13 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     def __init__(
         self,
         img_size: tuple[int],
-        split_size: Union[int, tuple[int]] = 2,
+        split_size: int | tuple[int] = 2,
         dynamic_model: bool = True,
-        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        metric: Metric | torch.nn.Module | None = None,
         device="cpu",
     ):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__(
             img_size=img_size,
             dynamic_model=dynamic_model,

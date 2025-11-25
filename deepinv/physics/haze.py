@@ -7,7 +7,7 @@ class Haze(Physics):
     r"""
     Standard haze model
 
-    The operator is defined as https://ieeexplore.ieee.org/abstract/document/5567108/
+    The operator is defined as in :footcite:t:`he2010single`.
 
      .. math::
 
@@ -22,18 +22,20 @@ class Haze(Physics):
     :param float beta: constant :math:`\beta>0`
     :param float offset: constant :math:`o`
 
+
+
     """
 
-    def __init__(self, beta=0.1, offset=0, **kwargs):
+    def __init__(self, beta: float = 0.1, offset: float = 0, **kwargs):
         super().__init__(**kwargs)
         self.beta = beta
         self.offset = offset
 
-    def A(self, x, **kwargs):
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         :param list, tuple x:  The input x should be a tuple/list such that x[0] = image torch.tensor :math:`I`,
          x[1] = depth torch.tensor :math:`d`, x[2] = scalar or torch.tensor of one element :math:`a`.
-        :return: (torch.tensor) hazy image.
+        :return: (torch.Tensor) hazy image.
 
         """
         im = x[0]
@@ -44,7 +46,7 @@ class Haze(Physics):
         y = t * im + (1 - t) * A
         return y
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
 
         Returns the trivial inverse where x[0] = y (trivial estimate of the image :math:`I`),
@@ -56,7 +58,7 @@ class Haze(Physics):
 
 
         :param torch.Tensor y: Hazy image.
-        :return: (deepinv.utils.ListTensor) trivial inverse.
+        :return: (deepinv.utils.TensorList) trivial inverse.
 
         """
         b, c, h, w = y.shape

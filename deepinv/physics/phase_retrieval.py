@@ -1,7 +1,9 @@
+from __future__ import annotations
 from functools import partial
 import math
 import torch
 import numpy as np
+from typing import Any
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
@@ -172,8 +174,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             img_size=img_size,
             fast=False,
             channelwise=channelwise,
-            unitary=unitary,
-            compute_inverse=compute_inverse,
             dtype=dtype,
             device=device,
             rng=self.rng,
@@ -291,7 +291,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         B = StructuredRandom(
             img_size=self.img_size,
             output_size=self.output_size,
-            mode=self.mode,
             n_layers=self.n_layers,
             transform_func=transform_func,
             transform_func_inv=transform_func_inv,
@@ -345,6 +344,7 @@ class PtychographyLinearOperator(LinearPhysics):
     :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.
     :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
     :param torch.device, str device: Device "cpu" or "gpu".
+
     """
 
     def __init__(
@@ -362,7 +362,7 @@ class PtychographyLinearOperator(LinearPhysics):
 
         if shifts is None:
             self.n_img = 25
-            shifts = torch.tensor(generate_shifts(img_size=img_size, n_img=self.n_img))
+            shifts = generate_shifts(img_size=img_size, n_img=self.n_img)
         else:
             self.n_img = len(shifts)
 
@@ -459,6 +459,19 @@ class Ptychography(PhaseRetrieval):
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
+
+    |sep|
+
+    :Examples:
+
+    >>> from deepinv.physics import Ptychography
+    >>> import torch
+    >>> img_size = (1, 64, 64)  # input image
+    >>> physics = Ptychography(img_size=img_size)
+    >>> x = torch.randn(img_size, dtype=torch.cfloat)
+    >>> y = physics(x)  # Apply the Ptychography forward operator
+    >>> print(y.shape) # 25 probe positions by default
+    torch.Size([1, 25, 64, 64])
     """
 
     @_deprecated_alias(in_shape="img_size")
@@ -511,7 +524,9 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
     return probe
 
 
-def generate_shifts(img_size, n_img=25, fov=None):
+def generate_shifts(
+    img_size: Any, n_img: int = 25, fov: int | None = None
+) -> torch.Tensor:
     """
     Generates the array of probe shifts across the image.
     Based on probe radius and field of view.
@@ -519,7 +534,7 @@ def generate_shifts(img_size, n_img=25, fov=None):
     :param img_size: Size of the image.
     :param int n_img: Number of shifts (must be a perfect square).
     :param int fov: Field of view for shift computation.
-    :return np.ndarray: Array of (x, y) shifts.
+    :return: Array of (x, y) shifts.
     """
     if fov is None:
         fov = img_size[-1]

@@ -1,4 +1,6 @@
-from typing import Union, Callable
+from __future__ import annotations
+from warnings import warn
+from typing import Callable, TYPE_CHECKING
 import os, shutil, zipfile, requests
 from io import BytesIO
 
@@ -8,12 +10,11 @@ from PIL import Image
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
-from torch.nn import Module
-import torchvision
 from torchvision import transforms
+from deepinv.utils.io import load_np, load_torch, load_url as _load_url
 
-from deepinv.models.base import Reconstructor, Denoiser
+if TYPE_CHECKING:
+    from deepinv.datasets.base import ImageFolder
 
 
 def get_git_root():
@@ -37,17 +38,14 @@ def get_degradation_url(file_name: str) -> str:
     )
 
 
-def get_image_url(file_name: str) -> str:
+def get_image_url(file_name: str, dataset: str = "images") -> str:
     """Get URL for image from DeepInverse HuggingFace repository.
 
     :param str file_name: image filename in repository
+    :param str dataset: HuggingFace dataset name, defaults to 'images'
     :return str: image URL
     """
-    return (
-        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
-        + file_name
-        + "?download=true"
-    )
+    return f"https://huggingface.co/datasets/deepinv/{dataset}/resolve/main/{file_name}?download=true"
 
 
 def get_data_home() -> Path:
@@ -58,25 +56,28 @@ def get_data_home() -> Path:
 
     :return: pathlib Path for data home
     """
-    data_home = os.environ.get("DEEPINV_DATA", None)
+    data_home = os.environ.get("DEEPINV_DATA")
     if data_home is not None:
-        return Path(data_home)
+        path = Path(data_home)
+    else:
+        data_home = os.environ.get("XDG_DATA_HOME")
+        if data_home is not None:
+            path = Path(data_home) / "deepinv"
+        else:
+            path = Path(".") / "datasets"
 
-    data_home = os.environ.get("XDG_DATA_HOME", None)
-    if data_home is not None:
-        return Path(data_home) / "deepinv"
-
-    return Path(".") / "datasets"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def load_dataset(
-    dataset_name: Union[str, Path],
+    dataset_name: str | Path,
     transform: Callable,
-    data_dir: Union[str, Path] = None,
+    data_dir: str | Path = None,
     download: bool = True,
     url: str = None,
     file_type: str = "zip",
-) -> Dataset:
+) -> ImageFolder:
     """Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
 
     :param str, pathlib.Path dataset_name: dataset name without file extension.
@@ -85,8 +86,10 @@ def load_dataset(
     :param bool download: whether to download, defaults to True
     :param str url: download URL, if ``None``, gets URL using :func:`deepinv.utils.get_image_url`
     :param str file_type: file extension, defaults to "zip"
-    :return: torchvision ImageFolder dataset.
+    :return: :class:`deepinv.datasets.ImageFolder` dataset.
     """
+    from deepinv.datasets.base import ImageFolder
+
     if data_dir is None:
         data_dir = get_data_home()
 
@@ -123,12 +126,12 @@ def load_dataset(
         os.remove(f"{str(dataset_dir)}.{file_type}")
         print(f"{dataset_name} dataset downloaded in {data_dir}")
 
-    return torchvision.datasets.ImageFolder(root=dataset_dir, transform=transform)
+    return ImageFolder(root=dataset_dir, transform=transform)
 
 
 def load_degradation(
-    name: Union[str, Path],
-    data_dir: Union[str, Path] = None,
+    name: str | Path,
+    data_dir: str | Path = None,
     index: int = 0,
     download: bool = True,
 ) -> torch.Tensor:
@@ -197,6 +200,13 @@ def load_image(
     return x
 
 
+def load_url(url: str) -> BytesIO:
+    warn(
+        "deepinv.utils.demo.load_url is deprecated. Use deepinv.utils.load_url instead."
+    )
+    return _load_url(url)
+
+
 def load_url_image(
     url=None,
     img_size=None,
@@ -215,59 +225,148 @@ def load_url_image(
     :param str device: Device on which to load the image (gpu or cpu).
     :return: :class:`torch.Tensor` containing the image.
     """
-
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
-    transform_list = []
-    if img_size is not None:
-        if resize_mode == "crop":
-            transform_list.append(transforms.CenterCrop(img_size))
-        elif resize_mode == "resize":
-            transform_list.append(transforms.Resize(img_size))
-        else:
-            raise ValueError(
-                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
-            )
-    if grayscale:
-        transform_list.append(transforms.Grayscale())
-    transform_list.append(transforms.ToTensor())
-    transform = transforms.Compose(transform_list)
-    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
-    return x
+    return load_image(
+        _load_url(url),
+        img_size=img_size,
+        grayscale=grayscale,
+        resize_mode=resize_mode,
+        device=device,
+        dtype=dtype,
+    )
 
 
-def load_example(name, **kwargs):
+def load_example(
+    name,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
+):
     r"""
-    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.load_url_image`.
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using
+    :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
+    or :func:`deepinv.utils.load_np_url` if numpy array in `npy` or `npz` file.
+
+    Available examples for `name` include (see `the HuggingFace repo <https://huggingface.co/datasets/deepinv/images>`_ for full list):
+
+    .. list-table:: Example Images
+      :header-rows: 1
+
+      * - Name
+        - Origin
+        - Image size
+        - Domain
+      * - `barbara.jpeg`, `butterfly.png`
+        - :class:`Set14 <deepinv.datasets.Set14HR>`
+        - (3, 512, 512), (3, 256, 256)
+        - natural
+      * - `cameraman.png`
+        - Classic toy image
+        - (1, 512, 512)
+        - natural
+      * - `CBSD_0010.png`
+        - :class:`CBSD68 <deepinv.datasets.CBSD68>`
+        - (2, 481, 321)
+        - natural
+      * - `celeba_example.jpg`
+        - CelebA
+        - (3, 1024, 1024)
+        - natural
+      * - `div2k_valid_hr_0877.png`, `div2k_valid_lr_bicubic_0877x4.png`
+        - GT and measurement from :class:`Div2k <deepinv.datasets.DIV2K>`
+        - (3, 1152, 2040), (3, 288, 510)
+        - natural
+      * - `leaves.png`
+        - Set3C dataset
+        - (3, 256, 256)
+        - natural
+      * - `mbappe.jpg`
+        -
+        - (3, 443, 664)
+        - natural
+      * - `CT100_256x256_0.pt`
+        - `CT100 <https://doi.org/10.1007/s10278-013-9622-7>`_
+        - (1, 256, 256)
+        - medical
+      * - `brainweb_t1_ICBM_1mm_subject_0.npy`
+        - `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_ 3D MRI data
+        - (181, 217, 181)
+        - medical
+      * - `demo_mini_subset_fastmri_brain_0.pt`
+        - :class:`FastMRI <deepinv.datasets.SimpleFastMRISliceDataset>`
+        - (2, 320, 320)
+        - medical
+      * - `SheppLogan.png`
+        - Shepp Logan phantom
+        - (4, 512, 512)
+        - medical
+      * - `FMD_TwoPhoton_MICE_R_gt_12_avg50.png`
+        - :class:`FMD <deepinv.datasets.FMD>`
+        - (3, 512, 512)
+        - microscopy
+      * - `JAX_018_011_RGB.tif`
+        - Sample RGB patch from WorldView-3
+        - (3, 1024, 1024)
+        - satellite
+
 
     :param str name: filename of the image from the HuggingFace dataset.
-    :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param torch.device, str device: Device on which to load the image (gpu or cpu).
+    :param torch.dtype dtype: torch dtype to cast the image to.
     :return: :class:`torch.Tensor` containing the image.
     """
-    return load_url_image(get_image_url(name), **kwargs)
+    url = get_image_url(name)
+
+    if name.split(".")[-1].lower() == "pt":
+        return load_torch_url(url, device=device)
+    elif name.split(".")[-1].lower() in ("npy", "npz"):
+        return load_np_url(url)
+
+    return load_url_image(
+        url,
+        img_size=img_size,
+        grayscale=grayscale,
+        resize_mode=resize_mode,
+        device=device,
+        dtype=dtype,
+    )
 
 
-def load_torch_url(url):
+def download_example(name: str, save_dir: str | Path):
+    r"""
+    Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
+
+    For all available examples, see :func:`deepinv.utils.load_example`.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param str, pathlib.Path save_dir: directory to save image to.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    data = requests.get(get_image_url(name)).content
+    with open(Path(save_dir) / name, "wb") as f:
+        f.write(data)
+
+
+def load_torch_url(url: str, device="cpu", **kwargs) -> torch.Tensor:
     r"""
     Load an array from url and read it by torch.load.
 
     :param str url: URL of the image file.
-    :return: whatever is pickled in the file.
+    :param str, torch.device device: Device on which to load the tensor.
+    :return: weights or tensors contained in file.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    out = torch.load(BytesIO(response.content))
-    return out
+    return load_torch(_load_url(url), device=device)
 
 
-def load_np_url(url=None):
+def load_np_url(url: str, **kwargs) -> torch.Tensor:
     r"""
-    Load a numpy array from url.
+    Load a numpy array from url and convert to tensor.
 
     :param str url: URL of the image file.
-    :return: :class:`np.array` containing the data.
+    :return: torch rensor containing the data.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    array = np.load(BytesIO(response.content))
-    return array
+    return load_np(_load_url(url))

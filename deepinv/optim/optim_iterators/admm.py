@@ -10,7 +10,7 @@ class ADMMIteration(OptimIterator):
     minimising :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default),
-    the iteration is (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_):
+    the iteration is (see :footcite:t:`boyd2011distributed`):
 
     .. math::
         \begin{equation*}
@@ -32,7 +32,6 @@ class ADMMIteration(OptimIterator):
         super(ADMMIteration, self).__init__(**kwargs)
         self.g_step = gStepADMM(**kwargs)
         self.f_step = fStepADMM(**kwargs)
-        self.requires_prox_g = True
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
         r"""
@@ -58,8 +57,11 @@ class ADMMIteration(OptimIterator):
             x = self.g_step(u, z, cur_prior, cur_params)
         z = z + cur_params["beta"] * (u - x)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
+            and self.cost_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

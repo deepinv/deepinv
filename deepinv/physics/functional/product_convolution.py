@@ -12,11 +12,7 @@ def product_convolution2d(
 ) -> torch.Tensor:
     r"""
 
-    Product-convolution operator in 2d. Details available in the following paper:
-
-    Escande, P., & Weiss, P. (2017).
-    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
-    Journal of Mathematical Imaging and Vision, 58, 333-348.
+    Product-convolution operator in 2d. Details available in the paper :footcite:t:`escande2017approximation`.
 
     This forward operator performs
 
@@ -27,8 +23,8 @@ def product_convolution2d(
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are multipliers :math:`h_k` are filters.
 
     :param torch.Tensor x: Tensor of size (B, C, H, W)
-    :param torch.Tensor w: Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+    :param torch.Tensor w: Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`
+    :param torch.Tensor h: Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\}` and :math:`c \in \{1, C\}`, :math:`h\leq H` and :math:`w\leq W`.
     :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
     :return: torch.Tensor y

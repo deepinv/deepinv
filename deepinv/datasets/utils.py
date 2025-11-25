@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 import hashlib
 import os
 import shutil
@@ -9,14 +9,12 @@ from pathlib import Path
 import requests
 from tqdm.auto import tqdm
 
-from scipy.io import loadmat as scipy_loadmat
-from numpy import ndarray
-
-from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
+from torchvision.transforms.functional import crop as torchvision_crop
 
-from deepinv.utils.plotting import rescale_img
+from deepinv.datasets.base import ImageDataset
+from deepinv.utils import normalize_signal
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -52,9 +50,7 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(
-    url: str, save_path: Union[str, Path], extract: bool = False
-) -> None:
+def download_archive(url: str, save_path: str | Path, extract: bool = False) -> None:
     """Download archive (zipball or tarball) from the Internet.
 
     :param str url: URL of archive.
@@ -83,7 +79,7 @@ def download_archive(
             extract_tarball(save_path, Path(save_path).parent)
 
 
-def extract_zipfile(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
+def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
     """Extract a local zip file."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
@@ -94,7 +90,7 @@ def extract_zipfile(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
             zip_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
+def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
     """Extract a local tarball regardless of the compression algorithm used."""
     # Open the tar file
     with tarfile.open(file_path, "r:*") as tar_ref:
@@ -105,27 +101,7 @@ def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
-    """Load MATLAB array from file.
-
-    :param str fname: filename to load
-    :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires
-        ``mat73``, install with ``pip install mat73``.
-    :return: dict with str keys and array values.
-    """
-    if mat73:
-        try:
-            from mat73 import loadmat as loadmat73
-
-            return loadmat73(fname)
-        except ImportError:
-            raise ImportError("mat73 is required, install with 'pip install mat73'.")
-        except TypeError:
-            pass
-    return scipy_loadmat(fname)
-
-
-class PlaceholderDataset(Dataset):
+class PlaceholderDataset(ImageDataset):
     """
     A placeholder dataset for test purposes.
 
@@ -164,7 +140,7 @@ class Rescale(Module):
 
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
-        return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
+        return normalize_signal(x.unsqueeze(0), mode=self.rescale_mode).squeeze(0)
 
 
 class ToComplex(Module):
@@ -180,3 +156,28 @@ class ToComplex(Module):
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
         return stack([x, zeros_like(x)], dim=-3)
+
+
+class Crop(Module):
+    """Torchvision-style transform to take crop in corner or any arbitrary place.
+
+    Expects tensor of shape (..., H, W).
+
+    :param int, tuple size: if int or tuple of ints of length 2, crop in top left corner with size specified by tuple or square of size specified by int.
+        If tuple of length 4, pass as (top, left, height, width) to torchvision crop function.
+    """
+
+    def __init__(self, size: int | tuple):
+        super().__init__()
+        if isinstance(size, int):
+            self.size = (0, 0, size, size)
+        elif isinstance(size, (tuple, list)):
+            if len(size) == 2:
+                self.size = (0, 0, *size)
+            elif len(size) == 4:
+                self.size = size
+            else:
+                raise ValueError("size must be int or tuple of ints of size 2 or 4.")
+
+    def forward(self, x: Tensor):
+        return torchvision_crop(x, *self.size)

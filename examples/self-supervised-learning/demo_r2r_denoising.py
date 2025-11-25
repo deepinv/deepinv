@@ -3,7 +3,7 @@ Self-supervised denoising with the Generalized R2R loss.
 ====================================================================================================
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
-using noisy images only via the `Generalized Recorrupted2Recorrupted (GR2R) loss <https://arxiv.org/abs/2412.04648>`_,
+using noisy images only via the Generalized Recorrupted2Recorrupted (GR2R) loss :footcite:t:`monroy2025generalized`,
 which exploits knowledge about the noise distribution. You can change the noise distribution by selecting
 from predefined noise models such as Gaussian, Poisson, and Gamma noise.
 """
@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -54,11 +54,12 @@ test_dataset = datasets.MNIST(
 
 # %%
 # Generate a dataset of noisy images
-# ----------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 #
 # Generate a dataset of noisy images corrupted by Poisson noise.
 # The predefined noise models in the physics module include Gaussian, Poisson, and Gamma noise.
 # Here, we use Poisson noise as an example, but you can also use Gaussian or Gamma noise.
+#
 # .. note::
 #
 #       We use a subset of the whole training set to reduce the computational load of the example.
@@ -67,18 +68,18 @@ test_dataset = datasets.MNIST(
 # defined physics
 predefined_noise_models = dict(
     gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-    poisson=dinv.physics.PoissonNoise(gain=0.1),
+    poisson=dinv.physics.PoissonNoise(gain=0.5),
     gamma=dinv.physics.GammaNoise(l=10.0),
 )
 
-noise_name = "gamma"
+noise_name = "poisson"
 noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
 operation = f"{operation}_{noise_name}"
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
-num_workers = 4 if torch.cuda.is_available() else 0
+num_workers = 0 if torch.cuda.is_available() else 0
 
 n_images_max = (
     100 if torch.cuda.is_available() else 5
@@ -107,7 +108,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
 )
 
 
@@ -122,40 +123,45 @@ model = dinv.models.ArtifactRemoval(
 #
 
 epochs = 1  # choose training epochs
-learning_rate = 1e-3
-batch_size = 32 if torch.cuda.is_available() else 1
+learning_rate = 1e-4
+batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
 loss = dinv.loss.R2RLoss(noise_model=None)
 model = loss.adapt_model(model)  # important step!
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # # start with a pretrained model to reduce training time
 
-# if noise_name == "poisson":
-#     file_name = "ckp_10_demo_r2r_poisson.pth"
-#     url = get_weights_url(model_name="demo", file_name=file_name)
-#     ckpt = torch.hub.load_state_dict_from_url(
-#         url, map_location=lambda storage, loc: storage, file_name=file_name
-#     )
-#     # load a checkpoint to reduce training time
-#     model.load_state_dict(ckpt["state_dict"])
+if noise_name == "poisson":
+    file_name = "ckp_10_demo_r2r_poisson.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
 
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
 #
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
+
 test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
@@ -169,13 +175,16 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     device=device,
+    metrics=None,  # no supervised metrics
     train_dataloader=train_dataloader,
-    eval_dataloader=None,
+    eval_dataloader=test_dataloader,
+    early_stop=2,  # early stop using the self-supervised loss on the test set
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
 )
 
 # Train the network
@@ -185,7 +194,12 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
-#
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
-trainer.test(test_dataloader)
+# %%
+# :References:
+#
+# .. footbibliography::

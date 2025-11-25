@@ -1,22 +1,24 @@
 import torch
-from torch.utils.data import Dataset
 import numpy as np
 
+from deepinv.datasets.base import ImageDataset
 
-def create_circular_mask(imsize, center=None, radius=None):
-    h, w = imsize
+
+def create_circular_spherical_mask(imsize, center=None, radius=None):
     if center is None:  # use the middle of the image
-        center = (int(h / 2), int(w / 2))
+        center = tuple(int(s / 2) for s in imsize)
     if radius is None:  # use the smallest distance between the center and image walls
-        radius = min(center[0], center[1], h - center[0], w - center[1])
+        radius = min(*center, *tuple(s - c for s, c in zip(imsize, center)))
 
-    X, Y = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+    coords = np.ogrid[tuple(slice(0, s) for s in imsize)]
+    dist_from_center = np.sqrt(
+        sum((coords[i] - center[i]) ** 2 for i in range(len(imsize)))
+    )
     mask = dist_from_center <= radius
     return mask
 
 
-class DummyCircles(Dataset):
+class DummyCircles(ImageDataset):
     def __init__(self, samples, imsize=(3, 32, 28), max_circles=10, seed=1):
         super().__init__()
 
@@ -30,34 +32,19 @@ class DummyCircles(Dataset):
 
             for c in range(circles):
                 pos = rng.uniform(high=imsize[1:])
-                colour = rng.random((imsize[0], 1), dtype=np.float32)
+                color = rng.random((imsize[0], 1), dtype=np.float32)
                 r = rng.uniform(high=max_rad)
                 mask = torch.from_numpy(
-                    create_circular_mask(imsize[1:], center=pos, radius=r)
+                    create_circular_spherical_mask(imsize[1:], center=pos, radius=r)
                 )
-                self.x[i, :, mask] = torch.from_numpy(colour)
+                self.x[i, :, mask] = torch.from_numpy(color)
+        print(self.x.shape)
 
     def __getitem__(self, index):
-        return self.x[index, :, :, :]
+        return self.x[index]
 
     def __len__(self):
         return self.x.shape[0]
-
-
-if __name__ == "__main__":
-    device = "cuda:0"
-    imsize = (3, 23, 100)
-    dataset = DummyCircles(10, imsize=imsize)
-
-    x = dataset[0]
-
-    import matplotlib.pyplot as plt
-    from deepinv.utils.plotting import config_matplotlib
-
-    config_matplotlib()
-
-    plt.imshow(x.permute(1, 2, 0).cpu().numpy())
-    plt.show()
 
 
 class DummyModel(torch.nn.Module):

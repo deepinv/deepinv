@@ -4,33 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
-license = {text = "BSD 3-Clause"}
-description = "Pytorch library for solving inverse problems with deep learning"
+authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
+license = "BSD-3-Clause"
+description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.9"
-version = "0.3.1"
+requires-python = ">=3.10"
+version = "0.3.6"
 dependencies = [
     "numpy",
     "matplotlib",
-    "hdf5storage",
     "tqdm",
-    "torch<2.7",
+    "torch>=2.2.0",
     "torchvision",
     "torchmetrics",
     "einops",
-    "wandb",
-    "scipy",
+    "requests",
+    "h5py",
     "natsort",
 ]
 
@@ -66,9 +67,16 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+    "sphinxcontrib.bibtex",
+    "nbformat",
 ]
 
-# optional dependencies for specific denoisers
+lint = [
+    "black",
+    "ruff"
+]
+
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -82,6 +90,9 @@ denoisers = [
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "spyrit>=3.0.0; platform_system=='Linux'",
+    "diffusers", 
+    "transformers",
 ]
 
 # optional dependencies for specific datasets
@@ -90,7 +101,18 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
+    "scipy",
+    "nibabel",
+    "rasterio",
+    "blosc2",
 ]
+
+# optional dependencies for training
+training = [
+    "wandb",
+    "mlflow",
+]
+
 
 
 #####################################################################
@@ -112,3 +134,27 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+exclude_also = [
+    "if self.mlflow_vis",
+]
+
+[tool.ruff]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402"]
+
+[tool.ruff.lint.per-file-ignores]
+# NOTE: Rule F401 is ruff's unused imports rule.
+"__init__.py" = ["F401"]
+"deepinv/__init__.py" = ["E402"]
+"examples/**/*" = ["TID253", "E402"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Modules that slow down startup and should be imported lazily
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
+
+# Deprecated functions that should be replaced
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
+ 

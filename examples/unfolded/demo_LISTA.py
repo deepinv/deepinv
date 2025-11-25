@@ -2,7 +2,7 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
+This example shows how to implement the LISTA algorithm :footcite:t:`gregor2010learning`,
 for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
 soft-thresholding proximal operator with learnable thresholding parameters.
 
@@ -16,8 +16,9 @@ from torchvision import transforms
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded_builder
-from deepinv.utils.demo import get_data_home
+from deepinv.optim import PGD
+from deepinv.utils import get_data_home
+from deepinv.models.utils import get_weights_url
 
 # %%
 # Setup paths for data loading and results.
@@ -65,17 +66,17 @@ test_base_dataset = datasets.MNIST(
 # where :math:`A` is a (normalized) random Gaussian matrix.
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Generate the compressed sensing measurement operator with 10x under-sampling factor.
+# Generate the compressed sensing measurement operator with 5x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
+    m=157, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (
-    1000 if torch.cuda.is_available() else 200
+    5000 if torch.cuda.is_available() else 200
 )  # maximal number of images used for training
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
@@ -96,7 +97,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded Proximal Gradient algorithm.
 # ------------------------------------------------------------------------
-# In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
+# In this example, following the original LISTA algorithm :footcite:t:`gregor2010learning`
 # the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
 #
 # .. math::
@@ -114,7 +115,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).
 #
-# We use :func:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
+# We use :func:`deepinv.optim.PGD`  with `unfold=True` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
@@ -122,7 +123,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 # Select the data fidelity term
 data_fidelity = L2()
-max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
+max_iter = 10  # Number of unrolled iterations
 stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
 # A distinct stepsize is trained for each iteration.
 
@@ -151,31 +152,26 @@ prior = [
 # Note that in this case, the prior is a list of elements containing the terms :math:`\|\left(Wx\right)_{i, j}\|_1=g_{i, j}(x)`,
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
-# Unrolled optimization algorithm parameters
-lamb = [
-    torch.ones(3, 3, device=device)
+# Unrolled optimization algorithm parameters.
+sigma_denoiser = [
+    torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
-] * max_iter  # A distinct lamb is trained for each iteration.
-
-
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-}
+] * max_iter  # A distinct regularization parameter is trained for each iteration.
 
 trainable_params = [
     "stepsize",
-    "lambda",
-]  # define which parameters from 'params_algo' are trainable
+    "sigma_denoiser",
+]  # define which parameters are trainable
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="PGD",
-    params_algo=params_algo.copy(),
+model = PGD(
+    unfold=True,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
 ).to(device)
 
 
@@ -188,8 +184,8 @@ model = unfolded_builder(
 #
 
 # Training parameters
-epochs = 5 if torch.cuda.is_available() else 3
-learning_rate = 0.01
+epochs = 5 if torch.cuda.is_available() else 1
+learning_rate = 1e-2
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -199,11 +195,10 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 1
-test_batch_size = 64 if torch.cuda.is_available() else 8
+train_batch_size = 128 if torch.cuda.is_available() else 2
+test_batch_size = 128 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -211,6 +206,16 @@ train_dataloader = DataLoader(
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
 )
+
+# If working on CPU, start with a pretrained model to reduce training time
+if not torch.cuda.is_available():
+    file_name = "ckp_10_demo_LISTA.pth.tar"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
 
 # %%
 # Train the network.
@@ -231,18 +236,18 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 model = trainer.train()
+
 
 # %%
 # Test the network.
 # ---------------------------
 #
-# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
-# measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
-# and `GT` shows the ground truth.
+# We now test the learned unrolled network on the test dataset. In the plotted results, the first column shows the
+# measurements back-projected in the image domain, the second column shows the output of our LISTA network,
+# and the third shows the ground truth.
 #
 
 
@@ -266,8 +271,6 @@ dinv.utils.plot(
 )
 
 # %%
-# Plotting the learned parameters.
-# ------------------------------------
-dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
-)
+# :References:
+#
+# .. footbibliography::

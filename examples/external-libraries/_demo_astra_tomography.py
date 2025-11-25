@@ -14,22 +14,21 @@ Additionally, this operator exclusively supports CUDA operations, so running the
 # %%
 import deepinv as dinv
 from pathlib import Path
+import importlib
 import torch
-
+from deepinv.optim import PGD
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.plotting import plot, plot_curves
-from deepinv.utils.demo import load_torch_url
+from deepinv.utils import load_torch_url
 from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 
-try:
-    import astra
+if importlib.util.find_spec("astra") is not None:
     from deepinv.physics import TomographyWithAstra
-except ModuleNotFoundError as e:
+else:
     raise ModuleNotFoundError(
         "The TomographyWithAstra operator runs with astra backend"
-    ) from e
+    )
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -71,11 +70,11 @@ noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 physics = TomographyWithAstra(
     img_size=(img_size, img_size),
-    num_angles=num_angles,
+    angles=num_angles,
     device=device,
     noise_model=noise_model,
     geometry_type="fanbeam",
-    num_detectors=2 * img_size,
+    n_detector_pixels=2 * img_size,
     geometry_parameters={"source_radius": 800.0, "detector_radius": 200.0},
 )
 observation = physics(test_imgs)
@@ -110,25 +109,24 @@ plot_convergence_metrics = (
 )
 
 # Algorithm parameters
-scaling = 1 / physics.compute_norm(torch.rand_like(test_imgs)).item()
+scaling = 1 / physics.compute_sqnorm(torch.rand_like(test_imgs)).item()
 stepsize = 0.99 * scaling
 lamb = 3.0  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
-    custom_init=lambda observation, physics: {
-        "est": (physics.A_dagger(observation), physics.A_dagger(observation))
-    },  # initialize the optimization with FBP reconstruction
+    stepsize=stepsize,
+    lambda_reg=lamb,
+    custom_init=lambda observation, physics: physics.A_dagger(
+        observation
+    ),  # initialize the optimization with FBP reconstruction
 )
 
 # %%

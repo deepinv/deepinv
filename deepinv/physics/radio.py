@@ -1,10 +1,7 @@
+from __future__ import annotations
+from typing import Sequence
 import torch
 from deepinv.physics import LinearPhysics
-
-try:
-    import torchkbnufft as tkbn
-except:
-    tkbn = ImportError("The torchkbnufft package is not installed.")
 
 
 class RadioInterferometry(LinearPhysics):
@@ -33,23 +30,27 @@ class RadioInterferometry(LinearPhysics):
     .. warning::
         If the ``real_projection`` parameter is set to ``False``, the output of the adjoint will have a complex type rather than a real typed.
 
+    .. note::
+
+        This class requires the ``torchkbnufft`` package to be installed. Install with ``pip install torchkbnufft``.
+
     """
 
     def __init__(
         self,
-        img_size,
-        samples_loc,
-        dataWeight=torch.tensor(
-            [
-                1.0,
-            ]
-        ),
-        k_oversampling=2,
-        interp_points=7,
-        real_projection=True,
-        device="cpu",
+        img_size: tuple[int],
+        samples_loc: torch.Tensor,
+        dataWeight: torch.Tensor = None,
+        k_oversampling: float = 2,
+        interp_points: int | Sequence[int] = 7,
+        real_projection: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
+        import torchkbnufft as tkbn
+
+        if dataWeight is None:
+            dataWeight = torch.tensor([1.0])
         super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device
@@ -89,10 +90,10 @@ class RadioInterferometry(LinearPhysics):
         else:
             self.adj_projection = lambda x: x
 
-    def setWeight(self, w):
+    def setWeight(self, w: torch.Tensor):
         self.dataWeight = w.to(self.device)
 
-    def A(self, x, **kwargs):
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the weighted NUFFT operator to the input image.
 
@@ -104,7 +105,7 @@ class RadioInterferometry(LinearPhysics):
             * self.dataWeight
         )
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies the adjoint of the weighted NUFFT operator.
 

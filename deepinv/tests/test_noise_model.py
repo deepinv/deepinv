@@ -2,6 +2,7 @@ import pytest
 import torch
 import math
 import deepinv as dinv
+from contextlib import nullcontext
 
 # Noise model which has a `rng` attribute
 NOISES = [
@@ -12,7 +13,11 @@ NOISES = [
     "Uniform",
     "LogPoisson",
     "SaltPepper",
+    "RicianNoise",
+    "Laplace",
 ]
+
+
 DEVICES = [torch.device("cpu")]
 if torch.cuda.is_available():
     DEVICES.append(torch.device("cuda"))
@@ -40,6 +45,10 @@ def choose_noise(noise_type, rng):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu, rng=rng)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s, rng=rng)
+    elif noise_type == "RicianNoise":
+        noise_model = dinv.physics.RicianNoise(sigma=sigma, rng=rng)
+    elif noise_type == "Laplace":
+        noise_model = dinv.physics.LaplaceNoise(b=sigma, rng=rng)
     else:
         raise Exception("Noise model not found")
 
@@ -72,6 +81,27 @@ def test_rng(name, device, rng, dtype):
     y_3 = noise_model(x, seed=0)
     assert torch.allclose(y_1, y_3)
     assert not torch.allclose(y_1, y_2)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_laplace_noise_moments(device, dtype, rng):
+    imsize = (1, 3, 7, 16)
+    b = 0.1
+    x = torch.zeros(imsize, device=device, dtype=dtype)
+    noise_model = dinv.physics.LaplaceNoise(b=b, rng=rng)
+    b = noise_model.b.item()
+    y = noise_model(x, seed=0)
+    noise = y - x
+
+    true_mean = x.mean().item()
+    true_var = 2 * (b**2)
+
+    empirical_mean = noise.mean().item()
+    empirical_var = noise.var().item()
+
+    assert math.isclose(empirical_mean, true_mean, abs_tol=1e-1)
+    assert math.isclose(empirical_var, true_var, abs_tol=1e-1)
 
 
 @pytest.mark.parametrize("device", DEVICES)
@@ -164,3 +194,39 @@ def test_poisson_noise_params(device, rng, dtype):
 
         # check that no negative values are present in y_3
         assert torch.all(y_3 >= 0)
+
+
+# NOTE: This is a regression test.
+@pytest.mark.parametrize("sigma_device", DEVICES)
+@pytest.mark.parametrize("rng_kind", ["none", "consistent", "inconsistent"])
+def test_gaussian_noise_device_inference(sigma_device, rng_kind):
+    if not torch.cuda.is_available() and rng_kind == "inconsistent":
+        pytest.skip("This test requires having at least one CUDA device available.")
+
+    sigma = torch.tensor(1.0, device=sigma_device)
+
+    if rng_kind != "none":
+        if rng_kind == "consistent":
+            rng_device = sigma.device
+        elif rng_kind == "inconsistent":  # pragma: no cover
+            if sigma_device.type == "cuda":
+                rng_device = torch.device("cpu")
+            elif sigma_device.type == "cpu":
+                rng_device = torch.device("cuda:0")
+            else:
+                raise ValueError(f"Unknown device type: {sigma_device.type}")
+        else:
+            raise ValueError(f"Unknown rng_kind: {rng_kind}")
+
+        rng = torch.Generator(device=rng_device)
+    else:
+        rng = None
+
+    noise_model = None
+    with pytest.raises(RuntimeError) if rng_kind == "inconsistent" else nullcontext():
+        noise_model = dinv.physics.GaussianNoise(sigma=sigma, rng=rng)
+
+    if noise_model is not None:
+        assert noise_model.sigma.device == sigma.device
+        if rng is not None:
+            assert noise_model.sigma.device == rng.device

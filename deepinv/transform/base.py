@@ -2,7 +2,7 @@ from __future__ import annotations
 from itertools import product
 from typing import Callable, Any
 import torch
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixins import TimeMixin
 
 
 class TransformParam(torch.Tensor):
@@ -50,6 +50,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         >>> import torch
         >>> from deepinv.transform import Shift, Rotate
+        >>> from torchvision.transforms import InterpolationMode
         >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
         >>> transform = Shift() # Define random shift transform
         >>> transform(x).shape
@@ -68,19 +69,25 @@ class Transform(torch.nn.Module, TimeMixin):
 
         Multiply transforms to create compound transforms (direct product of groups) - similar to ``torchvision.transforms.Compose``:
 
-        >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
+        >>> rotoshift = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) * Shift() # Chain rotate and shift transforms
         >>> rotoshift(x).shape
         torch.Size([1, 1, 2, 2])
 
         Sum transforms to create stacks of transformed images (along the batch dimension).
 
-        >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) + Shift() # Stack rotate and shift transforms
         >>> transform(x).shape
         torch.Size([2, 1, 2, 2])
 
         Randomly select from transforms - similar to ``torchvision.transforms.RandomApply``:
 
-        >>> transform = Rotate() | Shift() # Randomly select rotate or shift transforms
+        >>> transform = Rotate(
+        ...     interpolation_mode=InterpolationMode.BILINEAR
+        ... ) | Shift() # Randomly select rotate or shift transforms
         >>> transform(x).shape
         torch.Size([1, 1, 2, 2])
 
@@ -140,7 +147,7 @@ class Transform(torch.nn.Module, TimeMixin):
         Params store e.g rotation degrees or shift amounts.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
-        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
+        To change this behavior (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
         ``p = TransformParam(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
@@ -262,7 +269,7 @@ class Transform(torch.nn.Module, TimeMixin):
         collate_batch: bool = True,
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         r"""
-        Symmetrise a function with a transform and its inverse.
+        Symmetrize a function with a transform and its inverse.
 
         Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 

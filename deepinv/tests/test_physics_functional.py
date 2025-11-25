@@ -5,10 +5,9 @@ Created on Thu Jul 11 14:48:05 2024
 
 @author: fsarron
 """
-
-import deepinv as dinv
-import torch
 import pytest
+import torch
+import deepinv as dinv
 
 
 def test_conv2d_adjointness(device):
@@ -74,7 +73,7 @@ def test_conv3d_norm(device):
             for sim in size_im:
                 for sfil in size_filt:
                     x = torch.randn(sim)[None].to(device)
-                    x /= torch.norm(x)
+                    x /= torch.linalg.vector_norm(x)
                     h = torch.rand(sfil)[None].to(device)
                     h /= h.sum()
 
@@ -86,14 +85,14 @@ def test_conv3d_norm(device):
                         )
                         z = (
                             torch.matmul(x.conj().reshape(-1), y.reshape(-1))
-                            / torch.norm(x) ** 2
+                            / torch.linalg.vector_norm(x) ** 2
                         )
 
-                        rel_var = torch.norm(z - zold)
+                        rel_var = torch.linalg.vector_norm(z - zold)
                         if rel_var < tol:
                             break
                         zold = z
-                        x = y / torch.norm(y)
+                        x = y / torch.linalg.vector_norm(y)
 
                     assert torch.abs(zold.item() - torch.ones(1)) < 1e-2
 
@@ -135,3 +134,46 @@ def test_conv3d_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+@pytest.mark.parametrize("kernel", ["cubic", "gaussian"])
+@pytest.mark.parametrize("scale", [2, 0.5])
+@pytest.mark.parametrize("antialiasing", [True, False])
+def test_imresize(kernel, scale, antialiasing):
+    sigma = 2
+    img_size = (1, 64, 64)
+    x = torch.randn(1, *img_size)
+    y = dinv.physics.functional.imresize_matlab(
+        x,
+        scale=scale,
+        kernel=kernel,
+        sigma=sigma,
+        padding_type="reflect",
+        antialiasing=antialiasing,
+    )
+    assert y.shape == (
+        1,
+        img_size[0],
+        int(img_size[1] * scale),
+        int(img_size[2] * scale),
+    )
+
+
+def test_imresize_div2k():
+    x = dinv.utils.load_example("div2k_valid_hr_0877.png") * 255.0
+    y = dinv.utils.load_example("div2k_valid_lr_bicubic_0877x4.png") * 255.0
+    y2 = dinv.physics.functional.imresize_matlab(x, scale=1 / 4).round()
+    assert dinv.metric.PSNR()(y2 / 255.0, y / 255.0) > 59
+
+
+def test_dct_idct(device):
+
+    shape = (1, 1, 8, 8)
+    x = torch.ones(shape).to(device)
+    y = dinv.physics.functional.dct_2d(x)
+    xrec = dinv.physics.functional.idct_2d(y)
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5
+
+    y = dinv.physics.functional.dct_2d(x, norm="ortho")
+    xrec = dinv.physics.functional.idct_2d(y, norm="ortho")
+    assert torch.linalg.vector_norm(x - xrec) < 1e-5

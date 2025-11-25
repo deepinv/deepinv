@@ -1,19 +1,22 @@
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable, NamedTuple, Sequence
+from types import MappingProxyType
 import os
 import re
 
 from PIL import Image
 import requests
-import torch
 
 from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import ImageDataset
 
 
-class FMD(torch.utils.data.Dataset):
+class FMD(ImageDataset):
     """Dataset for `Fluorescence Microscopy Denoising <https://github.com/yinhaoz/denoising-fluorescence>`_.
+
+    Introduced by :footcite:t:`zhang2018poisson`.
 
     | 1) The Fluorescence Microscopy Denoising (FMD) dataset is dedicated to
     | Poisson-Gaussian denoising.
@@ -55,8 +58,8 @@ class FMD(torch.utils.data.Dataset):
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param list[str] img_types: Types of microscopy image among 12.
-    :param list[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
-    :param list[int] fovs: "Field of view", value between 1 and 20.
+    :param Sequence[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
+    :param Sequence[int] fovs: "Field of view", value between 1 and 20.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional) A function/transform that takes in a noisy PIL image
@@ -76,23 +79,24 @@ class FMD(torch.utils.data.Dataset):
             dataset = FMD(root="fmd", img_types=img_types, download=True)  # download raw data at root and load dataset
             print(len(dataset))                                            # check that we have 5000 images
             shutil.rmtree("fmd")                                           # remove raw data from disk
-
     """
 
-    gdrive_ids = {
-        "Confocal_BPAE_B.tar": "1juaumcGn5QlFRXRQyrqfbZBhF7oX__iW",
-        "Confocal_BPAE_G.tar": "1Zofz11VmI1JfRIMF7rq40RVjpzM6A9vg",
-        "Confocal_BPAE_R.tar": "1QoD_vMvFdFg7yREfen3t-SGLFcnLg9YQ",
-        "Confocal_FISH.tar": "1SxmsythWfxnfKJfGWpT_7Adebi8jUK98",
-        "Confocal_MICE.tar": "11aflcrcatFRkv7EabjWjdlpT0DYRbUDZ",
-        "TwoPhoton_BPAE_B.tar": "1yVD_H_ZfNNSma5vtHZM_DTnSv1Bo1tfk",
-        "TwoPhoton_BPAE_G.tar": "125nqTfQQG1-YVUs256b2vTwt4aUNCgBt",
-        "TwoPhoton_BPAE_R.tar": "1rwxG6LYcKeiBKNT3Oq9lvwKu8mV3rz9P",
-        "TwoPhoton_MICE.tar": "1lhsFAlXsXk26yqHzT0_-3R8MUb7G0NVa",
-        "WideField_BPAE_B.tar": "19rl8zFzfXIZ2drgodCGutLPLzL4kJq6d",
-        "WideField_BPAE_G.tar": "1H67O6GqIkIlQSX-n0vfMWGPwmd4zOHQr",
-        "WideField_BPAE_R.tar": "19HXb2Ftrb-M7Lr9ZlHWMcnNT0Sbu85YL",
-    }
+    _gdrive_ids = MappingProxyType(
+        {
+            "Confocal_BPAE_B.tar": "1juaumcGn5QlFRXRQyrqfbZBhF7oX__iW",
+            "Confocal_BPAE_G.tar": "1Zofz11VmI1JfRIMF7rq40RVjpzM6A9vg",
+            "Confocal_BPAE_R.tar": "1QoD_vMvFdFg7yREfen3t-SGLFcnLg9YQ",
+            "Confocal_FISH.tar": "1SxmsythWfxnfKJfGWpT_7Adebi8jUK98",
+            "Confocal_MICE.tar": "11aflcrcatFRkv7EabjWjdlpT0DYRbUDZ",
+            "TwoPhoton_BPAE_B.tar": "1yVD_H_ZfNNSma5vtHZM_DTnSv1Bo1tfk",
+            "TwoPhoton_BPAE_G.tar": "125nqTfQQG1-YVUs256b2vTwt4aUNCgBt",
+            "TwoPhoton_BPAE_R.tar": "1rwxG6LYcKeiBKNT3Oq9lvwKu8mV3rz9P",
+            "TwoPhoton_MICE.tar": "1lhsFAlXsXk26yqHzT0_-3R8MUb7G0NVa",
+            "WideField_BPAE_B.tar": "19rl8zFzfXIZ2drgodCGutLPLzL4kJq6d",
+            "WideField_BPAE_G.tar": "1H67O6GqIkIlQSX-n0vfMWGPwmd4zOHQr",
+            "WideField_BPAE_R.tar": "19HXb2Ftrb-M7Lr9ZlHWMcnNT0Sbu85YL",
+        }
+    )
 
     class NoisySampleIdentifier(NamedTuple):
         """Data structure for identifying noisy data sample files.
@@ -113,8 +117,8 @@ class FMD(torch.utils.data.Dataset):
         self,
         root: str,
         img_types: list[str],
-        noise_levels: list[int] = [1, 2, 4, 8, 16],
-        fovs: list[int] = list(range(1, 20 + 1)),
+        noise_levels: Sequence[int] = (1, 2, 4, 8, 16),
+        fovs: Sequence[int] = tuple(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
@@ -159,7 +163,7 @@ class FMD(torch.utils.data.Dataset):
 
             for img_type in self.img_types:
                 filename = img_type + ".tar"
-                gdrive_id = self.gdrive_ids[filename]
+                gdrive_id = self._gdrive_ids[filename]
 
                 ## We need to access the content of a html file to retrieve information
                 ## Which will be needed to download the archive ------------------------

@@ -1,10 +1,12 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 from torch import Tensor
 import warnings
-from typing import Optional, Union, Any
+from typing import Any
 from numpy import ndarray
 from tqdm import tqdm
+from deepinv.utils.compat import zip_strict
 
 
 class SDEOutput(dict):
@@ -58,8 +60,8 @@ class BaseSDESolver(nn.Module):
 
     def __init__(
         self,
-        timesteps: Union[Tensor, ndarray],
-        rng: Optional[torch.Generator] = None,
+        timesteps: Tensor | ndarray,
+        rng: torch.Generator | None = None,
     ):
         super().__init__()
         if isinstance(timesteps, ndarray):
@@ -92,7 +94,7 @@ class BaseSDESolver(nn.Module):
         x_init: Tensor,
         seed: int = None,
         *args,
-        timesteps: Union[Tensor, ndarray] = None,
+        timesteps: Tensor | ndarray = None,
         get_trajectory: bool = False,
         verbose: bool = False,
         **kwargs,
@@ -127,7 +129,7 @@ class BaseSDESolver(nn.Module):
             timesteps = timesteps.to(sde.device, sde.dtype)
 
         for t_cur, t_next in tqdm(
-            zip(timesteps[:-1], timesteps[1:]),
+            zip_strict(timesteps[:-1], timesteps[1:]),
             total=len(timesteps) - 1,
             disable=not verbose,
         ):

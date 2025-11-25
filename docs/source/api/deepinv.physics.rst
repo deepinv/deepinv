@@ -18,6 +18,9 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.PhysicsMultiScaler
+   deepinv.physics.LinearPhysicsMultiScaler
+   deepinv.physics.PhysicsCropper
    deepinv.physics.NoiseModel
 
 Operators
@@ -37,9 +40,9 @@ Operators
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
+   deepinv.physics.Upsampling
+   deepinv.physics.DownsamplingMatlab
    deepinv.physics.MRI
-   deepinv.physics.MRIMixin
-   deepinv.physics.TimeMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
@@ -56,6 +59,7 @@ Operators
    deepinv.physics.Haze
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
@@ -113,14 +117,18 @@ Noise distributions
    :nosignatures:
 
    deepinv.physics.NoiseModel
+   deepinv.physics.ZeroNoise
    deepinv.physics.GaussianNoise
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.LaplaceNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
    deepinv.physics.SaltPepperNoise
+   deepinv.physics.FisherTippettNoise
+   deepinv.physics.RicianNoise
    deepinv.physics.generator.SigmaGenerator
    deepinv.physics.generator.GainGenerator
 
@@ -155,6 +163,12 @@ Functional
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
+   deepinv.physics.functional.dct
+   deepinv.physics.functional.idct
+   deepinv.physics.functional.dct_2d
+   deepinv.physics.functional.idct_2d
+   deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.random_choice
 
 
 .. autosummary::

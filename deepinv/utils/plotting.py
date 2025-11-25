@@ -1,34 +1,101 @@
+from __future__ import annotations
 import os
-import math
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Union
-from itertools import zip_longest
+from types import MappingProxyType
 from functools import partial
 from warnings import warn
 
-import wandb
 import torch
 import numpy as np
 from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from matplotlib.animation import FuncAnimation
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 from PIL import Image
-import io
+
+from deepinv.utils.signals import normalize_signal, complex_abs
+
+_DEFAULT_PLOT_FONTSIZE = 17
+_ENABLE_TEX = True  # Force enable/disable
+_CHECKED_TEX = False  # Whether checked tex problems
+
+
+def set_default_plot_fontsize(fontsize: int):
+    """Set global default fontsize for DeepInv plots."""
+    global _DEFAULT_PLOT_FONTSIZE
+    _DEFAULT_PLOT_FONTSIZE = fontsize
+
+
+def get_default_plot_fontsize() -> int:
+    """Get global default fontsize for DeepInv plots."""
+    return _DEFAULT_PLOT_FONTSIZE
+
+
+def disable_tex():
+    """Globally disable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = False
+
+
+def enable_tex():
+    """Globally enable LaTeX"""
+    global _ENABLE_TEX
+    _ENABLE_TEX = True
+
+
+def get_enable_tex() -> bool:
+    """Get whether LaTeX is globally enabled"""
+    return _ENABLE_TEX
+
+
+def set_checked_tex(checked: bool):
+    """Set whether tex has been globally checked already."""
+    global _CHECKED_TEX
+    _CHECKED_TEX = checked
+
+
+def get_checked_tex() -> bool:
+    """Get whether tex has been globally checked already."""
+    return _CHECKED_TEX
 
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
-    plt.rcParams.update({"font.size": fontsize})
+    import matplotlib.pyplot as plt
+    from matplotlib.texmanager import TexManager
+
+    global _CHECKED_TEX
+    global _ENABLE_TEX
+
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+    plt.rcParams["font.size"] = fontsize
+    plt.rcParams["axes.titlesize"] = fontsize
+    plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+
+    # If plot gives TeX errors, force disable TeX globally
+    # If no latex, then skip check
+    if not get_checked_tex() and shutil.which("latex"):
+        try:
+            TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
+        except RuntimeError as e:
+            if "latex was not able to process" in str(e).lower():
+                disable_tex()
+            else:
+                raise
+
+    # If no errors, don't check again
+    set_checked_tex(True)
+
+    if shutil.which("latex") and get_enable_tex():
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    else:
+        plt.rcParams["text.usetex"] = False
+        plt.rcParams["text.latex.preamble"] = ""
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -43,7 +110,6 @@ def resize_pad_square_tensor(tensor, size):
     class SquarePad:
         def __call__(self, image):
             W, H = image.size
-            print(W, H)
             max_wh = np.max([W, H])
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)
@@ -85,12 +151,13 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         imgs = []
         titles = []
         caption = "From left to right: "
+
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
 
-        if y is not None and y.shape == x_net.shape:
+        if y is not None and x is not None and y.shape == x.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
@@ -109,8 +176,11 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         for img in imgs:
             out = preprocess_img(img, rescale_mode=rescale_mode)
             vis_array.append(out)
-        vis_array = torch.cat(vis_array)
-        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
+        if vis_array != []:
+            vis_array = torch.cat(vis_array)
+            grid_image = make_grid(vis_array, nrow=imgs[0].shape[0])
+        else:
+            grid_image = None
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
@@ -118,27 +188,37 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
+@torch.no_grad()
 def preprocess_img(im, rescale_mode="min_max"):
     r"""
-    Preprocesses an image tensor for plotting.
+    Prepare a batch of images for plotting.
 
-    :param torch.Tensor im: the image to preprocess.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the preprocessed image.
+    Real and complex images are transformed into images with values between
+    zero and one by first applying the modulus function for complex images, and
+    then by normalizing the resulting images between zero and one using min-max
+    normalization ``min_max`` or clipping ``clip``.
+
+    .. note::
+
+        Real-valued tensors with two channels are assumed to be Cartesian
+        representation of complex images and are processed accordingly.
+
+    :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
+    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :return: the batch of pre-processed images.
     """
-    with torch.no_grad():
-        if im.shape[1] == 2:  # for complex images
-            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
-        elif im.shape[1] > 3:
-            pimg = im.type(torch.float32)
-        else:
-            if torch.is_complex(im):
-                pimg = im.abs().type(torch.float32)
-            else:
-                pimg = im.type(torch.float32)
+    # Apply the modulus function if the image is inferred to be complex
+    if torch.is_complex(im) or im.shape[1] == 2:
+        im = complex_abs(im, dim=1, keepdim=True)
 
-        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-    return pimg
+    # Cast image values to float32 numbers
+    # NOTE: Why is it needed?
+    im = im.type(torch.float32)
+
+    # Normalize values between zero and one
+    im = normalize_signal(im, mode=rescale_mode)
+
+    return im
 
 
 def tensor2uint(img):
@@ -161,22 +241,12 @@ def rescale_img(im, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
-    img = im.clone()
-    if rescale_mode == "min_max":
-        shape = img.shape
-        img = img.reshape(shape[0], -1)
-        mini = img.min(1)[0]
-        maxi = img.max(1)[0]
-        idx = mini < maxi
-        mini = mini[idx].unsqueeze(1)
-        maxi = maxi[idx].unsqueeze(1)
-        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
-        img = img.reshape(shape)
-    elif rescale_mode == "clip":
-        img = img.clamp(min=0.0, max=1.0)
-    else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-    return img
+    warn(
+        "The function `deepinv.utils.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
@@ -190,9 +260,10 @@ def plot(
     show=True,
     close=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="none",
     cbar=False,
     dpi=1200,
@@ -200,6 +271,7 @@ def plot(
     axs=None,
     return_fig=False,
     return_axs=False,
+    **imshow_kwargs,
 ):
     r"""
     Plots a list of images.
@@ -243,17 +315,22 @@ def plot(
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images.
         See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
         Default: none
     :param int dpi: DPI to save images.
-    :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
-    :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
+    :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
+        `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -264,7 +341,8 @@ def plot(
     if isinstance(img_list, torch.Tensor):
         img_list = [img_list]
     elif isinstance(img_list, dict):
-        assert titles is None, "titles should be None when img_list is a dictionary"
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
         titles, img_list = list(img_list.keys()), list(img_list.values())
 
     for i, img in enumerate(img_list):
@@ -293,29 +371,44 @@ def plot(
             len(imgs),
             figsize=figsize,
             squeeze=False,
+            layout="compressed" if tight else "constrained",
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12, wrap=True)
+        plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
+            im = axs[r, i].imshow(
+                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+            )
             if cbar:
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
+
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, wrap=True)
-            axs[r, i].axis("off")
+                axs[r, i].set_title(titles[i], wrap=True)
+            if subtitles is not None:
+                sub = (
+                    subtitles[i]
+                    if all(isinstance(s, str) for s in subtitles)
+                    else subtitles[r][i]
+                )
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
 
-    if tight:
-        if cbar:
-            plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        else:
-            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if cbar:
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
@@ -323,9 +416,12 @@ def plot(
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
         for i, row_imgs in enumerate(imgs):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
+                # plt.imsave fails if img is not C-contiguous
+                img = np.ascontiguousarray(img)
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
@@ -348,9 +444,10 @@ def scatter_plot(
     show=True,
     return_fig=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     s=0.1,
     linewidths=1.5,
     color="b",
@@ -368,6 +465,7 @@ def scatter_plot(
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
     :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
@@ -381,6 +479,8 @@ def scatter_plot(
     :param float linewidths: width of the lines. Default: 1.5
     :param str color: color of the points. Default: blue
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -402,10 +502,11 @@ def scatter_plot(
         len(scatters),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -414,15 +515,28 @@ def scatter_plot(
                 xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
             )
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
-            axs[r, i].axis("off")
+                axs[r, i].set_title(titles[i])
+
+            if subtitles is not None:
+                if all(isinstance(s, str) for s in subtitles):
+                    sub = subtitles[i]
+                else:
+                    sub = subtitles[r][i]
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
 
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
                 plt.imsave(save_dir_i / Path(str(r) + ".png"), img, cmap=cmap)
@@ -441,6 +555,8 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib()
 
@@ -448,8 +564,13 @@ def plot_curves(metrics, save_dir=None, show=True):
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
     fig, axs = plt.subplots(
-        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+        1,
+        len(metrics.keys()),
+        figsize=(6 * len(metrics.keys()), 4),
     )
+    # NOTE: axs is not an array when a single metric is passed in
+    if isinstance(axs, plt.Axes):
+        axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
@@ -477,6 +598,8 @@ def plot_curves(metrics, save_dir=None, show=True):
                     axs[i].plot(metric_val[b], "-o", label=f"batch {b+1}")
                 else:
                     axs[i].semilogy(metric_val[b], "-o", label=f"batch {b+1}")
+            from matplotlib.ticker import MaxNLocator
+
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
             # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
@@ -486,36 +609,6 @@ def plot_curves(metrics, save_dir=None, show=True):
         plt.savefig(save_dir / "curves.png")
     if show:
         plt.show()
-
-
-def wandb_imgs(imgs, captions, n_plot):
-    wandb_imgs = []
-    for i in range(len(imgs)):
-        wandb_imgs.append(
-            wandb.Image(
-                make_grid(imgs[i][:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
-                caption=captions[i],
-            )
-        )
-    return wandb_imgs
-
-
-def wandb_plot_curves(metrics, batch_idx=0, step=0):
-    for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
-        if len(metric_val) > 0:
-            batch_size, n_iter = len(metric_val), len(metric_val[0])
-            wandb.log(
-                {
-                    f"{metric_name} batch {batch_idx}": wandb.plot.line_series(
-                        xs=range(n_iter),
-                        ys=metric_val,
-                        keys=[f"image {j}" for j in range(batch_size)],
-                        title=f"{metric_name} batch {batch_idx}",
-                        xname="iteration",
-                    )
-                },
-                step=step,
-            )
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
@@ -529,6 +622,7 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
     :param bool show: whether to show the plot. Defaults to ``True``.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -538,9 +632,12 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
-    for key, value in zip(init_params.keys(), init_params.values()):
-        if not isinstance(value, Iterable):
-            init_params[key] = [value]
+    if init_params is not None:
+        if "lambda_reg" in init_params:
+            init_params[init_params.index("lambda_reg")] = "lambda"
+        for key, value in init_params.items():
+            if not isinstance(value, Iterable):
+                init_params[key] = [value]
 
     def get_param(param):
         if torch.is_tensor(param):
@@ -582,18 +679,30 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 def plot_inset(
     img_list: list[torch.Tensor],
     titles: list[str] = None,
-    labels: list[str] = [],
-    label_loc: Union[tuple, list] = (0.03, 0.03),
-    extract_loc: Union[tuple, list] = (0.0, 0.0),
-    extract_size: float = 0.2,
-    inset_loc: Union[tuple, list] = (0.0, 0.5),
-    inset_size: float = 0.4,
-    figsize: tuple[int] = None,
     save_fn: str = None,
-    dpi: int = 1200,
+    save_dir=None,
+    tight=True,
+    max_imgs=4,
+    rescale_mode="min_max",
     show: bool = True,
-    return_fig: bool = False,
+    figsize: tuple[int] = None,
+    suptitle=None,
+    subtitles=None,
     cmap: str = "gray",
+    fontsize=17,
+    interpolation="none",
+    cbar=False,
+    dpi: int = 1200,
+    fig=None,
+    axs=None,
+    labels: list[str] = (),
+    label_loc: tuple | list = (0.03, 0.03),
+    extract_loc: tuple | list = (0.0, 0.0),
+    extract_size: float = 0.2,
+    inset_loc: tuple | list = (0.0, 0.5),
+    inset_size: float = 0.4,
+    return_fig: bool = False,
+    return_axs=False,
 ):
     r"""Plots a list of images with zoomed-in insets extracted from the images.
 
@@ -603,31 +712,71 @@ def plot_inset(
 
     Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
 
-    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
-    :param list[str] titles: list of titles for each image, has to be same length as img_list.
+    :param list[torch.Tensor], dict[str,torch.Tensor], torch.Tensor img_list: list of images, single image,
+        or dict of titles: images to plot.
+    :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, pathlib.Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+    :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
+    :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param int fontsize: fontsize for the plot. Default: 17
+    :param str interpolation: interpolation to use for the images.
+        See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
+        Default: none
+    :param bool cbar: whether to add colorbar to the images.
+    :param int dpi: DPI to save images.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param list[str] labels: list of overlaid labels for each image, has to be same length as img_list.
     :param list, tuple label_loc: location or locations for label to be plotted on image, defaults to (.03, .03)
     :param list, tuple extract_loc: image location or locations for extract to be taken from, defaults to (0., 0.)
     :param float extract_size: size of extract to be taken from image, defaults to 0.2
     :param list, tuple inset_loc: location or locations for inset to be plotted on image, defaults to (0., 0.5)
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
-    :param tuple[int] figsize: size of the figure.
-    :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
-    :param int dpi: DPI to save images.
-    :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
+    :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
 
-    fig = plot(
-        img_list,
-        titles,
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(img_list, dict):
+        if titles is not None:
+            raise ValueError("titles should be None when img_list is a dictionary")
+
+        titles, img_list = list(img_list.keys()), list(img_list.values())
+
+    fig, axs = plot(
+        img_list=img_list,
+        titles=titles,
+        save_dir=save_dir,
+        tight=tight,
+        max_imgs=max_imgs,
+        rescale_mode=rescale_mode,
         show=False,
         close=False,
-        return_fig=True,
-        cmap=cmap,
         figsize=figsize,
+        subtitles=subtitles,
+        suptitle=suptitle,
+        cmap=cmap,
+        fontsize=fontsize,
+        interpolation=interpolation,
+        cbar=cbar,
+        dpi=dpi,
+        fig=fig,
+        axs=axs,
+        return_fig=True,
+        return_axs=True,
     )
-    axs = fig.axes
     batch_size = img_list[0].shape[0]
 
     # Expand the locs over img_list and batch dimensions
@@ -642,80 +791,92 @@ def plot_inset(
     inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
     label_locs = expand_locs(label_loc, len(img_list) * batch_size)
 
-    for img, ax, label, extract_loc, inset_loc, label_loc in zip_longest(
-        [vol[[i]] for i in range(batch_size) for vol in img_list],
-        axs,
-        labels,
-        extract_locs,
-        inset_locs,
-        label_locs,
-    ):
-        _, _, h, w = img.shape
+    # Loop through all axes and apply the inset to each image
+    for r, row_axs in enumerate(axs):
+        for i, ax in enumerate(row_axs):
+            idx = i * batch_size + r
 
-        # Plot inset
-        axins = ax.inset_axes(
-            (inset_loc[0], 1 - inset_loc[1] - inset_size, inset_size, inset_size)
-        )
-        axins.imshow(
-            rescale_img(img)
-            .type(torch.float32)
-            .squeeze(0)
-            .permute(1, 2, 0)
-            .detach()
-            .cpu()
-            .numpy(),
-            cmap=cmap,
-        )
+            # Get the preprocessed image that's already been displayed in this axis
+            img = img_list[i][[r]]
+            img = preprocess_img(img, rescale_mode=rescale_mode)
 
-        # Set inset image according to extract
-        axins.set_xlim(extract_loc[0] * w, (extract_loc[0] + extract_size) * w)
-        axins.set_ylim((extract_loc[1] + extract_size) * h, extract_loc[1] * h)
-
-        # Inset borders
-        for spine in ["bottom", "top", "left", "right"]:
-            axins.spines[spine].set_color("lime")
-
-        axins.grid(False)
-        axins.set_xticks([])
-        axins.set_yticks([])
-
-        # Extract borders
-        ax.indicate_inset(
-            [
-                extract_loc[0] * w,
-                extract_loc[1] * h,
-                extract_size * w,
-                extract_size * h,
-            ],
-            edgecolor="red",
-        )
-
-        if label is not None:
-            ax.text(
-                label_loc[0],
-                1 - label_loc[1],
-                str(label),
-                fontsize="medium",
-                color="red",
-                ha="left",
-                va="top",
-                transform=ax.transAxes,
-                bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
+            loc_in = inset_locs[idx]
+            axins = ax.inset_axes(
+                (
+                    loc_in[0],
+                    1 - loc_in[1] - inset_size,
+                    inset_size,
+                    inset_size,
+                )
             )
+            axins.imshow(
+                img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
+                cmap=cmap,
+                interpolation=interpolation,
+            )
+
+            h, w = img.shape[2], img.shape[3]
+            ex = extract_locs[idx]
+            axins.set_xlim(ex[0] * w, (ex[0] + extract_size) * w)
+            axins.set_ylim((ex[1] + extract_size) * h, ex[1] * h)
+
+            for spine in axins.spines.values():
+                spine.set_color("lime")
+            axins.set_xticks([])
+            axins.set_yticks([])
+            axins.grid(False)
+
+            ax.indicate_inset(
+                [
+                    ex[0] * w,
+                    ex[1] * h,
+                    extract_size * w,
+                    extract_size * h,
+                ],
+                edgecolor="red",
+            )
+
+            if labels is not None and i < len(labels):
+                lab = labels[i]
+                loc_lab = label_locs[idx]
+                ax.text(
+                    loc_lab[0],
+                    1 - loc_lab[1],
+                    str(lab),
+                    fontsize="medium",
+                    color="red",
+                    ha="left",
+                    va="top",
+                    transform=ax.transAxes,
+                    bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
+                )
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
 
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save the whole figure
+        plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
+
     if show:
         plt.show()
+
+    if return_axs and return_fig:
+        return fig, axs
 
     if return_fig:
         return fig
 
+    if return_axs:
+        return axs
+
 
 def plot_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
@@ -724,7 +885,7 @@ def plot_videos(
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
-    anim_kwargs: dict = {},
+    anim_kwargs: dict = MappingProxyType({}),
     **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
@@ -804,6 +965,8 @@ def plot_videos(
     # plt.gcf().set_visible(not plt.gcf().get_visible())
     # fig, axs = plt.subplots()
 
+    from matplotlib.animation import FuncAnimation
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
@@ -833,8 +996,8 @@ def plot_videos(
 
 
 def save_videos(
-    vid_list: Union[torch.Tensor, list[torch.Tensor]],
-    titles: Union[str, list[str]] = None,
+    vid_list: torch.Tensor | list[torch.Tensor],
+    titles: str | list[str] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     figsize: tuple[int] = None,
@@ -868,6 +1031,8 @@ def save_videos(
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
     :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
+    import matplotlib.pyplot as plt
+
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
 
@@ -911,7 +1076,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="nearest",
 ):
     r"""
@@ -950,6 +1115,8 @@ def plot_ortho3D(
     :param int fontsize: fontsize for the titles. Default: 17
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
+    import matplotlib.pyplot as plt
+
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -987,7 +1154,7 @@ def plot_ortho3D(
                     pimg = im[i, :, :, :, :].abs().type(torch.float32)
                 else:
                     pimg = im[i, :, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+            pimg = preprocess_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
         imgs.append(col_imgs)
 
@@ -1009,6 +1176,7 @@ def plot_ortho3D(
         len(imgs),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
@@ -1024,6 +1192,8 @@ def plot_ortho3D(
                 img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
             )
             # ax_XY.set_aspect(1.)
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY

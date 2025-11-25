@@ -14,6 +14,10 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
 Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
+.. tip::
+  The operator you are looking for is not on this list?
+  **See** :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for how to implement your own physics operator.
+
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
 
@@ -27,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
@@ -40,6 +45,8 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
+       | :class:`deepinv.physics.Upsampling`
+       | :class:`deepinv.physics.DownsamplingMatlab`
      -
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
@@ -51,7 +58,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
    * - Magnetic Resonance Imaging (MRI)
      -
-       | :class:`deepinv.physics.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
@@ -110,6 +116,28 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
 
+.. _wrapper_list:
+
+Wrappers
+~~~~~~~~~
+Wrappers are operators that can be used to adapt existing operators to a new problem.
+
+.. list-table:: Wrappers
+    :header-rows: 1
+
+    * - **Family**
+      - **Operators**
+
+    * - Multiscale
+      -
+         | :class:`deepinv.physics.PhysicsMultiScaler`
+         | :class:`deepinv.physics.LinearPhysicsMultiScaler`
+
+    * - Padding/Cropping
+      -
+         | :class:`deepinv.physics.PhysicsCropper`
+
+
 .. _noise_list:
 
 Noise distributions
@@ -118,12 +146,16 @@ Noise distributions describe the noise model :math:`N`,
 where :math:`y = N(z)` with :math:`z=A(x)`. The noise models can be assigned
 to **any** operator in the list above, by setting the
 :func:`set_noise_model <deepinv.physics.Physics.set_noise_model>` attribute at initialization.
+By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoise>`.
 
 .. list-table:: Noise Distributions and Their Probability Distributions
    :header-rows: 1
 
    * - **Noise**
      - :math:`y|z`
+
+   * - :class:`deepinv.physics.ZeroNoise`
+     - :math:`y=z`
 
    * - :class:`deepinv.physics.GaussianNoise`
      - :math:`y\sim \mathcal{N}(z, I\sigma^2)`
@@ -134,6 +166,9 @@ to **any** operator in the list above, by setting the
    * - :class:`deepinv.physics.PoissonGaussianNoise`
      - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
 
+   * - :class:`deepinv.physics.LaplaceNoise`
+     - :math:`y\sim\text{Laplace}(z, b)`
+
    * - :class:`deepinv.physics.LogPoissonNoise`
      - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
@@ -142,3 +177,12 @@ to **any** operator in the list above, by setting the
 
    * - :class:`deepinv.physics.SaltPepperNoise`
      - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
+
+   * - :class:`deepinv.physics.GammaNoise`
+     - :math:`y = \mathcal{G}(\ell, x/\ell)`
+     
+   * - :class:`deepinv.physics.FisherTippettNoise`
+     - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+   * - :class:`deepinv.physics.RicianNoise`
+     - :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`, :math:`\epsilon_1\sim\mathcal{N}(0,I)`, :math:`\epsilon_2\sim\mathcal{N}(0,I)`

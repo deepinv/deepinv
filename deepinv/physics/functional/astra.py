@@ -1,13 +1,8 @@
-from typing import Any, Optional, Union
+from __future__ import annotations
+from typing import Any
 
 import torch
 import numpy as np
-
-try:
-    import astra
-    from astra import experimental
-except:
-    astra = ImportError("The astra-toolbox package is not installed.")
 
 
 class XrayTransform:
@@ -24,11 +19,15 @@ class XrayTransform:
 
         This transform does not handle batched and multi-channel inputs. It is
         handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.
-        To handle standard PyTorch pipelines, :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
+        To handle standard PyTorch pipelines, :class:`XrayTransform` is instantiated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
 
-    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
-    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
+    :param dict[str, Any] projection_geometry: Dictionary containing the parameters of the projection geometry in the format produced by ``astra.create_proj_geom()``. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
+    :param dict[str, Any] object_geometry:  Dictionary containing the parameters of the object geometry in the format produced by ``astra.create_vol_geom()``. It is passed to the ``astra.create_projector()`` function to instantiate the projector.
     :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
     def __init__(
@@ -37,6 +36,8 @@ class XrayTransform:
         object_geometry: dict[str, Any],
         is_2d: bool = False,
     ):
+        import astra
+
         self.projection_geometry = projection_geometry
         self.object_geometry = object_geometry
         self.is_2d = is_2d
@@ -48,11 +49,15 @@ class XrayTransform:
     @property
     def domain_shape(self) -> tuple:
         """The shape of the input volume."""
+        import astra
+
         return astra.geom_size(self.object_geometry)
 
     @property
     def range_shape(self) -> tuple:
         """The shape of the output projection."""
+        import astra
+
         return astra.geom_size(self.projection_geometry)
 
     @property
@@ -77,20 +82,20 @@ class XrayTransform:
     @property
     def detector_cell_v_length(self) -> float:
         """The vertical length of a detector cell."""
-        if "vec" in self.projection_geometry["type"]:
-            return np.sqrt(
-                (self.projection_geometry["Vectors"][1, [6, 7, 8]] ** 2).sum()
-            )
+        if "vec" in self.projection_geometry["type"]:  # pragma: no cover
+            return np.linalg.norm(
+                self.projection_geometry["Vectors"][0, [9, 10, 11]],
+            ).item()
         else:
             return self.projection_geometry["DetectorSpacingY"]
 
     @property
     def detector_cell_u_length(self) -> float:
         """The horizontal length of a detector cell."""
-        if "vec" in self.projection_geometry["type"]:
-            return np.sqrt(
-                (self.projection_geometry["Vectors"][0, [6, 7, 8]] ** 2).sum()
-            )
+        if "vec" in self.projection_geometry["type"]:  # pragma: no cover
+            return np.linalg.norm(
+                self.projection_geometry["Vectors"][0, [6, 7, 8]]
+            ).item()
         else:
             return self.projection_geometry["DetectorSpacingX"]
 
@@ -103,42 +108,26 @@ class XrayTransform:
     def source_radius(self) -> float:
         """The distance between the source and the axis of rotation."""
         if not hasattr(self, "_source_radius"):
-            if "vec" in self.projection_geometry["type"]:
-                self._source_radius = np.sqrt(
-                    (
-                        astra.geom_2vec(self.projection_geometry)["Vectors"][
-                            :, [0, 1, 2]
-                        ]
-                        ** 2
-                    ).sum(axis=1)
-                ).mean()
+            if "vec" in self.projection_geometry["type"]:  # pragma: no cover
+                return np.linalg.norm(
+                    self.projection_geometry["Vectors"][0, [0, 1, 2]],
+                ).item()
             else:
-                self._source_radius = self.projection_geometry["DistanceOriginSource"]
-
-        return self._source_radius
+                return self.projection_geometry["DistanceOriginSource"]
 
     @property
     def detector_radius(self) -> float:
         """The distance between the center of the detector and the axis of rotation."""
         if not hasattr(self, "_detector_radius"):
-            if "vec" in self.projection_geometry["type"]:
-                self._detector_radius = np.sqrt(
-                    (
-                        astra.geom_2vec(self.projection_geometry)["Vectors"][
-                            :, [3, 4, 5]
-                        ]
-                        ** 2
-                    ).sum(axis=1)
-                ).mean()
+            if "vec" in self.projection_geometry["type"]:  # pragma: no cover
+                return np.linalg.norm(
+                    self.projection_geometry["Vectors"][0, [3, 4, 5]],
+                ).item()
             else:
-                self._detector_radius = self.projection_geometry[
-                    "DistanceOriginDetector"
-                ]
-
-        return self._detector_radius
+                return self.projection_geometry["DistanceOriginDetector"]
 
     @property
-    def magnitude(self) -> float:
+    def magnification_factor(self) -> float:
         """The magnification factor induced by the fan/cone geometry."""
         if "cone" in self.projection_geometry["type"]:
             return (self.detector_radius + self.source_radius) / self.source_radius
@@ -146,12 +135,12 @@ class XrayTransform:
             return 1.0
 
     def __call__(
-        self, x: torch.Tensor, out: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, out: torch.Tensor | None = None
     ) -> torch.Tensor:
         r"""Forward projection.
 
         :param torch.Tensor x: Tensor of shape [1,H,W] in 2D, or [D,H,W] in 3D.
-        :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
+        :param torch.Tensor, None out: To avoid unnecessary copies, provide tensor of shape [...,A,N]
         to store output results
         :return: Sinogram of shape [1,A,N] in 2D or set of sinograms [V,A,N] in 3D.
         """
@@ -160,7 +149,7 @@ class XrayTransform:
             x.shape == self.domain_shape
         ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
 
-        if out is None:
+        if out is None:  # pragma: no cover
             out = torch.zeros(self.range_shape, dtype=torch.float32, device=x.device)
 
         self._forward_projection(x, out)
@@ -187,12 +176,12 @@ class XrayTransform:
                 return parent.domain_shape
 
             def __call__(
-                self, x: torch.Tensor, out: Optional[torch.Tensor] = None
+                self, x: torch.Tensor, out: torch.Tensor | None = None
             ) -> torch.Tensor:
                 r"""Backprojection.
 
                 :param torch.Tensor x: Tensor of shape [1,A,N] in 2D, or [V,A,N] in 3D.
-                :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
+                :param torch.Tensor, None out: To avoid unnecessary copies, provide tensor of shape [...,H,W]
                 to store output results
                 :return: Image of shape [1,H,W] in 2D or volume [D,H,W] in 3D.
                 """
@@ -200,7 +189,7 @@ class XrayTransform:
                     x.shape == self.domain_shape
                 ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
 
-                if out is None:
+                if out is None:  # pragma: no cover
                     out = torch.zeros(
                         self.range_shape, dtype=torch.float32, device=x.device
                     )
@@ -208,17 +197,19 @@ class XrayTransform:
                 parent._backprojection(x, out)
                 if self.is_2d:
                     # necessary scaling in fanbeam to obtain decent approximated adjoint
-                    out /= parent.magnitude
+                    out /= parent.magnification_factor
 
                 return out
 
             @property
-            def T(self):
+            def T(self):  # pragma: no cover
                 return parent
 
         return _Adjoint()
 
     def _forward_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
+        import astra.experimental
+
         assert (
             x.shape == self.domain_shape
         ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
@@ -238,6 +229,8 @@ class XrayTransform:
         )
 
     def _backprojection(self, y: torch.Tensor, out: torch.Tensor) -> None:
+        import astra.experimental
+
         assert (
             y.shape == self.range_shape
         ), f"Input shape {y.shape} does not match expected shape {self.range_shape}"
@@ -263,7 +256,11 @@ def _create_astra_link(data: torch.Tensor) -> object:
     :param torch.Tensor data: CUDA torch.Tensor
     :return: GPULink, instance of a utility class which holds the pointer of the underlying CUDA array, its shape and the the stride of the data.
     """
+    import astra
 
+    assert (
+        data.device.type == "cuda"
+    ), "Data must be on a CUDA device"  # pragma: no cover
     assert data.is_contiguous(), "Data must be contiguous"
     assert data.dtype == torch.float32, "Data must be of type float32"
     assert len(data.shape) == 3, "Data must be 3D"
@@ -293,7 +290,7 @@ class AutogradTransform(torch.autograd.Function):
         """Forward autograd.
 
         The ``astra-toolbox`` does not handle batched computation, the transform
-        is applied sequantially by iterating over the batch and channel dimension
+        is applied sequentially by iterating over the batch and channel dimension
         (e.g. Learned Primal-Dual).
 
         :param torch.Tensor input: Batched with channel input Tensor of shape [B,C,...].
@@ -345,21 +342,21 @@ class AutogradTransform(torch.autograd.Function):
 
 def create_projection_geometry(
     geometry_type: str,
-    detector_spacing: Union[int, tuple[int, int]],
-    n_detector_pixels: Union[int, tuple[int, int]],
+    detector_spacing: float | tuple[float, float],
+    n_detector_pixels: int | tuple[int, int],
     angles: torch.Tensor,
     is_2d: bool = False,
-    geometry_parameters: Optional[dict[str, Any]] = None,
-    geometry_vectors: Optional[torch.Tensor] = None,
+    geometry_parameters: dict[str, Any] | None = None,
+    geometry_vectors: torch.Tensor | None = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "projection geometry", a dict of parameters
     used by ``astra`` to parametrize the geometry of the detector and the x-ray source.
 
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D.
     :param int | tuple[int, int]: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
-    :param torch.Tensor angles: Tensor containing angular positions in radii.
+    :param torch.Tensor angles: Tensor containing angular positions in degrees.
     :param bool is_2d: Boolean specifying if the parameters define a 2D slice or a 3D volume.
-    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionary should contains the keys
 
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
@@ -376,33 +373,38 @@ def create_projection_geometry(
 
         When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     """
+    import astra
 
     if is_2d:
         if geometry_vectors is None:
-            if type(detector_spacing) is not float:
+            if type(detector_spacing) is not float:  # pragma: no cover
                 raise ValueError(
                     f"For 2d geometry, argument `detector_spacing` should be a float specifying the width of a detector cell, got {type(detector_spacing)}"
                 )
-        if type(n_detector_pixels) is not int:
+        if type(n_detector_pixels) is not int:  # pragma: no cover
             raise ValueError(
                 f"For 2d geometry, argument `n_detector_pixels` should be a int specifying the number of a cells in the detector line, got {type(n_detector_pixels)}"
             )
     else:
         if geometry_vectors is None:
-            if len(detector_spacing) != 2:
+            if isinstance(detector_spacing, (float, int)):  # pragma: no cover
+                detector_spacing = (detector_spacing, detector_spacing)
+            if len(detector_spacing) != 2:  # pragma: no cover
                 raise ValueError(
-                    f"For 3D geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
+                    f"For 3D geometry, argument `detector_spacing` should be float or a tuple of size 2 specifying the vertical and horizontal dimensions of a detector cell, got len(detector_spacing)={len(detector_spacing)}"
                 )
-        if len(n_detector_pixels) != 2:
+        if isinstance(n_detector_pixels, int):  # pragma: no cover
+            n_detector_pixels = (n_detector_pixels, n_detector_pixels)
+        if len(n_detector_pixels) != 2:  # pragma: no cover
             raise ValueError(
-                f"For 3D geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
+                f"For 3D geometry, argument `n_detector_pixels` should be a int or tuple of size 2 specifying the number of (columns,rows) in the detector grid, got len(n_detector_pixels)={len(n_detector_pixels)}"
             )
 
-    if geometry_parameters is not None:
+    if geometry_parameters is not None:  # pragma: no cover
         source_radius = geometry_parameters.get("source_radius", 80.0)
         detector_radius = geometry_parameters.get("detector_radius", 20.0)
 
-    angles = angles.tolist()
+    angles = torch.deg2rad(-angles).tolist()
 
     # The astra-toolbox does not support GPU linking for 2D data. Thus, when creating a projection geometry in 2D, we actually create a flat 3D geometry, i.e. a 2D detector with only one row of cells.
     # GPULink python API for 2D data:  https://github.com/astra-toolbox/astra-toolbox/discussions/391
@@ -430,7 +432,7 @@ def create_projection_geometry(
                 source_radius,
                 detector_radius,
             )
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f'got geometry_type="{geometry_type}", in 2D should be one of ["parallel","fanbeam"]'
             )
@@ -438,7 +440,7 @@ def create_projection_geometry(
         detector_row_count, detector_col_count = n_detector_pixels
 
         if geometry_type == "parallel":
-            if geometry_vectors is not None:
+            if geometry_vectors is not None:  # pragma: no cover
                 projection_geometry = astra.create_proj_geom(
                     "parallel3d_vec",
                     detector_row_count,
@@ -454,11 +456,11 @@ def create_projection_geometry(
                     detector_col_count,
                     angles,
                 )
-        elif geometry_type == "fanbeam":
+        elif geometry_type == "fanbeam":  # pragma: no cover
             raise NotImplementedError("fanbeam geometry is not implemented in 3D")
 
         elif geometry_type == "conebeam":
-            if geometry_vectors is not None:
+            if geometry_vectors is not None:  # pragma: no cover
                 projection_geometry = astra.create_proj_geom(
                     "cone_vec",
                     detector_row_count,
@@ -476,7 +478,7 @@ def create_projection_geometry(
                     source_radius,
                     detector_radius,
                 )
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f'got geometry_type="{geometry_type}", in 3D should be one of ["parallel","conebeam"]'
             )
@@ -489,8 +491,8 @@ def create_object_geometry(
     n_cols: int,
     n_slices: int = 1,
     is_2d: bool = True,
-    spacing: tuple[float, ...] = (1.0, 1.0),
-    bounding_box: Optional[tuple[float, ...]] = None,
+    pixel_spacing: float | tuple[float, ...] = 1.0,
+    bounding_box: tuple[float, ...] | None = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
     used by ``astra`` to parametrize the reconstruction grid.
@@ -499,53 +501,61 @@ def create_object_geometry(
     :param int n_cols: Number of columns.
     :param int n_slices: Number of slices. It is automatically set to 1 when ``is_2d=True``.
     :param bool is_2D: Boolean specifying if the parameters define a 2D slice or a 3D volume.
-    :param tuple[float, ...] spacing: Dimensions of reconstruction cell along the axis [x,y,...].
+    :param float | tuple[float, ...] pixel_spacing: Dimensions of reconstruction cell along the axis [x,y,...].
     :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
     """
+    import astra
 
     if is_2d:
         if bounding_box is not None:
-            if len(bounding_box) != 4:
+            if len(bounding_box) != 4:  # pragma: no cover
                 raise ValueError(
                     f"For 2D geometry, argument `bounding_box` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
-            if len(spacing) != 2:
+            if isinstance(pixel_spacing, (float, int)):  # pragma: no cover
+                pixel_spacing = (pixel_spacing, pixel_spacing)
+            if len(pixel_spacing) != 2:  # pragma: no cover
                 raise ValueError(
-                    f"For 2D geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)={len(spacing)}"
+                    f"For 2D geometry, `pixel_spacing` should be a float or tuple of size 2 specifying (length_x,length_y) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
     else:
         if bounding_box is not None:
-            if len(bounding_box) != 6:
+            if len(bounding_box) != 6:  # pragma: no cover
                 raise ValueError(
                     f"For 3D geometry, argument `bounding_box` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
-            if len(spacing) != 3:
+            if isinstance(pixel_spacing, (float, int)):  # pragma: no cover
+                pixel_spacing = (pixel_spacing, pixel_spacing, pixel_spacing)
+            if len(pixel_spacing) != 3:  # pragma: no cover
                 raise ValueError(
-                    f"For 23 geometry, `spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(spacing)={len(spacing)}"
+                    f"For 2D geometry, `pixel_spacing` should be float or a tuple of size 3 specifying (length_x,length_y,length_z) of a pixel, got len(pixel_spacing)={len(pixel_spacing)}"
                 )
 
     if is_2d:
         n_slices = 1
-        if bounding_box is not None:
+        if bounding_box is not None:  # pragma: no cover
             min_x, max_x, min_y, max_y = bounding_box
         else:
-            min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
-            min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
+            min_x, max_x = -n_cols / 2 * pixel_spacing[0], n_cols / 2 * pixel_spacing[0]
+            min_y, max_y = -n_rows / 2 * pixel_spacing[1], n_rows / 2 * pixel_spacing[1]
 
         # assume the slice dimension is unit length to avoid scaling issues with ASTRA
         min_z, max_z = -0.5, 0.5
 
     else:
-        if bounding_box is not None:
+        if bounding_box is not None:  # pragma: no cover
             min_x, max_x, min_y, max_y, min_z, max_z = bounding_box
         else:
-            min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
-            min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
-            min_z, max_z = -n_slices / 2 * spacing[2], n_slices / 2 * spacing[2]
+            min_x, max_x = -n_cols / 2 * pixel_spacing[0], n_cols / 2 * pixel_spacing[0]
+            min_y, max_y = -n_rows / 2 * pixel_spacing[1], n_rows / 2 * pixel_spacing[1]
+            min_z, max_z = (
+                -n_slices / 2 * pixel_spacing[2],
+                n_slices / 2 * pixel_spacing[2],
+            )
 
-    spacing = [
+    pixel_spacing = [
         (max_x - min_x) / n_cols,
         (max_y - min_y) / n_rows,
         (max_z - min_z) / n_slices,

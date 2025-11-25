@@ -1,7 +1,10 @@
-from typing import Any, Callable, Optional, Union
+from __future__ import annotations
+from typing import Any, Callable
 from pathlib import Path
 import os
+
 from natsort import natsorted
+
 from tqdm import tqdm
 from warnings import warn
 
@@ -12,8 +15,8 @@ import torch
 import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
-from deepinv.datasets.utils import loadmat
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.io import load_mat
+from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
 
@@ -41,7 +44,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     .. note::
 
         The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.
-        See :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` for example using this dataset.
+        See :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py` for example using this dataset.
 
     We provide one single downloadable demo sample, see example below on how to use this.
     Otherwise, download the full dataset from the `challenge website <https://cmrxrecon.github.io/>`_.
@@ -96,15 +99,15 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        data_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/FullSample",
+        root: str | Path,
+        data_dir: str | Path = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
-        metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
+        metadata_cache_file: str | Path = "dataset_cache.pkl",
         apply_mask: bool = True,
-        mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
-        mask_generator: Optional[BaseMaskGenerator] = None,
-        transform: Optional[Callable] = None,
+        mask_dir: str | Path = "SingleCoil/Cine/TrainingSet/AccFactor04",
+        mask_generator: BaseMaskGenerator | None = None,
+        transform: Callable | None = None,
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
@@ -160,15 +163,13 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
             self.samples = samples
 
-    def _loadmat(self, fname: Union[str, Path, os.PathLike]) -> ndarray:
+    def _loadmat(self, fname: str | Path | os.PathLike) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""
         return next(
-            v for k, v in loadmat(fname, mat73=True).items() if not k.startswith("__")
+            v for k, v in load_mat(fname, mat73=True).items() if not k.startswith("__")
         )
 
-    def _retrieve_metadata(
-        self, fname: Union[str, Path, os.PathLike]
-    ) -> dict[str, Any]:
+    def _retrieve_metadata(self, fname: str | Path | os.PathLike) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
@@ -210,7 +211,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
         target = None
 
-        # The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
+        # TODO The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
         # to a separate CMRxReconTransform in future.
 
         # Load mask
@@ -250,7 +251,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
 
-        # Normalise
+        # Normalize
         target = (target - target.mean()) / (target.std() + 1e-11)
 
         kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)
@@ -260,6 +261,6 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace, {"mask": mask.float()}
+            return target, kspace.float(), {"mask": mask.float()}
         else:
-            return target, kspace
+            return target, kspace.float()

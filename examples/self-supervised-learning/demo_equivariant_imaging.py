@@ -4,8 +4,7 @@ Self-supervised learning with Equivariant Imaging for MRI.
 
 This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only.
 
-The equivariant imaging loss is presented in `"Equivariant Imaging: Learning Beyond the Range Space"
-<http://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`_.
+The equivariant imaging loss is presented in :footcite:t:`chen2021equivariant`.
 
 """
 
@@ -107,11 +106,11 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+# DnCNN architecture which was proposed in MoDL :footcite:t:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL()
+model = MoDL().to(device)
 
 
 # %%
@@ -119,8 +118,8 @@ model = MoDL()
 # --------------------------------------------
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
-# The EI loss requires a group of transformations to be defined. The forward model `should not be equivariant to
-# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`_.
+# The EI loss requires a group of transformations to be defined. The forward model should not be equivariant to
+# these transformations :footcite:t:`tachella2023sensing`.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #
@@ -158,11 +157,16 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -180,11 +184,15 @@ trainer = dinv.Trainer(
     losses=losses,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     device=device,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    wandb_vis=wandb_vis,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
     ckp_interval=10,
 )
@@ -195,6 +203,13 @@ model = trainer.train()
 # Test the network
 # --------------------------------------------
 #
+# We now assume that we have access to a small test set of ground-truth images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+
+# %%
+# :References:
+#
+# .. footbibliography::

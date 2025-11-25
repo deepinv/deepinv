@@ -5,9 +5,7 @@ Self-supervised denoising with the Neighbor2Neighbor loss.
 This example shows you how to train a denoiser network in a fully self-supervised way,
 i.e., using noisy images only via the Neighbor2Neighbor loss, which exploits the local correlation of natural images.
 
-The Neighbor2Neighbor loss is presented in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-<https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_
-and is defined as:
+The Neighbor2Neighbor loss is presented in :footcite:t:`huang2021neighbor2neighbor` and is defined as:
 
 .. math::
 
@@ -16,8 +14,6 @@ and is defined as:
 where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neighboring map,
 :math:`R` is the trainable denoiser network, :math:`\gamma>0` is a regularization parameter
 and no gradient is propagated when computing :math:`R(y)`.
-
-
 """
 
 from pathlib import Path
@@ -28,7 +24,7 @@ from torchvision import transforms, datasets
 
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -51,7 +47,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we use the MNIST dataset as the base image dataset.
 #
 
-operation = "denoising"
+operation = "denoising_n2n"
 train_dataset_name = "MNIST"
 
 transform = transforms.Compose([transforms.ToTensor()])
@@ -77,7 +73,7 @@ test_dataset = datasets.MNIST(
 # defined physics
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
@@ -147,11 +143,16 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
 #
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
@@ -171,11 +172,14 @@ trainer = dinv.Trainer(
     device=device,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
+    metrics=None,  # no supervised metrics
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
 )
 
 model = trainer.train()
@@ -183,7 +187,13 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-#
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+
+# %%
+# :References:
+#
+# .. footbibliography::

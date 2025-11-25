@@ -1,28 +1,16 @@
 # Code taken from https://github.com/cszn/SCUNet/blob/main/models/network_scunet.py
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
-from einops import rearrange
-from einops.layers.torch import Rearrange
 from .utils import get_weights_url
 from .base import Denoiser
-
-# Compatibility with optional dependency on timm
-try:
-    import timm
-    from timm.layers import trunc_normal_, DropPath
-except ImportError as e:
-    timm = e
 
 
 class WMSA(nn.Module):
     """Self-attention module in Swin Transformer"""
 
     def __init__(self, input_dim, output_dim, head_dim, window_size, type):
-        if isinstance(timm, ImportError):
-            raise ImportError(
-                "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
-            ) from timm
         super(WMSA, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -40,6 +28,8 @@ class WMSA(nn.Module):
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 
+        from timm.layers import trunc_normal_
+
         trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
             self.relative_position_params.view(
@@ -56,6 +46,8 @@ class WMSA(nn.Module):
         Returns:
             attn_mask: should be (1 1 w p p),
         """
+        from einops import rearrange
+
         # supporting sqaure.
         attn_mask = torch.zeros(
             h,
@@ -88,6 +80,8 @@ class WMSA(nn.Module):
         Returns:
             output: tensor shape [b h w c]
         """
+        from einops import rearrange
+
         if self.type != "W":
             x = torch.roll(
                 x,
@@ -102,8 +96,6 @@ class WMSA(nn.Module):
         )
         h_windows = x.size(1)
         w_windows = x.size(2)
-        # sqaure validation
-        # assert h_windows == w_windows
 
         x = rearrange(
             x,
@@ -115,19 +107,34 @@ class WMSA(nn.Module):
         q, k, v = rearrange(
             qkv, "b nw np (threeh c) -> threeh b nw np c", c=self.head_dim
         ).chunk(3, dim=0)
-        sim = torch.einsum("hbwpc,hbwqc->hbwpq", q, k) * self.scale
-        # Adding learnable relative embedding
-        sim = sim + rearrange(self.relative_embedding(), "h p q -> h 1 1 p q")
-        # Using Attn Mask to distinguish different subwindows.
-        if self.type != "W":
-            attn_mask = self.generate_mask(
-                h_windows, w_windows, self.window_size, shift=self.window_size // 2
-            )
-            sim = sim.masked_fill_(attn_mask, float("-inf"))
 
-        probs = nn.functional.softmax(sim, dim=-1)
-        output = torch.einsum("hbwij,hbwjc->hbwic", probs, v)
-        output = rearrange(output, "h b w p c -> b w p (h c)")
+        # Build additive attention bias from relative position embedding.
+        rel_bias = rearrange(
+            self.relative_embedding().to(device=q.device, dtype=q.dtype),
+            "h p q -> h 1 1 p q",
+        )
+
+        # SW-MSA mask: True means masked. Turn into additive mask with -inf.
+        if self.type != "W":
+            attn_mask_bool = self.generate_mask(
+                h_windows, w_windows, self.window_size, shift=self.window_size // 2
+            ).to(device=q.device)
+            mask_add = torch.where(attn_mask_bool, -float("inf"), 0.0)
+            attn_mask = rel_bias + mask_add
+        else:
+            attn_mask = rel_bias
+
+        # SDPA handles scaling by 1/sqrt(head_dim); no extra scaling needed.
+        out = F.scaled_dot_product_attention(
+            q.contiguous(),
+            k.contiguous(),
+            v.contiguous(),
+            attn_mask=attn_mask,
+            dropout_p=0.0,
+            is_causal=False,
+        )  # [h, b, w, p, c]
+
+        output = rearrange(out, "h b w p c -> b w p (h c)")
         output = self.linear(output)
         output = rearrange(
             output,
@@ -181,11 +188,10 @@ class Block(nn.Module):
         if input_resolution <= window_size:
             self.type = "W"
 
-        # print(
-        #    "Block Initial Type: {}, drop_path_rate:{:.6f}".format(self.type, drop_path)
-        # )
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
+        from timm.layers import DropPath
+
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)
         self.mlp = nn.Sequential(
@@ -258,6 +264,8 @@ class ConvTransBlock(nn.Module):
         )
 
     def forward(self, x):
+        from einops.layers.torch import Rearrange
+
         conv_x, trans_x = torch.split(
             self.conv1_1(x), (self.conv_dim, self.trans_dim), dim=1
         )
@@ -275,11 +283,10 @@ class SCUNet(Denoiser):
     r"""
     SCUNet denoising network.
 
-    The Swin-Conv-UNet (SCUNet) denoising was introduced in `Practical Blind Denoising via Swin-Conv-UNet and
-    Data Synthesis <https://arxiv.org/abs/2203.13278>`_.
+    The Swin-Conv-UNet (SCUNet) denoising was introduced by :footcite:t:`zhang2023practical`.
 
     :param int in_nc: number of input channels. Default: 3.
-    :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
+    :param Sequence config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
     :param int dim: number of channels in each layer. Default: 64.
     :param float drop_path_rate: drop path per sample rate (stochastic depth) for each layer. Default: 0.0.
     :param int input_resolution: input resolution. Default: 256.
@@ -291,12 +298,15 @@ class SCUNet(Denoiser):
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
 
+    .. note::
+
+        This class requires the ``timm`` package to be installed. Install with ``pip install timm``.
     """
 
     def __init__(
         self,
         in_nc=3,
-        config=[4, 4, 4, 4, 4, 4, 4],
+        config=(4, 4, 4, 4, 4, 4, 4),
         dim=64,
         drop_path_rate=0.0,
         input_resolution=256,
@@ -469,6 +479,8 @@ class SCUNet(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
+            from timm.layers import trunc_normal_
+
             trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)

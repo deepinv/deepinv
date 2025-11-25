@@ -4,10 +4,9 @@ Self-supervised learning with measurement splitting
 
 We demonstrate self-supervised learning with measurement splitting, to
 train a denoiser network on the MNIST dataset. The physics here is noisy
-computed tomography, as is the case in
-`Noise2Inverse <https://arxiv.org/abs/2001.11801>`__. Note this example
+computed tomography, as is the case in Noise2Inverse :footcite:t:`hendriksen2020noise2inverse`. Note this example
 can also be easily applied to undersampled multicoil MRI as is the case
-in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__.
+in SSDU :footcite:t:`yaman2020self`.
 
 Measurement splitting constructs a ground-truth free loss
 :math:`\frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2` by splitting
@@ -25,7 +24,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
@@ -51,8 +50,7 @@ ORIGINAL_DATA_HOME = get_data_home()
 # -  Use ``eval_n_samples`` to set how many realisations of the random
 #    mask is used at evaluation time;
 # -  Optionally disable measurement splitting at evaluation time using
-#    ``eval_split_input`` (as is the case in
-#    `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__).
+#    ``eval_split_input`` (as is the case in SSDU :footcite:t:`yaman2020self`).
 # -  Average over both input and output masks at evaluation time using
 #    ``eval_split_output``. See :class:`deepinv.loss.SplittingLoss` for
 #    details.
@@ -148,7 +146,13 @@ optimizer.load_state_dict(ckpt["optimizer"])
 # %%
 # Train and test network
 # ----------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 trainer = dinv.Trainer(
     model=model,
@@ -158,6 +162,11 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    metrics=None,  # no supervised metrics
+    early_stop=2,  # we can use early stopping as we have a validation loss
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=False,
     save_path=None,
     verbose=True,
@@ -169,13 +178,13 @@ model = trainer.train()
 
 
 # %%
-# Test and visualise the model outputs using a small test set. We set the
+# Test and visualize the model outputs using a small test set. We set the
 # output to average over 5 iterations of random mask realisations. The
 # trained model improves on the no-learning reconstruction by ~7dB.
 #
 
 trainer.plot_images = True
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 
 # %%
@@ -185,15 +194,20 @@ trainer.test(test_dataloader)
 #
 
 model.eval_n_samples = 1
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 
 # %%
 # Furthermore, we can disable measurement splitting at evaluation
 # altogether by setting ``eval_split_input`` to False (this is done in
-# `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`__). This generally is
+# SSDU :footcite:t:`yaman2020self`). This generally is
 # worse than MC averaging:
 #
 
 model.eval_split_input = False
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+
+# %%
+# :References:
+#
+# .. footbibliography::

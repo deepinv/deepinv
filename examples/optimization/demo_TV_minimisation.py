@@ -8,13 +8,14 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
 from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import PGD
 from deepinv.utils.demo import load_dataset, load_degradation
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -32,8 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 #
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -73,7 +73,7 @@ physics = dinv.physics.BlurFFT(
 )
 
 # Select the first image from the dataset
-x = dataset[0][0].unsqueeze(0).to(device)
+x = dataset[0].unsqueeze(0).to(device)
 
 # Apply the degradation to the image
 y = physics(x)
@@ -107,8 +107,12 @@ cost_tv_prox = prior(x_tv).item()
 # Plot the input and the output of the TV proximal operator
 imgs = [y, x_tv]
 plot(
-    imgs,
-    titles=[f"Input, TV cost: {cost_tv:.2f}", f"Output, TV cost: {cost_tv_prox:.2f}"],
+    {"Input": y, "Output": x_tv},
+    subtitles=[
+        f"TV cost: {int(cost_tv)}",
+        f"TV cost: {int(cost_tv_prox)}",
+    ],
+    tight=False,
 )
 
 
@@ -143,20 +147,19 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0
-lamb = 1e-2  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-2  # TV regularisation parameter
 max_iter = 300
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
 )
 
 # %%
@@ -175,16 +178,27 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
+psnr_input = dinv.metric.PSNR()(x, y)
+psnr_lin = dinv.metric.PSNR()(x, x_lin)
+psnr_model = dinv.metric.PSNR()(x, x_model)
 
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
+imgs = [x, y, x_lin, x_model]
 plot(
-    imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    {"Ground Truth": x, "Input": y, "Linear Recon": x_lin, "Recons": x_model},
+    subtitles=[
+        "PSNR:",
+        f"{psnr_input.item():.2f} dB",
+        f"{psnr_lin.item():.2f} dB",
+        f"{psnr_model.item():.2f} dB",
+    ],
 )
 
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%
+# :References:
+#
+# .. footbibliography::

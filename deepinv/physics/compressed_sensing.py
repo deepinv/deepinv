@@ -1,3 +1,4 @@
+from __future__ import annotations
 from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
@@ -6,14 +7,14 @@ from torch import Tensor
 from deepinv.utils.decorators import _deprecated_alias
 
 
-def dst1(x):
+def dst1(x: Tensor) -> Tensor:
     r"""
     Orthogonal Discrete Sine Transform, Type I
     The transform is performed across the last dimension of the input signal
     Due to orthogonality we have ``dst1(dst1(x)) = x``.
 
     :param torch.Tensor x: the input signal
-    :return: (torch.tensor) the DST-I of the signal over the last dimension
+    :return: (torch.Tensor) the DST-I of the signal over the last dimension
 
     """
     x_shape = x.shape
@@ -40,7 +41,7 @@ class CompressedSensing(LinearPhysics):
 
         A_{i,j} \sim \mathcal{N}(0,\frac{1}{m})
 
-    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see https://arxiv.org/abs/1506.03521)
+    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see :footcite:t:`oymak2018isometric`)
 
     .. math::
 
@@ -100,12 +101,12 @@ class CompressedSensing(LinearPhysics):
     @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
-        m,
-        img_size,
-        fast=False,
-        channelwise=False,
-        dtype=torch.float,
-        device="cpu",
+        m: int,
+        img_size: tuple[int],
+        fast: bool = False,
+        channelwise: bool = False,
+        dtype: torch.dtype = torch.float,
+        device: torch.device | str = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):

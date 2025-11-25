@@ -2,18 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-try:
-    import FrEIA.framework as Ff
-    import FrEIA.modules as Fm
-except:
-    Ff = ImportError("The FrEIA package is not installed.")
-    Fm = ImportError("The FrEIA package is not installed.")
-
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from typing import Callable
 
 
 class Prior(Potential):
@@ -40,8 +32,8 @@ class Prior(Potential):
     :param Callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None):
-        super().__init__(fn=g)
+    def __init__(self, g=None, *args, **kwargs):
+        super().__init__(*args, fn=g, **kwargs)
         self.explicit_prior = False if self._fn is None else True
 
 
@@ -103,7 +95,7 @@ class PnP(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float sigma_denoiser: noise level parameter of the denoiser.
-        :return: (torch.tensor) proximity operator at :math:`x`.
+        :return: (torch.Tensor) proximity operator at :math:`x`.
         """
         return self.denoiser(x, sigma_denoiser)
 
@@ -149,7 +141,7 @@ class ScorePrior(Prior):
     .. note::
 
         If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
-        `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
+        Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn't require the normalization.
 
 
     .. note::
@@ -161,8 +153,6 @@ class ScorePrior(Prior):
         .. math::
 
             p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
-
-
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -222,7 +212,9 @@ class Tikhonov(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
-        return 0.5 * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
+        return (
+            0.5 * torch.linalg.vector_norm(x, dim=tuple(range(1, x.dim())), ord=2) ** 2
+        )
 
     def grad(self, x, *args, **kwargs):
         r"""
@@ -261,7 +253,7 @@ class L1Prior(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
-        return torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
+        return torch.linalg.vector_norm(x, ord=1, dim=tuple(range(1, x.dim())))
 
     def prox(self, x, *args, ths=1.0, gamma=1.0, **kwargs):
         r"""
@@ -279,9 +271,13 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return torch.Tensor: proximity operator at :math:`x`.
         """
-        return torch.sign(x) * torch.max(
-            torch.abs(x) - ths * gamma, torch.zeros_like(x)
-        )
+        lambd = ths * gamma
+        if isinstance(lambd, float):
+            return torch.nn.functional.softshrink(
+                x, lambd=lambd
+            )  # this is faster but not batchable on lambd.
+        else:
+            return torch.sign(x) * torch.nn.functional.relu(torch.abs(x) - lambd)
 
 
 class WaveletPrior(Prior):
@@ -308,6 +304,8 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param bool is_complex: whether the input is complex-valued. Default is False.
+    :param str mode: padding mode for the wavelet transform (default: "zero").
     :param float clamp_min: minimum value for the clamping. Default is None.
     :param float clamp_max: maximum value for the clamping. Default is None.
     """
@@ -319,6 +317,8 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
+        is_complex=False,
+        mode="zero",
         clamp_min=None,
         clamp_max=None,
         *args,
@@ -331,6 +331,8 @@ class WaveletPrior(Prior):
         self.wvdim = wvdim
         self.level = level
         self.device = device
+        self.mode = mode
+        self.is_complex = is_complex
 
         self.clamp_min = clamp_min
         self.clamp_max = clamp_max
@@ -350,6 +352,7 @@ class WaveletPrior(Prior):
                 wv=self.wv,
                 device=self.device,
                 non_linearity=self.non_linearity,
+                is_complex=self.is_complex,
                 wvdim=self.wvdim,
             )
         elif type(self.wv) == list:
@@ -358,7 +361,12 @@ class WaveletPrior(Prior):
                 list_wv=self.wv,
                 max_iter=10,
                 non_linearity=self.non_linearity,
+                is_complex=self.is_complex,
                 wvdim=self.wvdim,
+            )
+        else:
+            raise ValueError(
+                f"wv should be a string (name of the wavelet) or a list of strings (list of wavelet names). Got {type(self.wv)} instead."
             )
 
     def fn(self, x, *args, reduce=True, **kwargs):
@@ -388,33 +396,53 @@ class WaveletPrior(Prior):
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
-        list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        list_norm = torch.cat(
+            [
+                torch.linalg.norm(dec, ord=self.p, dim=1, keepdim=True)
+                for dec in list_dec
+            ],
+            dim=1,
+        )
         if reduce:
-            return torch.sum(list_norm)
+            return torch.sum(list_norm, dim=1)
         else:
             return list_norm
 
-    def prox(self, x, *args, gamma=1.0, **kwargs):
+    def prox(self, x, *args, ths=0.1, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
+        :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
+            If `ths` is a tensor, it should be of shape
+            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
+            or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
+            If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
+            thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
+            ``ths`` can indicate the number of wavelet coefficients
+            that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
+        :param float gamma: proximal operator stepsize.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
-        out = self.WaveletDenoiser(x, ths=gamma)
+        out = self.WaveletDenoiser(x, ths=ths * gamma)
         if self.clamp_min is not None:
             out = torch.clamp(out, min=self.clamp_min)
         if self.clamp_max is not None:
             out = torch.clamp(out, max=self.clamp_max)
         return out
 
-    def psi(self, x, wavelet="db2", level=2, dimension=2):
+    def psi(self, x, *args, **kwargs):
         r"""
         Applies the (flattening) wavelet decomposition of x.
         """
         return self.WaveletDenoiser.psi(
-            x, wavelet=self.wv, level=self.level, dimension=self.wvdim
+            x,
+            wavelet=self.wv,
+            level=self.level,
+            dimension=self.wvdim,
+            mode=self.mode,
+            *args,
+            **kwargs,
         )
 
 
@@ -544,6 +572,10 @@ class PatchNR(Prior):
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the generated normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
+
+    .. note::
+
+        This class requires the ``FrEIA`` package to be installed. Install with ``pip install FrEIA``.
     """
 
     def __init__(
@@ -556,12 +588,10 @@ class PatchNR(Prior):
         sub_net_size=256,
         device="cpu",
     ):
+        import FrEIA.framework as Ff
+        import FrEIA.modules as Fm
+
         super(PatchNR, self).__init__()
-        if isinstance(Ff, ImportError):
-            raise ImportError(
-                "FrEIA is needed to use the PatchNR class. "
-                "It should be installed with `pip install FrEIA`."
-            ) from Ff
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels
@@ -661,8 +691,8 @@ class L12Prior(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
-        x_l2 = torch.norm(x, p=2, dim=self.l2_axis)
-        return torch.norm(x_l2.reshape(x.shape[0], -1), p=1, dim=-1)
+        x = torch.linalg.vector_norm(x, dim=self.l2_axis, ord=2, keepdim=False)
+        return torch.linalg.vector_norm(x.reshape(x.shape[0], -1), dim=-1, ord=1)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""
@@ -671,7 +701,7 @@ class L12Prior(Prior):
         More precisely, it computes
 
         .. math::
-            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x
+            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{\mathrm{max}(\Vert x \Vert_2,\gamma)}) x
 
 
         where :math:`\gamma` is a stepsize.
@@ -682,19 +712,9 @@ class L12Prior(Prior):
         :return torch.Tensor: proximity operator at :math:`x`.
         """
 
-        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)  # Compute the norm
-        z2 = torch.max(
-            z, gamma * torch.ones_like(z)
-        )  # Compute its max w.r.t. gamma at each point
-        z3 = torch.ones_like(z)  # Construct a mask of ones
-        mask_z = z > 0  # Find locations where z (hence x) is not already zero
-        z3[mask_z] = (
-            z3[mask_z] - gamma / z2[mask_z]
-        )  # If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
-        # Oth. z3 = 1- gamma/z2
-        z4 = torch.multiply(
-            x, z3
-        )  # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)
-        # Creating a mask to avoid diving by zero
-        # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
-        return z4
+        z = torch.linalg.vector_norm(
+            x, dim=self.l2_axis, ord=2, keepdim=True
+        )  # Compute the norm
+        # 1 - gamma/max(z, gamma) = relu(z - gamma) / z, adding 1e-12 to avoid division by 0
+        z = torch.nn.functional.relu(z - gamma) / (z + 1e-12)
+        return z * x

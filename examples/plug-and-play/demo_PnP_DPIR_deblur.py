@@ -2,10 +2,7 @@
 DPIR method for PnP image deblurring.
 ====================================================================================================
 
-This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in
-the following paper:
-Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
-Learning deep CNN denoiser prior for image restoration.
+This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in :footcite:t:`zhang2021plug`.
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
@@ -16,11 +13,11 @@ from torch.utils.data import DataLoader
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import HQS
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
-from deepinv.utils.demo import load_dataset, load_degradation
+from deepinv.utils import load_dataset, load_degradation
 
 # %%
 # Setup paths for data loading and results.
@@ -36,9 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
-#
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -77,7 +72,7 @@ p = dinv.physics.BlurFFT(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
@@ -110,8 +105,7 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 #    We provide a wrapper for rapidly creating the DPIR algorithm in :class:`deepinv.optim.DPIR`.
 
 # load specific parameters for DPIR
-sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
+sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img, device=device)
 early_stop = False  # Do not stop algorithm with convergence criteria
 
 # Select the data fidelity term
@@ -121,14 +115,14 @@ data_fidelity = L2()
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="HQS",
+model = HQS(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,
-    params_algo=params_algo,
 )
 
 # Set the model to evaluation mode. We do not require training here.
@@ -160,3 +154,8 @@ test(
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

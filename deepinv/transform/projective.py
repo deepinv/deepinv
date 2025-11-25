@@ -1,19 +1,14 @@
+from __future__ import annotations
 from dataclasses import dataclass
 
-from typing import Union, Iterable
+from typing import Iterable
 
 import numpy as np
 import torch
 from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
-
-try:
-    from kornia.geometry.transform import warp_perspective
-except ImportError:
-
-    def warp_perspective(*args, **kwargs):
-        raise ImportError("The kornia package is not installed.")
+from deepinv.utils.compat import zip_strict
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -27,6 +22,10 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float ty: y rotation in degrees
     :param float tz: z rotation in degrees
     :return np.ndarray: 3D rotation matrix.
+
+    .. note::
+
+        This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
     tx, ty, tz = np.radians((tx, ty, tz))
 
@@ -54,7 +53,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
 
 
 def apply_homography(
-    im: Union[torch.Tensor, Image.Image],
+    im: torch.Tensor | Image.Image,
     theta_x: float = 0.0,
     theta_y: float = 0.0,
     theta_z: float = 0.0,
@@ -69,7 +68,7 @@ def apply_homography(
     verbose: bool = False,
     device="cpu",
     **kwargs,
-) -> Union[torch.Tensor, Image.Image]:
+) -> torch.Tensor | Image.Image:
     r"""Perform homography (projective transformation).
 
     Given physical parameters describing camera variation, this function performs the geometric transformation given by the change in parameters.
@@ -78,7 +77,7 @@ def apply_homography(
 
     The input image can be a torch Tensor, in which case ``kornia`` is used to perform the transformation, or a PIL Image where PIL transform is used.
 
-    Following https://arxiv.org/abs/2403.09327, we assume principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
+    Following :footcite:t:`wang2024perspective`, we assume principal point in center, initial focal length 100, initial skew of 0, initial square pixels.
 
     :param torch.Tensor | Image.Image im: Input if tensor, image of shape (B,C,H,W), otherwise a PIL image.
     :param float theta_x: tilt angle in degrees, defaults to 0.
@@ -95,7 +94,10 @@ def apply_homography(
     :param bool verbose: if True, print homography matrix, defaults to False
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
+
+
     """
+    from kornia.geometry.transform import warp_perspective
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
 
@@ -160,10 +162,9 @@ class Homography(Transform):
     """
     Random projective transformations (homographies).
 
-    The homography is parameterised by
+    The homography is parameterized by
     geometric parameters. By fixing these parameters, subgroup transformations are
-    retrieved, see Wang et al. "Perspective-Equivariant Imaging: an Unsupervised
-    Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
+    retrieved, see :footcite:t:`wang2024perspective`.
 
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
@@ -246,15 +247,15 @@ class Homography(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        theta_y: Union[torch.Tensor, Iterable, TransformParam] = [],
-        theta_z: Union[torch.Tensor, Iterable, TransformParam] = [],
-        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = [],
-        shift_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        shift_y: Union[torch.Tensor, Iterable, TransformParam] = [],
-        skew: Union[torch.Tensor, Iterable, TransformParam] = [],
-        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
+        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        skew: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
         **params,
     ) -> torch.Tensor:
         return torch.cat(
@@ -274,7 +275,7 @@ class Homography(Transform):
                     interpolation=self.interpolation,
                     device=self.device,
                 )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
+                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip_strict(
                     theta_x,
                     theta_y,
                     theta_z,
@@ -295,7 +296,7 @@ class Affine(Homography):
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    skews, and stretches. These transformations are parametrized using geometric parameters in the pinhole camera model.
     See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
@@ -334,7 +335,7 @@ class Similarity(Homography):
 
     Special case of homography which corresponds to the actions of the similarity subgroup
     S(2). Similarity transformations include translations, rotations, reflections and
-    uniform scale. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+    uniform scale. These transformations are parametrized using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
@@ -369,7 +370,7 @@ class Euclidean(Homography):
     """Random Euclidean image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the Euclidean subgroup
-    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrized using geometric parameters in the pinhole camera model.
     See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
@@ -404,8 +405,7 @@ class PanTiltRotate(Homography):
     """Random 3D camera rotation image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the 3D camera rotation,
-    or "pan+tilt+rotate" subgroup from Wang et al. "Perspective-Equivariant Imaging: an
-    Unsupervised Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
+    or "pan+tilt+rotate" subgroup from :footcite:t:`wang2024perspective`.
 
     The transformations simulate panning, tilting or rotating the camera, leading to a
     "perspective" effect. The subgroup is isomorphic to SO(3).
@@ -432,6 +432,7 @@ class PanTiltRotate(Homography):
     :param str device: torch device, defaults to "cpu".
     :param n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
     """
 
     def _get_params(self, x: torch.Tensor) -> dict:

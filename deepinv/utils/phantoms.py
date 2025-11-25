@@ -43,13 +43,14 @@ def generate_random_phantom(size, n_ellipse=50, interior=False):
 class RandomPhantomDataset(Dataset):
     r"""
     Dataset of random ellipsoid phantoms generated on the fly.
+
+    :param float length: Length of the dataset.
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
-    :param transform: Transformation to apply to the output image.
-    :param float length: Length of the dataset.
+    :param Callable transform: Transformation to apply to the output image.
     """
 
-    def __init__(self, size=128, n_data=1, transform=None, length=np.inf):
+    def __init__(self, length: int, size: int = 128, n_data: int = 1, transform=None):
         self.size = size
         self.n_data = n_data
         self.transform = transform
@@ -60,14 +61,16 @@ class RandomPhantomDataset(Dataset):
 
     def __getitem__(self, index):
         """
-        :return tuple : A tuple (phantom, 0) where phantom is a torch tensor of shape (n_data, size, size).
+        :return: A torch.Tensor of shape (n_data, size, size).
         """
-        phantom_np = torch.stack(
+        x = torch.stack(
             [generate_random_phantom(self.size) for _ in range(self.n_data)]
         )
+
         if self.transform is not None:
-            phantom_np = self.transform(phantom_np)
-        return phantom_np, 0
+            x = self.transform(x)
+
+        return x
 
 
 def generate_shepp_logan(size):
@@ -100,6 +103,10 @@ def generate_shepp_logan(size):
 class SheppLoganDataset(Dataset):
     """
     Dataset for the single Shepp-Logan phantom. The dataset has length 1.
+
+    :param int size: Size of the phantom (square) image.
+    :param int n_data: Number of phantoms to generate per sample.
+    :param Callable transform: Transformation to apply to the output image.
     """
 
     def __init__(self, size=128, n_data=1, transform=None):
@@ -111,9 +118,12 @@ class SheppLoganDataset(Dataset):
         return 1
 
     def __getitem__(self, index):
-        phantom_np = torch.stack(
-            [generate_shepp_logan(self.size) for _ in range(self.n_data)]
-        )
+        """
+        :return: A torch.Tensor of shape (n_data, size, size).
+        """
+        x = torch.stack([generate_shepp_logan(self.size) for _ in range(self.n_data)])
+
         if self.transform is not None:
-            phantom_np = self.transform(phantom_np)
-        return phantom_np, 0
+            x = self.transform(x)
+
+        return x

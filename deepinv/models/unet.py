@@ -1,16 +1,15 @@
+from __future__ import annotations
+import warnings
 import torch
 import torch.nn as nn
 from .drunet import test_pad
 from .base import Denoiser
+from .utils import fix_dim, conv_nd, batchnorm_nd, maxpool_nd
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
-    From Mohan et al.
-
-    "Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks"
-    S. Mohan, Z. Kadkhodaie, E. P. Simoncelli, C. Fernandez-Granda
-    Int'l. Conf. on Learning Representations (ICLR), Apr 2020.
+    From :footcite:t:`mohan2020robust`.
     """
 
     def __init__(
@@ -72,25 +71,38 @@ class UNet(Denoiser):
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
     :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
-        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from
-        `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
+        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
+    :param torch.device, str device: Device to put the model on.
+    :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
 
     def __init__(
         self,
-        in_channels=1,
-        out_channels=1,
-        residual=True,
-        circular_padding=False,
-        cat=True,
-        bias=True,
-        batch_norm=True,
-        scales=4,
+        in_channels: int = 1,
+        out_channels: int = 1,
+        residual: bool = True,
+        circular_padding: bool = False,
+        cat: bool = True,
+        bias: bool = True,
+        batch_norm: bool | str = True,
+        scales: int = 4,
+        device: torch.device | str = None,
+        dim: str | int = 2,
     ):
         super(UNet, self).__init__()
         self.name = "unet"
+
+        if residual and in_channels != out_channels:  # pragma: no cover
+            raise warnings.warn(
+                "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
+            )
+
+        dim = fix_dim(dim)
+
+        conv = conv_nd(dim)
+        batchnorm = batchnorm_nd(dim)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -98,14 +110,16 @@ class UNet(Denoiser):
         self.residual = residual
         self.cat = cat
         self.compact = scales
-        self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
 
         biasfree = batch_norm == "biasfree"
+        if biasfree and dim == 3:  # pragma: no cover
+            raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
         def conv_block(ch_in, ch_out):
             if batch_norm:
                 return nn.Sequential(
-                    nn.Conv2d(
+                    conv(
                         ch_in,
                         ch_out,
                         kernel_size=3,
@@ -117,22 +131,28 @@ class UNet(Denoiser):
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
                         if biasfree
-                        else nn.BatchNorm2d(ch_out)
+                        else batchnorm(ch_out)
                     ),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    conv(
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
                         if biasfree
-                        else nn.BatchNorm2d(ch_out)
+                        else batchnorm(ch_out)
                     ),
                     nn.ReLU(inplace=True),
                 )
             else:
                 return nn.Sequential(
-                    nn.Conv2d(
+                    conv(
                         ch_in,
                         ch_out,
                         kernel_size=3,
@@ -142,8 +162,14 @@ class UNet(Denoiser):
                         padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    conv(
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
@@ -152,21 +178,33 @@ class UNet(Denoiser):
             if batch_norm:
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
-                    nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    conv(
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
                         if biasfree
-                        else nn.BatchNorm2d(ch_out)
+                        else batchnorm(ch_out)
                     ),
                     nn.ReLU(inplace=True),
                 )
             else:
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
-                    nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias
+                    conv(
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
@@ -199,7 +237,7 @@ class UNet(Denoiser):
         self.Up2 = up_conv(ch_in=128, ch_out=64)
         self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
 
-        self.Conv_1x1 = nn.Conv2d(
+        self.Conv_1x1 = conv(
             in_channels=64,
             out_channels=out_channels,
             bias=bias,
@@ -217,7 +255,10 @@ class UNet(Denoiser):
         if self.compact == 2:
             self._forward = self.forward_compact2
 
-    def forward(self, x, sigma=None, **kwargs):
+        if device is not None:
+            self.to(device)
+
+    def forward(self, x: torch.Tensor, sigma=None, **kwargs) -> torch.Tensor:
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
@@ -231,7 +272,7 @@ class UNet(Denoiser):
         else:
             return test_pad(self._forward, x, modulo=factor)
 
-    def forward_standard(self, x):
+    def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
         # encoding path
         cat_dim = 1
         input = x
@@ -275,7 +316,7 @@ class UNet(Denoiser):
         out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
         return out
 
-    def forward_compact4(self, x):
+    def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
         # def forward_compact4(self, x):
         # encoding path
         cat_dim = 1
@@ -312,7 +353,7 @@ class UNet(Denoiser):
         out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
         return out
 
-    def forward_compact3(self, x):
+    def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
         # encoding path
         cat_dim = 1
         input = x
@@ -339,7 +380,7 @@ class UNet(Denoiser):
         out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
         return out
 
-    def forward_compact2(self, x):
+    def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
         # encoding path
         cat_dim = 1
         input = x

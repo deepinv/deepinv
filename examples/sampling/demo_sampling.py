@@ -14,29 +14,24 @@ ULA obtains samples by running the following iteration:
 where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\eta` is the step size and
 :math:`\alpha` is a parameter controlling the regularization.
 
-The PnP-ULA method is described in the paper `"Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
-" <https://arxiv.org/abs/2103.04715>`_.
-
+The PnP-ULA method is described in the paper :footcite:t:`laumont2022bayesian`.
 """
 
+# %%
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_url_image
+from deepinv.utils import load_example
 
 # %%
 # Load image from the internet
 # --------------------------------------------
 #
-# This example uses an image of Lionel Messi from Wikipedia.
+# This example uses an image of Messi.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-)
-x = load_url_image(url=url, img_size=32).to(device)
+x = load_example("messi.jpg", img_size=32).to(device)
 
 # %%
 # Define forward operator and noise model
@@ -80,8 +75,7 @@ likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 # The hyperparameter ``sigma_denoiser`` (:math:`sigma`) controls the strength of the prior.
 #
 # In this example, we use a pretrained DnCNN model using the :class:`deepinv.loss.FNEJacobianSpectralNorm` loss,
-# which makes sure that the denoiser is firmly non-expansive (see
-# `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
+# which makes sure that the denoiser is firmly non-expansive (see :footcite:t:`terris2020building`), and helps to
 # stabilize the sampling algorithm.
 
 sigma_denoiser = 2 / 255
@@ -94,7 +88,7 @@ prior = dinv.optim.ScorePrior(
 # --------------------------------------------------------------
 #
 # Here we use the Unadjusted Langevin Algorithm (ULA) to sample from the posterior defined in
-# :class:`deepinv.sampling.ULA`.
+# :class:`deepinv.sampling.ULAIterator`.
 # The hyperparameter ``step_size`` controls the step size of the MCMC sampler,
 # ``regularization`` controls the strength of the prior and
 # ``iterations`` controls the number of iterations of the sampler.
@@ -102,14 +96,19 @@ prior = dinv.optim.ScorePrior(
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
 iterations = int(5e3) if torch.cuda.is_available() else 10
-f = dinv.sampling.ULA(
+params = {
+    "step_size": step_size,
+    "alpha": regularization,
+    "sigma": sigma_denoiser,
+}
+f = dinv.sampling.sampling_builder(
+    "ULA",
     prior=prior,
     data_fidelity=likelihood,
     max_iter=iterations,
-    alpha=regularization,
-    step_size=step_size,
+    params_algo=params,
+    thinning=1,
     verbose=True,
-    sigma=sigma_denoiser,
 )
 
 # %%
@@ -126,7 +125,7 @@ y = physics(x)
 # The sampling algorithm returns the posterior mean and variance.
 # We compare the posterior mean with a simple linear reconstruction.
 
-mean, var = f(y, physics)
+mean, var = f.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)
@@ -143,3 +142,8 @@ plot(
     imgs,
     titles=["measurement", "ground truth", "post. mean", "post. std", "abs. error"],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

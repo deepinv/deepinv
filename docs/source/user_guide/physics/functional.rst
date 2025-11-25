@@ -69,6 +69,18 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.IRadon`
      - Computes the inverse Radon transform, reconstructing an image from projection data as in CT scan reconstruction.
   
+   * - :func:`deepinv.physics.functional.dct`
+     - Computes the 1D Discrete Cosine Transform (DCT), commonly used in signal processing and data compression.
+
+   * - :func:`deepinv.physics.functional.idct`
+     - Computes the inverse 1D Discrete Cosine Transform (IDCT), reconstructing the original signal from its DCT coefficients.
+    
+   * - :func:`deepinv.physics.functional.dct_2d`
+     - Computes the 2D Discrete Cosine Transform (DCT), commonly used in image compression and signal processing.
+  
+   * - :func:`deepinv.physics.functional.idct_2d`
+     - Computes the inverse 2D Discrete Cosine Transform (IDCT), reconstructing the original image from its DCT coefficients.
+    
    * - :func:`deepinv.physics.functional.XrayTransform`
      - X-ray Transform operator with ``astra-toolbox`` backend. Computes forward projection and backprojection used in CT reconstruction.
 
@@ -78,3 +90,5 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.histogram`
      - Computes the histogram of 1D or 2D data, often used for intensity distribution analysis in image processing.
 
+   * - :func:`deepinv.physics.functional.imresize_matlab`
+     - MATLAB bicubic imresize function implemented in PyTorch.

@@ -1,5 +1,5 @@
-import torch
 import torch.nn as nn
+from deepinv.optim.utils import objective_function
 
 
 class OptimIterator(nn.Module):
@@ -8,7 +8,7 @@ class OptimIterator(nn.Module):
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
     :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
-    and g is a regularizer. The fixed point iteration takes the form
+    and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
     .. math::
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, \regname, A, y, ...)
@@ -34,21 +34,28 @@ class OptimIterator(nn.Module):
     where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_{\regname}` are the steps on f and g respectively.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
-    :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
-    :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
-     """
+    :param cost_fn: function that returns the function F to be minimized at each iteration. Default: None.
+    :param bool has_cost: If True, the cost function :math:`D` is computed at each iteration. Default: True.
+    """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=False, **kwargs):
+    def __init__(self, g_first=False, cost_fn=None, has_cost=True, **kwargs):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
-        self.F_fn = F_fn
         self.has_cost = has_cost
-        if self.F_fn is None:
-            self.has_cost = False
+        if "F_fn" in kwargs:
+            F_fn = kwargs.pop("F_fn")
+            warnings.warn(
+                "`F_fn` is deprecated and will be removed in a future release. "
+                "Use `cost_fn` instead.",
+                DeprecationWarning,
+            )
+            cost_fn = F_fn
+        if cost_fn is None and self.has_cost:
+            self.cost_fn = objective_function
+        else:
+            self.cost_fn = cost_fn
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
-        self.requires_grad_g = False
-        self.requires_prox_g = False
 
     def relaxation_step(self, u, v, beta):
         r"""
@@ -85,14 +92,17 @@ class OptimIterator(nn.Module):
             )
             x = self.g_step(z, cur_prior, cur_params, *args, **kwargs)
         else:
-            z = self.g_step(x_prev, cur_prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params, *args, **kwargs)
             x = self.f_step(
                 z, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
             )
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+            self.cost_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
+            if self.cost_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

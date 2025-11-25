@@ -1,23 +1,15 @@
 from typing import Any, Callable
 import os
-
-import torch
+from PIL import Image
 
 from deepinv.datasets.utils import calculate_md5
-
-error_import = None
-try:
-    from datasets import load_dataset as load_dataset_hf, load_from_disk
-except:
-    error_import = ImportError(
-        "datasets is not available. Please install the datasets package with `pip install datasets`."
-    )
+from deepinv.datasets.base import ImageDataset
 
 
-class CBSD68(torch.utils.data.Dataset):
+class CBSD68(ImageDataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
-    Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark.
+    Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.
     It is used for measuring image restoration algorithms performance. It contains 68 images.
 
 
@@ -30,11 +22,17 @@ class CBSD68(torch.utils.data.Dataset):
     This dataset wraps the huggingface version of the dataset.
     HF source : https://huggingface.co/datasets/deepinv/CBSD68
 
+    .. note::
+
+        Using the CBSD68 dataset requires the `datasets` library. It can be installed via `pip install datasets`.
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform: (optional) A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool rotate: If set to ``True`` images are rotated to have all the same orientation. This can be important to use a torch dataloader.
+        Default at False.
 
     |sep|
 
@@ -52,6 +50,10 @@ class CBSD68(torch.utils.data.Dataset):
         68
         >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
 
+    .. note::
+
+        This class requires the ``datasets`` package to be installed. Install with ``pip install datasets``.
+
     """
 
     # for integrity of downloaded data
@@ -62,12 +64,18 @@ class CBSD68(torch.utils.data.Dataset):
         root: str,
         download: bool = False,
         transform: Callable = None,
+        rotate=False,
     ) -> None:
-        if error_import is not None and isinstance(error_import, ImportError):
-            raise error_import
+        try:
+            from datasets import load_dataset as load_dataset_hf, load_from_disk
+        except ImportError:  # pragma: no cover
+            raise ImportError(
+                "The library 'datasets' is required to for the CBSD68 dataset. Install it using pip install datasets"
+            )
 
         self.root = root
         self.transform = transform
+        self.rotate = rotate
 
         # download dataset, we check first that dataset isn't already downloaded
         if not self.check_dataset_exists():
@@ -100,6 +108,11 @@ class CBSD68(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Any:
         # PIL Image
         img = self.hf_dataset[idx]["png"]
+
+        if self.rotate:
+            width, height = img.size
+            if width > height:
+                img = img.transpose(Image.ROTATE_90)
 
         if self.transform is not None:
             img = self.transform(img)

@@ -18,9 +18,10 @@ from .multiplier import (
 )
 
 from .hist import histogram, histogramdd
-from .downsampling import downsample
-from .radon import Radon, IRadon, RampFilter
+from .radon import Radon, IRadon, RampFilter, ApplyRadon
 from .interp import ThinPlateSpline
 from .rand import random_choice
 from .dst import dst1
+from .dct import dct, idct, dct_2d, idct_2d
 from .astra import XrayTransform
+from .imresize import imresize_matlab

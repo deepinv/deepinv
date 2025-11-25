@@ -1,7 +1,7 @@
 deepinv.sampling
 ================
 
-This package contains various posterior sampling algorithms, including diffusion-based methods and MCMC methods.
+This module contains various posterior sampling algorithms, including diffusion-based methods and MCMC methods.
 Please refer to the :ref:`user guide <sampling>` for more details.
 
 Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
@@ -15,6 +15,9 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
     
     deepinv.sampling.BaseSDE
     deepinv.sampling.DiffusionSDE
+    deepinv.sampling.EDMDiffusionSDE
+    deepinv.sampling.SongDiffusionSDE
+    deepinv.sampling.FlowMatching
     deepinv.sampling.VarianceExplodingDiffusion
     deepinv.sampling.VariancePreservingDiffusion
     deepinv.sampling.PosteriorDiffusion
@@ -41,6 +44,25 @@ Custom diffusion posterior samplers
     deepinv.sampling.DPS
     deepinv.sampling.DiffusionSampler
 
+Base Class
+----------
+.. userguide:: sampling
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.sampling.sampling_builder
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.sampling.BaseSampling
+
+
 Markov Chain Monte Carlo Langevin
 ---------------------------------
 .. userguide:: mcmc
@@ -50,7 +72,17 @@ Markov Chain Monte Carlo Langevin
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.sampling.MonteCarlo
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
 
+Iterators
+---------
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.SamplingIterator
+    deepinv.sampling.SKRockIterator
+    deepinv.sampling.ULAIterator
+    deepinv.sampling.DiffusionIterator

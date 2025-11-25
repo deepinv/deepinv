@@ -24,10 +24,10 @@ class Pansharpen(StackedLinearPhysics):
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
         See :class:`deepinv.physics.Decolorize` for parameter options. Defaults to ``flat`` i.e. simply average the bands.
-    :param bool use_brovey: if ``True``, use the `Brovey method <https://ieeexplore.ieee.org/document/6998089>`_
+    :param bool use_brovey: if ``True``, use the Brovey method :footcite:t:`vivone2014critical`.
         to compute the pansharpening, otherwise use the conjugate gradient method.
-    :param torch.nn.Module noise_color: noise model for the RGB image.
-    :param torch.nn.Module noise_gray: noise model for the grayscale image.
+    :param torch.nn.Module noise_color: noise model for the RGB image. It defaults to zero noise.
+    :param torch.nn.Module noise_gray: noise model for the grayscale image. It defaults to zero noise.
     :param torch.device, str device: torch device.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -61,8 +61,8 @@ class Pansharpen(StackedLinearPhysics):
         filter="bilinear",
         factor=4,
         srf="flat",
-        noise_color=GaussianNoise(sigma=0.0),
-        noise_gray=GaussianNoise(sigma=0.05),
+        noise_color=None,
+        noise_gray=None,
         use_brovey=True,
         device="cpu",
         padding="circular",
@@ -70,6 +70,10 @@ class Pansharpen(StackedLinearPhysics):
         eps=1e-6,
         **kwargs,
     ):
+        if noise_color is None:
+            noise_color = GaussianNoise(sigma=0.0)
+        if noise_gray is None:
+            noise_gray = GaussianNoise(sigma=0.0)
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         noise_color = noise_color if noise_color is not None else lambda x: x
@@ -101,7 +105,7 @@ class Pansharpen(StackedLinearPhysics):
         """
         If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
 
-        See `review paper <https://ieeexplore.ieee.org/document/6998089>`_ for details.
+        See the review paper :footcite:t:`vivone2014critical` for more details.
 
         :param deepinv.utils.TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
