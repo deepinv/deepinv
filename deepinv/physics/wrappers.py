@@ -130,6 +130,14 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
 
     def A_dagger(self, y, scale=None, **kwargs):
+        r"""
+        Computes the pseudo-inverse of the linear operator :math:`A`.
+
+        If the scale is set to 0, it uses the base physics pseudo-inverse, which might have a more efficient implementation.
+
+        :param torch.Tensor y: measurements tensor
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+        """
         self.set_scale(scale)
         if self.scale == 0:
             # use efficient implementation if available (eg SVD-based)
@@ -137,6 +145,38 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         else:
             return self.super().A_dagger(y, **kwargs)
 
+    def prox_l2(
+        self, z, y, gamma, solver="CG", max_iter=None, tol=None, verbose=False, scale=None, **kwargs
+    ):
+        r"""
+        Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
+
+        .. math::
+
+            \underset{x}{\arg\min} \; \frac{\gamma}{2}\|Ax-y\|^2 + \frac{1}{2}\|x-z\|^2
+
+        If the scale is set to 0, it uses the base physics proximal operator, which might have a more efficient implementation.
+
+        :param torch.Tensor y: measurements tensor
+        :param torch.Tensor z: signal tensor
+        :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :meth:`deepinv.utils.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
+        :return: (:class:`torch.Tensor`) estimated signal tensor
+
+        """
+        self.set_scale(scale)
+        if self.scale == 0:
+            return self.base.prox_l2(
+                z, y, gamma, solver=solver, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+            )
+        else:
+            return super().prox_l2(
+                z, y, gamma, solver=solver, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+            )
 
 class PhysicsCropper(LinearPhysics):
     r"""
