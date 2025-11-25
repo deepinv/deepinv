@@ -2,7 +2,13 @@ from __future__ import annotations
 import torch
 from torch import nn
 from deepinv.models import Denoiser
-from .utils import get_weights_url, fix_dim, conv_nd, conv_transpose_nd, initialize_3d_from_2d
+from .utils import (
+    get_weights_url,
+    fix_dim,
+    conv_nd,
+    conv_transpose_nd,
+    initialize_3d_from_2d,
+)
 
 
 class DScCP(Denoiser):
@@ -76,10 +82,10 @@ class DScCP(Denoiser):
         if pretrained is not None:
 
             if pretrained == "download" or pretrained == "download_2d":
-                if dim == 3 and pretrained == 'download':  # pragma: no cover
+                if dim == 3 and pretrained == "download":  # pragma: no cover
                     raise ValueError(
                         "No 3D weights for DScCP are available for download. You can either initialize with 2D weights by using `download_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
-                    )  
+                    )
                 url = get_weights_url(
                     model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
                 )
@@ -90,8 +96,8 @@ class DScCP(Denoiser):
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                
-            if dim == 3 and pretrained == 'download_2d':
+
+            if dim == 3 and pretrained == "download_2d":
                 initialize_3d_from_2d(self, ckpt)
             else:
                 self.load_state_dict(ckpt)

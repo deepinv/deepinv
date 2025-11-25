@@ -428,27 +428,34 @@ class FourierEmbedding(torch.nn.Module):
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
 
-def initialize_3d_from_2d(model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor]) -> None:
+
+def initialize_3d_from_2d(
+    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor]
+) -> None:
     r"""
-    Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers. 
-    Useful when no pretrained 3D weights are available. 
-    
-    For odd kernel size in the depth dimension,  the center slice is copied from the 2D weights, 
-    and other slices are set to zero. For even kernel size in the depth dimension, 
+    Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
+    Useful when no pretrained 3D weights are available.
+
+    For odd kernel size in the depth dimension,  the center slice is copied from the 2D weights,
+    and other slices are set to zero. For even kernel size in the depth dimension,
     the 2D weights are divided by the kernel size and copied to all slices.
-    
+
     :param nn.Module model_3d: 3D model to be initialized.
     :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
     """
     for name, module in model_3d.named_modules():
         if isinstance(module, nn.Conv3d) or isinstance(module, nn.ConvTranspose3d):
-        
-            module.weight.data[:] = 0.
+
+            module.weight.data[:] = 0.0
             with torch.no_grad():
                 if module.kernel_size[0] % 2 == 1:
-                    module.weight[:,:,module.kernel_size[0]//2+1] = ckpt_2d[f"{name}.weight"]
+                    module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                        f"{name}.weight"
+                    ]
                 else:
-                    module.weight[:] = ckpt_2d[f"{name}.weight"][:,:,None] / module.kernel_size[0]
+                    module.weight[:] = (
+                        ckpt_2d[f"{name}.weight"][:, :, None] / module.kernel_size[0]
+                    )
 
                 if module.bias is not None:
                     module.bias[:] = ckpt_2d[f"{name}.bias"]

@@ -70,10 +70,12 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if dim == 3 and (pretrained == 'download' or pretrained == 'download_lipschitz'):  # pragma: no cover
+                if dim == 3 and (
+                    pretrained == "download" or pretrained == "download_lipschitz"
+                ):  # pragma: no cover
                     raise ValueError(
                         "No 3D weights for DnCNN are available for download. You can either initialize with 2D weights by using `download_2d` or `download_lipschitz_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
-                    )  
+                    )
                 name = ""
                 if bias and depth == 20:
                     if pretrained.startswith("download_lipschitz"):
@@ -97,7 +99,7 @@ class DnCNN(Denoiser):
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                
+
             if dim == 3 and pretrained.startswith("download"):
                 initialize_3d_from_2d(self, ckpt)
             else:
