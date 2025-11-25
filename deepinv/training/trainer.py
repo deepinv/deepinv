@@ -1108,11 +1108,9 @@ class Trainer:
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
-            # save images
             for k, img in enumerate(imgs):
                 for i in range(img.size(0)):
                     img_name = f"{self.save_folder_im}/{titles[k]}/"
-                    # make dir
                     Path(img_name).mkdir(parents=True, exist_ok=True)
                     entry = img[i].unsqueeze(0)
                     save_image(entry, img_name + f"{self.img_counter + i}.png")
