@@ -76,7 +76,7 @@ class DnCNN(Denoiser):
                     )  
                 name = ""
                 if bias and depth == 20:
-                    if pretrained == "download_lipschitz":
+                    if pretrained.startswith("download_lipschitz"):
                         if in_channels == 3 and out_channels == 3:
                             name = "dncnn_sigma2_lipschitz_color.pth"
                         elif in_channels == 1 and out_channels == 1:
