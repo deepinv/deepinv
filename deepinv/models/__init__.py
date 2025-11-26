@@ -38,3 +38,4 @@ from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper
+from .poisson2sparse import ConvLista, Poisson2Sparse
