@@ -31,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
@@ -164,6 +165,9 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.PoissonGaussianNoise`
      - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
+
+   * - :class:`deepinv.physics.LaplaceNoise`
+     - :math:`y\sim\text{Laplace}(z, b)`
 
    * - :class:`deepinv.physics.LogPoissonNoise`
      - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`

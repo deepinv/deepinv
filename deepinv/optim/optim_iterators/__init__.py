@@ -1,4 +1,4 @@
-from .optim_iterator import OptimIterator, fStep, gStep
+from .optim_iterator import OptimIterator, fStep, gStep, objective_function
 from .admm import ADMMIteration
 from .pgd import PGDIteration, FISTAIteration, PMDIteration
 from .primal_dual_CP import CPIteration

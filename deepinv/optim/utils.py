@@ -5,23 +5,55 @@ from torch import Tensor
 from torch.autograd.function import once_differentiable
 from tqdm import tqdm
 import torch.nn as nn
+from torch.linalg import vector_norm
 from deepinv.utils.tensorlist import TensorList
 from deepinv.utils.compat import zip_strict
 import warnings
 from typing import Callable
 
 
-def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
+def objective_function(x, data_fidelity, prior, cur_params, y, physics):
+    r"""
+    Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    and :math:`\regname` is a regularizer.
+
+    :param torch.Tensor x: Current iterate.
+    :param deepinv.optim.DataFidelity data_fidelity: Instance of the DataFidelity class defining the current data-fidelity.
+    :param deepinv.optim.prior prior: Instance of the Prior class defining the current prior.
+    :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+    :param torch.Tensor y: Obervation.
+    :param deepinv.physics physics: Instance of the physics modeling the observation.
+    """
+    if prior is not None and prior.explicit_prior:
+        return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
+            x, cur_params["g_param"]
+        )
+    else:
+        warnings.warn(
+            "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."
+        )
+        return data_fidelity(x, y, physics)
+
+
+def check_conv(
+    X_prev: Tensor | dict[str, Tensor | tuple[Tensor, ...]],
+    X: Tensor | dict[str, Tensor] | dict[str, Tensor | tuple[Tensor, ...]],
+    it,
+    crit_conv="residual",
+    thres_conv=1e-3,
+    verbose=False,
+):
     if crit_conv == "residual":
         if isinstance(X_prev, dict):
             X_prev = X_prev["est"][0]
         if isinstance(X, dict):
             X = X["est"][0]
-        crit_cur = (X_prev - X).norm() / (X.norm() + 1e-06)
+        crit_cur = vector_norm(X_prev - X) / (vector_norm(X) + 1e-06)
     elif crit_conv == "cost":
         F_prev = X_prev["cost"]
         F = X["cost"]
-        crit_cur = (F_prev - F).norm() / (F.norm() + 1e-06)
+        crit_cur = vector_norm(F_prev - F) / (vector_norm(F) + 1e-06)
+
     else:
         raise ValueError("convergence criteria not implemented")
     if crit_cur < thres_conv:
@@ -234,14 +266,14 @@ def dot(a, b, dim):
 
 def conjugate_gradient(
     A: Callable,
-    b: torch.Tensor,
-    max_iter: float = 1e2,
+    b: Tensor,
+    max_iter: int = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
-    parallel_dim=0,
-    init=None,
-    verbose=False,
-):
+    parallel_dim: None | int | list[int] = 0,
+    init: Tensor = None,
+    verbose: bool = False,
+) -> Tensor:
     """
     Standard conjugate gradient algorithm.
 
@@ -301,16 +333,16 @@ def conjugate_gradient(
 
 
 def bicgstab(
-    A,
-    b,
-    init=None,
-    max_iter=1e2,
-    tol=1e-5,
-    parallel_dim=0,
-    verbose=False,
+    A: Callable,
+    b: Tensor,
+    init: Tensor = None,
+    max_iter: int = 1e2,
+    tol: float = 1e-5,
+    parallel_dim: None | int | list[int] = 0,
+    verbose: bool = False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
-):
+) -> Tensor:
     """
     Biconjugate gradient stabilized algorithm.
 
@@ -404,7 +436,7 @@ def bicgstab(
     return x
 
 
-def _sym_ortho(a, b):
+def _sym_ortho(a: Tensor, b: Tensor) -> tuple[Tensor, ...]:
     """
     Stable implementation of Givens rotation.
 
@@ -435,18 +467,18 @@ def _sym_ortho(a, b):
 
 
 def lsqr(
-    A,
-    AT,
-    b,
-    eta=0.0,
-    x0=None,
-    tol=1e-6,
-    conlim=1e8,
-    max_iter=100,
-    parallel_dim=0,
-    verbose=False,
+    A: Callable,
+    AT: Callable,
+    b: Tensor,
+    eta: float | torch.Tensor = 0.0,
+    x0: Tensor = None,
+    tol: float = 1e-6,
+    conlim: float = 1e8,
+    max_iter: int = 100,
+    parallel_dim: None | int | list[int] = 0,
+    verbose: bool = False,
     **kwargs,
-):
+) -> Tensor:
     r"""
     LSQR algorithm for solving linear systems.
 
@@ -664,9 +696,9 @@ def lsqr(
 
 def minres(
     A,
-    b,
+    b: Tensor,
     init=None,
-    max_iter=1e2,
+    max_iter: int = 1e2,
     tol=1e-5,
     eps=1e-6,
     parallel_dim=0,
@@ -708,7 +740,7 @@ def minres(
         dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     # Rescale b
-    b_norm = b.norm(2, dim=dim, keepdim=True)
+    b_norm = torch.linalg.vector_norm(b, dim=dim, keepdim=True, ord=2)
     b_is_zero = b_norm < 1e-10
     b_norm = b_norm.masked_fill(b_is_zero, 1)
     b = b / b_norm
@@ -724,7 +756,7 @@ def minres(
     zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
-    alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
+    alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
     beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
@@ -750,7 +782,7 @@ def minres(
     scale_prev = beta_prev
 
     # Terms for checking for convergence
-    solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+    solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
@@ -803,8 +835,10 @@ def minres(
         ###########################################
 
         # Check convergence criterion
-        search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
-        solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+        search_update_norm = torch.linalg.vector_norm(
+            search_update, dim=dim, ord=2
+        ).unsqueeze(-1)
+        solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
         if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
                 print("MINRES converged at iteration", i)

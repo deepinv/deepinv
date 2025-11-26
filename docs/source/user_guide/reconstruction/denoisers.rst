@@ -29,11 +29,11 @@ as input and returns a denoised image:
 Deep denoisers
 ~~~~~~~~~~~~~~
 We provide the following list of deep denoising architectures,
-which are based on CNN, Transformer or hybrid CNN-Transformer modules.
+which are based on CNN, Transformer or hybrid CNN-Transformer modules. Several denoisers accept an optional `dim` keyword at initialization, allowing to build the 2D or 3D variant.
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Deep denoisers
-   :widths: 15 25 15 15 10
+   :widths: 15 25 15 15 10 10
    :header-rows: 1
 
    * - Model
@@ -41,9 +41,11 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Tensor Size (C, H, W)
      - Pretrained Weights
      - Noise level aware
+     - 3D variant
    * - :class:`deepinv.models.AutoEncoder`
      - Fully connected
      - Any
+     - No
      - No
      - No
    * - :class:`deepinv.models.UNet`
@@ -51,24 +53,29 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C; H,W>8
      - No
      - No
+     - Yes
    * - :class:`deepinv.models.DnCNN`
      - CNN
      - Any C, H, W
      - RGB, grayscale
      - No
+     - Yes
    * - :class:`deepinv.models.DRUNet`
      - CNN-UNet
      - Any C; H,W>8
      - RGB, grayscale
+     - Yes
      - Yes
    * - :class:`deepinv.models.GSDRUNet`
      - CNN-UNet
      - Any C; H,W>8
      - RGB, grayscale
      - Yes
+     - No
    * - :class:`deepinv.models.SCUNet`
      - CNN-Transformer
      - Any C, H, W
+     - No
      - No
      - No
    * - :class:`deepinv.models.SwinIR`
@@ -76,48 +83,57 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - RGB
      - No
+     - No
    * - :class:`deepinv.models.DiffUNet`
      - Transformer
      - Any C; H,W = 64, 128, 256, ...
      - RGB
      - Yes
+     - No
    * - :class:`deepinv.models.Restormer`
      - CNN-Transformer
      - Any C, H, W
      - RGB, grayscale, deraining, deblurring
+     - No
      - No
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
      - No
      - No
+     - Yes
    * - :class:`deepinv.models.NCSNpp`
      - CNN-Transformer
      - Any C, H, W
      - RGB, diffusion
      - Yes
+     - No
    * - :class:`deepinv.models.ADMUNet`
      - CNN-Transformer
      - Any C, H, W
      - RGB, diffusion
      - Yes
+     - No
    * - :class:`deepinv.models.DScCP`
      - Unrolled
      - Any C, H, W
      - RGB
+     - Yes
      - Yes
    * - :class:`deepinv.models.RAM`
      - CNN-UNet
      - C=1, 2, 3; H,W>8
      - C=1, 2, 3
      - Yes
+     - No
 
 .. _non-learned-denoisers:
 
 Classical denoisers
 ~~~~~~~~~~~~~~~~~~~
 All denoisers in this list are non-learned (except for EPLL)
-and rely on hand-crafted priors.
+and rely on hand-crafted priors. Some of these denoisers also support 3D data,
+underlined in the table below by (D) in the tensor size which accounts for depth dimension.
 
 .. list-table:: Non-Learned Denoisers Overview
    :widths: 30 30 30
@@ -134,16 +150,16 @@ and rely on hand-crafted priors.
      - Any C, H, W
    * - :class:`deepinv.models.TVDenoiser`
      - :class:`Total variation prior <deepinv.optim.TVPrior>`
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.TGVDenoiser`
      - Total generalized variation prior
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.WaveletDenoiser`
      - :class:`Sparsity in orthogonal wavelet domain <deepinv.optim.WaveletPrior>`
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.WaveletDictDenoiser`
      - Sparsity in overcomplete wavelet domain
-     - Any C, H, W
+     - Any C, (D), H, W
    * - :class:`deepinv.models.EPLLDenoiser`
      - Learned patch-prior
      - C=1 or C=3, any H, W
@@ -176,3 +192,21 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
+
+.. _model-wrappers:
+
+Wrappers
+~~~~~~~~
+We provide wrappers to use models from other libraries as DeepInv denoisers.
+
+Model from HuggingFace Diffusers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Any diffusion model from the `HuggingFace Diffusers library <https://huggingface.co/docs/diffusers/index>`_ can be wrapped as a DeepInv denoiser
+using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be instantiated as simply as follows:
+
+    >>> from deepinv.models import DiffusersDenoiserWrapper
+    >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")  # doctest: +IGNORE_RESULT
+
+It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
+This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 
+See :ref:`this example <sphx_glr_auto_examples_sampling_demo_diffusers.py>` for more details.

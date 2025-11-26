@@ -132,7 +132,9 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(
             dinv.loss.mri.ENSURELoss(
                 0.01,
-                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                    imsize, 0.5, device=device
+                ),
                 rng=rng,
             )
         )
@@ -372,15 +374,23 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
-        disable_train_metrics=(loss_name == "reducedresolution"),
     )
 
     # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    initial_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
-    # train the network
+    # in self-supervised cases, remove supervised metrics and compute self-sup losses on eval dataset
+    trainer.metrics = (
+        [] if (loss_name == "reducedresolution") else [deepinv.metric.PSNR()]
+    )
+    trainer.compute_eval_losses = True
+
     trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+    final_test = trainer.test(
+        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+    )
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
@@ -492,7 +502,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
     elif loss_name == "splitting-gaussian":
         loss = dinv.loss.SplittingLoss(
             mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
-                imsize, split_ratio=0.7
+                imsize, split_ratio=0.7, device=device
             ),
             metric=test_metric,
             eval_split_input=False,
@@ -577,7 +587,7 @@ def test_measplit(device, loss_name, rng, imsize, physics_name):
             # Split data averaged across n samples so contains multiple values
             assert len(y1_eval.unique()) == eval_n_samples + 1
             # Split amount averages to amount during training
-            assert y1_eval.mean() == y1.mean()
+            assert torch.allclose(y1_eval.mean(), y1.mean(), atol=1e-3)
         elif loss_name == "splitting_eval_split_input_output":
             # Splits output with complement mask
             assert torch.all(y1_eval == 0)
