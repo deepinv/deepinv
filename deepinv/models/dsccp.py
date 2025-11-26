@@ -97,6 +97,12 @@ class DScCP(Denoiser):
             self.to(device)
 
     def forward(self, x: Tensor, sigma: float = 0.03) -> Tensor:
+        r"""
+        Run the denoiser on noisy image.
+
+        :param torch.Tensor x: noisy image.
+        :param float sigma: noise level.
+        """
         x_prev = x
         x_curr = x
         u = self.conv[0](x)

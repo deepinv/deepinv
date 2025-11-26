@@ -219,6 +219,12 @@ class ComplexDenoiserWrapper(Denoiser):
 
     Note that the phase estimate :math:`\denoisername(\phi,\sigma)` is **clipped** back to :math:`(-\pi,\pi]`.
 
+    .. note::
+
+        This wrapper can only process complex inputs that are compatible with the underlying real-valued denoiser.
+        For example, if the wrapped ``denoiser`` supports only single-channel (grayscale) real images, then the
+        corresponding complex input must also be single-channel.
+
     |sep|
 
     :Examples:
@@ -258,7 +264,7 @@ class ComplexDenoiserWrapper(Denoiser):
         :param torch.Tensor x: complex-valued input images.
         :param float or torch.Tensor sigma: noise level.
 
-        :returns: (:class:`torch.Tensor`) Denoised images, with the same shape as the input and will always be in complex dtype.
+        :return: Denoised images, with the same shape as the input and will always be in complex dtype.
         """
         # Duplicate sigma in the batch dimension for real and imaginary parts
         sigma = self._handle_sigma(
