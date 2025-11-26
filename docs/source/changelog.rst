@@ -19,6 +19,7 @@ Changed
 Fixed
 ^^^^^
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
+- `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 
 v0.3.6
 ------
