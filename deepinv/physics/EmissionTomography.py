@@ -1,4 +1,4 @@
-import deepinv.deepinv as dinv
+import deepinv as dinv
 import torch
 
 
