@@ -177,24 +177,25 @@ def collate(dataset: Dataset):
                     batch: list[Image.Image | list[Image.Image]],
                 ) -> torch.Tensor:
                     tensors = []
-                    shapes = set()
                     for sample in batch:
                         if isinstance(sample, Image.Image):
                             img = sample
                         elif isinstance(sample, (list, tuple)):
                             # only keeping the first element is same behavior as when dataset returns list of tensors!
                             img = sample[0]
+                        else:  # pragma: no cover
+                            raise ValueError(
+                                f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
+                            )
                         arr = np.array(img, dtype=np.float32)
                         if arr.ndim == 2:
                             arr = arr[:, :, None]
                         t = torch.from_numpy(arr.transpose(2, 0, 1) / 255.0)
-
+                        if tensors and t.shape != tensors[-1].shape:
+                            raise RuntimeError(
+                                f"generate_dataset expects dataset to return elements of same shape, but received at two different shapes: {t.shape} and {tensors[-1].shape}. Please add a crop/pad or other shape handling to your dataset."
+                            )
                         tensors.append(t)
-                        shapes.add(t.shape)
-                    if len(shapes) != 1:  # pragma: no cover
-                        raise RuntimeError(
-                            f"generate_dataset expects dataset to return elements of same shape, but received at least two different shapes: {list(shapes)[0]} and {list(shapes)[1]}. Please add a crop/pad or other shape handling to your dataset."
-                        )
                     return torch.stack(tensors, dim=0)
 
                 return collate_pillow
