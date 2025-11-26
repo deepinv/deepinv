@@ -18,6 +18,7 @@ class TestTomographyWithAstra:
         out[:] = 1.0
 
     @pytest.mark.parametrize("normalize", [True, False, None])
+    @pytest.mark.parametrize("fbp", [True, False])
     @pytest.mark.parametrize(
         "is_2d,geometry_type",
         [
@@ -28,7 +29,7 @@ class TestTomographyWithAstra:
         ],
     )
     def test_tomography_with_astra_logic(
-        self, is_2d, geometry_type, normalize, monkeypatch
+        self, is_2d, geometry_type, normalize, fbp, monkeypatch
     ):
         r"""
         Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -107,7 +108,7 @@ class TestTomographyWithAstra:
             assert At_y.shape == (1, 1, *img_size)
 
             ## ---- Test pseudo-inverse -----
-            x_hat = physics.A_dagger(y)
+            x_hat = physics.A_dagger(y, fbp=fbp)
             assert x_hat.shape == (1, 1, *img_size)
 
             ## --- Test autograd.Function ---
@@ -133,10 +134,12 @@ class TestTomographyWithAstra:
             assert relative_error < 0.01  # at least 99% adjoint
 
             ## --- Test pseudoinverse ---
-            r_tol = 0.05 if geometry_type == "parallel" else 0.1
+            r_tol = 0.1 if geometry_type != "parallel" and fbp else 0.05
             r = physics.A_adjoint(physics.A(x))
             y = physics.A(r)
-            error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)
+            error = torch.linalg.norm(
+                physics.A_dagger(y, fbp=fbp) - r
+            ) / torch.linalg.norm(r)
             assert error < r_tol
 
             ## --- Test autograd.Function ---
