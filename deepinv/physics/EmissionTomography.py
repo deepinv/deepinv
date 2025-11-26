@@ -27,7 +27,37 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
     :param psf_transform: Point Spread Function (PSF) transform (see `pytomography` documentation for more informations).
     """
 
-    def __init__(self, object_meta, proj_meta, att_transform, psf_transform, **kwargs):
+class SPECT(dinv.physics.LinearPhysics):
+    def __init__(self, attenuation, object_meta, proj_meta, psf_meta, device="cpu", verbose: bool = True, **kwargs):
+
+        super().__init__(**kwargs)
+        
+        pytomography.set_device(device)
+        pytomography.set_verbose(verbose)
+
+        self.update_parameters(attenuation=attenuation, psf_meta=psf_meta)
+
+        self.system = SPECTSystemMatrix(
+            obj2obj_transforms=[self.att_transform, self.psf_transform],
+            proj2proj_transforms=[],
+            object_meta=object_meta,
+            proj_meta=proj_meta,                
+        )
+
+    def update_parameters(self, attenuation=None, psf_meta=None, **kwargs):
+        """Update physics parameters.
+
+        :param torch.Tensor attenuation: attenuation map in image domain
+        :param SPECTPSFMeta psf_meta: PSF meta object. In an ideal implementation this would be the PSF as a tensor but it would require modifying pytomography
+        """
+        self.register_buffer("attenuation", attenuation)
+
+        self.att_transform = SPECTAttenuationTransform(attenuation_map=attenuation.squeeze())
+        self.psf_transform = SPECTPSFTransform(psf_meta)
+        
+        super().update_parameters(**kwargs)
+
+    def A...
         super().__init__(**kwargs)
         from pytomography.projectors.SPECT import SPECTSystemMatrix
 
