@@ -1055,7 +1055,11 @@ class Trainer:
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
-        Plot and optinally save the reconstructions.
+        Plot ground truths, measurements and reconstructions and at test time, optionally save them.
+
+        .. note::
+
+            Images can be saved to disk at test time by providing a value for the parameter ``save_folder_im`` when calling the method :meth:`deepinv.training.Trainer.test`. Note that in that case, every test sample is saved and not only the first ones.
 
         :param int epoch: Current epoch.
         :param deepinv.physics.Physics physics: Current physics operator.
@@ -1457,9 +1461,13 @@ class Trainer:
         r"""
         Test the model, compute metrics and plot images.
 
+        .. note::
+
+            It is possible to save the reconstructed images along with the ground truths and measurements by specifying a value for the parameter ``save_path``. Note that in this case, every test sample is saved and not only the first ones.
+
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
             for how we expect data to be provided.
-        :param str save_path: Directory in which to save the plotted images.
+        :param str save_path: Path to the directory where to save the plotted images if desired (optional).
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
