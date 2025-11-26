@@ -17,7 +17,8 @@ class NCSNpp(Denoiser):
     r"""Implementation of the DDPM++ and NCSN++ architectures.
 
     Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
-
+    The DDPM model has been trained with the VP-SDE from :footcite:t:`song2020score` whle the NCSN++ model has been trained with the VE-SDE.
+    See the :ref:`diffusion SDE implementations <diffusion> ` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
     The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
@@ -25,7 +26,7 @@ class NCSNpp(Denoiser):
     Each residual block has a self-attention mechanism with multiple channels per attention head.
     The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
-    :param str model_name: Model name, 'ncsn' or 'ddpm'.
+    :param str model_type: Model name, 'ncsn' for the NCSN++ architecture or 'ddpm' for the  DDPM++ architecture.
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
@@ -58,7 +59,7 @@ class NCSNpp(Denoiser):
 
     def __init__(
         self,
-        model_name: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
+        model_type: str = "ncsn",  # Model name, 'ncsn' or 'ddpm'.
         img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
@@ -76,29 +77,20 @@ class NCSNpp(Denoiser):
         attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
-        embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
-        channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
-        encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
-        decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter: Sequence = (
-            1,
-            3,
-            3,
-            1,
-        ),  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
         pretrained: str = "download",
         pixel_std: float = 0.75,
         device=None,
+        **kwargs,
     ):
-        model_name = model_name.lower()
-        assert model_name in ["ncsn", "ddpm"]
-        if model_name == "ncsn":
+        model_type = model_type.lower()
+        assert model_type in ["ncsn", "ddpm"]
+        if model_type == "ncsn":
             embedding_type = "fourier"
             channel_mult_noise = 2
             encoder_type = "residual"
             decoder_type = "standard"
             resample_filter = [1, 3, 3, 1]
-        elif model_name == "ddpm":
+        elif model_type == "ddpm":
             embedding_type = "positional"
             channel_mult_noise = 1
             encoder_type = "standard"
@@ -239,7 +231,7 @@ class NCSNpp(Denoiser):
 
         if pretrained is not None:
             if pretrained.lower() == "edm-ffhq64-uncond-ve" or (
-                pretrained.lower() == "download" and model_name == "ncsn"
+                pretrained.lower() == "download" and model_type == "ncsn"
             ):
                 name = "edm-ffhq-64x64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
@@ -249,7 +241,7 @@ class NCSNpp(Denoiser):
                 self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
                 self.pixel_std = 0.5
             elif pretrained.lower() == "edm-ffhq64-uncond-vp" or (
-                pretrained.lower() == "download" and model_name == "ddpm"
+                pretrained.lower() == "download" and model_type == "ddpm"
             ):
                 name = "edm-ffhq-64x64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
