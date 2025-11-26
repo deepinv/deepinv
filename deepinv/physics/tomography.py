@@ -66,6 +66,7 @@ class Tomography(LinearPhysics):
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
     :param bool normalize: If ``True`` :func:`A <deepinv.physics.Tomography.A>` and :func:`A_adjoint <deepinv.physics.Tomography.A_adjoint>` are normalized so that the operator has unit norm. (default: ``True``)
+    :param int channels: Number of channels of the input image. Default is 1 (grayscale image). If greater than 1, the same tomography operator is applied to each channel independently.
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
     :param dict[str, int | float] fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:
 
@@ -125,6 +126,7 @@ class Tomography(LinearPhysics):
         adjoint_via_backprop: bool = True,
         fbp_interpolate_boundary: bool = False,
         normalize: bool | None = None,
+        channels: int = 1,
         fan_beam: bool = False,
         fan_parameters: dict[str, int | float] = None,
         device: torch.device | str = torch.device("cpu"),
@@ -147,12 +149,12 @@ class Tomography(LinearPhysics):
             )
 
         self.register_buffer("theta", theta)
-
+        self.channels = channels
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         if fan_beam or adjoint_via_backprop:
             self._auto_grad_adjoint_fn = None
-            self._auto_grad_adjoint_input_shape = (1, 1, img_width, img_width)
+            self._auto_grad_adjoint_input_shape = (1, channels, img_width, img_width)
         if circle and fbp_interpolate_boundary:
             # interpolate boundary does not make sense if circle is True
             warn(
@@ -195,10 +197,10 @@ class Tomography(LinearPhysics):
         if normalize:
             operator_norm = self.compute_norm(
                 torch.randn(
-                    (img_width, img_width),
+                    (channels, img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
                     device=self.device,
-                )[None, None],
+                )[None],
                 squared=False,
             )
             self.register_buffer("operator_norm", operator_norm)
@@ -210,6 +212,12 @@ class Tomography(LinearPhysics):
         :param torch.Tensor x: input of shape [B,C,H,W]
         :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
         """
+        assert x.shape[1:] == (
+            self.channels,
+            self.img_width,
+            self.img_width,
+        ), f"Input shape {x.shape} does not match the expected shape {(x.shape[0], self.channels, self.img_width, self.img_width)}"
+
         if self.fan_beam or self.adjoint_via_backprop:
             output = self.radon(x)
         else:
@@ -283,16 +291,22 @@ class Tomography(LinearPhysics):
         :param torch.Tensor y: measurements of shape [B,C,A,N]
         :return: scaled back-projection of shape [B,C,H,W]
         """
+        assert (
+            y.shape[1] == self.channels
+        ), f"The input channels {y.shape[1]} do not match the operator channels {self.channels}."
         if self.fan_beam or self.adjoint_via_backprop:
-            # lazy implementation for the adjoint...
+            # lazy implementation for the adjoint
+            # NOTE: the adjoint is defined the first time this function is called.
+            # If normalize=True, the adjoint will be defined without normalization,
+            # in the compute_norm function, and thus we still need to apply normalization afterwards.
             if (
                 self._auto_grad_adjoint_fn is None
                 or self._auto_grad_adjoint_input_shape
-                != (y.size(0), y.size(1), self.img_width, self.img_width)
+                != (y.size(0), self.channels, self.img_width, self.img_width)
             ):
                 self._auto_grad_adjoint_fn = adjoint_function(
                     self.A,
-                    (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                    (y.shape[0], self.channels, self.img_width, self.img_width),
                     device=self.device,
                     dtype=self.dtype,
                 )
