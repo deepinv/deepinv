@@ -19,6 +19,7 @@ Changed
 - (Breaking) Change :class:`deepinv.physics.TomographyWithAstra` physics interface to better match the interface of the PyTorch-based `Tomography` physics (:gh:`747` by `Alexander Skorikov`_)
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
+- Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`TBD` by `Jérémy Scanvic`_)
 
 
 Fixed
