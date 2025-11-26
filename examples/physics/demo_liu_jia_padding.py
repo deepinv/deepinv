@@ -1,5 +1,8 @@
 """
 Real-World Non-blind Image Deblurring with Liu-Jia Padding
+==========================================================
+
+This demo demonstrates the effectiveness of Liu-Jia padding in non-blind image deblurring tasks.
 """
 
 import torch
