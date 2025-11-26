@@ -307,7 +307,11 @@ def test_sde(device):
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
-    sde_classes = [FlowMatching, VarianceExplodingDiffusion, VariancePreservingDiffusion]
+    sde_classes = [
+        FlowMatching,
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+    ]
     for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
         for solver in solvers:
             for sde_class in sde_classes:
