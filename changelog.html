@@ -1,0 +1,1155 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Change Log &#8212; deepinv 0.3.6 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=8da8c241"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'changelog';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/changelog.html" />
+    <link rel="icon" href="_static/logo.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Community" href="community.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.6 documentation - Home"/>
+    <img src="_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.6 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Change Log</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="change-log">
+<h1>Change Log<a class="headerlink" href="#change-log" title="Link to this heading">#</a></h1>
+<p>This change log is for the <code class="code docutils literal notranslate"><span class="pre">main</span></code> branch. It contains changes for each release, with the date and author of each change.</p>
+<section id="current">
+<h2>Current<a class="headerlink" href="#current" title="Link to this heading">#</a></h2>
+<section id="new-features">
+<h3>New Features<a class="headerlink" href="#new-features" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add <a class="reference internal" href="api/stubs/deepinv.physics.LaplaceNoise.html#deepinv.physics.LaplaceNoise" title="deepinv.physics.LaplaceNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LaplaceNoise</span></code></a> model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/921">#921</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p>New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the <code class="code docutils literal notranslate"><span class="pre">optim_builder</span></code> (or <code class="code docutils literal notranslate"><span class="pre">unfolded_builder</span></code>) function. (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/592">#592</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Added <a class="reference internal" href="api/stubs/deepinv.utils.dirac_comb.html#deepinv.utils.dirac_comb" title="deepinv.utils.dirac_comb"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.dirac_comb()</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.utils.dirac_comb_like.html#deepinv.utils.dirac_comb_like" title="deepinv.utils.dirac_comb_like"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.dirac_comb_like()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/946">#946</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+</ul>
+</section>
+<section id="changed">
+<h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Faster <a class="reference internal" href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM" title="deepinv.models.RAM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.RAM</span></code></a> implementation by avoiding certain redundant computations (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/946">#946</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>(Breaking) Change <a class="reference internal" href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra" title="deepinv.physics.TomographyWithAstra"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.TomographyWithAstra</span></code></a> physics interface to better match the interface of the PyTorch-based <code class="code docutils literal notranslate"><span class="pre">Tomography</span></code> physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/747">#747</a> by <a class="reference external" href="https://github.com/askorikov">Alexander Skorikov</a>)</p></li>
+<li><p>Add support for Poisson2Sparse (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/677">#677</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>(Breaking) <code class="code docutils literal notranslate"><span class="pre">Tomography</span></code> physics uses the true adjoint by default. <code class="code docutils literal notranslate"><span class="pre">Tomography</span></code> and <code class="code docutils literal notranslate"><span class="pre">TomographyWithAstra</span></code> implement the pseudo-inverse as the solution of a least-squares problem, with the option to use <code class="code docutils literal notranslate"><span class="pre">fbp</span></code>. (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/930">#930</a> by <a class="reference external" href="https://github.com/romainvo">Romain Vo</a>)</p></li>
+</ul>
+</section>
+<section id="fixed">
+<h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed <a class="reference internal" href="api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS" title="deepinv.sampling.DPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DPS</span></code></a> initialization when measurements have different size than image (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/946">#946</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fixed <a class="reference internal" href="api/stubs/deepinv.physics.Ptychography.html#deepinv.physics.Ptychography" title="deepinv.physics.Ptychography"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Ptychography</span></code></a> <code class="code docutils literal notranslate"><span class="pre">A_dagger</span></code> initialization bug (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/946">#946</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Reduce CI cache size by using <code class="code docutils literal notranslate"><span class="pre">uv</span></code> caching (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/943">#943</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: <code class="code docutils literal notranslate"><span class="pre">930</span></code> by <a class="reference external" href="https://github.com/romainvo">Romain Vo</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-6">
+<h2>v0.3.6<a class="headerlink" href="#v0-3-6" title="Link to this heading">#</a></h2>
+<section id="id1">
+<h3>New Features<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add dataset for patch sampling from (large) nD images without loading entire images into memory (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/806">#806</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Add support for 3D CNNs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/869">#869</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Add support for complex dtypes in <a class="reference internal" href="api/stubs/deepinv.models.WaveletDenoiser.html#deepinv.models.WaveletDenoiser" title="deepinv.models.WaveletDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.WaveletDenoiser</span></code></a>, <a class="reference internal" href="api/stubs/deepinv.models.WaveletDictDenoiser.html#deepinv.models.WaveletDictDenoiser" title="deepinv.models.WaveletDictDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.WaveletDictDenoiser</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.optim.WaveletPrior.html#deepinv.optim.WaveletPrior" title="deepinv.optim.WaveletPrior"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.WaveletPrior</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/738">#738</a> by <a class="reference external" href="https://github.com/chaithyagr">Chaithya G R</a>)</p></li>
+<li><p>dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/768">#768</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add <code class="code docutils literal notranslate"><span class="pre">Open</span> <span class="pre">in</span> <span class="pre">Colab</span></code> button to examples (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/907">#907</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/893">#893</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Changed<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>load_np_url now returns tensors, load_url helper function moved to io (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/768">#768</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>utils/signal.py renamed to signals.py to avoid stdlib conflict (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/768">#768</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>utils.get_data_home now creates folder if not exist (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/768">#768</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Update attention computation to use <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html#torch.nn.functional.scaled_dot_product_attention" title="(in PyTorch v2.9)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.nn.functional.scaled_dot_product_attention()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/883">#883</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Fixed<a class="headerlink" href="#id3" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Blur physics objects now put new filters to physics device regardless of input filter device (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/844">#844</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Set14HR dataset now downloads from a different source (and has slightly different folderstructure), since old link broke. (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/845">#845</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>LsdirHR dataset now downloads from a different source (since old link broke) and correctly contains the specific folder images, instead of everything in root (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/866">#866</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Fix typo in docstring of ItohFidelity and SpatialUnwrapping demo (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/860">#860</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p>Fix unhandled import error in CBSD68 if datasets is not installed (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/868">#868</a> by <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a>)</p></li>
+<li><p>Add support for complex signals in PSNR (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/738">#738</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Add a warning in SwinIR when upsampling parameters are inconsistent (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/909">#909</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/893">#893</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-5">
+<h2>v0.3.5<a class="headerlink" href="#v0-3-5" title="Link to this heading">#</a></h2>
+<section id="id4">
+<h3>New Features<a class="headerlink" href="#id4" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add statistics for SAR imaging + fix variance of <a class="reference internal" href="api/stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise" title="deepinv.physics.GammaNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.GammaNoise</span></code></a> in doc (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/740">#740</a> by <a class="reference external" href="https://github.com/Louisefg">Louise Friot Giroux</a>)</p></li>
+<li><p>Add imshow kwargs to plot (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/791">#791</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add <a class="reference internal" href="api/stubs/deepinv.physics.RicianNoise.html#deepinv.physics.RicianNoise" title="deepinv.physics.RicianNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.RicianNoise</span></code></a> model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/805">#805</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Add manual physics to reduced resolution loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/808">#808</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Multi-coil MRI coil-map estimation acceleration via CuPy (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/781">#781</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add SpatialUnwrapping forward model and ItohFidelity data fidelity (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/723">#723</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+</ul>
+</section>
+<section id="id5">
+<h3>Changed<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>(Breaking) Make <a class="reference internal" href="api/stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.HDF5Dataset</span></code></a> similar to <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> in the unsupervised setting by using NaNs for ground truths instead of a copy of the measurements (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/761">#761</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">squared</span></code> parameter to <code class="docutils literal notranslate"><span class="pre">LinearPhysics.compute_norm()</span></code> and <code class="docutils literal notranslate"><span class="pre">compute_sqnorm()</span></code> method (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/832">#832</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Allow self-supervised eval by removing the model.eval() from Trainer.train() (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/777">#777</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Make tqdm progress bar auto-resize (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/835">#835</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>(Breaking) Normalize the Tomography operator with proper spectral norm computation. Set the default normalization behavior to <code class="docutils literal notranslate"><span class="pre">True</span></code> for both CT operators (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/715">#715</a> by <a class="reference external" href="https://github.com/romainvo">Romain Vo</a>)</p></li>
+</ul>
+</section>
+<section id="id6">
+<h3>Fixed<a class="headerlink" href="#id6" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Use the learning-free model for learning-free metrics in <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/788">#788</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix device <a class="reference internal" href="api/stubs/deepinv.utils.dirac_like.html#deepinv.utils.dirac_like" title="deepinv.utils.dirac_like"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.dirac_like()</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.physics.blur.bilinear_filter.html#deepinv.physics.blur.bilinear_filter" title="deepinv.physics.blur.bilinear_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.blur.bilinear_filter()</span></code></a>, <a class="reference internal" href="api/stubs/deepinv.physics.blur.bicubic_filter.html#deepinv.physics.blur.bicubic_filter" title="deepinv.physics.blur.bicubic_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.blur.bicubic_filter()</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.physics.blur.gaussian_blur.html#deepinv.physics.blur.gaussian_blur" title="deepinv.physics.blur.gaussian_blur"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.blur.gaussian_blur()</span></code></a> filters (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/785">#785</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fix positivity + batching gamma least squares solvers (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/785">#785</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix and test <a class="reference internal" href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM" title="deepinv.models.RAM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.RAM</span></code></a> scaling issues (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/785">#785</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Reduced CI python version tests (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/746">#746</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Fix scaling issue in <a class="reference internal" href="api/stubs/deepinv.sampling.DiffusionSDE.html#deepinv.sampling.DiffusionSDE" title="deepinv.sampling.DiffusionSDE"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.sampling.DiffusionSDE</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/772">#772</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>All splitting losses fixed to work with changing image sizes and with multicoil MRI (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/778">#778</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> treats batch of nans as no ground truth (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/793">#793</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Save training loss history (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/777">#777</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fix docstring formatting in BDSDS500 dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/816">#816</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p>Remove unnecessary tensor cloning from DDRM and DPS (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/834">#834</a> by <a class="reference external" href="https://github.com/nucli-vicky">Vicky De Ridder</a>)</p></li>
+<li><p>Change deprecated <code class="code docutils literal notranslate"><span class="pre">torch.norm</span></code> calls to <code class="code docutils literal notranslate"><span class="pre">torch.linalg.vector_norm</span></code> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/840">#840</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-4">
+<h2>v0.3.4<a class="headerlink" href="#v0-3-4" title="Link to this heading">#</a></h2>
+<section id="id7">
+<h3>New Features<a class="headerlink" href="#id7" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Quickstart tutorials + clean examples (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/622">#622</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Dataset base class + <a class="reference internal" href="api/stubs/deepinv.datasets.ImageFolder.html#deepinv.datasets.ImageFolder" title="deepinv.datasets.ImageFolder"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.ImageFolder</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.datasets.TensorDataset.html#deepinv.datasets.TensorDataset" title="deepinv.datasets.TensorDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.TensorDataset</span></code></a> classes (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/622">#622</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Added GitHub action checking import time (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/680">#680</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Client model for server-side inference for using models in the cloud (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/691">#691</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Reduced resolution self-supervised loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/735">#735</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add <a class="reference internal" href="api/stubs/deepinv.utils.disable_tex.html#deepinv.utils.disable_tex" title="deepinv.utils.disable_tex"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.disable_tex()</span></code></a> to disable LaTeX (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/726">#726</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add BSDS500 dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/749">#749</a> by <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a> and <a class="reference external" href="https://www.tu-chemnitz.de/mathematik/invimg/index.en.php">Sebastian Neumayer</a>)</p></li>
+<li><p>O(1) memory backprop for linear solver and example (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/739">#739</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id8">
+<h3>Changed<a class="headerlink" href="#id8" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Move mixins to utils and reduce number of cross-submodule top-level imports (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/680">#680</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.datasets.PatchDataset.html#deepinv.datasets.PatchDataset" title="deepinv.datasets.PatchDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.datasets.PatchDataset</span></code></a> returns tensors and not tuples (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/622">#622</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+</ul>
+</section>
+<section id="id9">
+<h3>Fixed<a class="headerlink" href="#id9" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed natsorted issue (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/680">#680</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fix full-reference metrics used with measurement-only dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/622">#622</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Batching <a class="reference internal" href="api/stubs/deepinv.physics.generator.DownsamplingGenerator.html#deepinv.physics.generator.DownsamplingGenerator" title="deepinv.physics.generator.DownsamplingGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.DownsamplingGenerator</span></code></a> in the case of multiple filters (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/690">#690</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>NaN motion blur generator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/685">#685</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Fix the condition for break in compute_norm (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/699">#699</a> by <a class="reference external" href="https://github.com/qbarthelemy">Quentin Barthélemy</a>)</p></li>
+<li><p>Python 3.9 backward compatibility and zip_strict (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/707">#707</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix numerical instability of <a class="reference internal" href="api/stubs/deepinv.optim.utils.bicgstab.html#deepinv.optim.utils.bicgstab" title="deepinv.optim.utils.bicgstab"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.optim.utils.bicgstab()</span></code></a> solver (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/739">#739</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-3">
+<h2>v0.3.3<a class="headerlink" href="#v0-3-3" title="Link to this heading">#</a></h2>
+<section id="id10">
+<h3>New Features<a class="headerlink" href="#id10" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Automatic A_adjoint, U_adjoint and V computation for user-defined physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/658">#658</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add <a class="reference internal" href="api/stubs/deepinv.models.RAM.html#deepinv.models.RAM" title="deepinv.models.RAM"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.RAM</span></code></a> model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/524">#524</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/608">#608</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>SKM-TEA raw MRI dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/608">#608</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>New downsampling physics that matches MATLAB bicubic imresize (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/608">#608</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+</ul>
+</section>
+<section id="id11">
+<h3>Changed<a class="headerlink" href="#id11" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Rename the normalizing function <code class="code docutils literal notranslate"><span class="pre">deepinv.utils.rescale_img</span></code> to <a class="reference internal" href="api/stubs/deepinv.utils.normalize_signal.html#deepinv.utils.normalize_signal" title="deepinv.utils.normalize_signal"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.normalize_signal()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/641">#641</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Changed default linear solver from <code class="code docutils literal notranslate"><span class="pre">CG</span></code> to <a class="reference internal" href="api/stubs/deepinv.optim.utils.lsqr.html#deepinv.optim.utils.lsqr" title="deepinv.optim.utils.lsqr"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.optim.utils.lsqr()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/658">#658</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Added positive clipping by default and gain minimum in <a class="reference internal" href="api/stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise" title="deepinv.physics.PoissonGaussianNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.PoissonGaussianNoise</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/658">#658</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>).</p></li>
+</ul>
+</section>
+<section id="id12">
+<h3>Fixed<a class="headerlink" href="#id12" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fix downsampling generator batching (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/608">#608</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix memory leak in <a class="reference internal" href="api/stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography" title="deepinv.physics.Tomography"><code class="xref py py-mod docutils literal notranslate"><span class="pre">deepinv.physics.Tomography</span></code></a> when using autograd (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/651">#651</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix the circular padded <a class="reference internal" href="api/stubs/deepinv.models.UNet.html#deepinv.models.UNet" title="deepinv.models.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.UNet</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/653">#653</a> by <a class="reference external" href="https://github.com/vsechaud">Victor Sechaud</a>)</p></li>
+<li><p>Clamp constant signals in <a class="reference internal" href="api/stubs/deepinv.utils.normalize_signal.html#deepinv.utils.normalize_signal" title="deepinv.utils.normalize_signal"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.normalize_signal()</span></code></a> to ensure they are normalized (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/641">#641</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix ZeroNoise default missing in <a class="reference internal" href="api/stubs/deepinv.physics.ZeroNoise.html#deepinv.physics.ZeroNoise" title="deepinv.physics.ZeroNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.ZeroNoise</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/658">#658</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-2">
+<h2>v0.3.2<a class="headerlink" href="#v0-3-2" title="Link to this heading">#</a></h2>
+<section id="id13">
+<h3>New Features<a class="headerlink" href="#id13" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add support for astra-toolbox CT operators (parallel, fan, cone) with <a class="reference internal" href="api/stubs/deepinv.physics.TomographyWithAstra.html#deepinv.physics.TomographyWithAstra" title="deepinv.physics.TomographyWithAstra"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.TomographyWithAstra</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/474">#474</a> by <a class="reference external" href="https://github.com/romainvo">Romain Vo</a>)</p></li>
+<li><p>Add <a class="reference internal" href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.clone" title="deepinv.physics.Physics.clone"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.Physics.clone()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/534">#534</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+</ul>
+</section>
+<section id="id14">
+<h3>Changed<a class="headerlink" href="#id14" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Make autograd use the base linear operator for <a class="reference internal" href="api/stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function" title="deepinv.physics.adjoint_function"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.adjoint_function()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/519">#519</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Parallelize the test suite making it 15% faster (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/522">#522</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Adjust backward paths for tomography (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/535">#535</a> by <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a>)</p></li>
+<li><p>Update python version to 3.10+ (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/605">#605</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Update the library dependencies, issue template, codecov report on linux only (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/654">#654</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id15">
+<h3>Fixed<a class="headerlink" href="#id15" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fix the total loss reported by the trainer (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/515">#515</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix the gradient norm reported by the trainer (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/520">#520</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/535">#535</a> by <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a>)</p></li>
+<li><p>Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size &gt; 1 (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/530">#530</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Batching WaveletPrior and fix iwt (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/530">#530</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/570">#570</a> by Fedor Goncharov)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3-1">
+<h2>v0.3.1<a class="headerlink" href="#v0-3-1" title="Link to this heading">#</a></h2>
+<section id="id16">
+<h3>New Features<a class="headerlink" href="#id16" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added <a class="reference internal" href="api/stubs/deepinv.physics.SaltPepperNoise.html#deepinv.physics.SaltPepperNoise" title="deepinv.physics.SaltPepperNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SaltPepperNoise</span></code></a> for impulse noise (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/472">#472</a> by <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>).</p></li>
+<li><p>Add measurement augmentation VORTEX loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/410">#410</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add non-geometric data augmentations (noise, phase errors) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/410">#410</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Make <a class="reference internal" href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.average" title="deepinv.physics.generator.PhysicsGenerator.average"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.PhysicsGenerator.average</span></code></a> use batches (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/488">#488</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/416">#416</a> by <a class="reference external" href="https://github.com/g-keying">Keying Guo</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/416">#416</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add HaarPSI metric + metric standardization (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/416">#416</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add ENSURE loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/454">#454</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+</ul>
+</section>
+<section id="id17">
+<h3>Changed<a class="headerlink" href="#id17" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added cake_cutting, zig_zag and xy orderings in <a class="reference internal" href="api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a> physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/475">#475</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>).</p></li>
+</ul>
+</section>
+<section id="id18">
+<h3>Fixed<a class="headerlink" href="#id18" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fix images not showing in sphinx examples (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/478">#478</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Fix plot_inset not showing (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/455">#455</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix latex rendering in <a class="reference internal" href="api/stubs/deepinv.utils.plotting.config_matplotlib.html#deepinv.utils.plotting.config_matplotlib" title="deepinv.utils.plotting.config_matplotlib"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.plotting.config_matplotlib()</span></code></a>  (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/452">#452</a> by <a class="reference external" href="https://github.com/romainvo">Romain Vo</a>)</p></li>
+<li><p>Get rid of unnecessary file system writes in <a class="reference internal" href="api/stubs/deepinv.utils.get_freer_gpu.html#deepinv.utils.get_freer_gpu" title="deepinv.utils.get_freer_gpu"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.get_freer_gpu()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/468">#468</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fixed sequency ordering in <a class="reference internal" href="api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/475">#475</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p>Change array operations from numpy to PyTorch in <a class="reference internal" href="api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/483">#483</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Get rid of commented out code (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/485">#485</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Changed <a class="reference internal" href="api/stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a> parameters in demos (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/493">#493</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p>Improved code coverage by mocking datasets (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/490">#490</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix MRI mask generator update img_size on-the-fly not updating n_lines (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/416">#416</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Upgrade deprecated typing.T types in the code base (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/501">#501</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-3">
+<h2>v0.3<a class="headerlink" href="#v0-3" title="Link to this heading">#</a></h2>
+<section id="id19">
+<h3>New Features<a class="headerlink" href="#id19" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added early-stopping callback for <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> and best model saving (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/437">#437</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add various generators for the physics module (downsampling, variable masks for inpainting, PoissonGaussian generators etc) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/384">#384</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Add minres least squared solver (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/425">#425</a> by <a class="reference external" href="https://www.tu-chemnitz.de/mathematik/invimg/index.en.php">Sebastian Neumayer</a> and <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a>)</p></li>
+<li><p>New least squared solvers (BiCGStab &amp; LSQR) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/393">#393</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Typehints are used automatically in the documentation (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/379">#379</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add Ptychography operator in physics.phase_retrieval (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/351">#351</a> by <a class="reference external" href="https://github.com/vsechaud">Victor Sechaud</a>)</p></li>
+<li><p>Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/371">#371</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>StackedPhysics: class definition, loss and data-fidelity (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/371">#371</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Added HyperSpectral Unmixing operator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/353">#353</a> by Dongdong Chen and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add CASSI operator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/377">#377</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add validation dataset to data generator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/363">#363</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add Rescale and ToComplex torchvision-style transforms (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/363">#363</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/363">#363</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>FastMRI now compatible with MRI and MultiCoilMRI physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/363">#363</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/363">#363</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> now can log train progress per batch or per epoch (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/388">#388</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>CMRxRecon dataset and generalised dataset metadata caching (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/385">#385</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Online training with noisy physics now can repeat the same noise each epoch (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/414">#414</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> test can return unaggregated metrics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/420">#420</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>MoDL model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/435">#435</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add conversion to Hounsfield Units (HUs) for LIDC IDRI (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/459">#459</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Add ComposedLinearPhysics (via __mul__ method) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a> and <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> )</p></li>
+<li><p>Register physics-dependent parameters to module buffers (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Add example on optimizing physics parameters (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Add <code class="code docutils literal notranslate"><span class="pre">device</span></code> property to <a class="reference internal" href="api/stubs/deepinv.utils.TensorList.html#deepinv.utils.TensorList" title="deepinv.utils.TensorList"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.utils.TensorList</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Add test physics device transfer and differentiablity (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id20">
+<h3>Fixed<a class="headerlink" href="#id20" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed MRI noise bug in kernel of mask (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/384">#384</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Support for multi-physics / multi-dataset during training fixed (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/384">#384</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Fixed device bug (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/415">#415</a> by Dongdong Chen)</p></li>
+<li><p>Fixed hyperlinks throughout docs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/379">#379</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Missing sigma normalization in L2Denoiser (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/371">#371</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> discards checkpoint after loading (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/385">#385</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix offline training with noise generator not updating noise params (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/414">#414</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix wrong reference link in auto examples (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/432">#432</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix paths in LidcIdriSliceDataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/446">#446</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+<li><p>Fix device inconsistency in test_physics, physics classes and noise models (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/462">#462</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix Ptychography can not handle multi-channels input (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/494">#494</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Fix argument name (img_size, in_shape, …) inconsistency  (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/494">#494</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id21">
+<h3>Changed<a class="headerlink" href="#id21" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add bibtex references (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/575">#575</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Set sphinx warnings as errors (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/379">#379</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Added single backquotes default to code mode in docs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/379">#379</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Changed the __add__ method for stack method for stacking physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/371">#371</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Changed the R2R loss to handle multiple noise distributions (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/380">#380</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>)</p></li>
+<li><p><a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples_online" title="deepinv.Trainer.get_samples_online"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.Trainer.get_samples_online()</span></code></a> using physics generator now updates physics params via both <a class="reference internal" href="api/stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.update_parameters" title="deepinv.physics.Physics.update_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.Physics.update_parameters()</span></code></a> and forward pass (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/386">#386</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Deprecate <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> <code class="code docutils literal notranslate"><span class="pre">freq_plot</span></code> in favour of plot_interval (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/388">#388</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-2-2">
+<h2>v0.2.2<a class="headerlink" href="#v0-2-2" title="Link to this heading">#</a></h2>
+<section id="id22">
+<h3>New Features<a class="headerlink" href="#id22" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added NCNSpp, ADMUNet model and pretrained weights (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a> and <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Added SDE solvers (Euler, Heun) (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a> and <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Added example on image generation, working for <a class="reference internal" href="api/stubs/deepinv.models.NCSNpp.html#deepinv.models.NCSNpp" title="deepinv.models.NCSNpp"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.NCSNpp</span></code></a>, <a class="reference internal" href="api/stubs/deepinv.models.ADMUNet.html#deepinv.models.ADMUNet" title="deepinv.models.ADMUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.ADMUNet</span></code></a>, <a class="reference internal" href="api/stubs/deepinv.models.DRUNet.html#deepinv.models.DRUNet" title="deepinv.models.DRUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DRUNet</span></code></a> and <a class="reference internal" href="api/stubs/deepinv.models.DiffUNet.html#deepinv.models.DiffUNet" title="deepinv.models.DiffUNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.DiffUNet</span></code></a> (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a> and <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>)</p></li>
+<li><p>Added VP-SDE for image generation and posterior sampling (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/434">#434</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>global path for datasets <a class="reference internal" href="api/stubs/deepinv.utils.get_data_home.html#deepinv.utils.get_data_home" title="deepinv.utils.get_data_home"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.utils.get_data_home()</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/347">#347</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>)</p></li>
+<li><p>New docs user guide (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/347">#347</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>)</p></li>
+<li><p>Added UNSURE loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/313">#313</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/259">#259</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>New transforms: multi-axis reflect, time-shift and diffeomorphism (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/259">#259</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add wrapper classes for adapting models to take time-sequence 2D+t input (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/296">#296</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add sequential MRI operator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/296">#296</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add multi-operator equivariant imaging loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/296">#296</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add loss schedulers (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/296">#296</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/259">#259</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>New transforms: multi-axis reflect, time-shift and diffeomorphism (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/259">#259</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Multi-coil MRI, 3D MRI, MRI Mixin (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/287">#287</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>, Brett Levac)</p></li>
+<li><p>Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, metrics docs section, Metric functional wrapper (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/309">#309</a>, <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/343">#343</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>generate_dataset features: complex numbers, save/load physics_generator params, overwrite bool (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/324">#324</a>, <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/352">#352</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add the Köhler dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/271">#271</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+</ul>
+</section>
+<section id="id23">
+<h3>Fixed<a class="headerlink" href="#id23" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed sphinx warnings (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/347">#347</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>)</p></li>
+<li><p>Fix cache file initialization in FastMRI Dataloader (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/300">#300</a> by <a class="reference external" href="https://github.com/paquiteau">Pierre-Antoine Comby</a>)</p></li>
+<li><p>Fixed prox_l2 no learning option in <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/304">#304</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR &amp; SSIM to set max pixel on the fly (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/296">#296</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix generate_dataset error with physics_generator and batch_size != 1. (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/315">#315</a> by apolychronou)</p></li>
+<li><p>Fix generate_dataset error not using random physics generator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/324">#324</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix Scale transform rng device error (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/324">#324</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fix bug when using cuda device in dinv.datasets.generate_dataset  (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/334">#334</a> by <a class="reference external" href="https://github.com/tobias-liaudat">Tobias Liaudat</a>)</p></li>
+<li><p>Update outdated links in the readme (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/366">#366</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>)</p></li>
+</ul>
+</section>
+<section id="id24">
+<h3>Changed<a class="headerlink" href="#id24" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added direct option to ArtifactRemoval (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/347">#347</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>)</p></li>
+<li><p>Sphinx template to pydata (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/347">#347</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>)</p></li>
+<li><p>Remove metrics from utils and consolidate complex and normalisation options (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/309">#309</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>get_freer_gpu falls back to torch.cuda when nvidia-smi fails (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/352">#352</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>libcpab now is a PyPi package for diffeomorphisms, add rngs and devices to transforms (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/370">#370</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-2-1">
+<h2>v0.2.1<a class="headerlink" href="#v0-2-1" title="Link to this heading">#</a></h2>
+<section id="id25">
+<h3>New Features<a class="headerlink" href="#id25" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Mirror Descent algorithm with Bregman potentials (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/282">#282</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/279">#279</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Added time-agnostic network wrapper (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/279">#279</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add sinc filter (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add Noise2Score method (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add Gamma Noise (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Add 3D Blur physics operator, with 3D diffraction microscope blur generators (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/277">#277</a> by <a class="reference external" href="https://fsarron.github.io/">Florian Sarron</a>, <a class="reference external" href="https://www.math.univ-toulouse.fr/~weiss/">Pierre Weiss</a>, <code class="code docutils literal notranslate"><span class="pre">Paul</span> <span class="pre">Escande</span></code>, <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>) - 12/07/2024</p></li>
+<li><p>Add ICNN model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/281">#281</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Dynamic MRI physics operator (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/242">#242</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add support for adversarial losses and models (GANs) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/183">#183</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Base transform class for transform arithmetic (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/240">#240</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>) - 26/06/2024.</p></li>
+<li><p>Plot video/animation functionality (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/245">#245</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Added update_parameters for parameter-dependent physics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/241">#241</a> by Julian Tachella) - 11/06/2024</p></li>
+<li><p>Added evaluation functions for R2R and Splitting losses (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/241">#241</a> by Julian Tachella) - 11/06/2024</p></li>
+<li><p>Added a new <code class="code docutils literal notranslate"><span class="pre">Physics</span></code> class for the Radio Interferometry problem (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/230">#230</a> by <a class="reference external" href="https://github.com/ChaoTang0330">Chao Tang</a>, <a class="reference external" href="https://github.com/tobias-liaudat">Tobias Liaudat</a>) - 07/06/2024</p></li>
+<li><p>Add projective and affine transformations for EI or data augmentation (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/173">#173</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/206">#206</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Added Lidc-Idri buit-in datasets (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/270">#270</a> by Maxime SONG) - 12/07/2024</p></li>
+<li><p>Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/276">#276</a> by Maxime SONG) - 15/07/2024</p></li>
+<li><p>Added <code class="code docutils literal notranslate"><span class="pre">rng</span></code> a random number generator to each <a class="reference internal" href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.PhysicsGenerator</span></code></a> and a <code class="code docutils literal notranslate"><span class="pre">seed</span></code> number argument to <a class="reference internal" href="api/stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator.step" title="deepinv.physics.generator.PhysicsGenerator.step"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.generator.PhysicsGenerator.step()</span></code></a> (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+<li><p>Added an equivalent of <a class="reference internal" href="api/stubs/deepinv.physics.functional.random_choice.html#deepinv.physics.functional.random_choice" title="deepinv.physics.functional.random_choice"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.functional.random_choice()</span></code></a> in torch, available as <a class="reference internal" href="api/stubs/deepinv.physics.functional.random_choice.html#deepinv.physics.functional.random_choice" title="deepinv.physics.functional.random_choice"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.physics.functional.random_choice()</span></code></a> (by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id26">
+<h3>Fixed<a class="headerlink" href="#id26" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Disable unecessary gradient computation to prevent memory explosion (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/301">#301</a> by <code class="code docutils literal notranslate"><span class="pre">Dylan</span> <span class="pre">Sechet</span></code>, <code class="code docutils literal notranslate"><span class="pre">Samuel</span> <span class="pre">Hurault</span></code>)</p></li>
+<li><p>Wandb logging (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>SURE improvements (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Fixed padding in conv_transpose2d and made conv_2d a true convolution (by <a class="reference external" href="https://fsarron.github.io/">Florian Sarron</a>, <a class="reference external" href="https://www.math.univ-toulouse.fr/~weiss/">Pierre Weiss</a>, Paul Escande, <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>) - 12/07/2024</p></li>
+<li><p>Fixed the gradient stopping in EILoss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/263">#263</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 27/06/2024</p></li>
+<li><p>Fixed averaging loss over epochs <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/241">#241</a> by Julian Tachella) - 11/06/2024</p></li>
+<li><p>Fixed <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> save_path timestamp problem on Windows (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/245">#245</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/267">#267</a> by <a class="reference external" href="https://andrewwango.github.io/about/">Andrew Wang</a>)</p></li>
+<li><p>Fixed the <a class="reference internal" href="api/stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html#deepinv.physics.generator.ProductConvolutionBlurGenerator" title="deepinv.physics.generator.ProductConvolutionBlurGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.ProductConvolutionBlurGenerator</span></code></a>, allowing for batch generation (previously does not work) by (<a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>)</p></li>
+</ul>
+</section>
+<section id="id27">
+<h3>Changed<a class="headerlink" href="#id27" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Redefine Prior, DataFidelity and Bregman with a common parent class Potential (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/282">#282</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>)</p></li>
+<li><p>Changed to Python 3.9+ (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/280">#280</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>)</p></li>
+<li><p>Improved support for parameter-dependent operators (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/227">#227</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 28/05/2024</p></li>
+<li><p>Added a divergence check in the conjugate gradient implementation (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/225">#225</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 22/05/2024</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-2-0">
+<h2>v0.2.0<a class="headerlink" href="#v0-2-0" title="Link to this heading">#</a></h2>
+<p>Many of the features in this version were developed by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>,
+<a class="reference external" href="https://www.math.univ-toulouse.fr/~weiss/">Pierre Weiss</a>, <a class="reference external" href="https://fsarron.github.io/">Florian Sarron</a>, <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a> during the IDRIS hackathon.</p>
+<section id="id28">
+<h3>New Features<a class="headerlink" href="#id28" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added a parameterization of the operators and noiselevels for the physics class</p></li>
+<li><p>Added a physics.functional submodule</p></li>
+<li><p>Modified the Blur class to handle color, grayscale, single and multi-batch images</p></li>
+<li><p>Added a PhysicsGenerator class to synthetize parameters for the forward operators</p></li>
+<li><p>Added the possibility to sum generators</p></li>
+<li><p>Added a MotionBlur generator</p></li>
+<li><p>Added a DiffractionBlur generator</p></li>
+<li><p>Added a MaskGenerator for MRI</p></li>
+<li><p>Added a SigmaGenerator for the Gaussian noise</p></li>
+<li><p>Added a tour of blur operators</p></li>
+<li><p>Added ProductConvolution expansions</p></li>
+<li><p>Added a ThinPlateSpline interpolation function</p></li>
+<li><p>Added d-dimensional histograms</p></li>
+<li><p>Added GeneratorMixture to mix physics generators</p></li>
+<li><p>Added the SpaceVarying blur class</p></li>
+<li><p>Added the SpaceVarying blur generators</p></li>
+<li><p>Added pytests and examples for all the new features</p></li>
+<li><p>A few speed ups by carefully profiling the training codes</p></li>
+<li><p>made sigma in drunet trainable</p></li>
+<li><p>Added <a class="reference internal" href="api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a>, <a class="reference internal" href="api/stubs/deepinv.loss.Loss.html#deepinv.loss.Loss" title="deepinv.loss.Loss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.Loss</span></code></a> class and eval metric (LPIPS, NIQE, SSIM) (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/181">#181</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 02/04/2024</p></li>
+<li><p>PhaseRetrieval class (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/176">#176</a> by <a class="reference external" href="https://github.com/zhiyhu1605">Zhiyuan Hu</a>) - 20/03/2024</p></li>
+<li><p>Added 3D wavelets (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/164">#164</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 07/03/2024</p></li>
+<li><p>Added patch priors loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/164">#164</a> by <a class="reference external" href="https://johertrich.github.io/">Johannes Hertrich</a>) - 07/03/2024</p></li>
+<li><p>Added Restormer model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/185">#185</a> by Antoine Regnier and Maxime SONG) - 18/04/2024</p></li>
+<li><p>Added DIV2K built-in dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/203">#203</a> by Maxime SONG) - 03/05/2024</p></li>
+<li><p>Added Urban100 built-in dataset (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/237">#237</a> by Maxime SONG) - 07/06/2024</p></li>
+<li><p>Added Set14 / CBSD68 / fastMRI buit-in datasets (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/248">#248</a> <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/249">#249</a> <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/229">#229</a> by Maxime SONG) - 25/06/2024</p></li>
+</ul>
+</section>
+<section id="id29">
+<h3>Fixed<a class="headerlink" href="#id29" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed the None prior (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/233">#233</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 04/06/2024</p></li>
+<li><p>Fixed the conjugate gradient torch.nograd for teh demos, accelerated)</p></li>
+<li><p>Fixed torch.nograd in demos for faster generation of the doc</p></li>
+<li><p>Corrected the padding for the convolution</p></li>
+<li><p>Solved pan-sharpening issues</p></li>
+<li><p>Many docstring fixes</p></li>
+<li><p>Fixed slow drunet sigma and batched conjugate gradient  (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/181">#181</a> by <a class="reference external" href="https://mh-nguyen712.github.io/">Minh Hai Nguyen</a>) - 02/04/2024</p></li>
+<li><p>Fixed g dependence on sigma in optim docs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/165">#165</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 28/02/2024</p></li>
+</ul>
+</section>
+<section id="id30">
+<h3>Changed<a class="headerlink" href="#id30" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Refactored the documentation completely for the physics</p></li>
+<li><p>Refactor unfolded docs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/181">#181</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 02/04/2024</p></li>
+<li><p>Refactor model docs (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/172">#172</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 12/03/2024</p></li>
+<li><p>Changed WaveletPrior to WaveletDenoiser (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/165">#165</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 28/02/2024</p></li>
+<li><p>Move from torchwavelets to ptwt (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/162">#162</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 22/02/2024</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-1-1">
+<h2>v0.1.1<a class="headerlink" href="#v0-1-1" title="Link to this heading">#</a></h2>
+<section id="id31">
+<h3>New Features<a class="headerlink" href="#id31" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added r2r loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/148">#148</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>) - 30/01/2024</p></li>
+<li><p>Added scale transform (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/135">#135</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 19/12/2023</p></li>
+<li><p>Added priors for total variation and l12 mixed norm (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/156">#156</a> by <a class="reference external" href="https://nils-laurent.github.io/">Nils Laurent</a>) - 09/02/2023</p></li>
+</ul>
+</section>
+<section id="id32">
+<h3>Fixed<a class="headerlink" href="#id32" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed issue in noise forward of Decomposable class (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/154">#154</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 08/02/2024</p></li>
+<li><p>Fixed new black version 24.1.1 style changes (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/151">#151</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 31/01/2024</p></li>
+<li><p>Fixed test for sigma as torch tensor with gpu enable (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/145">#145</a> by <a class="reference external" href="https://github.com/bemc22">Brayan Monroy</a>) - 23/12/2023</p></li>
+<li><p>Fixed <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/139">#139</a> BM3D tensor format grayscale (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/140">#140</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 23/12/2023</p></li>
+<li><p>Fixed <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/136">#136</a> noise additive model for DecomposablePhysics (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/138">#138</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 22/12/2023</p></li>
+<li><p>Importing <code class="code docutils literal notranslate"><span class="pre">deepinv</span></code> does not modify matplotlib config anymore (:gh`1501` by <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>) - 30/01/2024</p></li>
+</ul>
+</section>
+<section id="id33">
+<h3>Changed<a class="headerlink" href="#id33" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Rephrased the README (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/142">#142</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 09/01/2024</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-1-0">
+<h2>v0.1.0<a class="headerlink" href="#v0-1-0" title="Link to this heading">#</a></h2>
+<section id="id34">
+<h3>New Features<a class="headerlink" href="#id34" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added autoadjoint capabilities (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/151">#151</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 31/01/2024</p></li>
+<li><p>Added equivariant transforms (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/125">#125</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 07/12/2023</p></li>
+<li><p>Moved datasets and weights to HuggingFace (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/121">#121</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 01/12/2023</p></li>
+<li><p>Added L1 prior, change distance in DataFidelity (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/108">#108</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 03/11/2023</p></li>
+<li><p>Added Kaiming init (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/102">#102</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 29/10/2023</p></li>
+<li><p>Added Anderson Acceleration (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/86">#86</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 23/10/2023</p></li>
+<li><p>Added <a class="reference internal" href="api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS" title="deepinv.sampling.DPS"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.sampling.DPS()</span></code></a> diffusion method (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/92">#92</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a> and <a class="reference external" href="https://www.hj-chung.com/">Hyungjin Chung</a>) - 20/10/2023</p></li>
+<li><p>Added on-the-fly physics computations in training (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/88">#88</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 10/10/2023</p></li>
+<li><p>Added <code class="code docutils literal notranslate"><span class="pre">no_grad</span></code> parameter (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/80">#80</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 20/08/2023</p></li>
+<li><p>Added prox of TV (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/79">#79</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 16/08/2023</p></li>
+<li><p>Added diffpir demo + model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/77">#77</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 08/08/2023</p></li>
+<li><p>Added SwinIR model (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/76">#76</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 02/08/2023</p></li>
+<li><p>Added hard-threshold (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/71">#71</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 18/07/2023</p></li>
+<li><p>Added discord server (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/64">#64</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 10/07/2023</p></li>
+<li><p>Added changelog file (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/64">#64</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 10/07/2023</p></li>
+</ul>
+</section>
+<section id="id35">
+<h3>Fixed<a class="headerlink" href="#id35" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>doc fixes + training fixes (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/124">#124</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 06/12/2023</p></li>
+<li><p>Add doc weights (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/97">#97</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 24/10/2023</p></li>
+<li><p>Fix BlurFFT adjoint (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/89">#89</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 15/10/2023</p></li>
+<li><p>Doc typos (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/88">#88</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 10/10/2023</p></li>
+<li><p>Minor fixes DiffPIR + other typos (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/81">#81</a> by <a class="reference external" href="https://github.com/matthieutrs">Matthieu Terris</a>) - 10/09/2023</p></li>
+<li><p>Call <code class="code docutils literal notranslate"><span class="pre">wandb.init</span></code> only when needed (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/78">#78</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 09/08/2023</p></li>
+<li><p>Log epoch loss instead of batch loss (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/73">#73</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 21/07/2023</p></li>
+<li><p>Automatically disable backtracking is no explicit cost (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/68">#68</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 12/07/2023</p></li>
+<li><p>Added missing indent (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/63">#63</a> by <a class="reference external" href="https://github.com/jscanvic">Jérémy Scanvic</a>) - 12/07/2023</p></li>
+<li><p>Fixed get_freer_gpu grep statement to work for different versions of nvidia-smi (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/82">#82</a> by <a class="reference external" href="https://github.com/alexmehta">Alexander Mehta</a>) - 20/09/2023</p></li>
+<li><p>Fixed get_freer_gpu to work on different operating systems (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/87">#87</a> by <a class="reference external" href="https://github.com/sedaboni">Andrea Sebastiani</a>) - 10/10/2023</p></li>
+<li><p>Fixed Discord server and contributiong links  (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/87">#87</a> by <a class="reference external" href="https://github.com/sedaboni">Andrea Sebastiani</a>) - 10/10/2023</p></li>
+</ul>
+</section>
+<section id="id36">
+<h3>Changed<a class="headerlink" href="#id36" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Update CI (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/95">#95</a> <a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/99">#99</a> by <a class="reference external" href="https://github.com/tomMoral">Thomas Moreau</a>) - 24/10/2023</p></li>
+<li><p>Changed normalization CS and SPC to 1/m (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/72">#72</a> by <a class="reference external" href="https://github.com/tachella">Julian Tachella</a>) - 21/07/2023</p></li>
+<li><p>Update docstring (<a class="extlink-gh reference external" href="https://github.com/deepinv/deepinv/pull/68">#68</a> by <a class="reference external" href="https://github.com/samuro95">Samuel Hurault</a>) - 12/07/2023</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="community.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Community</p>
+      </div>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#current">Current</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#new-features">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#changed">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fixed">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-6">v0.3.6</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-5">v0.3.5</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-4">v0.3.4</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-3">v0.3.3</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-2">v0.3.2</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3-1">v0.3.1</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">Changed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">Fixed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-3">v0.3</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id19">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id20">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id21">Changed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-2-2">v0.2.2</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id22">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id23">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id24">Changed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-2-1">v0.2.1</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id25">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id26">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id27">Changed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-2-0">v0.2.0</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id28">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id29">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id30">Changed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-1-1">v0.1.1</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id31">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id32">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id33">Changed</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#v0-1-0">v0.1.0</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id34">New Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id35">Fixed</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id36">Changed</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/changelog.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
