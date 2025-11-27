@@ -11,6 +11,7 @@ New Features
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -20,7 +21,7 @@ Changed
 Fixed
 ^^^^^
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
-- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh:`930` by `Romain Vo`_)
 
 v0.3.6
 ------
