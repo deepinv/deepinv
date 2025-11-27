@@ -56,11 +56,12 @@ authors:
     given-names: "Romain"
   - family-names: "Weiss"
     given-names: "Pierre"
-doi: "https://doi.org/10.48550/arXiv.2505.20160"
 date-released: 2023-06-30
 repository-code: "https://github.com/deepinv/deepinv"
-url: "https://arxiv.org/abs/2505.20160"
-license: "BSD 3"
+url: "https://joss.theoj.org/papers/10.21105/joss.08923"
+license: "BSD-3-Clause"
+doi: "10.21105/joss.08923"
+version: 0.3.6
 keywords:
   - "inverse problems"
   - "deep learning"

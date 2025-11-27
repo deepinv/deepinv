@@ -297,6 +297,7 @@ dinv.training.test(
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
 #    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
 #    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
+# -  Checkout a YouTube tutorial on our `YouTube Channel <https://www.youtube.com/@deepinv>`_.
 # -  Dive deeper into our full library of examples.
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.

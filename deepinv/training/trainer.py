@@ -6,7 +6,6 @@ from pathlib import Path
 import inspect
 import warnings
 
-
 # Third-party libraries
 from tqdm import tqdm
 import numpy as np
@@ -29,8 +28,8 @@ from deepinv.utils.tensorlist import TensorList
 
 @dataclass
 class Trainer:
-    r"""Trainer(model, physics, train_dataloader, optimizer, ...)
-    Trainer class for training a reconstruction network on image inverse problem.
+    r"""Trainer(model, physics, optimizer, train_dataloader, ...)
+    Trainer class for training a reconstruction network.
 
     .. seealso::
 
@@ -45,13 +44,14 @@ class Trainer:
         - performing gradient clipping
         - tracking losses and metrics
         - saving/loading checkpoints
-        - a seamless integration of both local and remote logging tools via :class:`deepinv.training.run_logger.RunLogger`.
+        - a seamless integration of both local (writing logs in files) and remote logging tools (sending to remote server like `Weights & Biases <https://wandb.ai/site>`_) via :class:`deepinv.training.run_logger.RunLogger`.
 
     ---
 
     **Dataset interface**
 
-    The dataloaders should return samples formatted according to :func:`deepinv.datasets.check_dataset`. These are automatically validated during `setup_run`.
+    The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets user guide <datasets>` for
+    how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
 
     - If ``online_measurements=False`` (default), dataloaders must return tuples ``(x, y)`` or ``(x, y, params)``.
     - If ``online_measurements=True``, dataloaders may return only ``x`` or ``(x, params)``, and measurements will be generated online via ``y = physics(x, **params)``.
@@ -67,6 +67,9 @@ class Trainer:
 
     **Checkpoints and Logging**
 
+    During training, :class:`RunLogger` instances are in charge of logging losses, metrics and images.
+    Losses can be logged at every step or at every epoch.
+
     Training state is saved automatically every ``ckpt_interval`` epochs, and can be resumed with ``ckpt_pretrained``.
 
     Each checkpoint contains at least:
@@ -75,11 +78,11 @@ class Trainer:
             "state_dict": model weights,
             "optimizer": optimizer state dict (if defined),
             "scheduler": scheduler state dict (if defined),
-            "loss": training loss history,
-            "val_metrics": validation metrics history
+            "train_loss": training loss history per epoch,
+            "val_metrics": validation metrics history per epoch
         }
 
-    Checkpoints saving logic are handled by configured :class:`RunLogger` instances (e.g. :class:`LocalLogger`, :class:`WandbLogger`, etc.).
+    In addition, :class:`RunLogger` instances (e.g. :class:`LocalLogger`, :class:`WandbLogger`, etc.) will add its own metadata.
 
     ---
 
@@ -130,13 +133,27 @@ class Trainer:
         :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed after seeing one batch from each dataset. If ``False``, the optimizer step is performed on each dataset separately.
         :param int epochs: Max number of training epochs.
         :param int max_batch_steps: Max number of training batches the model sees. Default is `1e10`.
-        :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``. The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+        :param bool early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
+            after `early_stop` passes over the eval dataset. Default is ``None`` (no early stopping).
+            The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
 
     |sep|
 
     :Losses and Metrics:
-        :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model. Optionally wrap losses using a loss scheduler for more advanced training. :ref:`See the libraries' training losses <loss>` where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
-        :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model. They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+        :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
+            Optionally wrap losses using a loss scheduler for more advanced training.
+            :ref:`See the libraries' training losses <loss>`.
+            Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
+            using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
+        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
+            They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
+            :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+
+        .. warning::
+
+            The metrics from train_dataloader are computed using the model prediction in `model.train()` mode to avoid an additional
+            forward pass. This can lead to metrics that are different from val_dataloader and test_dataloader       when the model is in `model.eval()` mode,
+            and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <deepinv.loss.ReducedResolutionLoss>`).
         :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
         :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
@@ -400,6 +417,10 @@ class Trainer:
         torch.save(
             state,
             ckpt_path,
+        )
+
+        self.train_logger.info(
+            f"Checkpoint of epoch {epoch + 1} saved at: {ckpt_path}."
         )
 
     def load_ckpt(

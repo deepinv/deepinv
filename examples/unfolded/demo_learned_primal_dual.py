@@ -13,12 +13,13 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import BaseOptim
 from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
 from deepinv.training import LocalLogger
+from deepinv.models.utils import get_weights_url
 
 # %%
 # Setup paths for data loading and results.
@@ -40,12 +41,12 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # ---------------------------------------------------
 # We consider the CT operator.
 
-img_size = 128 if torch.cuda.is_available() else 32
+img_size = 64
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 operation = "CT"
 
 # Degradation parameters
-noise_level_img = 0.05
+noise_level_img = 0.01
 
 # Generate the CT operator.
 physics = dinv.physics.Tomography(
@@ -54,6 +55,7 @@ physics = dinv.physics.Tomography(
     circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+    normalize=True,
 )
 
 
@@ -117,6 +119,11 @@ class gStepPDNet(gStep):
         return cur_prior.prox(x, w)
 
 
+class PDNet_optim(BaseOptim):
+    def __init__(self, **kwargs):
+        super(PDNet_optim, self).__init__(PDNetIteration(), **kwargs)
+
+
 # %%
 # Define the trainable prior and data fidelity terms.
 # ---------------------------------------------------
@@ -143,7 +150,7 @@ class PDNetDataFid(DataFidelity):
 
 
 # Unrolled optimization algorithm parameters
-max_iter = 10 if torch.cuda.is_available() else 3  # number of unfolded layers
+max_iter = 10
 
 # Set up the data fidelity term. Each layer has its own data fidelity module.
 data_fidelity = [
@@ -163,7 +170,7 @@ verbose = True
 # We use the Adam optimizer and the StepLR scheduler.
 
 # training parameters
-epochs = 10
+epochs = 10 if torch.cuda.is_available() else 2
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
@@ -172,21 +179,6 @@ n_iter_training = int(1e4) if torch.cuda.is_available() else 100
 n_data = 1  # number of channels in the input
 n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
-
-
-# %%
-# Define the model.
-# -------------------------------
-
-
-def custom_init(y, physics):
-    x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
-    u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
-    return {"est": (x0, x0, u0)}
-
-
-def custom_output(X):
-    return X["est"][0][:, 1, :, :].unsqueeze(1)
 
 
 # %%
@@ -202,9 +194,21 @@ def custom_output(X):
 # that using a filtered gradient can improve both the training speed and reconstruction quality significantly.
 # Following this approach, we use the filtered backprojection instead of the adjoint operator in the primal step.
 
-model = unfolded_builder(
-    iteration=PDNetIteration(),
-    params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
+
+def custom_init(y, physics):
+    x0 = physics.A_dagger(y).repeat(1, n_primal, 1, 1)
+    u0 = torch.zeros_like(y).repeat(1, n_dual, 1, 1)
+    return (x0, x0, u0)
+
+
+def custom_output(X):
+    return X["est"][0][:, 1, :, :].unsqueeze(1)
+
+
+model = PDNet_optim(
+    unfold=True,
+    params_algo={"K": physics.A, "K_adjoint": physics.A_dagger},
+    trainable_params=[],
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,
@@ -245,14 +249,6 @@ test_dataloader = DataLoader(
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
 
-method = "learned primal-dual"
-save_folder = RESULTS_DIR / method / operation
-plot_images = True  # Images are saved in save_folder.
-plot_convergence_metrics = (
-    True  # compute performance and convergence metrics along the algorithm.
-)
-
-
 trainer = dinv.Trainer(
     model,
     physics=physics,
@@ -269,6 +265,17 @@ trainer = dinv.Trainer(
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
+# If working on CPU, start with a pretrained model to reduce training time
+if not torch.cuda.is_available():
+    file_name = "ckp_PDNet.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
+    scheduler.load_state_dict(ckpt["scheduler"])
+
 model = trainer.train()
 
 # %%
@@ -276,9 +283,25 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-
 trainer.test(
     test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
+
+test_sample = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():  # it is important to disable gradient computation during testing.
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
 )
 
 # %%

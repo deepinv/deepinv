@@ -1237,8 +1237,7 @@ def test_noise_domain(device):
 
 def test_blur(device):
     r"""
-    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
-    n=0 where Ax=0.
+    Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
     x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
