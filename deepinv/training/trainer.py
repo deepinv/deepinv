@@ -1201,6 +1201,10 @@ class Trainer:
         r"""
         Test the model, compute metrics and plot images.
 
+        .. note::
+
+            It is possible to save the reconstructed images along with the ground truths and measurements by specifying a value for the parameter ``save_path``. Note that in this case, every test sample is saved and not only the first ones.
+
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
             for how we expect data to be provided.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
