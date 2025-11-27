@@ -430,7 +430,7 @@ class FourierEmbedding(torch.nn.Module):
 
 
 def initialize_3d_from_2d(
-    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor]
+    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
 ) -> None:
     r"""
     Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
@@ -449,13 +449,43 @@ def initialize_3d_from_2d(
             module.weight.data[:] = 0.0
             with torch.no_grad():
                 if module.kernel_size[0] % 2 == 1:
-                    module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
-                        f"{name}.weight"
-                    ]
+                    if isotropic:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight[
+                            :, :, :, module.kernel_size[1] // 2 + 1, :
+                        ] += ckpt_2d[f"{name}.weight"]
+
+                        module.weight[..., module.kernel_size[2] // 2 + 1] += ckpt_2d[
+                            f"{name}.weight"
+                        ]
+
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:, :, module.kernel_size[0] // 2 + 1] = ckpt_2d[
+                            f"{name}.weight"
+                        ]
                 else:
-                    module.weight[:] = (
-                        ckpt_2d[f"{name}.weight"][:, :, None] / module.kernel_size[0]
-                    )
+                    if isotropic:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][:, :, :, None]
+                            / module.kernel_size[1]
+                        )
+                        module.weight[:] += (
+                            ckpt_2d[f"{name}.weight"][..., None] / module.kernel_size[2]
+                        )
+                        module.weight /= 3.0
+                    else:
+                        module.weight[:] = (
+                            ckpt_2d[f"{name}.weight"][:, :, None]
+                            / module.kernel_size[0]
+                        )
 
                 if module.bias is not None:
                     module.bias[:] = ckpt_2d[f"{name}.bias"]

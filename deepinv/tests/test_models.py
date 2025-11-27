@@ -1455,13 +1455,15 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
 
 @pytest.mark.parametrize("model_name", ["DRUNet", "DnCNN", "DScCP"])
 @pytest.mark.parametrize("n_channels", [1, 3])
-def test_initialize_3d_from_2d(device, model_name, n_channels):
+@pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
+def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_isotropic):
 
     if model_name == "DRUNet":
         model = dinv.models.DRUNet(
             in_channels=n_channels,
             out_channels=n_channels,
             pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
             dim="3d",
         )
     elif model_name == "DnCNN":
@@ -1469,12 +1471,17 @@ def test_initialize_3d_from_2d(device, model_name, n_channels):
             in_channels=n_channels,
             out_channels=n_channels,
             pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
             dim="3d",
         )
     elif model_name == "DScCP":
         if n_channels != 3:
             pytest.skip("DScCP 3D pretrained model is only available for 3 channels.")
-        model = dinv.models.DScCP(dim="3d", pretrained="download_2d")
+        model = dinv.models.DScCP(
+            dim="3d",
+            pretrained="download_2d",
+            pretrained_2d_isotropic=pretrained_2d_isotropic,
+        )
 
     model = model.eval().to(device)
 
