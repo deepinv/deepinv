@@ -47,11 +47,11 @@ class MMSE(Denoiser):
             sigma = sigma[:, None]
         # distance: ||x - a_k||
         dist = torch.norm(
-            x.view(x.shape[0], 1, -1) - self.atoms.view(1, self.atoms.shape[0], -1), dim=2
-        ) # (B, N)
+            x.view(x.shape[0], 1, -1) - self.atoms.view(1, self.atoms.shape[0], -1),
+            dim=2,
+        )  # (B, N)
         # Posterior weights
-        alpha = F.softmax(-dist**2 / sigma**2, dim=1) 
+        alpha = F.softmax(-(dist**2) / sigma**2, dim=1)
         # MMSE estimate
         denoised_flat = alpha @ self.atoms.view(self.atoms.shape[0], -1)
         return denoised_flat.view_as(x)
-

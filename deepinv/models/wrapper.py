@@ -6,12 +6,29 @@ from deepinv.models import Denoiser
 class ScoreModelWrapper(Denoiser):
     """
     Wraps a score model as a DeepInv Denoiser.
+
+    Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\epsilon \sim \mathcal{N}(0, I)`,
+    depending on the `prediction_type`, the input `score_model` is trained to predict, either:
+        * the noise :math:`\varepsilon` (`prediction_type = noise`)
+        * the denoised sample :math:`x_0` (`prediction_type = denoised`)
+        * the `v-prediction` :math:`s_t (\varepsilon - sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = v_prediction`)
+
+    :param nn.Module | Callable score_model: score model to be wrapped.
+    :param str prediction_type: type of prediction made by the score model.
+    :param bool clip_output: whether to clip the output to the model range. Default is `True`.
+    :param Callable | torch.Tensor sigma_schedule: continuous function or tensor (of shape [N] with :math:`N` the number of time steps) defining the noise schedule :math:`\sigma_t`.
+    :param Callable | torch.Tensor scale_schedule: function or tensor (of shape [N] with :math:`N` the number of time steps) defining the scaling schedule :math:`s_t`.
+    :param Callable sigma_inverse: analytic inverse of the `sigma_schedule`. If not provided, a numeric inversion is used.
+    :param bool variance_preserving: whether the schedule is variance-preserving. If `True`, the `scale_schedule` is computed from the `sigma_schedule`.
+    :param bool variance_exploding: whether the schedule is variance-exploding. If `True`, the `scale_schedule` is set to 1.
+    :param float T: maximum time value for continuous schedules. Default is `1.0`.
+    :param str: device to load the model on. Default is 'cpu'.
     """
 
     def __init__(
         self,
-        score_model: nn.Module = None,
-        prediction_type: str = "epsilon", # prediction_type: "epsilon", "v_prediction", or "sample"
+        score_model: nn.Module | Callable = None,
+        prediction_type: str = "epsilon",  # prediction_type: "epsilon", "v_prediction", or "sample"
         clip_output: bool = True,
         sigma_schedule: Callable | torch.Tensor = None,
         scale_schedule: Callable | torch.Tensor = None,
@@ -29,11 +46,13 @@ class ScoreModelWrapper(Denoiser):
         if scale_schedule is None:
             if variance_preserving:
                 if isinstance(sigma_schedule, Callable):
+
                     def scale_t(t):
                         t = self._handle_time_step(t)
                         return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
+
                 else:
-                    scale_schedule = 1.0 / (1 + sigma_schedule ** 2) ** 0.5
+                    scale_schedule = 1.0 / (1 + sigma_schedule**2) ** 0.5
             elif variance_exploding:
                 if isinstance(sigma_schedule, Callable):
                     scale_schedule = lambda t: 1.0
@@ -52,7 +71,7 @@ class ScoreModelWrapper(Denoiser):
         self.sigma_inverse = sigma_inverse
         self.T = T
         self.device = device
-    
+
         self.to(device)
 
     def _handle_time_step(self, t: Tensor | float) -> Tensor:
@@ -93,6 +112,67 @@ class ScoreModelWrapper(Denoiser):
             t_est = 0.5 * (t_low + t_high)
             return t_est[0] if t_est.numel() == 1 else t_est
 
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
+
+    def score(
+        self, x: torch.Tensor, t: float | torch.Tensor = None, *args, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        Computes the score function :math:`\nabla_x \log p_t(x)`.
+
+        :param torch.Tensor x: input tensor of shape `[B, C, H, W]`.
+        :param torch.Tensor | float t: single time or tensor of shape `[B]` or `[]`.
+        :param args: additional positional arguments of the model.
+        :param kwargs: additional keyword arguments of the model.
+
+        :returns: (:class:`torch.Tensor`) the score function of shape `[B, C, H, W]`.
+        """
+        device = x.device
+        dtype = x.dtype
+
+        assert t is not None, "Please provide a time step t."
+
+        # Handle time step
+        t = self._handle_time_step(t)
+
+        # UNet forward
+        pred = self.model(x, t, *args, return_dict=False, **kwargs)
+        if isinstance(pred, (list, tuple)):
+            pred = pred[0]
+        pred = pred.to(dtype)
+
+        if isinstance(self.sigma_schedule, torch.Tensor):
+            sigma = self.sigma_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
+        else:
+            sigma = self.sigma_schedule(timestep).view(-1, *(1,) * (x.ndim - 1))
+
+        if isinstance(self.scale_schedule, torch.Tensor):
+            scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
+        else:
+            scale = self.scale_schedule(timestep).view(-1, *(1,) * (x.ndim - 1))
+
+        pt = self.prediction_type
+        if pt == "epsilon":  # predics white noise
+            score = -stable_division(pred, sigma)
+        elif (
+            pt == "v_prediction"
+        ):  # predics s_t*(eps - sigma_t * x). See https://arxiv.org/pdf/2202.00512.
+            score = -stable_division(pred / scale + sigma * x, sigma)
+        elif pt == "sample":  # predics the denoised image (Tweedie formula)
+            score = stable_division(x + (scale * sigma) ** 2 * pred, scale)
+
+        return score
 
     def forward(
         self,
@@ -146,11 +226,13 @@ class ScoreModelWrapper(Denoiser):
 
         # Convert model output to x0 depending on prediction type
         pt = self.prediction_type
-        if pt == "epsilon": # predics white noise
+        if pt == "epsilon":  # predics white noise
             x0 = x / scale - sigma * pred
-        elif pt == "v_prediction": # predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512. 
+        elif (
+            pt == "v_prediction"
+        ):  # predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.
             x0 = scale * (x - sigma * pred)
-        elif pt == "sample": # predics the denoised image
+        elif pt == "sample":  # predics the denoised image
             x0 = pred
         else:
             raise ValueError(f"Unsupported prediction_type: {pt}")
@@ -162,7 +244,6 @@ class ScoreModelWrapper(Denoiser):
         # Rescale to [0, 1]
         x0 = (x0 + 1) / 2
         return x0
-
 
 
 class DiffusersDenoiserWrapper(ScoreModelWrapper):
@@ -223,17 +304,22 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             )
 
         pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=torch.float32)
-        
+
         model = pipeline.unet
         scheduler = pipeline.scheduler
-        prediction_type = getattr(
-            self.scheduler.config, "prediction_type", "epsilon"
-        )
+        prediction_type = getattr(self.scheduler.config, "prediction_type", "epsilon")
 
         assert isinstance(
             scheduler, DDPMScheduler
         ), "Currently, only DDPMScheduler is supported."
-        scale_schedule = ac.sqrt() 
+        scale_schedule = ac.sqrt()
         sigma_schedule = (1 / ac - 1.0).clamp(min=0).sqrt()
-        
-        super().__init__(model = model, prediction_type = prediction_type, clip_output = clip_output, scale_schedule = scale_schedule, sigma_schedule = sigma_schedule, device = device)
+
+        super().__init__(
+            model=model,
+            prediction_type=prediction_type,
+            clip_output=clip_output,
+            scale_schedule=scale_schedule,
+            sigma_schedule=sigma_schedule,
+            device=device,
+        )
