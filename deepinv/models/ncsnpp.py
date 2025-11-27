@@ -18,7 +18,7 @@ class NCSNpp(Denoiser):
 
     Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
     The DDPM model has been trained with the VP-SDE from :footcite:t:`song2020score` whle the NCSN++ model has been trained with the VE-SDE.
-    See the :ref:`diffusion SDE implementations <diffusion> ` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
+    See the :ref:`diffusion SDE implementations <diffusion>` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
     The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.

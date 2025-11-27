@@ -279,6 +279,7 @@ def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
+        FlowMatching,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
