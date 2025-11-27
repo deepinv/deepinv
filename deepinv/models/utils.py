@@ -436,12 +436,12 @@ def initialize_3d_from_2d(
     Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
     Useful when no pretrained 3D weights are available.
 
-    For odd kernel size in the depth dimension,  the center slice is copied from the 2D weights,
-    and other slices are set to zero. For even kernel size in the depth dimension,
-    the 2D weights are divided by the kernel size and copied to all slices.
-
     :param nn.Module model_3d: 3D model to be initialized.
     :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
+    :param bool isotropic: If True, for odd kernel sizes, the weights are copied to the center slice
+        of all three dimensions and averaged. For even kernel sizes, the 2D weights are
+        divided by the kernel size and copied to all slices in all three dimensions. Otherwise,
+        only the depth dimension is considered.
     """
     for name, module in model_3d.named_modules():
         if isinstance(module, nn.Conv3d) or isinstance(module, nn.ConvTranspose3d):
