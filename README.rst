@@ -31,6 +31,11 @@ Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. 
 * `Sampling algorithms and diffusion models <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
 * A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
 
+Mailing list
+~~~~~~~~~~~~
+
+`Join our mailing list <https://forms.gle/TFyT7M2HAWkJYfvQ7>`_ for occasional updates on releases and new features.
+
 Install
 -------
 
@@ -65,15 +70,6 @@ Or, for updating an existing installation:
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 
-Contributing
-------------
-
-DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
-We are building a comprehensive library of inverse problems and deep learning,
-and we need your help to get there! 
-
-Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
-
 Finding help
 ------------
 
@@ -82,10 +78,19 @@ If you have any questions or suggestions, please join the conversation in our
 `open an issue <https://github.com/deepinv/deepinv/issues>`_.
 
 Maintainers
------------
+~~~~~~~~~~~
 
 Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
+
+Contributing
+------------
+
+DeepInverse is a `community-driven project <https://deepinv.github.io/deepinv/community.html>`_ and we encourage contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there! 
+
+Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
 
 Citation
 --------
@@ -96,7 +101,7 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 
     @article{tachella2025deepinverse,
         title = {DeepInverse: A Python package for solving imaging inverse problems with deep learning},
-        journal = {Journal of Open Source Software}
+        journal = {Journal of Open Source Software},
         doi = {10.21105/joss.08923},
         url = {https://doi.org/10.21105/joss.08923},
         year = {2025},
