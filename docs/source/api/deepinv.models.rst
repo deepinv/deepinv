@@ -96,6 +96,7 @@ Wrappers
    :nosignatures:
 
    deepinv.models.DiffusersDenoiserWrapper
+   deepinv.models.ComplexDenoiserWrapper
 
 Deep Image Prior
 ----------------
@@ -108,6 +109,8 @@ Deep Image Prior
 
    deepinv.models.DeepImagePrior
    deepinv.models.ConvDecoder
+   deepinv.models.Poisson2Sparse
+   deepinv.models.ConvLista
 
 
 Adversarial Networks

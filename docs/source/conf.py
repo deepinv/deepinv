@@ -412,7 +412,8 @@ html_theme_options = {
     },
     "announcement": (
         "🎉 We are part of the "
-        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse'> official PyTorch ecosystem!</a> 🎉"
+        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>"
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
     ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
