@@ -1,5 +1,6 @@
 import deepinv as dinv
 import torch
+import numpy as np
 import pytest
 
 
@@ -177,3 +178,39 @@ class TestTomographyWithAstra:
             assert physics.xray_transform.magnification_factor == pytest.approx(1.25)
         else:
             assert physics.xray_transform.magnification_factor == pytest.approx(1.0)
+
+
+class TestSPECT:
+    @pytest.mark.parametrize("use_att", [False, True])
+    @pytest.mark.parametrize("use_psf", [False, True])
+    def test_adjoint(self, use_att, use_psf):
+        from pytomography.metadata.SPECT import SPECTObjectMeta, SPECTProjMeta, SPECTPSFMeta
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        object_meta = SPECTObjectMeta(dr = (1, 1, 1), 
+                              shape = [32,32,32])
+        proj_meta = SPECTProjMeta(projection_shape= [32,32], 
+                          dr= (1, 1),
+                          angles= np.linspace(0, 360, 120, endpoint=False).tolist(), 
+                          radii=[380] * 120)
+        
+        # --- Optional transforms ---
+        attmap = torch.rand([32,32,32]) if use_att else None
+        psf_meta = SPECTPSFMeta(sigma_fit_params= np.random.rand(2)) if use_psf else None
+        physics = dinv.physics.SPECT(object_meta, proj_meta, psf_meta = psf_meta, attmap = attmap, device=device)
+
+        ## --- Test adjointness ---
+        x = torch.rand([1,1,32,32,32]).to(device) #Here we can use any noise distribution that give x>0
+        Ax = physics.A(x)
+
+        y = torch.rand_like(Ax).to(device)
+        ATy = physics.A_adjoint(y)
+
+        test1 = torch.dot(Ax.reshape(-1), y.reshape(-1))
+        test2 = torch.dot(x.reshape(-1), ATy.reshape(-1))
+        
+        relative_error = abs(test1 - test2) / test2
+        assert relative_error < 0.01  # at least 99% adjoint
+
+        ## --- Test autograd.Function ---
