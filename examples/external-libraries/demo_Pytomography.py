@@ -13,10 +13,11 @@ from pathlib import Path
 from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
 from pytomography.io.SPECT import dicom
 import matplotlib.pyplot as plt
-from EmissionTomography import Emission_Tomography
+
 import os
-import deepinv.deepinv as dinv
-from deepinv.deepinv.optim.prior import WaveletPrior
+import deepinv as dinv
+from deepinv.physics.EmissionTomography import SPECT
+from deepinv.optim.prior import WaveletPrior
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
@@ -27,9 +28,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # We then estimate scatter using the double energy window method provided in Pytomography. (Optional)
 #
 
-data_path = Path("data/IEC_Lu177-NEMA-SymT2")
-save_path = Path("output")
-save_path.mkdir(parents=True, exist_ok=True)
+data_path = Path("../../../data/IEC_Lu177-NEMA-SymT2")
 
 path_CT = data_path / "CT"
 files_CT = [os.path.join(path_CT, file) for file in os.listdir(path_CT)]
@@ -39,16 +38,15 @@ scatter = dicom.get_energy_window_scatter_estimate(
     file_NM, index_peak=0, index_lower=1, index_upper=2
 )
 
-# Visualize one slice of the projection data
 y = photopeak.to(device)
-plt.imshow(y.cpu()[:, :, 60], cmap="gray")
-plt.title("Projection slice = 60")
-plt.colorbar()
-plt.show()
 
-y = y.unsqueeze(0).unsqueeze(
-    0
-)  # add batch and channel dimensions (B, C, N_proj, H', W')
+# add batch and channel dimensions (B, C, N_proj, H', W')
+y = y.unsqueeze(0).unsqueeze(0) 
+
+# Visualize the projection data
+dinv.utils.plot(y[:, :, :, :, 60], suptitle="Sinogram slice")
+proj_list = [y[:, :, 0, :, :], y[:, :, 20, :, :],  y[:, :, 60, :, :], y[:, :, 90, :, :]]
+dinv.utils.plot(proj_list,subtitles=["0°", "20°", "60°", "90°"], suptitle='Projection at differents angles')
 
 # %%
 # Create forward model
@@ -72,21 +70,20 @@ y = y.unsqueeze(0).unsqueeze(
 # N_proj is the number of projections, H' is the height and W' is the width of the projections.
 
 object_meta, proj_meta = dicom.get_metadata(file_NM, index_peak=0)
-att_transform = SPECTAttenuationTransform(filepath=files_CT)
 collimator_name = "SY-ME"
 energy_kev = 208  # keV
 intrinsic_resolution = 0.38  # mm
 psf_meta = dicom.get_psfmeta_from_scanner_params(
     collimator_name, energy_kev, intrinsic_resolution=intrinsic_resolution
 )
-psf_transform = SPECTPSFTransform(psf_meta)
 
-physics = Emission_Tomography(
-    object_meta,
-    proj_meta,
-    att_transform,
-    psf_transform,
-    noise_model=dinv.physics.PoissonNoise(),
+physics = SPECT(
+    object_meta = object_meta,
+    proj_meta = proj_meta,
+    psf_meta = psf_meta,                        # Here attenuation is define using the 'CT_file' variable
+    CT_file = files_CT,                         # you can also use the 'attenuation' variable that expect 
+    device = device,                             # a torch tensor. 
+    noise_model=dinv.physics.PoissonNoise()    
 )
 
 # %%
@@ -109,15 +106,11 @@ def mlem(x0, y, it, physics, scatter=0):
         x = x / At1 * physics.A_adjoint(ratio)
     return x
 
-
 x_ones = torch.ones(object_meta.shape).to(device)  # create an initial guess of ones
 x_ones = x_ones.unsqueeze(0).unsqueeze(0)  # add batch and channel dimensions
 x_mlem = mlem(x_ones, y, 60, physics)
 # %%
-plt.imshow(x_mlem.squeeze(0, 1).T.cpu()[60, :, :], cmap="gray")
-plt.title("Backprojection slice = 60")
-plt.colorbar()
-plt.show()
+dinv.utils.plot(x_mlem[:, :, :, :, 60].swapaxes(2,3), suptitle="reconstructed object", figsize = (5,5))
 
 # %%
 # MAP-EM OSL reconstruction
@@ -142,10 +135,9 @@ def mapem(x0, y, it, physics, prior, beta, scatter=0):
 
 
 prior = WaveletPrior(wv="db4", device=device, wvdim=3)
-x_mapem = mapem(x_ones, y, 60, physics, prior, 0.1)
+x_mapem = mapem(x_ones, y, 60, physics, prior, 0.3)
 
 # %%
-plt.imshow(x_mapem.squeeze(0, 1).T.cpu().detach()[60, :, :], cmap="gray")
-plt.title("Backprojection slice = 60")
-plt.colorbar()
-plt.show()
+dinv.utils.plot(x_mapem[:, :, :, :, 60].swapaxes(2,3), suptitle="reconstructed object", figsize = (5,5))
+
+# %%

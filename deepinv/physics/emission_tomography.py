@@ -1,8 +1,10 @@
-import deepinv as dinv
 import torch
+import pytomography
+from pytomography.projectors.SPECT import SPECTSystemMatrix
+from pytomography.transforms.SPECT import SPECTAttenuationTransform, SPECTPSFTransform
+from deepinv.physics.forward import LinearPhysics
 
-
-class Emission_Tomography(dinv.physics.LinearPhysics):
+class SPECT(LinearPhysics):
     r"""
     Emission Tomography forward operator :math:`A` using the `pytomography` package (see : :footcite:t:`polson2025pytomography`).
 
@@ -26,51 +28,45 @@ class Emission_Tomography(dinv.physics.LinearPhysics):
     :param att_transform: Attenuation transform (see `pytomography` documentation for more informations).
     :param psf_transform: Point Spread Function (PSF) transform (see `pytomography` documentation for more informations).
     """
+    def __init__(self, object_meta, proj_meta, psf_meta = None, attenuation = None, CT_file = None, device="cpu", verbose: bool = True, **kwargs):
 
-class SPECT(dinv.physics.LinearPhysics):
-    def __init__(self, attenuation, object_meta, proj_meta, psf_meta, device="cpu", verbose: bool = True, **kwargs):
-
-        super().__init__(**kwargs)
-        
+        super().__init__()
+    
         pytomography.set_device(device)
         pytomography.set_verbose(verbose)
-
-        self.update_parameters(attenuation=attenuation, psf_meta=psf_meta)
-
-        self.system = SPECTSystemMatrix(
-            obj2obj_transforms=[self.att_transform, self.psf_transform],
+        
+        self.update_parameters(object_meta = object_meta, proj_meta = proj_meta, psf_meta=psf_meta, attenuation=attenuation, CT_file = CT_file)
+        self.system_matrix = SPECTSystemMatrix(
+            obj2obj_transforms=self.transforms,
             proj2proj_transforms=[],
             object_meta=object_meta,
             proj_meta=proj_meta,                
         )
 
-    def update_parameters(self, attenuation=None, psf_meta=None, **kwargs):
+    def update_parameters(self, object_meta, proj_meta, psf_meta=None, attenuation=None, CT_file=None, **kwargs):
         """Update physics parameters.
 
         :param torch.Tensor attenuation: attenuation map in image domain
         :param SPECTPSFMeta psf_meta: PSF meta object. In an ideal implementation this would be the PSF as a tensor but it would require modifying pytomography
         """
-        self.register_buffer("attenuation", attenuation)
+        transform_list = []
+        if attenuation is not None:
+            att_transform = SPECTAttenuationTransform(attenuation_map=attenuation.squeeze())
+            transform_list.append(att_transform)
+            self.register_buffer("attenuation", att_transform.attenuation_map)
 
-        self.att_transform = SPECTAttenuationTransform(attenuation_map=attenuation.squeeze())
-        self.psf_transform = SPECTPSFTransform(psf_meta)
+        if CT_file is not None:
+            att_transform = SPECTAttenuationTransform(filepath=CT_file)
+            att_transform.configure(object_meta, proj_meta)
+            transform_list.append(att_transform)
+            self.register_buffer("attenuation", att_transform.attenuation_map)
+
+        if psf_meta is not None:
+            psf_transform = SPECTPSFTransform(psf_meta)
+            transform_list.append(psf_transform)
         
+        self.transforms = transform_list
         super().update_parameters(**kwargs)
-
-    def A...
-        super().__init__(**kwargs)
-        from pytomography.projectors.SPECT import SPECTSystemMatrix
-
-        att_transform.configure(object_meta, proj_meta)
-
-        system_matrix = SPECTSystemMatrix(
-            obj2obj_transforms=[att_transform, psf_transform],
-            proj2proj_transforms=[],
-            object_meta=object_meta,
-            proj_meta=proj_meta,
-        )
-
-        self.system_matrix = system_matrix
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward operator.
