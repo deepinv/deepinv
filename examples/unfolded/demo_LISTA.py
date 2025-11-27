@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim import PGD
 from deepinv.utils import get_data_home
+from deepinv.training import LocalLogger
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -228,12 +229,12 @@ trainer = dinv.Trainer(
     model,
     physics=physics,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     epochs=epochs,
     losses=losses,
     optimizer=optimizer,
     device=device,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
@@ -251,7 +252,9 @@ model = trainer.train()
 #
 
 
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 test_sample, _ = next(iter(test_dataloader))
 model.eval()
