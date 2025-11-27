@@ -10,6 +10,7 @@ New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
+- Add Cosine Similarity to the metrics
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 
 
