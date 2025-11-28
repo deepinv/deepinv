@@ -12,6 +12,7 @@ class ScoreModelWrapper(Denoiser):
         * the noise :math:`\varepsilon` (`prediction_type = noise`)
         * the denoised sample :math:`x_0` (`prediction_type = denoised`)
         * the `v-prediction` :math:`s_t (\varepsilon - sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = v_prediction`)
+        * the velocity (or drift) of the corresponsing ODE/SDE :math:`s_t (\varepsilon - sigma_t * x_0)` as typically the case for flow-matchin models (`prediction_type = velocity`)
 
     :param nn.Module | Callable score_model: score model to be wrapped.
     :param str prediction_type: type of prediction made by the score model.
