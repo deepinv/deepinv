@@ -1452,6 +1452,7 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
     if clip_output:
         assert torch.all(output <= 1.0) and torch.all(output >= 0.0)
 
+
 @pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
 def test_complex_wrapper(mode, device):
     model = dinv.models.DRUNet(pretrained="download").to(device)
@@ -1479,7 +1480,7 @@ def test_complex_wrapper(mode, device):
     # Check that denoising improves PSNR
     assert psnr_fn(output, x_complex) > psnr_fn(y, x_complex) + 1.0
 
-    
+
 @pytest.mark.parametrize("model_name", ["DRUNet", "DnCNN", "DScCP"])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
