@@ -16,11 +16,7 @@ from .utils import (
     initialize_3d_from_2d,
 )
 from .base import Denoiser
-from typing import Sequence  # noqa: F401
 from collections import OrderedDict
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
 class DRUNet(Denoiser):
@@ -218,6 +214,7 @@ class DRUNet(Denoiser):
             noise_level_map = (
                 torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
             )
+
         x = torch.cat((x, noise_level_map), 1)
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:

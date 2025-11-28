@@ -76,3 +76,8 @@ dinv.utils.plot(
     titles=["Measurement", "Poisson2Sparse", "Ground truth"],
     subtitles=[f"{learning_free_psnr:.1f} dB", f"{model_psnr:.1f} dB", ""],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
