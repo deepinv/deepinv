@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from torch.nn.functional import silu
 import numpy as np
@@ -9,6 +10,7 @@ from .utils import (
 )
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
+from torch import Tensor
 from .utils import get_weights_url
 from typing import Sequence
 
@@ -17,7 +19,7 @@ class NCSNpp(Denoiser):
     r"""Implementation of the DDPM++ and NCSN++ architectures.
 
     Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
-    The DDPM model has been trained with the VP-SDE from :footcite:t:`song2020score` whle the NCSN++ model has been trained with the VE-SDE.
+    The DDPM model has been trained with the VP-SDE from :footcite:t:`song2020score` while the NCSN++ model has been trained with the VE-SDE.
     See the :ref:`diffusion SDE implementations <diffusion>` for more details on the VP-SDE and VE-SDE from :footcite:t:`song2020score`.
     The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
@@ -321,7 +323,13 @@ class NCSNpp(Denoiser):
         return aux
 
     def forward(
-        self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs
+        self,
+        x: Tensor,
+        sigma: Tensor | float,
+        class_labels: Tensor | None = None,
+        augment_labels: Tensor | None = None,
+        *args,
+        **kwargs,
     ):
         r"""
         Run the denoiser on noisy image.

@@ -178,10 +178,8 @@ class DiffusionSDE(BaseSDE):
         if not isinstance(alpha, Callable):
             alpha_value = alpha
 
-            def alpha(t: Tensor | float) -> Tensor:
-                return torch.as_tensor(
-                    alpha_value, device=self.device, dtype=self.dtype
-                )
+            def alpha(t: Tensor | float) -> scalar:
+                return alpha_value
 
         def backward_drift(x, t, *args, **kwargs):
             return -forward_drift(x, t) + ((1 + alpha(t)) / 2) * forward_diffusion(
@@ -316,6 +314,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     ):
         self.T = T
         self.sigma_t = sigma_t
+        assert not (variance_preserving and variance_exploding), ("Cannot set both variance_preserving and variance_exploding to True.")
 
         if scale_t is None:
             if variance_preserving:
@@ -609,7 +608,6 @@ class FlowMatching(EDMDiffusionSDE):
             scale_prime_t=scale_prime_t,
             sigma_t=sigma_t,
             sigma_prime_t=sigma_prime_t,
-            forward_diffusion=forward_diffusion,
             alpha=alpha,
             T=1,
             denoiser=denoiser,

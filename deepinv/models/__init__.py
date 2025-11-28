@@ -39,3 +39,5 @@ from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper
 from .mmse import MMSE
+from .wrapper import ScoreModelWrapper, DiffusersDenoiserWrapper, ComplexDenoiserWrapper
+from .poisson2sparse import ConvLista, Poisson2Sparse
