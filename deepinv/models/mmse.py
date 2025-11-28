@@ -35,7 +35,12 @@ class MMSE(Denoiser):
         >>> import deepinv as dinv
         >>> from torchvision import datasets, transforms
         >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        >>> dataset = datasets.MNIST(root='.', train=False, download=True, transform=transforms.ToTensor())
+        >>> dataset = datasets.MNIST(
+        ...        root=".",
+        ...        train=False,
+        ...        download=True,
+        ...        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
+            )
         >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
         >>> x = next(iter(dataloader))[0].to(device)
         >>> denoiser = dinv.models.MMSE(dataloader=dataloader, device=device, dtype=torch.float32)
@@ -101,7 +106,7 @@ class MMSE(Denoiser):
             batch = batch.view(Bd, -1)  # (1, Bd, C*H*W)
 
             # Pairwise squared distances: (Bx, Bd)
-            dist2 = torch.cdist(x, batch, p=2).pow(2).to(acc_dtype, non_blocking=True)
+            dist2 = self._cdist_squared(x, batch).to(acc_dtype, non_blocking=True)
             logw = -dist2 / (two_sigma_squared + 1e-12)  # (Bx, Bd)
 
             # Update shift and rescale running sums
@@ -116,7 +121,7 @@ class MMSE(Denoiser):
             weights = torch.exp(logw - new_shift)  # (Bx, Bd)
 
             # Weighted sum via matmul
-            numerator = numerator + weights @ batch
+            numerator = numerator + weights @ batch.to(acc_dtype, non_blocking=True)
             denominator = denominator + weights.sum(dim=1, keepdim=True)
             shift = new_shift
 
@@ -132,3 +137,19 @@ class MMSE(Denoiser):
         if dtype in [torch.float16, torch.bfloat16]:
             return torch.float32
         return dtype
+
+    @staticmethod
+    def _cdist_squared(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        r"""
+        Compute pairwise squared Euclidean distances between two sets of vectors.
+        Similar to :func:`torch.cdist` but support half precision inputs.
+
+        :param x: Tensor of shape (N, D)
+        :param y: Tensor of shape (M, D)
+        :return: Tensor of shape (N, M) containing the pairwise squared distances.
+        """
+        x_norm = (x**2).sum(dim=1).unsqueeze(1)  # (N, 1)
+        y_norm = (y**2).sum(dim=1).unsqueeze(0)  # (1, M)
+        dist2 = x_norm + y_norm - 2.0 * torch.mm(x, y.t())  # (N, M)
+        dist2 = torch.clamp(dist2, min=0.0)
+        return dist2
