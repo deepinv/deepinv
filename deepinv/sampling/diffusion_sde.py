@@ -14,7 +14,7 @@ from deepinv.sampling.utils import trapz_torch
 
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
-    """
+    r"""
     A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
 
     :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.
@@ -95,7 +95,6 @@ class BaseSDE(nn.Module):
         self.solver.rng_manual_seed(seed)
         if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sample_init(x_init, rng=self.solver.rng)
-
         solution = self.solver.sample(
             self, x_init, *args, **kwargs, get_trajectory=get_trajectory
         )
@@ -128,6 +127,28 @@ class BaseSDE(nn.Module):
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         raise NotImplementedError
+
+    def forward(
+        self,
+        x_init: Tensor = None,
+        seed: int = None,
+        get_trajectory: bool = False,
+        *args,
+        **kwargs,
+    ) -> SDEOutput:
+        r"""
+        We forward function corresponds to SDE sampling.
+
+        :param torch.Tensor x_init: initial value.
+        :param int seed: the seed for the pseudo-random number generator used in the solver.
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
+        :param \*args: additional arguments for the solver.
+        :param \*\*kwargs: additional keyword arguments for the solver.
+
+        :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
+        """
+        return self.sample(x_init, seed, get_trajectory, *args, **kwargs)
+
 
 
 class DiffusionSDE(BaseSDE):
@@ -202,11 +223,7 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = (
-            deepcopy(denoiser)
-            if not minus_one_one
-            else _WrapperDenoiserMinusOneOne(deepcopy(denoiser))
-        )
+        self.denoiser = denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
@@ -269,11 +286,17 @@ class EDMDiffusionSDE(DiffusionSDE):
         d x_t = \frac{s'(t)}{s(t)} x_t dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
 
     The scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers must satisfy :math:`s(0) = 1`, :math:`\sigma(0) = 0` and :math:`\lim_{t \to \infty} \sigma(t) = +\infty`.
-
+    
+    
     Common choices include the variance-preserving formulation :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}` and the variance-exploding formulation :math:`s(t) = 1`.
+    
     For choosing variance-preserving formulation, set `variance_preserving=True` and do not provide `scale_t` and `scale_prime_t`.
+    
     For choosing variance-exploding formulation, set `variance_exploding=True` and do not provide `scale_t` and `scale_prime_t`.
 
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
 
     :param Callable sigma_t: a time-dependent noise level schedule.
     :param Callable scale_t: a time-dependent scale schedule.
@@ -410,11 +433,8 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
-        return (
-            torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
-            * self.sigma_t(self.T)
-            * self.scale_t(self.T)
-        )
+        init = torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype) * self.sigma_t(self.T) * self.scale_t(self.T)
+        return init
 
 
 class SongDiffusionSDE(EDMDiffusionSDE):
@@ -442,8 +462,12 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
     For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
-
+    
     For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
+
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
 
     :param Callable beta_t: a time-dependent linear drift of the forward-time SDE.
     :param Callable B_t: time integral of beta_t between 0 and t. If None, it is calculated by numerical integration.
@@ -557,6 +581,11 @@ class FlowMatching(EDMDiffusionSDE):
     .. math::
         s(t) = a(t), \quad \sigma(t) = \frac{b(t)}{a(t)} .
 
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
+
+
     :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
     :param Callable a_prime_t: time derivatime :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
     :param Callable b_t: time-dependent parameter :math:`b(t)` of flow-matching.Default to `lambda t: t`.
@@ -609,7 +638,7 @@ class FlowMatching(EDMDiffusionSDE):
             sigma_t=sigma_t,
             sigma_prime_t=sigma_prime_t,
             alpha=alpha,
-            T=1,
+            T=0.99,
             denoiser=denoiser,
             solver=solver,
             dtype=dtype,
@@ -676,6 +705,10 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
     where :math:`\alpha(t)` is weighting the diffusion term.
 
     This class is the reverse-time SDE of the VP-SDE, serving as the generation process.
+
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
 
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
     :param float beta_min: the minimum noise level.
@@ -787,7 +820,7 @@ class PosteriorDiffusion(Reconstructor):
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
         if denoiser is None:
-            denoiser = deepcopy(sde.denoiser)
+            denoiser = sde.denoiser
         if minus_one_one:
             denoiser = _WrapperDenoiserMinusOneOne(denoiser)
 

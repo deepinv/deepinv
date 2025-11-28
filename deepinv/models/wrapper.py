@@ -4,10 +4,10 @@ from deepinv.models import Denoiser
 
 
 class ScoreModelWrapper(Denoiser):
-    """
+    r"""
     Wraps a score model as a DeepInv Denoiser.
 
-    Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\epsilon \sim \mathcal{N}(0, I)`,
+    Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\varepsilon \sim \mathcal{N}(0, I)`,
     depending on the `prediction_type`, the input `score_model` is trained to predict, either:
         * the noise :math:`\varepsilon` (`prediction_type = noise`)
         * the denoised sample :math:`x_0` (`prediction_type = denoised`)
@@ -75,18 +75,18 @@ class ScoreModelWrapper(Denoiser):
 
         self.to(device)
 
-    def _handle_time_step(self, t: Tensor | float) -> Tensor:
-        t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
+    def _handle_time_step(self, t: Tensor | float, dtype: torch.dtype = torch.float32) -> Tensor:
+        t = torch.as_tensor(t, device=self.device, dtype=dtype)
         return t
 
-    def t_from_sigma(self, sigma: torch.Tensor | float) -> torch.Tensor:
+    def t_from_sigma(self, sigma: torch.Tensor | float, dtype: torch.dtype = torch.float32) -> torch.Tensor:
 
-        sigma = torch.as_tensor(sigma, device=self.device, dtype=self.dtype)
+        sigma = torch.as_tensor(sigma, device=self.device, dtype=dtype)
 
         # 1) If user provided an analytic / predefined inverse, use it.
         if self.sigma_inverse is not None:
             t = self.sigma_inverse(sigma)
-            return t
+            return t.to(dtype)
 
         # 2) If we have a discrete table, use nearest index.
         if isinstance(self.sigma_schedule, torch.Tensor):
@@ -96,22 +96,22 @@ class ScoreModelWrapper(Denoiser):
                 return torch.argmin((sigmas - sigma).abs())
             else:
                 diffs = (sigmas[None, :] - sigma[:, None]).abs()  # [B, T]
-                return torch.argmin(diffs, dim=1)
+                return torch.argmin(diffs, dim=1).to(dtype)
         else:
-            # 3) Fallback: numeric inversion for continuous schedules (binary search, as before).
-            t_min = torch.tensor(0.0, device=self.device)
-            t_max = torch.tensor(self.T, device=self.device)
+            # 3) Fallback: numeric inversion for continuous schedules (binary search).
+            t_min = torch.tensor(0.0, device=self.device, dtype = dtype)
+            t_max = torch.tensor(self.T, device=self.device, dtype = dtype)
             t_low = t_min.expand_as(sigma).clone()
             t_high = t_max.expand_as(sigma).clone()
-
             for _ in range(32):
                 t_mid = 0.5 * (t_low + t_high)
                 sigma_mid = self.sigma_schedule(t_mid)
-                go_right = sigma_mid < sigma  # flip sign if schedule is decreasing
+                go_right = sigma_mid < sigma
                 t_low = torch.where(go_right, t_mid, t_low)
                 t_high = torch.where(go_right, t_high, t_mid)
             t_est = 0.5 * (t_low + t_high)
-            return t_est[0] if t_est.numel() == 1 else t_est
+            return t_est.to(dtype)
+            
 
     @staticmethod
     def stable_division(a, b, epsilon: float = 1e-7):
@@ -123,7 +123,6 @@ class ScoreModelWrapper(Denoiser):
             )
         elif isinstance(b, (float, int)):
             b = max(epsilon, abs(b)) * np.sign(b)
-
         return a / b
 
     def score(
@@ -211,7 +210,7 @@ class ScoreModelWrapper(Denoiser):
         )
 
         sigma = sigma * 2  # since image is in [-1, 1] range in the model
-        timestep = self._nearest_t_from_sigma(sigma.squeeze())
+        timestep = self.t_from_sigma(sigma.squeeze(), dtype = dtype)
         if isinstance(self.scale_schedule, torch.Tensor):
             scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
         else:
@@ -308,16 +307,17 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
         model = pipeline.unet
         scheduler = pipeline.scheduler
-        prediction_type = getattr(self.scheduler.config, "prediction_type", "epsilon")
+        prediction_type = getattr(scheduler.config, "prediction_type", "epsilon")
 
         assert isinstance(
             scheduler, DDPMScheduler
         ), "Currently, only DDPMScheduler is supported."
+        ac = scheduler.alphas_cumprod
         scale_schedule = ac.sqrt()
         sigma_schedule = (1 / ac - 1.0).clamp(min=0).sqrt()
 
         super().__init__(
-            model=model,
+            score_model=model,
             prediction_type=prediction_type,
             clip_output=clip_output,
             scale_schedule=scale_schedule,

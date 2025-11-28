@@ -33,9 +33,9 @@ class MMSE(Denoiser):
     :Examples:
 
         >>> import deepinv as dinv
-        >>> from torchvision import datasets
+        >>> from torchvision import datasets, transforms
         >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        >>> dataset = datasets.MNIST(root='.', train=False, download=True)
+        >>> dataset = datasets.MNIST(root='.', train=False, download=True, transform=transforms.ToTensor())
         >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
         >>> x = next(iter(dataloader))[0].to(device)
         >>> denoiser = dinv.models.MMSE(dataloader=dataloader, device=device, dtype=torch.float32)
@@ -66,9 +66,9 @@ class MMSE(Denoiser):
         verbose: bool = False,
         **kwargs,
     ) -> torch.Tensor:
-        if x.device != self.device:
+        if x.device.type != self.device.type:
             raise ValueError(
-                f"Input tensor device {x.device} does not match model device {self.device}."
+                f"Input tensor device {x.device.type} does not match model device {self.device.type}."
             )
 
         sigma = self._handle_sigma(
