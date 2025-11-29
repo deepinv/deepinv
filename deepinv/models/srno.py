@@ -1,7 +1,8 @@
+# code borrowed from https://github.com/2y7c3/Super-Resolution-Neural-Operator
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
 
 
 def make_coord(shape, ranges=None, flatten=True):
@@ -247,7 +248,7 @@ class SimpleAttention(nn.Module):
 
 class SRNO(nn.Module):
     """
-    Super-Resolution Neural Operator with EDSR encoder
+    TODO Super-Resolution Neural Operator with EDSR encoder
 
     Architecture:
     - Encoder: EDSR-baseline (16 residual blocks, 64 features)
@@ -255,21 +256,31 @@ class SRNO(nn.Module):
     - Decoder: Two 1x1 convolutions
     """
 
-    def __init__(
-        self, encoder_n_resblocks=16, encoder_n_feats=64, width=256, blocks=16
-    ):
+    def __init__(self, encoder_type="rdn", encoder_n_feats=64, width=256, blocks=16):
         super().__init__()
         self.width = width
 
-        # EDSR encoder
-        self.encoder = EDSR(
-            n_resblocks=encoder_n_resblocks,
-            n_feats=encoder_n_feats,
-            res_scale=1,
-            scale=2,
-            no_upsampling=True,
-            rgb_range=1,
-        )
+        if encoder_type == "rdn":
+            encoder = RDN(
+                G0=encoder_n_feats,
+                RDNkSize=3,
+                RDNconfig="B",
+                scale=2,
+                no_upsampling=True,
+            )
+        elif encoder_type == "edsr":
+            encoder = EDSR(
+                n_resblocks=16,
+                n_feats=encoder_n_feats,
+                res_scale=1,
+                scale=2,
+                no_upsampling=True,
+                rgb_range=1,
+            )
+        else:
+            raise NotImplementedError
+
+        self.encoder = encoder
 
         # Initial convolution: (encoder_n_feats + 2)*4 + 2
         self.conv00 = nn.Conv2d((encoder_n_feats + 2) * 4 + 2, self.width, 1)
@@ -409,151 +420,6 @@ class SRNO(nn.Module):
         return self.query_rgb(coord, cell)
 
 
-class SRNO_RDN(nn.Module):
-    """
-    Super-Resolution Neural Operator with RDN encoder
-
-    Architecture:
-    - Encoder: RDN (16 RDB blocks, 64 features)
-    - Processing: Two Galerkin attention layers (256 width, 16 heads)
-    - Decoder: Two 1x1 convolutions
-    """
-
-    def __init__(self, encoder_G0=64, encoder_config="B", width=256, blocks=16):
-        super().__init__()
-        self.width = width
-
-        # RDN encoder
-        self.encoder = RDN(
-            G0=encoder_G0,
-            RDNkSize=3,
-            RDNconfig=encoder_config,
-            scale=2,
-            no_upsampling=True,
-        )
-
-        # Initial convolution: (encoder_G0 + 2)*4 + 2
-        self.conv00 = nn.Conv2d((encoder_G0 + 2) * 4 + 2, self.width, 1)
-
-        # Galerkin attention blocks
-        self.conv0 = SimpleAttention(self.width, blocks)
-        self.conv1 = SimpleAttention(self.width, blocks)
-
-        # Output layers
-        self.fc1 = nn.Conv2d(self.width, 256, 1)
-        self.fc2 = nn.Conv2d(256, 3, 1)
-
-    def gen_feat(self, inp):
-        """Generate features from input using encoder"""
-        self.inp = inp
-        self.feat = self.encoder(inp)
-        return self.feat
-
-    def query_rgb(self, coord, cell):
-        """Same as SRNO.query_rgb"""
-        feat = self.feat
-
-        # Generate low-res position grid
-        pos_lr = make_coord(feat.shape[-2:], flatten=False).to(feat.device)
-        pos_lr = (
-            pos_lr.permute(2, 0, 1)
-            .unsqueeze(0)
-            .expand(feat.shape[0], 2, *feat.shape[-2:])
-        )
-
-        # Calculate offsets for 4-neighbor sampling
-        rx = 2 / feat.shape[-2] / 2
-        ry = 2 / feat.shape[-1] / 2
-        vx_lst = [-1, 1]
-        vy_lst = [-1, 1]
-        eps_shift = 1e-6
-
-        rel_coords = []
-        feat_s = []
-        areas = []
-
-        # Sample from 4 nearest neighbors
-        for vx in vx_lst:
-            for vy in vy_lst:
-                coord_ = coord.clone()
-                coord_[:, :, :, 0] += vx * rx + eps_shift
-                coord_[:, :, :, 1] += vy * ry + eps_shift
-                coord_.clamp_(-1 + 1e-6, 1 - 1e-6)
-
-                # Sample feature
-                feat_ = F.grid_sample(
-                    feat, coord_.flip(-1), mode="nearest", align_corners=False
-                )
-
-                # Calculate relative coordinates
-                old_coord = F.grid_sample(
-                    pos_lr, coord_.flip(-1), mode="nearest", align_corners=False
-                )
-                rel_coord = coord.permute(0, 3, 1, 2) - old_coord
-                rel_coord[:, 0, :, :] *= feat.shape[-2]
-                rel_coord[:, 1, :, :] *= feat.shape[-1]
-
-                # Calculate area for weighted interpolation
-                area = torch.abs(rel_coord[:, 0, :, :] * rel_coord[:, 1, :, :])
-                areas.append(area + 1e-9)
-
-                rel_coords.append(rel_coord)
-                feat_s.append(feat_)
-
-        # Prepare cell information
-        rel_cell = cell.clone()
-        rel_cell[:, 0] *= feat.shape[-2]
-        rel_cell[:, 1] *= feat.shape[-1]
-
-        # Weight features by area (bilinear interpolation weights)
-        tot_area = torch.stack(areas).sum(dim=0)
-        # Swap areas for correct weighting
-        t = areas[0]
-        areas[0] = areas[3]
-        areas[3] = t
-        t = areas[1]
-        areas[1] = areas[2]
-        areas[2] = t
-
-        for index, area in enumerate(areas):
-            feat_s[index] = feat_s[index] * (area / tot_area).unsqueeze(1)
-
-        # Concatenate all features: 4 rel_coords + 4 feat_s + rel_cell
-        grid = torch.cat(
-            [
-                *rel_coords,
-                *feat_s,
-                rel_cell.unsqueeze(-1)
-                .unsqueeze(-1)
-                .repeat(1, 1, coord.shape[1], coord.shape[2]),
-            ],
-            dim=1,
-        )
-
-        # Process through attention and output layers
-        x = self.conv00(grid)
-        x = self.conv0(x, 0)
-        x = self.conv1(x, 1)
-
-        feat = x
-        ret = self.fc2(F.gelu(self.fc1(feat)))
-
-        # Add bilinear upsampled input as residual
-        ret = ret + F.grid_sample(
-            self.inp,
-            coord.flip(-1),
-            mode="bilinear",
-            padding_mode="border",
-            align_corners=False,
-        )
-        return ret
-
-    def forward(self, inp, coord, cell):
-        """Forward pass"""
-        self.gen_feat(inp)
-        return self.query_rgb(coord, cell)
-
-
 def load_model(checkpoint_path, device="cuda", encoder_type="auto"):
     """
     Load SRNO model from checkpoint
@@ -597,20 +463,12 @@ def load_model(checkpoint_path, device="cuda", encoder_type="auto"):
     )
 
     # Create model
-    if encoder_type == "rdn":
-        model = SRNO_RDN(
-            encoder_G0=encoder_out_dim,
-            encoder_config="B",  # Default config
-            width=width,
-            blocks=blocks,
-        )
-    else:
-        model = SRNO(
-            encoder_n_resblocks=16,
-            encoder_n_feats=encoder_out_dim,
-            width=width,
-            blocks=blocks,
-        )
+    model = SRNO(
+        encoder_type=encoder_type,
+        encoder_n_feats=encoder_out_dim,
+        width=width,
+        blocks=blocks,
+    )
 
     # Load weights
     model.load_state_dict(state_dict)
