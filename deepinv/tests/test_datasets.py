@@ -124,10 +124,10 @@ def check_dataset_format(
                     optimizer=None,
                     train_dataloader=dataloader,
                     online_measurements=True,
-                    save_path=None,
+                    loggers=None,
                     compare_no_learning=False,
-                    metrics=None,
-                ).setup_train(train=True)
+                    metrics=[],
+                ).setup_run()
 
                 class DummyMetric(Metric):
                     def __init__(self):
@@ -144,6 +144,7 @@ def check_dataset_format(
                     physics,
                     online_measurements=True,
                     compare_no_learning=False,
+                    loggers=None,
                     metrics=DummyMetric(),
                 )
 

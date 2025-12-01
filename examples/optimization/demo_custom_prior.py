@@ -17,7 +17,8 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim import ADMM
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils import load_dataset
+from deepinv.training.run_logger import LocalLogger
+from deepinv.utils.demo import load_dataset
 
 
 # %%
@@ -166,7 +167,6 @@ model = ADMM(
 
 batch_size = 1
 plot_images = True  # plot results
-plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
 dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
@@ -180,8 +180,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
-    save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_convergence_metrics=plot_convergence_metrics,
+    loggers=LocalLogger(log_dir=RESULTS_DIR / method / operation / "test"),
     verbose=verbose,
 )
 

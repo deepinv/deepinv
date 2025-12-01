@@ -94,7 +94,7 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
         scheduler=scheduler,
         verbose=False,
         show_progress_bar=False,
-        save_path=None,
+        loggers=None,
         device=device,
         optimizer_step_multi_dataset=False,
     )

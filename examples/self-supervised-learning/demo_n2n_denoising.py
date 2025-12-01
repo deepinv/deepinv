@@ -25,6 +25,7 @@ from torchvision import transforms, datasets
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
 from deepinv.utils import get_data_home
+from deepinv.training import LocalLogger
 
 # %%
 # Setup paths for data loading and results.
@@ -171,13 +172,9 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-    metrics=None,  # no supervised metrics
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=True,  # stop using self-supervised eval loss
-    early_stop=2,  # early stop using the self-supervised loss on the test set
-    plot_images=True,
-    save_path=str(CKPT_DIR / operation),
+    val_dataloader=test_dataloader,
+    log_images=True,
+    loggers=LocalLogger(log_dir=str(CKPT_DIR / operation)),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
@@ -191,7 +188,11 @@ model = trainer.train()
 # and we compute the PSNR between the denoised images and the clean ground truth images.
 #
 
-trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
+trainer.test(
+    test_dataloader,
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test"),
+    metrics=dinv.metric.PSNR(),
+)
 
 # %%
 # :References:

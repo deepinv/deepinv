@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
+from deepinv.training.run_logger import LocalLogger
+import uuid
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -40,6 +42,21 @@ LIST_R2R = [
     "Poisson",
     "Gamma",
 ]
+
+
+@pytest.fixture
+def logger(tmp_path_factory, request):
+    base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
+
+    def make_logger(suffix=None):
+        # For some tests two runs are getting launched in less than a second
+        # so we add a random suffix to avoid clashes
+        sid = suffix or uuid.uuid4().hex[:6]
+        run_dir = base / f"run-{sid}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return LocalLogger(log_dir=run_dir, project_name="test_project")
+
+    return make_logger
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -317,7 +334,15 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 @pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(
-    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
+    non_blocking_plots,
+    loss_name,
+    tmp_path,
+    dataset,
+    physics,
+    imsize,
+    device,
+    rng,
+    logger,
 ):
     # choose training losses
     loss = choose_loss(loss_name, rng, imsize=imsize, device=device)
@@ -362,18 +387,17 @@ def test_losses(
     trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
-        eval_dataloader=test_dataloader,
+        val_dataloader=test_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         losses=loss,
         physics=physics,
         optimizer=optimizer,
         device=device,
-        ckp_interval=int(epochs / 2),
-        save_path=save_dir / "dinv_test",
-        plot_images=(loss_name == LOSSES[0]),  # save time
+        ckpt_interval=int(epochs / 2),
+        loggers=logger(),
+        log_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
-        log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model
@@ -387,9 +411,12 @@ def test_losses(
     )
     trainer.compute_eval_losses = True
 
+    # ensure different loggers are used even if the runs are launched within the same second
+    trainer.loggers = logger()
+    # train the network
     trainer.train()
     final_test = trainer.test(
-        test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
+        test_dataloader=test_dataloader, loggers=logger(), metrics=deepinv.metric.PSNR()
     )
 
     assert final_test["PSNR"] > initial_test["PSNR"]
