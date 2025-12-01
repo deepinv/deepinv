@@ -2,8 +2,6 @@ import subprocess
 import sys
 import re
 
-CORE_LIB_PATH = 'deepinv/'
-EXAMPLE_PATH = 'examples/'
 
 def get_changed_files(base_branch, current_branch):
     """Runs git diff to get the names of all changed files."""
@@ -45,7 +43,7 @@ def main():
 
     # 1. Check for changes in the core library code
     # If any core dependency changes, we must run all examples for safety.
-    core_changes = [f for f in changed_files if f.startswith(CORE_LIB_PATH) and f.endswith('.py')]
+    core_changes = [f for f in changed_files if f.startswith('deepinv/') and f.endswith('.py')]
     if core_changes:
         # Run all examples
         print(".*")
@@ -55,7 +53,7 @@ def main():
     example_files = [
         f for f in changed_files
         # Only consider files that are in the example directory and typically start with 'demo_'
-        if f.startswith(EXAMPLE_PATH) and re.search(r'demo_.*\.py$', f)
+        if f.startswith('examples/') and re.search(r'demo_.*\.py$', f)
     ]
 
     if example_files:
