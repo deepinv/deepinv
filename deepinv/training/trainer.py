@@ -1059,7 +1059,8 @@ class Trainer:
 
         .. note::
 
-            Images can be saved to disk at test time by providing a value for the parameter ``save_folder_im`` when calling the method :meth:`deepinv.training.Trainer.test`. Note that in that case, every test sample is saved and not only the first ones.
+            Images can be saved to disk at test time by providing a value for the parameter ``save_folder_im``
+            when calling the method :func:`deepinv.training.Trainer.test`. Note that in that case, every test sample is saved and not only the first ones.
 
         :param int epoch: Current epoch.
         :param deepinv.physics.Physics physics: Current physics operator.
