@@ -83,7 +83,7 @@ jobs:
       - name: Test with pytest and generate coverage report
         if: ${{matrix.version_python == '3.12' }}
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux
