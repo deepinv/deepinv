@@ -56,7 +56,7 @@ jobs:
           echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
           
           # Execute the Python script and capture its output (the regex pattern)
-          PATTERN=$(python scripts/get_changed_examples.py "$BASE_REF" "$HEAD_REF")
+          PATTERN=$(python ../.github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
           
           echo "Calculated Pattern: $PATTERN"
           # Set the output variable so the next step can access the pattern
