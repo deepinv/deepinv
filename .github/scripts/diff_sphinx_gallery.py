@@ -54,14 +54,14 @@ def main():
     # 2. Check for changes in example files (only run the modified ones)
     example_files = [
         f for f in changed_files
-        # Only consider files that are in the example directory and typically start with 'plot_'
-        if f.startswith(EXAMPLE_PATH) and re.search(r'plot_.*\.py$', f)
+        # Only consider files that are in the example directory and typically start with 'demo_'
+        if f.startswith(EXAMPLE_PATH) and re.search(r'demo_.*\.py$', f)
     ]
 
     if example_files:
         # Generate a regex pattern that matches *only* the changed example filenames
 
-        # 1. Extract just the example filename (e.g., 'plot_basic.py')
+        # 1. Extract just the example filename
         # The filename_pattern configuration matches the full path, so we construct
         # a regex to match the path ending with one of the changed filenames.
         example_names = [f.split('/')[-1] for f in example_files]
