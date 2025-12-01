@@ -45,9 +45,33 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           uv sync --extra dataset --extra denoisers --extra doc --extra training
-      - name: Sphinx build
+
+      - name: Calculate Sphinx-Gallery Pattern
+        id: get_pattern
+        # This step uses the GitHub context to get the base branch (target) and head branch (source)
         run: |
-          uv run sphinx-build -W docs/source _build
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          
+          echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+          
+          # Execute the Python script and capture its output (the regex pattern)
+          PATTERN=$(python scripts/get_changed_examples.py "$BASE_REF" "$HEAD_REF")
+          
+          echo "Calculated Pattern: $PATTERN"
+          # Set the output variable so the next step can access the pattern
+          echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
+
+      - name: Build documentation with conditional example execution
+        # Retrieve the pattern from the previous step's output
+        env:
+          SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+
+        run: |
+          echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+          
+          uv run sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
@@ -69,17 +93,20 @@ jobs:
             out_path="$out_dir/$base.ipynb"
             uv run .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
+
       - name: Upload Documentation Artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: _build/
+
       # Log artifact URL 
       - name: Link to generated docs here
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
+
       - name: Deploy to ghpages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
