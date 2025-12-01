@@ -80,10 +80,19 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
+      - name: Cache testmon database
+        uses: actions/cache@v4
+        with:
+          path: .testmondata
+          key: testmon-${{ github.ref }}-${{ hashFiles('**/*.py') }}
+          restore-keys: |
+            testmon-${{ github.ref }}
+            testmon-
+
       - name: Test with pytest and generate coverage report
         if: ${{matrix.version_python == '3.12' }}
         run: |
-          uv run python -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
+          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux
