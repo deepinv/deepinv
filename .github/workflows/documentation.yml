@@ -46,6 +46,11 @@ jobs:
         run: |
           uv sync --extra dataset --extra denoisers --extra doc --extra training
 
+
+      - name: Fetch base branch
+        # ensure that the base branch (e.g., 'main') is available locally for the git diff command.
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
       - name: Calculate Sphinx-Gallery Pattern
         id: get_pattern
         # This step uses the GitHub context to get the base branch (target) and head branch (source)
