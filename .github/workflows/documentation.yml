@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.12
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -46,10 +47,6 @@ jobs:
         run: |
           uv sync --extra dataset --extra denoisers --extra doc --extra training
 
-
-      - name: Fetch base branch
-        # ensure that the base branch (e.g., 'main') is available locally for the git diff command.
-        run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
       - name: Calculate Sphinx-Gallery Pattern
         id: get_pattern
