@@ -34,7 +34,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if device == "cpu":
     raise RuntimeError(
-        "SG_SKIP: The TomographyWithAstra operator only supports CUDA operations, got torch.cuda.is_available() = False"
+        "The TomographyWithAstra operator only supports CUDA operations, got torch.cuda.is_available() = False"
     )
 
 # %%
