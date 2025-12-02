@@ -702,7 +702,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             if not isinstance(p, LinearPhysics):
                 raise ValueError("factory must return LinearPhysics instances.")
 
-    def A_adjoint(self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs) -> torch.Tensor:
+    def A_adjoint(
+        self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
+    ) -> torch.Tensor:
         r"""
         Compute global adjoint operation with automatic reduction.
 
@@ -742,7 +744,11 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         return self._reduce_global(local)
 
     def A_vjp(
-        self, x: torch.Tensor, v: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
+        self,
+        x: torch.Tensor,
+        v: Union[TensorList, list[torch.Tensor]],
+        reduce: bool = True,
+        **kwargs,
     ) -> torch.Tensor:
         r"""
         Compute global vector-Jacobian product with automatic reduction.
@@ -782,7 +788,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         return self._reduce_global(local)
 
-    def A_adjoint_A(self, x: torch.Tensor, reduce: bool = True, **kwargs) -> torch.Tensor:
+    def A_adjoint_A(
+        self, x: torch.Tensor, reduce: bool = True, **kwargs
+    ) -> torch.Tensor:
         r"""
         Compute global :math:`A^T A` operation with automatic reduction.
 
@@ -806,7 +814,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         return self._reduce_global(local)
 
-    def A_A_adjoint(self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs) -> torch.Tensor:
+    def A_A_adjoint(
+        self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
+    ) -> torch.Tensor:
         r"""
         Compute global :math:`A A^T` operation with automatic reduction.
 
@@ -1096,7 +1106,9 @@ class DistributedProcessing:
         if hasattr(processor, "to"):
             self.processor.to(ctx.device)
 
-    def __call__(self, x: torch.Tensor, *args, reduce: bool = True, **kwargs) -> torch.Tensor:
+    def __call__(
+        self, x: torch.Tensor, *args, reduce: bool = True, **kwargs
+    ) -> torch.Tensor:
         r"""
         Apply distributed processing to input signal.
 
@@ -1164,7 +1176,9 @@ class DistributedProcessing:
                     f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks."
                 )
 
-    def _apply_op(self, x: torch.Tensor, *args, reduce: bool = True, **kwargs) -> torch.Tensor:
+    def _apply_op(
+        self, x: torch.Tensor, *args, reduce: bool = True, **kwargs
+    ) -> torch.Tensor:
         r"""
         Apply processor using the distributed strategy (internal method).
 
@@ -1353,7 +1367,7 @@ class DistributedDataFidelity:
                 for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
             ]
             result_local = torch.stack(contribs, dim=0).sum(0)
-        
+
         if not reduce:
             return result_local
 
@@ -1409,7 +1423,7 @@ class DistributedDataFidelity:
             ]
             # Apply A_vjp locally (this is A^T @ grad_d)
             grad_local = physics.A_vjp(x, grad_d_local, reduce=False, **kwargs)
-        
+
         if not reduce:
             return grad_local
 

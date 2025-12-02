@@ -3,6 +3,7 @@ from .distrib_framework import (
     DistributedPhysics,
     DistributedLinearPhysics,
     DistributedProcessing,
+    DistributedDataFidelity,
 )
 from .distribute import distribute
 
@@ -11,5 +12,6 @@ __all__ = [
     "DistributedPhysics",
     "DistributedLinearPhysics",
     "DistributedProcessing",
+    "DistributedDataFidelity",
     "distribute",
 ]

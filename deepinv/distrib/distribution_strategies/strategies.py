@@ -480,9 +480,5 @@ def create_strategy(
         return BasicStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
     elif strategy_name == "smart_tiling":
         return SmartTilingStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
-    elif strategy_name == "smart_tiling_3d":
-        # Alias for smart_tiling with 3D defaults if not specified
-        # But since we calculate n_dimension from shape, it should be fine to just use SmartTilingStrategy
-        return SmartTilingStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")

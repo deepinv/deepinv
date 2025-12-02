@@ -32,6 +32,7 @@ using image tiling for large-scale image processing.
 7. Visualize results and compute metrics
 """
 
+# %%
 import torch
 import torch.nn.functional as F
 from deepinv.models import DRUNet
@@ -43,6 +44,7 @@ from deepinv.loss.metric import PSNR
 from deepinv.distrib import DistributedContext, distribute
 
 
+# %%
 def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     """
     Create a noisy test image.
@@ -84,172 +86,168 @@ def create_noisy_image(device, img_size=1024, noise_sigma=0.1, seed=42):
     return clean_image, noisy_image, noise_sigma
 
 
-def main():
-    """Run distributed denoiser demonstration."""
+"""Run distributed denoiser demonstration."""
+# %%
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+img_size = 512  # Large image for demonstrating tiling
+noise_sigma = 0.1
+patch_size = 256  # Size of each patch
+receptive_field_size = 64  # Overlap for smooth boundaries
+
+# %%
+# ============================================================================
+# DISTRIBUTED CONTEXT
+# ============================================================================
+
+# Initialize distributed context (handles single and multi-process automatically)
+with DistributedContext(seed=42) as ctx:
+
+    if ctx.rank == 0:
+        print("=" * 70)
+        print("Distributed Denoiser Demo")
+        print("=" * 70)
+        print(f"\nRunning on {ctx.world_size} process(es)")
+        print(f"   Device: {ctx.device}")
 
     # ============================================================================
-    # CONFIGURATION
+    # STEP 1: Create test image with noise
     # ============================================================================
 
-    img_size = 512  # Large image for demonstrating tiling
-    noise_sigma = 0.1
-    patch_size = 256  # Size of each patch
-    receptive_field_size = 64  # Overlap for smooth boundaries
+    clean_image, noisy_image, sigma = create_noisy_image(
+        ctx.device, img_size=img_size, noise_sigma=noise_sigma
+    )
+
+    # Compute input PSNR (create metric on all ranks for consistency)
+    psnr_metric = PSNR()
+    input_psnr = psnr_metric(noisy_image, clean_image).item()
+
+    if ctx.rank == 0:
+        print(f"\nCreated test image")
+        print(f"   Image shape: {clean_image.shape}")
+        print(f"   Noise sigma: {sigma}")
+        print(f"   Input PSNR: {input_psnr:.2f} dB")
 
     # ============================================================================
-    # DISTRIBUTED CONTEXT
+    # STEP 2: Load denoiser model
     # ============================================================================
 
-    # Initialize distributed context (handles single and multi-process automatically)
-    with DistributedContext(seed=42) as ctx:
+    if ctx.rank == 0:
+        print(f"\nLoading DRUNet denoiser...")
 
-        if ctx.rank == 0:
-            print("=" * 70)
-            print("Distributed Denoiser Demo")
-            print("=" * 70)
-            print(f"\nRunning on {ctx.world_size} process(es)")
-            print(f"   Device: {ctx.device}")
+    denoiser = DRUNet(pretrained="download").to(ctx.device)
 
-        # ============================================================================
-        # STEP 1: Create test image with noise
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"   Denoiser loaded")
 
-        clean_image, noisy_image, sigma = create_noisy_image(
-            ctx.device, img_size=img_size, noise_sigma=noise_sigma
-        )
+    # ============================================================================
+    # STEP 3: Distribute denoiser with tiling configuration
+    # ============================================================================
 
-        # Compute input PSNR (create metric on all ranks for consistency)
-        psnr_metric = PSNR()
-        input_psnr = psnr_metric(noisy_image, clean_image).item()
+    if ctx.rank == 0:
+        print(f"\nConfiguring distributed denoiser")
+        print(f"   Patch size: {patch_size}x{patch_size}")
+        print(f"   Receptive field radius: {receptive_field_size}")
+        print(f"   Tiling strategy: smart_tiling")
 
-        if ctx.rank == 0:
-            print(f"\nCreated test image")
-            print(f"   Image shape: {clean_image.shape}")
-            print(f"   Noise sigma: {sigma}")
-            print(f"   Input PSNR: {input_psnr:.2f} dB")
+    distributed_denoiser = distribute(
+        denoiser,
+        ctx,
+        patch_size=patch_size,
+        receptive_field_size=receptive_field_size,
+    )
 
-        # ============================================================================
-        # STEP 2: Load denoiser model
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"   Distributed denoiser created")
 
-        if ctx.rank == 0:
-            print(f"\nLoading DRUNet denoiser...")
+    # ============================================================================
+    # STEP 4: Apply distributed denoising
+    # ============================================================================
 
-        denoiser = DRUNet(pretrained="download").to(ctx.device)
+    if ctx.rank == 0:
+        print(f"\nApplying distributed denoising...")
 
-        if ctx.rank == 0:
-            print(f"   Denoiser loaded")
+    with torch.no_grad():
+        denoised_image = distributed_denoiser(noisy_image, sigma=sigma)
 
-        # ============================================================================
-        # STEP 3: Distribute denoiser with tiling configuration
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"   Denoising completed")
+        print(f"   Output shape: {denoised_image.shape}")
 
-        if ctx.rank == 0:
-            print(f"\nConfiguring distributed denoiser")
-            print(f"   Patch size: {patch_size}x{patch_size}")
-            print(f"   Receptive field radius: {receptive_field_size}")
-            print(f"   Tiling strategy: smart_tiling")
-
-        distributed_denoiser = distribute(
-            denoiser,
-            ctx,
-            patch_size=patch_size,
-            receptive_field_size=receptive_field_size,
-        )
-
-        if ctx.rank == 0:
-            print(f"   Distributed denoiser created")
-
-        # ============================================================================
-        # STEP 4: Apply distributed denoising
-        # ============================================================================
-
-        if ctx.rank == 0:
-            print(f"\nApplying distributed denoising...")
-
+    # Compare with non-distributed result (only on rank 0)
+    if ctx.rank == 0:
+        print(f"\nComparing with non-distributed denoising...")
         with torch.no_grad():
-            denoised_image = distributed_denoiser(noisy_image, sigma=sigma)
+            denoised_ref = denoiser(noisy_image, sigma=sigma)
 
-        if ctx.rank == 0:
-            print(f"   Denoising completed")
-            print(f"   Output shape: {denoised_image.shape}")
+        diff = torch.abs(denoised_image - denoised_ref)
+        mean_diff = diff.mean().item()
+        max_diff = diff.max().item()
 
-        # Compare with non-distributed result (only on rank 0)
-        if ctx.rank == 0:
-            print(f"\nComparing with non-distributed denoising...")
-            with torch.no_grad():
-                denoised_ref = denoiser(noisy_image, sigma=sigma)
+        print(f"   Mean absolute difference: {mean_diff:.2e}")
+        print(f"   Max absolute difference:  {max_diff:.2e}")
 
-            diff = torch.abs(denoised_image - denoised_ref)
-            mean_diff = diff.mean().item()
-            max_diff = diff.max().item()
+        # Check that differences are small (due to tiling boundary effects)
+        # The distributed version uses tiling with overlapping patches and blending,
+        # which can produce slightly different results at patch boundaries.
+        # These differences are typically very small (< 0.01 mean, < 0.5 max).
+        tolerance_mean = 0.01
+        tolerance_max = 0.5
+        assert (
+            mean_diff < tolerance_mean
+        ), f"Mean difference too large: {mean_diff:.4f} (tolerance: {tolerance_mean})"
+        assert (
+            max_diff < tolerance_max
+        ), f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
+        print(f"   Results are very close (within tolerance)!")
 
-            print(f"   Mean absolute difference: {mean_diff:.2e}")
-            print(f"   Max absolute difference:  {max_diff:.2e}")
+    # ============================================================================
+    # STEP 5: Compute metrics and visualize results (only on rank 0)
+    # ============================================================================
 
-            # Check that differences are small (due to tiling boundary effects)
-            # The distributed version uses tiling with overlapping patches and blending,
-            # which can produce slightly different results at patch boundaries.
-            # These differences are typically very small (< 0.01 mean, < 0.5 max).
-            tolerance_mean = 0.01
-            tolerance_max = 0.5
-            assert (
-                mean_diff < tolerance_mean
-            ), f"Mean difference too large: {mean_diff:.4f} (tolerance: {tolerance_mean})"
-            assert (
-                max_diff < tolerance_max
-            ), f"Max difference too large: {max_diff:.4f} (tolerance: {tolerance_max})"
-            print(f"   Results are very close (within tolerance)!")
+    if ctx.rank == 0:
+        # Compute output PSNR
+        output_psnr = psnr_metric(denoised_image, clean_image).item()
+        psnr_improvement = output_psnr - input_psnr
 
-        # ============================================================================
-        # STEP 5: Compute metrics and visualize results (only on rank 0)
-        # ============================================================================
+        print(f"\nResults:")
+        print(f"   Input PSNR:  {input_psnr:.2f} dB")
+        print(f"   Output PSNR: {output_psnr:.2f} dB")
+        print(f"   Improvement: {psnr_improvement:.2f} dB")
 
-        if ctx.rank == 0:
-            # Compute output PSNR
-            output_psnr = psnr_metric(denoised_image, clean_image).item()
-            psnr_improvement = output_psnr - input_psnr
+        # Plot results
+        plot(
+            [clean_image, noisy_image, denoised_image],
+            titles=[
+                "Clean Image",
+                f"Noisy (PSNR: {input_psnr:.2f} dB)",
+                f"Denoised (PSNR: {output_psnr:.2f} dB)",
+            ],
+            save_fn="distributed_denoiser_result.png",
+            figsize=(15, 4),
+        )
 
-            print(f"\nResults:")
-            print(f"   Input PSNR:  {input_psnr:.2f} dB")
-            print(f"   Output PSNR: {output_psnr:.2f} dB")
-            print(f"   Improvement: {psnr_improvement:.2f} dB")
+        # Plot zoom on a region to see details
+        # Extract a 256x256 patch from center
+        h, w = clean_image.shape[-2:]
+        y_start, x_start = h // 2 - 128, w // 2 - 128
+        y_end, x_end = y_start + 256, x_start + 256
 
-            # Plot results
-            plot(
-                [clean_image, noisy_image, denoised_image],
-                titles=[
-                    "Clean Image",
-                    f"Noisy (PSNR: {input_psnr:.2f} dB)",
-                    f"Denoised (PSNR: {output_psnr:.2f} dB)",
-                ],
-                save_fn="distributed_denoiser_result.png",
-                figsize=(15, 4),
-            )
+        clean_patch = clean_image[..., y_start:y_end, x_start:x_end]
+        noisy_patch = noisy_image[..., y_start:y_end, x_start:x_end]
+        denoised_patch = denoised_image[..., y_start:y_end, x_start:x_end]
 
-            # Plot zoom on a region to see details
-            # Extract a 256x256 patch from center
-            h, w = clean_image.shape[-2:]
-            y_start, x_start = h // 2 - 128, w // 2 - 128
-            y_end, x_end = y_start + 256, x_start + 256
+        plot(
+            [clean_patch, noisy_patch, denoised_patch],
+            titles=["Clean (zoom)", "Noisy (zoom)", "Denoised (zoom)"],
+            save_fn="distributed_denoiser_zoom.png",
+            figsize=(15, 4),
+        )
 
-            clean_patch = clean_image[..., y_start:y_end, x_start:x_end]
-            noisy_patch = noisy_image[..., y_start:y_end, x_start:x_end]
-            denoised_patch = denoised_image[..., y_start:y_end, x_start:x_end]
-
-            plot(
-                [clean_patch, noisy_patch, denoised_patch],
-                titles=["Clean (zoom)", "Noisy (zoom)", "Denoised (zoom)"],
-                save_fn="distributed_denoiser_zoom.png",
-                figsize=(15, 4),
-            )
-
-            print(f"\nDemo completed successfully!")
-            print(f"   Results saved to:")
-            print(f"   - distributed_denoiser_result.png")
-            print(f"   - distributed_denoiser_zoom.png")
-            print("\n" + "=" * 70)
-
-
-if __name__ == "__main__":
-    main()
+        print(f"\nDemo completed successfully!")
+        print(f"   Results saved to:")
+        print(f"   - distributed_denoiser_result.png")
+        print(f"   - distributed_denoiser_zoom.png")
+        print("\n" + "=" * 70)

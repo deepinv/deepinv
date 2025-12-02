@@ -150,7 +150,7 @@ def distribute_processor(
     :param Union[Prior, Denoiser] processor: DeepInverse prior or denoiser to distribute
     :param DistributedContext ctx: distributed context manager
     :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
-    :param Optional[Union[str, DistributedSignalStrategy]] tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'smart_tiling'`, `'smart_tiling_3d'`, or a custom strategy instance. Default is `'smart_tiling'`.
+    :param Optional[Union[str, DistributedSignalStrategy]] tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
     :param int patch_size: size of patches for tiling strategies. Default is 256.
     :param int receptive_field_size: receptive field size for overlap in tiling strategies. Default is 64.
     :param bool overlap: whether patches should overlap. Default is False.
@@ -317,7 +317,7 @@ def distribute(
     :param kwargs: additional keyword arguments for specific distributed classes
 
     :returns: Distributed version of the input object
-    :rtype: Union[DistributedLinearPhysics, DistributedDataFidelity, DistributedPrior]
+    :rtype: Union[DistributedLinearPhysics, DistributedDataFidelity, DistributedProcessing, DistributedDataFidelity]
 
     |sep|
 

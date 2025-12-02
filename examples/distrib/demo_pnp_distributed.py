@@ -34,6 +34,7 @@ operators and denoisers across multiple processes.
 7. Visualize results and track convergence
 """
 
+# %%
 import torch
 import torch.nn.functional as F
 from deepinv.physics import GaussianNoise, stack
@@ -44,17 +45,12 @@ from deepinv.optim.prior import PnP
 from deepinv.loss.metric import PSNR
 from deepinv.utils.plotting import plot
 from deepinv.models import DRUNet
-from typing import cast
 
 # Import the distributed framework
-from deepinv.distrib import DistributedContext, distribute, DistributedLinearPhysics
+from deepinv.distrib import DistributedContext, distribute
 
 
-# ============================================================================
-# DATA SETUP
-# ============================================================================
-
-
+# %%
 def create_physics_and_measurements(device, img_size=1024, seed=42):
     """
     Create stacked physics operators and measurements using example images.
@@ -118,211 +114,205 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     return stacked_physics, measurements, clean_image
 
 
-def main():
-    """Run distributed PnP reconstruction."""
+"""Run distributed PnP reconstruction."""
+# %%
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+num_iterations = 20
+step_size = 0.5
+denoiser_sigma = 0.05
+img_size = 512
+patch_size = 256
+receptive_field_size = 64
+
+# %%
+# ============================================================================
+# DISTRIBUTED CONTEXT
+# ============================================================================
+
+# Initialize distributed context (handles single and multi-process automatically)
+with DistributedContext(seed=42) as ctx:
+
+    if ctx.rank == 0:
+        print("=" * 70)
+        print("Distributed PnP Reconstruction")
+        print("=" * 70)
+        print(f"\nRunning on {ctx.world_size} process(es)")
+        print(f"   Device: {ctx.device}")
 
     # ============================================================================
-    # CONFIGURATION
+    # STEP 1: Create stacked physics operators and measurements
     # ============================================================================
 
-    num_iterations = 20
-    step_size = 0.5
-    denoiser_sigma = 0.05
-    img_size = 512
-    patch_size = 256
-    receptive_field_size = 64
+    stacked_physics, measurements, clean_image = create_physics_and_measurements(
+        ctx.device, img_size=img_size
+    )
+
+    if ctx.rank == 0:
+        print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
+        print(f"   Image shape: {clean_image.shape}")
+        print(f"   Measurements type: {type(measurements).__name__}")
 
     # ============================================================================
-    # DISTRIBUTED CONTEXT
+    # STEP 2: Distribute physics operators
     # ============================================================================
 
-    # Initialize distributed context (handles single and multi-process automatically)
-    with DistributedContext(seed=42) as ctx:
+    if ctx.rank == 0:
+        print(f"\n🔧 Distributing physics operators...")
 
-        if ctx.rank == 0:
-            print("=" * 70)
-            print("Distributed PnP Reconstruction")
-            print("=" * 70)
-            print(f"\nRunning on {ctx.world_size} process(es)")
-            print(f"   Device: {ctx.device}")
+    distributed_physics = distribute(stacked_physics, ctx)
 
-        # ============================================================================
-        # STEP 1: Create stacked physics operators and measurements
-        # ============================================================================
-
-        stacked_physics, measurements, clean_image = create_physics_and_measurements(
-            ctx.device, img_size=img_size
+    if ctx.rank == 0:
+        print(f"   Distributed physics created")
+        print(
+            f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
         )
 
-        if ctx.rank == 0:
-            print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
-            print(f"   Image shape: {clean_image.shape}")
-            print(f"   Measurements type: {type(measurements).__name__}")
+    # ============================================================================
+    # STEP 3: Create L2 data fidelity
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 2: Distribute physics operators
-        # ============================================================================
+    data_fidelity = L2()
 
-        if ctx.rank == 0:
-            print(f"\n🔧 Distributing physics operators...")
+    if ctx.rank == 0:
+        print(f"\nCreated L2 data fidelity")
 
-        distributed_physics = distribute(stacked_physics, ctx)
+    # ============================================================================
+    # STEP 4: Distribute denoiser with tiling
+    # ============================================================================
 
-        if ctx.rank == 0:
-            print(f"   Distributed physics created")
-            print(
-                f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
-            )
+    if ctx.rank == 0:
+        print(f"\n🔧 Loading and distributing denoiser...")
+        print(f"   Patch size: {patch_size}x{patch_size}")
+        print(f"   Receptive field radius: {receptive_field_size}")
 
-        # ============================================================================
-        # STEP 3: Create L2 data fidelity
-        # ============================================================================
+    denoiser = DRUNet(pretrained="download").to(ctx.device)
 
-        data_fidelity = L2()
+    distributed_denoiser = distribute(
+        denoiser,
+        ctx,
+        patch_size=patch_size,
+        receptive_field_size=receptive_field_size,
+    )
 
-        if ctx.rank == 0:
-            print(f"\nCreated L2 data fidelity")
+    if ctx.rank == 0:
+        print(f"   Distributed denoiser created")
 
-        # ============================================================================
-        # STEP 4: Distribute denoiser with tiling
-        # ============================================================================
+    # ============================================================================
+    # STEP 5: Create PnP prior with distributed denoiser
+    # ============================================================================
 
-        if ctx.rank == 0:
-            print(f"\n🔧 Loading and distributing denoiser...")
-            print(f"   Patch size: {patch_size}x{patch_size}")
-            print(f"   Receptive field radius: {receptive_field_size}")
+    prior = PnP(denoiser=distributed_denoiser)
 
-        denoiser = DRUNet(pretrained="download").to(ctx.device)
+    if ctx.rank == 0:
+        print(f"\nCreated PnP prior with distributed denoiser")
 
-        distributed_denoiser = distribute(
-            denoiser,
-            ctx,
-            patch_size=patch_size,
-            receptive_field_size=receptive_field_size,
-        )
+    # ============================================================================
+    # STEP 6: Run distributed PnP algorithm
+    # ============================================================================
 
-        if ctx.rank == 0:
-            print(f"   Distributed denoiser created")
+    if ctx.rank == 0:
+        print(f"\nRunning PnP reconstruction ({num_iterations} iterations)...")
 
-        # ============================================================================
-        # STEP 5: Create PnP prior with distributed denoiser
-        # ============================================================================
+    # Initialize reconstruction with zeros
+    x = torch.zeros_like(clean_image)
 
-        prior = PnP(denoiser=distributed_denoiser)
+    # Track PSNR (only on rank 0)
+    psnr_metric = PSNR()
+    psnr_history = []
 
-        if ctx.rank == 0:
-            print(f"\nCreated PnP prior with distributed denoiser")
+    # PnP iterations
+    with torch.no_grad():
+        for it in range(num_iterations):
+            # Data fidelity gradient step using the data_fidelity.grad() method
+            grad = data_fidelity.grad(x, measurements, distributed_physics)
 
-        # ============================================================================
-        # STEP 6: Run distributed PnP algorithm
-        # ============================================================================
+            # Gradient descent step
+            x = x - step_size * grad
 
-        if ctx.rank == 0:
-            print(f"\nRunning PnP reconstruction ({num_iterations} iterations)...")
+            # Denoising step (proximal operator of prior)
+            x = prior.prox(x, sigma_denoiser=denoiser_sigma)
 
-        # Initialize reconstruction with zeros
-        x = torch.zeros_like(clean_image)
+            # Compute PSNR on rank 0
+            if ctx.rank == 0:
+                psnr_val = psnr_metric(x, clean_image).item()
+                psnr_history.append(psnr_val)
 
-        # Track PSNR (only on rank 0)
-        psnr_metric = PSNR()
-        psnr_history = []
+                if it == 0 or (it + 1) % 5 == 0:
+                    print(
+                        f"   Iteration {it+1}/{num_iterations}, PSNR: {psnr_val:.2f} dB"
+                    )
 
-        # PnP iterations
+    # ============================================================================
+    # STEP 7: Compare with non-distributed PnP (only on rank 0)
+    # ============================================================================
+
+    if ctx.rank == 0:
+        print(f"\nComparing with non-distributed PnP reconstruction...")
+
+        # Run non-distributed PnP
+        x_ref = torch.zeros_like(clean_image)
         with torch.no_grad():
             for it in range(num_iterations):
-                # Data fidelity gradient step using the data_fidelity.grad() method
-                grad = data_fidelity.grad(x, measurements, distributed_physics)
+                # Data fidelity gradient step using data_fidelity.grad()
+                grad_ref = data_fidelity.grad(x_ref, measurements, stacked_physics)
+                x_ref = x_ref - step_size * grad_ref
 
-                # Gradient descent step
-                x = x - step_size * grad
+                # Denoising step
+                x_ref = denoiser(x_ref, sigma=denoiser_sigma)
 
-                # Denoising step (proximal operator of prior)
-                x = prior.prox(x, sigma_denoiser=denoiser_sigma)
+        # Compare results
+        diff = torch.abs(x - x_ref)
+        mean_diff = diff.mean().item()
+        max_diff = diff.max().item()
 
-                # Compute PSNR on rank 0
-                if ctx.rank == 0:
-                    psnr_val = psnr_metric(x, clean_image).item()
-                    psnr_history.append(psnr_val)
+        psnr_ref = psnr_metric(x_ref, clean_image).item()
+        psnr_dist = psnr_metric(x, clean_image).item()
 
-                    if it == 0 or (it + 1) % 5 == 0:
-                        print(
-                            f"   Iteration {it+1}/{num_iterations}, PSNR: {psnr_val:.2f} dB"
-                        )
+        print(f"   Non-distributed final PSNR: {psnr_ref:.2f} dB")
+        print(f"   Distributed final PSNR:     {psnr_dist:.2f} dB")
+        print(f"   PSNR difference:             {abs(psnr_dist - psnr_ref):.2f} dB")
+        print(f"   Mean absolute difference:    {mean_diff:.2e}")
+        print(f"   Max absolute difference:     {max_diff:.2e}")
 
-        # ============================================================================
-        # STEP 7: Compare with non-distributed PnP (only on rank 0)
-        # ============================================================================
+        # Check that results are close
+        assert (
+            abs(psnr_dist - psnr_ref) < 1.0
+        ), f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
+        print(f"   Results match well!")
 
-        if ctx.rank == 0:
-            print(f"\nComparing with non-distributed PnP reconstruction...")
+    # ============================================================================
+    # STEP 8: Visualize results (only on rank 0)
+    # ============================================================================
 
-            # Run non-distributed PnP
-            x_ref = torch.zeros_like(clean_image)
-            with torch.no_grad():
-                for it in range(num_iterations):
-                    # Data fidelity gradient step using data_fidelity.grad()
-                    grad_ref = data_fidelity.grad(x_ref, measurements, stacked_physics)
-                    x_ref = x_ref - step_size * grad_ref
+    if ctx.rank == 0:
+        print(f"\nReconstruction completed!")
+        print(f"   Final PSNR: {psnr_history[-1]:.2f} dB")
 
-                    # Denoising step
-                    x_ref = denoiser(x_ref, sigma=denoiser_sigma)
+        # Plot results
+        plot(
+            [clean_image, measurements[0], x],
+            titles=["Ground Truth", "Measurement (first)", "Reconstruction"],
+            save_fn="distributed_pnp_result.png",
+            figsize=(12, 4),
+        )
 
-            # Compare results
-            diff = torch.abs(x - x_ref)
-            mean_diff = diff.mean().item()
-            max_diff = diff.max().item()
+        # Plot convergence curve
+        import matplotlib.pyplot as plt
 
-            psnr_ref = psnr_metric(x_ref, clean_image).item()
-            psnr_dist = psnr_metric(x, clean_image).item()
+        plt.figure(figsize=(8, 5))
+        plt.plot(range(1, num_iterations + 1), psnr_history, marker="o", linewidth=2)
+        plt.xlabel("Iteration", fontsize=12)
+        plt.ylabel("PSNR (dB)", fontsize=12)
+        plt.title("PnP Reconstruction Convergence", fontsize=14)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig("distributed_pnp_convergence.png", dpi=150)
+        plt.close()
 
-            print(f"   Non-distributed final PSNR: {psnr_ref:.2f} dB")
-            print(f"   Distributed final PSNR:     {psnr_dist:.2f} dB")
-            print(f"   PSNR difference:             {abs(psnr_dist - psnr_ref):.2f} dB")
-            print(f"   Mean absolute difference:    {mean_diff:.2e}")
-            print(f"   Max absolute difference:     {max_diff:.2e}")
-
-            # Check that results are close
-            assert (
-                abs(psnr_dist - psnr_ref) < 1.0
-            ), f"PSNR difference too large: {abs(psnr_dist - psnr_ref):.2f} dB"
-            print(f"   Results match well!")
-
-        # ============================================================================
-        # STEP 8: Visualize results (only on rank 0)
-        # ============================================================================
-
-        if ctx.rank == 0:
-            print(f"\nReconstruction completed!")
-            print(f"   Final PSNR: {psnr_history[-1]:.2f} dB")
-
-            # Plot results
-            plot(
-                [clean_image, measurements[0], x],
-                titles=["Ground Truth", "Measurement (first)", "Reconstruction"],
-                save_fn="distributed_pnp_result.png",
-                figsize=(12, 4),
-            )
-
-            # Plot convergence curve
-            import matplotlib.pyplot as plt
-
-            plt.figure(figsize=(8, 5))
-            plt.plot(
-                range(1, num_iterations + 1), psnr_history, marker="o", linewidth=2
-            )
-            plt.xlabel("Iteration", fontsize=12)
-            plt.ylabel("PSNR (dB)", fontsize=12)
-            plt.title("PnP Reconstruction Convergence", fontsize=14)
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            plt.savefig("distributed_pnp_convergence.png", dpi=150)
-            plt.close()
-
-            print(f"\nResults saved:")
-            print(f"   - distributed_pnp_result.png")
-            print(f"   - distributed_pnp_convergence.png")
-            print("\n" + "=" * 70)
-
-
-if __name__ == "__main__":
-    main()
+        print(f"\nResults saved:")
+        print(f"   - distributed_pnp_result.png")
+        print(f"   - distributed_pnp_convergence.png")
+        print("\n" + "=" * 70)

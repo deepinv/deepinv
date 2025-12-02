@@ -33,19 +33,19 @@ for parallel computation of forward and adjoint operations.
 6. Visualize results
 """
 
+# %%
 import torch
 import torch.nn.functional as F
 from deepinv.physics import Blur, stack
 from deepinv.physics.blur import gaussian_blur
 from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
-from deepinv.loss.metric import PSNR
-from typing import cast
 
 # Import distributed framework
-from deepinv.distrib import DistributedContext, distribute, DistributedLinearPhysics
+from deepinv.distrib import DistributedContext, distribute
 
 
+# %%
 def create_stacked_physics(device, img_size=1024):
     """
     Create stacked physics operators with different Gaussian blur kernels.
@@ -99,191 +99,186 @@ def create_stacked_physics(device, img_size=1024):
     return stacked_physics, clean_image
 
 
-def main():
-    """Run distributed physics demonstration."""
+"""Run distributed physics demonstration."""
+# %%
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+img_size = 512
+
+
+# %%
+# ============================================================================
+# DISTRIBUTED CONTEXT
+# ============================================================================
+
+# Initialize distributed context (handles single and multi-process automatically)
+with DistributedContext(seed=42) as ctx:
+
+    if ctx.rank == 0:
+        print("=" * 70)
+        print("Distributed Physics Operators Demo")
+        print("=" * 70)
+        print(f"\nRunning on {ctx.world_size} process(es)")
+        print(f"   Device: {ctx.device}")
 
     # ============================================================================
-    # CONFIGURATION
+    # STEP 1: Create stacked physics operators
     # ============================================================================
 
-    img_size = 512
+    stacked_physics, clean_image = create_stacked_physics(ctx.device, img_size=img_size)
 
-    # ============================================================================
-    # DISTRIBUTED CONTEXT
-    # ============================================================================
-
-    # Initialize distributed context (handles single and multi-process automatically)
-    with DistributedContext(seed=42) as ctx:
-
-        if ctx.rank == 0:
-            print("=" * 70)
-            print("Distributed Physics Operators Demo")
-            print("=" * 70)
-            print(f"\nRunning on {ctx.world_size} process(es)")
-            print(f"   Device: {ctx.device}")
-
-        # ============================================================================
-        # STEP 1: Create stacked physics operators
-        # ============================================================================
-
-        stacked_physics, clean_image = create_stacked_physics(
-            ctx.device, img_size=img_size
+    if ctx.rank == 0:
+        print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
+        print(f"   Image shape: {clean_image.shape}")
+        print(
+            f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}"
         )
 
-        if ctx.rank == 0:
-            print(f"\nCreated stacked physics with {len(stacked_physics)} operators")
-            print(f"   Image shape: {clean_image.shape}")
-            print(
-                f"   Operator types: {[type(p).__name__ for p in stacked_physics.physics_list]}"
-            )
+    # ============================================================================
+    # STEP 2: Distribute physics across processes
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 2: Distribute physics across processes
-        # ============================================================================
+    distributed_physics = distribute(stacked_physics, ctx)
 
-        distributed_physics = distribute(stacked_physics, ctx)
+    if ctx.rank == 0:
+        print(f"\n🔧 Distributed physics created")
+        print(
+            f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
+        )
 
-        if ctx.rank == 0:
-            print(f"\n🔧 Distributed physics created")
-            print(
-                f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
-            )
+    # ============================================================================
+    # STEP 3: Test forward operation (A)
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 3: Test forward operation (A)
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"\n🔄 Testing forward operation (A)...")
 
-        if ctx.rank == 0:
-            print(f"\n🔄 Testing forward operation (A)...")
+    # Apply distributed forward operation
+    measurements = distributed_physics(clean_image)
 
-        # Apply distributed forward operation
-        measurements = distributed_physics(clean_image)
+    # Compare with non-distributed result (only on rank 0)
+    measurements_ref = None
+    if ctx.rank == 0:
+        print(f"   Output type: {type(measurements).__name__}")
+        print(f"   Number of measurements: {len(measurements)}")
+        for i, m in enumerate(measurements):
+            print(f"   Measurement {i} shape: {m.shape}")
 
-        # Compare with non-distributed result (only on rank 0)
-        measurements_ref = None
-        if ctx.rank == 0:
-            print(f"   Output type: {type(measurements).__name__}")
-            print(f"   Number of measurements: {len(measurements)}")
-            for i, m in enumerate(measurements):
-                print(f"   Measurement {i} shape: {m.shape}")
+        print(f"\n🔍 Comparing with non-distributed forward operation...")
+        measurements_ref = stacked_physics(clean_image)
 
-            print(f"\n🔍 Comparing with non-distributed forward operation...")
-            measurements_ref = stacked_physics(clean_image)
+        max_diff = 0.0
+        mean_diff = 0.0
+        for i in range(len(measurements)):
+            diff = torch.abs(measurements[i] - measurements_ref[i])
+            max_diff = max(max_diff, diff.max().item())
+            mean_diff += diff.mean().item()
+        mean_diff /= len(measurements)
 
-            max_diff = 0.0
-            mean_diff = 0.0
-            for i in range(len(measurements)):
-                diff = torch.abs(measurements[i] - measurements_ref[i])
-                max_diff = max(max_diff, diff.max().item())
-                mean_diff += diff.mean().item()
-            mean_diff /= len(measurements)
+        print(f"   Mean absolute difference: {mean_diff:.2e}")
+        print(f"   Max absolute difference:  {max_diff:.2e}")
 
-            print(f"   Mean absolute difference: {mean_diff:.2e}")
-            print(f"   Max absolute difference:  {max_diff:.2e}")
+        # Assert exact equality (should be zero for deterministic operations)
+        assert (
+            max_diff < 1e-6
+        ), f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
+        print(f"   Results match exactly!")
 
-            # Assert exact equality (should be zero for deterministic operations)
-            assert (
-                max_diff < 1e-6
-            ), f"Distributed forward operation differs from non-distributed: max diff = {max_diff}"
-            print(f"   Results match exactly!")
+    # ============================================================================
+    # STEP 4: Test adjoint operation (A^T)
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 4: Test adjoint operation (A^T)
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"\nTesting adjoint operation (A^T)...")
 
-        if ctx.rank == 0:
-            print(f"\nTesting adjoint operation (A^T)...")
+    # Apply adjoint operation
+    adjoint_result = distributed_physics.A_adjoint(measurements)
 
-        # Apply adjoint operation
-        adjoint_result = distributed_physics.A_adjoint(measurements)
+    if ctx.rank == 0:
+        print(f"   Output shape: {adjoint_result.shape}")
+        print(f"   Output norm: {torch.norm(adjoint_result).item():.4f}")
 
-        if ctx.rank == 0:
-            print(f"   Output shape: {adjoint_result.shape}")
-            print(f"   Output norm: {torch.norm(adjoint_result).item():.4f}")
+        # Compare with non-distributed result
+        print(f"\nComparing with non-distributed adjoint operation...")
+        assert measurements_ref is not None
+        adjoint_ref = stacked_physics.A_adjoint(measurements_ref)
+        diff = torch.abs(adjoint_result - adjoint_ref)
+        print(f"   Mean absolute difference: {diff.mean().item():.2e}")
+        print(f"   Max absolute difference:  {diff.max().item():.2e}")
 
-            # Compare with non-distributed result
-            print(f"\nComparing with non-distributed adjoint operation...")
-            assert measurements_ref is not None
-            adjoint_ref = stacked_physics.A_adjoint(measurements_ref)
-            diff = torch.abs(adjoint_result - adjoint_ref)
-            print(f"   Mean absolute difference: {diff.mean().item():.2e}")
-            print(f"   Max absolute difference:  {diff.max().item():.2e}")
+        # Assert exact equality
+        assert (
+            diff.max().item() < 1e-6
+        ), f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
+        print(f"   Results match exactly!")
 
-            # Assert exact equality
-            assert (
-                diff.max().item() < 1e-6
-            ), f"Distributed adjoint differs from non-distributed: max diff = {diff.max().item()}"
-            print(f"   Results match exactly!")
+    # ============================================================================
+    # STEP 5: Test composition (A^T A)
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 5: Test composition (A^T A)
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"\nTesting composition (A^T A)...")
 
-        if ctx.rank == 0:
-            print(f"\nTesting composition (A^T A)...")
+    # Apply composition
+    ata_result = distributed_physics.A_adjoint_A(clean_image)
 
-        # Apply composition
-        ata_result = distributed_physics.A_adjoint_A(clean_image)
+    if ctx.rank == 0:
+        print(f"   Output shape: {ata_result.shape}")
+        print(f"   Output norm: {torch.norm(ata_result).item():.4f}")
 
-        if ctx.rank == 0:
-            print(f"   Output shape: {ata_result.shape}")
-            print(f"   Output norm: {torch.norm(ata_result).item():.4f}")
+        # Compare with non-distributed result
+        print(f"\nComparing with non-distributed A^T A operation...")
+        ata_ref = stacked_physics.A_adjoint_A(clean_image)
+        diff = torch.abs(ata_result - ata_ref)
+        print(f"   Mean absolute difference: {diff.mean().item():.2e}")
+        print(f"   Max absolute difference:  {diff.max().item():.2e}")
 
-            # Compare with non-distributed result
-            print(f"\nComparing with non-distributed A^T A operation...")
-            ata_ref = stacked_physics.A_adjoint_A(clean_image)
-            diff = torch.abs(ata_result - ata_ref)
-            print(f"   Mean absolute difference: {diff.mean().item():.2e}")
-            print(f"   Max absolute difference:  {diff.max().item():.2e}")
+        # Assert exact equality
+        assert (
+            diff.max().item() < 1e-6
+        ), f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
+        print(f"   Results match exactly!")
 
-            # Assert exact equality
-            assert (
-                diff.max().item() < 1e-6
-            ), f"Distributed A^T A differs from non-distributed: max diff = {diff.max().item()}"
-            print(f"   Results match exactly!")
+    # ============================================================================
+    # STEP 6: Visualize results (only on rank 0)
+    # ============================================================================
 
-        # ============================================================================
-        # STEP 6: Visualize results (only on rank 0)
-        # ============================================================================
+    if ctx.rank == 0:
+        print(f"\nVisualizing results...")
 
-        if ctx.rank == 0:
-            print(f"\nVisualizing results...")
+        # Plot original image and measurements
+        images_to_plot = [clean_image] + [m for m in measurements]
+        titles = ["Original Image"] + [
+            f"Measurement {i+1}" for i in range(len(measurements))
+        ]
 
-            # Plot original image and measurements
-            images_to_plot = [clean_image] + [m for m in measurements]
-            titles = ["Original Image"] + [
-                f"Measurement {i+1}" for i in range(len(measurements))
-            ]
+        plot(
+            images_to_plot,
+            titles=titles,
+            save_fn="distributed_physics_forward.png",
+            figsize=(15, 4),
+        )
 
-            plot(
-                images_to_plot,
-                titles=titles,
-                save_fn="distributed_physics_forward.png",
-                figsize=(15, 4),
-            )
+        # Plot adjoint and A^T A results
+        # Normalize for visualization
+        adjoint_vis = (adjoint_result - adjoint_result.min()) / (
+            adjoint_result.max() - adjoint_result.min() + 1e-8
+        )
+        ata_vis = (ata_result - ata_result.min()) / (
+            ata_result.max() - ata_result.min() + 1e-8
+        )
 
-            # Plot adjoint and A^T A results
-            # Normalize for visualization
-            adjoint_vis = (adjoint_result - adjoint_result.min()) / (
-                adjoint_result.max() - adjoint_result.min() + 1e-8
-            )
-            ata_vis = (ata_result - ata_result.min()) / (
-                ata_result.max() - ata_result.min() + 1e-8
-            )
+        plot(
+            [clean_image, adjoint_vis, ata_vis],
+            titles=["Original", r"$A^T(y)$", r"$A^T A(x)$"],
+            save_fn="distributed_physics_adjoint.png",
+            figsize=(12, 4),
+        )
 
-            plot(
-                [clean_image, adjoint_vis, ata_vis],
-                titles=["Original", r"$A^T(y)$", r"$A^T A(x)$"],
-                save_fn="distributed_physics_adjoint.png",
-                figsize=(12, 4),
-            )
-
-            print(f"\n✅ Demo completed successfully!")
-            print(f"   Results saved to:")
-            print(f"   - distributed_physics_forward.png")
-            print(f"   - distributed_physics_adjoint.png")
-            print("\n" + "=" * 70)
-
-
-if __name__ == "__main__":
-    main()
+        print(f"\n✅ Demo completed successfully!")
+        print(f"   Results saved to:")
+        print(f"   - distributed_physics_forward.png")
+        print(f"   - distributed_physics_adjoint.png")
+        print("\n" + "=" * 70)

@@ -823,7 +823,7 @@ def _test_distributed_processor_3d_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="prior",
-            tiling_strategy="smart_tiling_3d",
+            tiling_strategy="smart_tiling",
             patch_size=args.get("patch_size", 8),
             receptive_field_size=args.get("receptive_field_size", 2),
             max_batch_size=args.get("max_batch_size", 1),  # Use sequential for 3D
@@ -1520,7 +1520,7 @@ def test_smart_tiling_3d():
             processor,
             ctx,
             type_object="prior",
-            tiling_strategy="smart_tiling_3d",
+            tiling_strategy="smart_tiling",
             patch_size=8,
             receptive_field_size=2,
         )
@@ -1940,17 +1940,17 @@ def test_reduce_false_A_single_process(gather_strategy):
         )
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
-        
+
         # Test reduce=True (default behavior)
         y_reduced = distributed_physics.A(x, reduce=True)
         assert isinstance(y_reduced, TensorList)
         assert len(y_reduced) == 3
-        
+
         # Test reduce=False (should return local list)
         y_local = distributed_physics.A(x, reduce=False)
         assert isinstance(y_local, list)
         assert len(y_local) == 3  # In single process, all operators are local
-        
+
         # In single-process mode, both should give same results
         for i in range(3):
             assert torch.allclose(y_reduced[i], y_local[i], atol=1e-5)
@@ -1965,12 +1965,12 @@ def test_reduce_false_forward_single_process(gather_strategy):
         )
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
-        
+
         # Test reduce=True
         y_reduced = distributed_physics.forward(x, reduce=True)
         assert isinstance(y_reduced, TensorList)
         assert len(y_reduced) == 3
-        
+
         # Test reduce=False
         y_local = distributed_physics.forward(x, reduce=False)
         assert isinstance(y_local, list)
@@ -1987,15 +1987,15 @@ def test_reduce_false_A_adjoint_single_process(gather_strategy):
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
-        
+
         # Test reduce=True
         x_adj_reduced = distributed_physics.A_adjoint(y, reduce=True)
         assert isinstance(x_adj_reduced, torch.Tensor)
-        
+
         # Test reduce=False (should return local contribution)
         x_adj_local = distributed_physics.A_adjoint(y, reduce=False)
         assert isinstance(x_adj_local, torch.Tensor)
-        
+
         # In single-process mode, local contribution equals global result
         assert torch.allclose(x_adj_reduced, x_adj_local, atol=1e-5)
 
@@ -2010,15 +2010,15 @@ def test_reduce_false_A_vjp_single_process(gather_strategy):
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         v = distributed_physics.A(x)  # Cotangent vectors
-        
+
         # Test reduce=True
         vjp_reduced = distributed_physics.A_vjp(x, v, reduce=True)
         assert isinstance(vjp_reduced, torch.Tensor)
-        
+
         # Test reduce=False
         vjp_local = distributed_physics.A_vjp(x, v, reduce=False)
         assert isinstance(vjp_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(vjp_reduced, vjp_local, atol=1e-5)
 
@@ -2032,15 +2032,15 @@ def test_reduce_false_A_adjoint_A_single_process(gather_strategy):
         )
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
-        
+
         # Test reduce=True
         result_reduced = distributed_physics.A_adjoint_A(x, reduce=True)
         assert isinstance(result_reduced, torch.Tensor)
-        
+
         # Test reduce=False
         result_local = distributed_physics.A_adjoint_A(x, reduce=False)
         assert isinstance(result_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(result_reduced, result_local, atol=1e-5)
 
@@ -2055,15 +2055,15 @@ def test_reduce_false_A_A_adjoint_single_process(gather_strategy):
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
-        
+
         # Test reduce=True
         result_reduced = distributed_physics.A_A_adjoint(y, reduce=True)
         assert isinstance(result_reduced, torch.Tensor)
-        
+
         # Test reduce=False
         result_local = distributed_physics.A_A_adjoint(y, reduce=False)
         assert isinstance(result_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(result_reduced, result_local, atol=1e-5)
 
@@ -2077,21 +2077,21 @@ def test_reduce_false_compute_sqnorm_single_process(gather_strategy):
         )
 
         x0 = torch.randn(1, 1, 16, 16, device=ctx.device)
-        
+
         # Test with local_only=True and reduce=True
         norm_reduced = distributed_physics.compute_sqnorm(
             x0, max_iter=10, verbose=False, local_only=True, reduce=True
         )
         assert isinstance(norm_reduced, torch.Tensor)
         assert norm_reduced.item() > 0
-        
+
         # Test with local_only=True and reduce=False
         norm_local = distributed_physics.compute_sqnorm(
             x0, max_iter=10, verbose=False, local_only=True, reduce=False
         )
         assert isinstance(norm_local, torch.Tensor)
         assert norm_local.item() > 0
-        
+
         # In single-process mode, local equals global (both are sum of local norms)
         # Use larger tolerance since power iteration may not converge fully
         assert abs(norm_reduced.item() - norm_local.item()) < 0.5
@@ -2110,15 +2110,15 @@ def test_reduce_false_processor_single_process():
         )
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
-        
+
         # Test reduce=True
         result_reduced = distributed_processor(x, reduce=True)
         assert isinstance(result_reduced, torch.Tensor)
-        
+
         # Test reduce=False
         result_local = distributed_processor(x, reduce=False)
         assert isinstance(result_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(result_reduced, result_local, atol=1e-5)
 
@@ -2126,41 +2126,41 @@ def test_reduce_false_processor_single_process():
 def test_reduce_false_data_fidelity_single_process():
     """Test DistributedDataFidelity with reduce=False in single-process mode."""
     from deepinv.optim import L2
-    
+
     with DistributedContext(device_mode="cpu") as ctx:
         physics_list = create_test_physics_list(ctx.device, num_operators=3)
         distributed_physics = distribute(physics_list, ctx=ctx)
-        
+
         # Create distributed data fidelity
         def fidelity_factory(idx, device, shared):
             return L2()
-        
+
         distributed_fidelity = DistributedDataFidelity(
             ctx, fidelity_factory, num_operators=3
         )
-        
+
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
-        
+
         # Test fn() with reduce=True
         fid_reduced = distributed_fidelity.fn(x, y, distributed_physics, reduce=True)
         assert isinstance(fid_reduced, torch.Tensor)
-        
+
         # Test fn() with reduce=False
         fid_local = distributed_fidelity.fn(x, y, distributed_physics, reduce=False)
         assert isinstance(fid_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(fid_reduced, fid_local, atol=1e-5)
-        
+
         # Test grad() with reduce=True
         grad_reduced = distributed_fidelity.grad(x, y, distributed_physics, reduce=True)
         assert isinstance(grad_reduced, torch.Tensor)
-        
+
         # Test grad() with reduce=False
         grad_local = distributed_fidelity.grad(x, y, distributed_physics, reduce=False)
         assert isinstance(grad_local, torch.Tensor)
-        
+
         # In single-process mode, local equals global
         assert torch.allclose(grad_reduced, grad_local, atol=1e-5)
 
@@ -2174,7 +2174,7 @@ def _test_reduce_false_A_worker(rank, world_size, args):
         physics_spec, needs_num_operators = create_physics_specification(
             args["spec_type"], ctx.device, args["num_operators"]
         )
-        
+
         if needs_num_operators:
             distributed_physics = distribute(
                 physics_spec,
@@ -2186,22 +2186,22 @@ def _test_reduce_false_A_worker(rank, world_size, args):
             distributed_physics = distribute(
                 physics_spec, ctx=ctx, gather_strategy=args["gather_strategy"]
             )
-        
+
         x = args["x"].to(ctx.device)
-        
+
         # Test reduce=True (full result on all ranks)
         y_reduced = distributed_physics.A(x, reduce=True)
         assert len(y_reduced) == args["num_operators"]
-        
+
         # Test reduce=False (only local results)
         y_local = distributed_physics.A(x, reduce=False)
         assert isinstance(y_local, list)
         assert len(y_local) == len(distributed_physics.local_indexes)
-        
+
         # Verify local results are subset of reduced results
         for i, local_idx in enumerate(distributed_physics.local_indexes):
             assert torch.allclose(y_local[i], y_reduced[local_idx], atol=1e-5)
-        
+
         return {
             "num_local": len(y_local),
             "local_indices": distributed_physics.local_indexes,
@@ -2217,9 +2217,9 @@ def test_reduce_false_A_multiprocess(dist_config, gather_strategy):
         "spec_type": "physics_list",
         "gather_strategy": gather_strategy,
     }
-    
+
     results = run_distributed_test(_test_reduce_false_A_worker, dist_config, test_args)
-    
+
     # Verify each rank processed its local operators
     total_local = sum(r["num_local"] for r in results)
     assert total_local == 4, "Total local operators should equal total operators"
@@ -2232,16 +2232,16 @@ def _test_reduce_false_adjoint_worker(rank, world_size, args):
         distributed_physics = distribute(
             physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
         )
-        
+
         x = args["x"].to(ctx.device)
         y = distributed_physics.A(x)
-        
+
         # Test reduce=True (global result)
         x_adj_reduced = distributed_physics.A_adjoint(y, reduce=True)
-        
+
         # Test reduce=False (local contribution only)
         x_adj_local = distributed_physics.A_adjoint(y, reduce=False)
-        
+
         # Return both norms for verification
         return {
             "local_norm": torch.norm(x_adj_local).item(),
@@ -2258,21 +2258,23 @@ def test_reduce_false_A_adjoint_multiprocess(dist_config, gather_strategy):
         "x": x,
         "gather_strategy": gather_strategy,
     }
-    
+
     results = run_distributed_test(
         _test_reduce_false_adjoint_worker, dist_config, test_args
     )
-    
+
     # All ranks should get the same reduced result
     reduced_norms = [r["reduced_norm"] for r in results]
     assert all(
         abs(n - reduced_norms[0]) < 1e-3 for n in reduced_norms
     ), f"All ranks should have same reduced result, got {reduced_norms}"
-    
+
     # Local contributions should be computed (non-negative)
     local_norms = [r["local_norm"] for r in results]
     # At least verify they are computed
-    assert all(n >= 0 for n in local_norms), "All local contributions should be non-negative"
+    assert all(
+        n >= 0 for n in local_norms
+    ), "All local contributions should be non-negative"
 
 
 def _test_reduce_false_A_adjoint_A_worker(rank, world_size, args):
@@ -2282,15 +2284,15 @@ def _test_reduce_false_A_adjoint_A_worker(rank, world_size, args):
         distributed_physics = distribute(
             physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
         )
-        
+
         x = args["x"].to(ctx.device)
-        
+
         # Test reduce=True
         result_reduced = distributed_physics.A_adjoint_A(x, reduce=True)
-        
+
         # Test reduce=False
         result_local = distributed_physics.A_adjoint_A(x, reduce=False)
-        
+
         return {
             "local_norm": torch.norm(result_local).item(),
             "reduced_norm": torch.norm(result_reduced).item(),
@@ -2305,11 +2307,11 @@ def test_reduce_false_A_adjoint_A_multiprocess(dist_config, gather_strategy):
         "x": x,
         "gather_strategy": gather_strategy,
     }
-    
+
     results = run_distributed_test(
         _test_reduce_false_A_adjoint_A_worker, dist_config, test_args
     )
-    
+
     # All ranks should get the same reduced result
     reduced_norms = [r["reduced_norm"] for r in results]
     assert all(
@@ -2324,19 +2326,19 @@ def _test_reduce_false_compute_sqnorm_worker(rank, world_size, args):
         distributed_physics = distribute(
             physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
         )
-        
+
         x0 = args["x0"].to(ctx.device)
-        
+
         # Test with local_only=True and reduce=True
         norm_reduced = distributed_physics.compute_sqnorm(
             x0, max_iter=10, verbose=False, local_only=True, reduce=True
         )
-        
+
         # Test with local_only=True and reduce=False
         norm_local = distributed_physics.compute_sqnorm(
             x0, max_iter=10, verbose=False, local_only=True, reduce=False
         )
-        
+
         return {
             "local_norm": norm_local.item(),
             "reduced_norm": norm_reduced.item(),
@@ -2351,23 +2353,25 @@ def test_reduce_false_compute_sqnorm_multiprocess(dist_config, gather_strategy):
         "x0": x0,
         "gather_strategy": gather_strategy,
     }
-    
+
     results = run_distributed_test(
         _test_reduce_false_compute_sqnorm_worker, dist_config, test_args
     )
-    
+
     # All ranks should get the same reduced result
     reduced_norms = [r["reduced_norm"] for r in results]
     assert all(
         abs(n - reduced_norms[0]) < 1e-3 for n in reduced_norms
     ), "All ranks should have same reduced result"
-    
+
     # Local norms are partial sums that get summed across ranks
     # The total should equal the reduced norm (which is also a sum)
     local_norms = [r["local_norm"] for r in results]
     total_local = sum(local_norms)
     # Allow some tolerance due to numerical precision in power iteration
-    assert abs(total_local - reduced_norms[0]) < 0.5, f"Local norms sum ({total_local}) should be close to reduced norm ({reduced_norms[0]})"
+    assert (
+        abs(total_local - reduced_norms[0]) < 0.5
+    ), f"Local norms sum ({total_local}) should be close to reduced norm ({reduced_norms[0]})"
 
 
 def _test_reduce_false_processor_worker(rank, world_size, args):
@@ -2381,15 +2385,15 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
             patch_size=args["patch_size"],
             receptive_field_size=args["receptive_field_size"],
         )
-        
+
         x = args["x"].to(ctx.device)
-        
+
         # Test reduce=True
         result_reduced = distributed_processor(x, reduce=True)
-        
+
         # Test reduce=False
         result_local = distributed_processor(x, reduce=False)
-        
+
         return {
             "local_norm": torch.norm(result_local).item(),
             "reduced_norm": torch.norm(result_reduced).item(),
@@ -2405,11 +2409,11 @@ def test_reduce_false_processor_multiprocess(dist_config):
         "patch_size": 8,
         "receptive_field_size": 2,
     }
-    
+
     results = run_distributed_test(
         _test_reduce_false_processor_worker, dist_config, test_args
     )
-    
+
     # All ranks should get the same reduced result
     reduced_norms = [r["reduced_norm"] for r in results]
     assert all(
@@ -2420,29 +2424,29 @@ def test_reduce_false_processor_multiprocess(dist_config):
 def _test_reduce_false_data_fidelity_worker(rank, world_size, args):
     """Worker function for multi-process DistributedDataFidelity with reduce=False test."""
     from deepinv.optim import L2
-    
+
     with DistributedContext(device_mode="cpu") as ctx:
         physics_list = create_test_physics_list(ctx.device, args["num_operators"])
         distributed_physics = distribute(physics_list, ctx=ctx)
-        
+
         def fidelity_factory(idx, device, shared):
             return L2()
-        
+
         distributed_fidelity = DistributedDataFidelity(
             ctx, fidelity_factory, num_operators=args["num_operators"]
         )
-        
+
         x = args["x"].to(ctx.device)
         y = distributed_physics.A(x)
-        
+
         # Test fn() with reduce=True and reduce=False
         fid_reduced = distributed_fidelity.fn(x, y, distributed_physics, reduce=True)
         fid_local = distributed_fidelity.fn(x, y, distributed_physics, reduce=False)
-        
+
         # Test grad() with reduce=True and reduce=False
         grad_reduced = distributed_fidelity.grad(x, y, distributed_physics, reduce=True)
         grad_local = distributed_fidelity.grad(x, y, distributed_physics, reduce=False)
-        
+
         return {
             "fid_local": fid_local.item(),
             "fid_reduced": fid_reduced.item(),
@@ -2458,19 +2462,19 @@ def test_reduce_false_data_fidelity_multiprocess(dist_config):
         "num_operators": 4,
         "x": x,
     }
-    
+
     results = run_distributed_test(
         _test_reduce_false_data_fidelity_worker, dist_config, test_args
     )
-    
+
     # All ranks should get the same reduced results
     fid_reduced = [r["fid_reduced"] for r in results]
     grad_reduced_norms = [r["grad_reduced_norm"] for r in results]
-    
+
     assert all(
         abs(f - fid_reduced[0]) < 1e-4 for f in fid_reduced
     ), "All ranks should have same reduced fidelity"
-    
+
     assert all(
         abs(g - grad_reduced_norms[0]) < 1e-4 for g in grad_reduced_norms
     ), "All ranks should have same reduced gradient"
