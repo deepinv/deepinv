@@ -160,6 +160,10 @@ class DistributedContext:
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        # Only destroy process group if:
+        # 1. cleanup=True (caller wants cleanup)
+        # 2. We initialized it (initialized_here=True)
+        # 3. It's still initialized
         if self.cleanup and self.initialized_here and dist.is_initialized():
             try:
                 dist.barrier()
@@ -550,7 +554,9 @@ class DistributedPhysics(Physics):
             self.local_physics.append(p_i)
 
     # -------- Factorized map-reduce logic --------
-    def _map_reduce(self, x: torch.Tensor, local_op: Callable, **kwargs) -> TensorList:
+    def _map_reduce(
+        self, x: torch.Tensor, local_op: Callable, reduce: bool = True, **kwargs
+    ) -> Union[TensorList, list[torch.Tensor]]:
         """
         Efficient map-reduce pattern for distributed operations.
 
@@ -559,10 +565,14 @@ class DistributedPhysics(Physics):
 
         :param torch.Tensor x: input tensor
         :param Callable local_op: operation to apply, e.g., lambda p, x: p.A(x)
-        :return: TensorList of gathered results
+        :param bool reduce: whether to gather results across ranks.
+        :return: TensorList of gathered results or list of local results
         """
         # Step 1: Map - apply operation to local physics operators
         local_results = [local_op(p, x, **kwargs) for p in self.local_physics]
+
+        if not reduce:
+            return local_results
 
         if not self.ctx.is_dist:
             # Single process: just build the list
@@ -587,17 +597,9 @@ class DistributedPhysics(Physics):
         else:
             raise ValueError(f"Unknown gather strategy: {self.gather_strategy}")
 
-    def A_local(self, x: torch.Tensor, **kwargs) -> list[torch.Tensor]:
-        r"""
-        Apply forward operator to local physics operators only (no communication).
-
-        :param torch.Tensor x: input signal.
-        :param dict kwargs: optional parameters for the forward operator.
-        :return: (list[torch.Tensor]) list of measurements from local operators.
-        """
-        return [p.A(x, **kwargs) for p in self.local_physics]
-
-    def A(self, x: torch.Tensor, **kwargs) -> TensorList:
+    def A(
+        self, x: torch.Tensor, reduce: bool = True, **kwargs
+    ) -> Union[TensorList, list[torch.Tensor]]:
         r"""
         Apply forward operator to all distributed physics operators with automatic gathering.
 
@@ -605,12 +607,15 @@ class DistributedPhysics(Physics):
         results from all ranks using the configured gather strategy.
 
         :param torch.Tensor x: input signal.
+        :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
         :param dict kwargs: optional parameters for the forward operator.
-        :return: (TensorList) complete list of measurements from all operators.
+        :return: (TensorList) complete list of measurements from all operators (or local list if reduce=False).
         """
-        return self._map_reduce(x, lambda p, x, **kw: p.A(x, **kw), **kwargs)
+        return self._map_reduce(
+            x, lambda p, x, **kw: p.A(x, **kw), reduce=reduce, **kwargs
+        )
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, reduce: bool = True, **kwargs):
         r"""
         Apply full forward model with sensor and noise models.
 
@@ -618,10 +623,13 @@ class DistributedPhysics(Physics):
         gathering results from all distributed operators.
 
         :param torch.Tensor x: input signal.
+        :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
         :param dict kwargs: optional parameters for the forward model.
         :return: (TensorList) complete list of noisy measurements from all operators.
         """
-        return self._map_reduce(x, lambda p, x, **kw: p.forward(x, **kw), **kwargs)
+        return self._map_reduce(
+            x, lambda p, x, **kw: p.forward(x, **kw), reduce=reduce, **kwargs
+        )
 
 
 class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
@@ -694,113 +702,147 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             if not isinstance(p, LinearPhysics):
                 raise ValueError("factory must return LinearPhysics instances.")
 
-    # ---- local (fast) ----
-    def A_adjoint_local(self, y_local: list[torch.Tensor], **kwargs) -> torch.Tensor:
+    def A_adjoint(self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
-        Compute local adjoint operation without inter-rank communication.
+        Compute global adjoint operation with automatic reduction.
 
-        Applies the adjoint operator to measurements owned by this rank only.
-        The result is a partial contribution that must be summed across all ranks
-        to obtain the complete adjoint operation.
+        Extracts local measurements, computes local adjoint contributions, and reduces
+        across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the
+        stacked operator :math:`A = [A_1; A_2; \ldots; A_n]`.
 
-        :param list[torch.Tensor] y_local: list of local measurements, one per local operator.
-        :param dict kwargs: optional parameters for the adjoint operator.
-        :return: (torch.Tensor) partial adjoint result (sum of local contributions).
+        :param TensorList y: full list of measurements from all operators.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
+        :param dict kwargs: optional parameters for the adjoint operation.
+        :return: (torch.Tensor) complete adjoint result :math:`A^T y` (or local contribution if reduce=False).
         """
+        if isinstance(y, TensorList):
+            y_local = [y[i] for i in self.local_indexes]
+        elif len(y) == self.num_operators:
+            y_local = [y[i] for i in self.local_indexes]
+        elif len(y) == len(self.local_indexes):
+            y_local = y
+        else:
+            raise ValueError(
+                f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
+            )
+
         if len(y_local) == 0:
             # Return zeros with proper shape for empty local set
-            return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        contribs = [
-            p.A_adjoint(y_i, **kwargs)
-            for p, y_i in zip(self.local_physics, y_local, strict=False)
-        ]
-        return torch.stack(contribs, dim=0).sum(0)
+            local = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
+        else:
+            contribs = [
+                p.A_adjoint(y_i, **kwargs)
+                for p, y_i in zip(self.local_physics, y_local, strict=False)
+            ]
+            local = torch.stack(contribs, dim=0).sum(0)
 
-    def A_vjp_local(
-        self, x: torch.Tensor, v_local: list[torch.Tensor], **kwargs
+        if not reduce:
+            return local
+
+        return self._reduce_global(local)
+
+    def A_vjp(
+        self, x: torch.Tensor, v: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
     ) -> torch.Tensor:
         r"""
-        Compute local vector-Jacobian product without inter-rank communication.
+        Compute global vector-Jacobian product with automatic reduction.
 
-        Computes the VJP for local operators only. The result is a partial contribution
-        that must be summed across all ranks for the complete VJP.
+        Extracts local cotangent vectors, computes local VJP contributions, and reduces
+        across all ranks to obtain the complete VJP.
 
         :param torch.Tensor x: input tensor.
-        :param list[torch.Tensor] v_local: list of local cotangent vectors, one per local operator.
+        :param TensorList v: full list of cotangent vectors from all operators.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the VJP operation.
-        :return: (torch.Tensor) partial VJP result (sum of local contributions).
+        :return: (torch.Tensor) complete VJP result (or local contribution if reduce=False).
         """
+        if isinstance(v, TensorList):
+            v_local = [v[i] for i in self.local_indexes]
+        elif len(v) == self.num_operators:
+            v_local = [v[i] for i in self.local_indexes]
+        elif len(v) == len(self.local_indexes):
+            v_local = v
+        else:
+            raise ValueError(
+                f"Input v has length {len(v)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
+            )
+
         if len(v_local) == 0:
             # Return zeros with proper shape for empty local set
-            return torch.zeros_like(x)
-        contribs = [
-            p.A_vjp(x, v_i, **kwargs)
-            for p, v_i in zip(self.local_physics, v_local, strict=False)
-        ]
-        return torch.stack(contribs, dim=0).sum(0)
+            local = torch.zeros_like(x)
+        else:
+            contribs = [
+                p.A_vjp(x, v_i, **kwargs)
+                for p, v_i in zip(self.local_physics, v_local, strict=False)
+            ]
+            local = torch.stack(contribs, dim=0).sum(0)
 
-    def A_adjoint_A_local(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+        if not reduce:
+            return local
+
+        return self._reduce_global(local)
+
+    def A_adjoint_A(self, x: torch.Tensor, reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
-        Compute local :math:`A^T A` operation without inter-rank communication.
+        Compute global :math:`A^T A` operation with automatic reduction.
 
-        Computes the normal operator :math:`A^T A` for local operators only.
-        For stacked operators, this computes :math:`\sum_{i \in \text{local}} A_i^T A_i x`.
-        The result must be summed across ranks to obtain :math:`\sum_i A_i^T A_i x`.
+        Computes the complete normal operator :math:`A^T A x = \sum_i A_i^T A_i x` by
+        combining local contributions from all ranks.
 
         :param torch.Tensor x: input tensor.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) partial :math:`A^T A` result (sum of local contributions).
+        :return: (torch.Tensor) complete :math:`A^T A x` result (or local contribution if reduce=False).
         """
         if len(self.local_physics) == 0:
             # Return zeros with proper shape for empty local set
-            return torch.zeros_like(x)
-        contribs = [p.A_adjoint_A(x, **kwargs) for p in self.local_physics]
-        return torch.stack(contribs, dim=0).sum(0)
+            local = torch.zeros_like(x)
+        else:
+            contribs = [p.A_adjoint_A(x, **kwargs) for p in self.local_physics]
+            local = torch.stack(contribs, dim=0).sum(0)
 
-    def A_A_adjoint_local(self, y_local: list[torch.Tensor], **kwargs) -> torch.Tensor:
+        if not reduce:
+            return local
+
+        return self._reduce_global(local)
+
+    def A_A_adjoint(self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
-        Compute local :math:`A A^T` operation without inter-rank communication.
+        Compute global :math:`A A^T` operation with automatic reduction.
 
-        Computes the Gram operator :math:`A A^T` for local operators only.
-        For stacked operators, this computes :math:`\sum_{i \in \text{local}} A_i A_i^T y_i`.
-        The result must be summed across ranks to obtain the complete Gram operator.
+        Computes the complete Gram operator by combining local contributions from all ranks.
+        For stacked operators, this computes :math:`\sum_i A_i A_i^T y_i`.
 
-        :param list[torch.Tensor] y_local: list of local measurement tensors, one per local operator.
+        :param TensorList y: full list of measurements from all operators.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) partial :math:`A A^T` result (sum of local contributions).
+        :return: (torch.Tensor) complete :math:`A A^T` result (or local contribution if reduce=False).
         """
+        if isinstance(y, TensorList):
+            y_local = [y[i] for i in self.local_indexes]
+        elif len(y) == self.num_operators:
+            y_local = [y[i] for i in self.local_indexes]
+        elif len(y) == len(self.local_indexes):
+            y_local = y
+        else:
+            raise ValueError(
+                f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
+            )
+
         if len(y_local) == 0:
             # Return zeros with proper shape for empty local set
-            return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        contribs = [
-            p.A_A_adjoint(y_i, **kwargs)
-            for p, y_i in zip(self.local_physics, y_local, strict=False)
-        ]
-        return torch.stack(contribs, dim=0).sum(0)
+            local = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
+        else:
+            contribs = [
+                p.A_A_adjoint(y_i, **kwargs)
+                for p, y_i in zip(self.local_physics, y_local, strict=False)
+            ]
+            local = torch.stack(contribs, dim=0).sum(0)
 
-    def A_dagger_local(self, y_local: list[torch.Tensor], **kwargs) -> torch.Tensor:
-        r"""
-        Compute local pseudoinverse operation without inter-rank communication.
+        if not reduce:
+            return local
 
-        Computes the pseudoinverse (least squares solution) for local operators only.
-        For stacked operators, computes :math:`\sum_{i \in \text{local}} A_i^\dagger y_i`.
-        This is an approximation of the true pseudoinverse of the stacked operator.
-
-        Note: This provides an approximation. For the exact pseudoinverse, use the global
-        :meth:`A_dagger` method with ``local_only=False``.
-
-        :param list[torch.Tensor] y_local: list of local measurement tensors, one per local operator.
-        :param dict kwargs: optional parameters for the pseudoinverse operation.
-        :return: (torch.Tensor) partial pseudoinverse result (sum of local contributions).
-        """
-        if len(y_local) == 0:
-            # Return zeros with proper shape for empty local set
-            return torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        contribs = [
-            p.A_dagger(y_i, **kwargs)
-            for p, y_i in zip(self.local_physics, y_local, strict=False)
-        ]
-        return torch.stack(contribs, dim=0).sum(0)
+        return self._reduce_global(local)
 
     # ---- global (compat) ----
     def _reduce_global(self, x_like: torch.Tensor, reduction="sum") -> torch.Tensor:
@@ -829,75 +871,15 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             x_like = x_like / float(self.num_operators)
         return x_like
 
-    def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
-        r"""
-        Compute global adjoint operation with automatic reduction.
-
-        Extracts local measurements, computes local adjoint contributions, and reduces
-        across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the
-        stacked operator :math:`A = [A_1; A_2; \ldots; A_n]`.
-
-        :param TensorList y: full list of measurements from all operators.
-        :param dict kwargs: optional parameters for the adjoint operation.
-        :return: (torch.Tensor) complete adjoint result :math:`A^T y`.
-        """
-        y_local = [y[i] for i in self.local_indexes]
-        local = self.A_adjoint_local(y_local, **kwargs)
-        return self._reduce_global(local)
-
-    def A_vjp(self, x: torch.Tensor, v: TensorList, **kwargs) -> torch.Tensor:
-        r"""
-        Compute global vector-Jacobian product with automatic reduction.
-
-        Extracts local cotangent vectors, computes local VJP contributions, and reduces
-        across all ranks to obtain the complete VJP.
-
-        :param torch.Tensor x: input tensor.
-        :param TensorList v: full list of cotangent vectors from all operators.
-        :param dict kwargs: optional parameters for the VJP operation.
-        :return: (torch.Tensor) complete VJP result.
-        """
-        v_local = [v[i] for i in self.local_indexes]
-        local = self.A_vjp_local(x, v_local, **kwargs)
-        return self._reduce_global(local)
-
-    def A_adjoint_A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        r"""
-        Compute global :math:`A^T A` operation with automatic reduction.
-
-        Computes the complete normal operator :math:`A^T A x = \sum_i A_i^T A_i x` by
-        combining local contributions from all ranks.
-
-        :param torch.Tensor x: input tensor.
-        :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) complete :math:`A^T A x` result.
-        """
-        local = self.A_adjoint_A_local(x, **kwargs)
-        return self._reduce_global(local)
-
-    def A_A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
-        r"""
-        Compute global :math:`A A^T` operation with automatic reduction.
-
-        Computes the complete Gram operator by combining local contributions from all ranks.
-        For stacked operators, this computes :math:`\sum_i A_i A_i^T y_i`.
-
-        :param TensorList y: full list of measurements from all operators.
-        :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) complete :math:`A A^T` result.
-        """
-        y_local = [y[i] for i in self.local_indexes]
-        local = self.A_A_adjoint_local(y_local, **kwargs)
-        return self._reduce_global(local)
-
     def A_dagger(
         self,
-        y: TensorList,
+        y: Union[TensorList, list[torch.Tensor]],
         solver: str = "CG",
         max_iter: int | None = None,
         tol: float | None = None,
         verbose: bool = False,
         local_only: bool = True,
+        reduce: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -922,6 +904,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param bool verbose: print information (only on rank 0).
         :param bool local_only: If ``True`` (default), compute local daggers and sum-reduce (efficient).
             If ``False``, compute exact global pseudoinverse with full communication (expensive).
+        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator.
 
         :return: (torch.Tensor) pseudoinverse solution. If ``local_only=True``, returns approximation.
@@ -929,8 +912,29 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         """
         if local_only:
             # Efficient local computation with single sum reduction
-            y_local = [y[i] for i in self.local_indexes]
-            local = self.A_dagger_local(y_local, **kwargs)
+            if isinstance(y, TensorList):
+                y_local = [y[i] for i in self.local_indexes]
+            elif len(y) == self.num_operators:
+                y_local = [y[i] for i in self.local_indexes]
+            elif len(y) == len(self.local_indexes):
+                y_local = y
+            else:
+                raise ValueError(
+                    f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
+                )
+
+            if len(y_local) == 0:
+                local = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
+            else:
+                contribs = [
+                    p.A_dagger(y_i, **kwargs)
+                    for p, y_i in zip(self.local_physics, y_local, strict=False)
+                ]
+                local = torch.stack(contribs, dim=0).sum(0)
+
+            if not reduce:
+                return local
+
             return self._reduce_global(local, reduction="mean")
         else:
             # Global computation: call parent class A_dagger which uses least squares
@@ -953,6 +957,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         tol: float = 1e-3,
         verbose: bool = True,
         local_only: bool = True,
+        reduce: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -977,6 +982,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param bool verbose: print information (only on rank 0)
         :param bool local_only: If ``True`` (default), compute local norms and max-reduce (efficient).
             If ``False``, compute exact global norm with full communication (expensive).
+        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator
 
         :return: (torch.Tensor) squared spectral norm. If ``local_only=True``, returns upper bound.
@@ -999,6 +1005,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
                     )
                     local_norms.append(norm_p)
                 local_sqnorm = torch.stack(local_norms).sum()
+
+            if not reduce:
+                return local_sqnorm
 
             # Single sum reduction across all ranks
             if self.ctx.is_dist:
@@ -1087,18 +1096,19 @@ class DistributedProcessing:
         if hasattr(processor, "to"):
             self.processor.to(ctx.device)
 
-    def __call__(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def __call__(self, x: torch.Tensor, *args, reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
         Apply distributed processing to input signal.
 
         :param torch.Tensor x: input signal tensor to process, typically of shape ``(B, C, H, W)`` for 2D
             or ``(B, C, D, H, W)`` for 3D signals.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param args: additional positional arguments passed to the processor.
         :param kwargs: additional keyword arguments passed to the processor.
         :return: (torch.Tensor) processed signal with the same shape as input.
         """
         self._init_shape_and_strategy(x.shape)
-        return self._apply_op(x, *args, **kwargs)
+        return self._apply_op(x, *args, reduce=reduce, **kwargs)
 
     # ---- internals --------------------------------------------------------
 
@@ -1154,7 +1164,7 @@ class DistributedProcessing:
                     f"Current: {self.num_patches} patches for {self.ctx.world_size} ranks."
                 )
 
-    def _apply_op(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def _apply_op(self, x: torch.Tensor, *args, reduce: bool = True, **kwargs) -> torch.Tensor:
         r"""
         Apply processor using the distributed strategy (internal method).
 
@@ -1167,6 +1177,7 @@ class DistributedProcessing:
         6. All-reduces the final result across ranks to combine overlapping regions
 
         :param torch.Tensor x: input signal to process.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param args: additional positional arguments passed to the processor.
         :param kwargs: additional keyword arguments passed to the processor.
         :return: (torch.Tensor) processed signal with the same shape as input.
@@ -1176,7 +1187,7 @@ class DistributedProcessing:
             out_local = torch.zeros(
                 self.signal_shape, device=self.ctx.device, dtype=x.dtype
             )
-            if self.ctx.is_dist:
+            if self.ctx.is_dist and reduce:
                 self.ctx.all_reduce_(out_local, op="sum")
             return out_local
 
@@ -1216,7 +1227,7 @@ class DistributedProcessing:
         self._strategy.reduce_patches(out_local, processed_pairs)
 
         # 7. All-reduce to combine results from all ranks
-        if self.ctx.is_dist:
+        if self.ctx.is_dist and reduce:
             self.ctx.all_reduce_(out_local, op="sum")
 
         return out_local
@@ -1301,6 +1312,7 @@ class DistributedDataFidelity:
         x: torch.Tensor,
         y: list[torch.Tensor],
         physics: DistributedLinearPhysics,
+        reduce: bool = True,
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -1329,7 +1341,7 @@ class DistributedDataFidelity:
         y_local = [y[i] for i in physics.local_indexes]
 
         # Compute A(x) locally
-        Ax_local = physics.A_local(x, **kwargs)
+        Ax_local = physics.A(x, reduce=False, **kwargs)
 
         # Compute distance function for each local operator
         if len(Ax_local) == 0:
@@ -1341,6 +1353,9 @@ class DistributedDataFidelity:
                 for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
             ]
             result_local = torch.stack(contribs, dim=0).sum(0)
+        
+        if not reduce:
+            return result_local
 
         # Reduce across ranks
         return self.ctx.all_reduce_(result_local, op=self.reduction_mode)
@@ -1350,6 +1365,7 @@ class DistributedDataFidelity:
         x: torch.Tensor,
         y: list[torch.Tensor],
         physics: DistributedLinearPhysics,
+        reduce: bool = True,
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -1379,7 +1395,7 @@ class DistributedDataFidelity:
         y_local = [y[i] for i in physics.local_indexes]
 
         # Compute A(x) locally
-        Ax_local = physics.A_local(x, **kwargs)
+        Ax_local = physics.A(x, reduce=False, **kwargs)
 
         # Compute gradient of distance for each local operator
         if len(Ax_local) == 0:
@@ -1392,7 +1408,10 @@ class DistributedDataFidelity:
                 for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
             ]
             # Apply A_vjp locally (this is A^T @ grad_d)
-            grad_local = physics.A_vjp_local(x, grad_d_local, **kwargs)
+            grad_local = physics.A_vjp(x, grad_d_local, reduce=False, **kwargs)
+        
+        if not reduce:
+            return grad_local
 
         # Reduce across ranks
         return self.ctx.all_reduce_(grad_local, op=self.reduction_mode)
