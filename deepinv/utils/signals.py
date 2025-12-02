@@ -49,6 +49,10 @@ def normalize_signal(inp, *, mode, vmin=None, vmax=None):
         inp[indices] = inp[indices].clamp(min=0.0, max=1.0)
     elif mode == "clip":
         # Clamp every batched signal between zero and one
+        if vmin is None:
+            vmin = 0.0
+        if vmax is None:
+            vmax = 1.0
         inp = inp.clamp(min=vmin, max=vmax)
     else:  # pragma: no cover
         raise ValueError(
