@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 
 
-def normalize_signal(inp, *, mode):
+def normalize_signal(inp, *, mode, vmin=None, vmax=None):
     r"""
     Normalize a batch of signals between zero and one.
 
@@ -24,6 +24,11 @@ def normalize_signal(inp, *, mode):
 
         # Clone the signal to avoid input mutations
         inp = inp.clone()
+
+        if vmin is not None:
+            minimum_intensity = torch.full_like(minimum_intensity, vmin)
+        if vmax is not None:
+            maximum_intensity = torch.full_like(maximum_intensity, vmax)
 
         # The indices corresponding to the non-constant batched signals
         indices = maximum_intensity != minimum_intensity
@@ -44,7 +49,7 @@ def normalize_signal(inp, *, mode):
         inp[indices] = inp[indices].clamp(min=0.0, max=1.0)
     elif mode == "clip":
         # Clamp every batched signal between zero and one
-        inp = inp.clamp(min=0.0, max=1.0)
+        inp = inp.clamp(min=vmin, max=vmax)
     else:  # pragma: no cover
         raise ValueError(
             f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."

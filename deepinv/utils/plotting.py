@@ -189,7 +189,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 
 
 @torch.no_grad()
-def preprocess_img(im, rescale_mode="min_max"):
+def preprocess_img(im, rescale_mode="min_max", vmin=None, vmax=None):
     r"""
     Prepare a batch of images for plotting.
 
@@ -216,7 +216,7 @@ def preprocess_img(im, rescale_mode="min_max"):
     im = im.type(torch.float32)
 
     # Normalize values between zero and one
-    im = normalize_signal(im, mode=rescale_mode)
+    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     return im
 
@@ -353,9 +353,11 @@ def plot(
         titles = [titles]
 
     imgs = []
+    vmin = imshow_kwargs.get("vmin", None)
+    vmax = imshow_kwargs.get("vmax", None)
     for im in img_list:
         col_imgs = []
-        im = preprocess_img(im, rescale_mode=rescale_mode)
+        im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
         for i in range(min(im.shape[0], max_imgs)):
             col_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
