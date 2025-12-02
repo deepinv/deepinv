@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from torch import nn
+from torch import Tensor, nn
 from deepinv.models import Denoiser
 from .utils import get_weights_url, fix_dim, conv_nd, conv_transpose_nd
 
@@ -96,7 +96,7 @@ class DScCP(Denoiser):
         if device is not None:
             self.to(device)
 
-    def forward(self, x, sigma=0.03):
+    def forward(self, x: Tensor, sigma: float = 0.03) -> Tensor:
         r"""
         Run the denoiser on noisy image.
 
