@@ -48,7 +48,7 @@ jobs:
           uv sync --extra dataset --extra denoisers --extra doc --extra training
 
       - name: Fetch base branch # ensure we have the base branch for diffing
-        run: git fetch upstream ${{ github.event.pull_request.base.ref }}
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
       - name: Determine Sphinx-Gallery Pattern
         id: get_pattern
