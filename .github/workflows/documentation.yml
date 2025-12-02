@@ -71,6 +71,7 @@ jobs:
               # Execute the Python script to find affected examples
               PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
               echo "Conditional PR Pattern: $PATTERN"
+            fi
           else
             # push to main
             # The pattern ".*" matches all files, ensuring a full build is run.
