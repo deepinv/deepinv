@@ -86,17 +86,31 @@ def test_image(device):
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
 @pytest.mark.parametrize("channels", [1, 2, 3])
+@pytest.mark.parametrize("max_pixel", [1, None])
+@pytest.mark.parametrize("min_pixel", [0, None])
 def test_metrics(
-    metric_name, train_loss, norm_inputs, rng, device, channels, test_image
+    metric_name,
+    train_loss,
+    norm_inputs,
+    rng,
+    device,
+    channels,
+    test_image,
+    max_pixel,
+    min_pixel,
 ):
-    m = choose_metric(
-        metric_name,
-        device,
-        complex_abs=channels == 2,
-        train_loss=train_loss,
-        norm_inputs=norm_inputs,
-        reduction="mean",
-    )
+    metric_kwargs = {
+        "complex_abs": channels == 2,
+        "train_loss": train_loss,
+        "norm_inputs": norm_inputs,
+        "reduction": "mean",
+    }
+    if metric_name in ("SSIM", "PSNR"):
+        metric_kwargs |= {"max_pixel": max_pixel, "min_pixel": min_pixel}
+    elif max_pixel is None or min_pixel is None:
+        pytest.skip("max_pixel or min_pixel set to None requires SSIM or PSNR.")
+
+    m = choose_metric(metric_name, device, **metric_kwargs)
 
     x = test_image.clone()
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 from .base import Denoiser
-from typing import Union, Sequence  # noqa: F401
 
 
 def _get_axes(is_complex, dimension):
@@ -430,7 +429,9 @@ class WaveletDenoiser(Denoiser):
             return tuple(WaveletDenoiser._list_to_tuple(item) for item in obj)
         return obj
 
-    def forward(self, x, ths=0.1, **kwargs):
+    def forward(
+        self, x: torch.Tensor, ths: float | torch.Tensor = 0.1, **kwargs
+    ) -> torch.Tensor:
         r"""
         Run the model on a noisy image.
 
@@ -524,7 +525,9 @@ class WaveletDictDenoiser(Denoiser):
         )
         self.max_iter = max_iter
 
-    def forward(self, y, ths=0.1, **kwargs):
+    def forward(
+        self, y: torch.Tensor, ths: float | torch.Tensor = 0.1, **kwargs
+    ) -> torch.Tensor:
         r"""
         Run the model on a noisy image.
 
@@ -548,7 +551,7 @@ class WaveletDictDenoiser(Denoiser):
                 break
         return x
 
-    def psi(self, x, **kwargs):
+    def psi(self, x: torch.Tensor, **kwargs) -> list[torch.Tensor]:
         r"""
         Returns a flattened list containing the wavelet coefficients for each wavelet.
         """
