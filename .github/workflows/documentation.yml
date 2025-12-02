@@ -47,13 +47,15 @@ jobs:
         run: |
           uv sync --extra dataset --extra denoisers --extra doc --extra training
 
+      - name: Fetch base branch # ensure we have the base branch for diffing
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
       - name: Calculate Sphinx-Gallery Pattern
         id: get_pattern
         # This step uses the GitHub context to get the base branch (target) and head branch (source)
         run: |
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+          HEAD_REF="HEAD"
           
           echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
           
