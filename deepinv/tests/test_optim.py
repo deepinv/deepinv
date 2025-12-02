@@ -376,19 +376,18 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         lambda_reg = 0.9
         max_iter = 1000
         optimalgo = getattr(dinv.optim, name_algo)(
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                crit_conv="residual",
-                thres_conv=1e-11,
-                verbose=True,
-                stepsize=stepsize,
-                lambda_reg=lambda_reg,
-                g_param=sigma,
-                early_stop=True,
-                g_first=g_first,
-            )
-            
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            crit_conv="residual",
+            thres_conv=1e-11,
+            verbose=True,
+            stepsize=stepsize,
+            lambda_reg=lambda_reg,
+            g_param=sigma,
+            early_stop=True,
+            g_first=g_first,
+        )
 
         # Run the optimization algorithm
         x = optimalgo(y, physics)
