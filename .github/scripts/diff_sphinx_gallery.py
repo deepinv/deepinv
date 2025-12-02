@@ -151,6 +151,7 @@ def symbols_used_in_file(file_path):
     Visitor().visit(tree)
     return used
 
+
 def modified_symbols_used_in_file(target_file, changed_symbols_dict):
     """
     changed_symbols_dict comes from get_changed_symbols()
@@ -174,6 +175,7 @@ def modified_symbols_used_in_file(target_file, changed_symbols_dict):
         result[file] = found
 
     return result
+
 
 def main():
     # Expects BASE_BRANCH and CURRENT_BRANCH as arguments from the shell script
@@ -222,7 +224,7 @@ def main():
             if used_syms:
                 examples_to_run.add(example_path)
                 # for debug purposes
-                #print(f"Example {example_path} uses modified symbols {used_syms} from {changed_file}")
+                # print(f"Example {example_path} uses modified symbols {used_syms} from {changed_file}")
                 break
 
     if examples_to_run:
