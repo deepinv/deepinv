@@ -17,6 +17,8 @@ def normalize_signal(
 
     :param torch.Tensor inp: the input signal to normalize, it should be of shape `(B, *)`.
     :param str mode: the normalization, either `'min_max'` for min-max normalization or `'clip'` for clipping.
+        If ``clip`` is selected, the values of ``vmin`` and ``vmax`` are used as clipping bounds if provided,
+        otherwise the default bounds of 0.0 and 1.0 are used.
         Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant
         value to the closest value between zero and one (which is equivalent to clipping).
     :return: the normalized batch of signals.

@@ -189,7 +189,9 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 
 
 @torch.no_grad()
-def preprocess_img(im, rescale_mode="min_max", *, vmin: float | None = None, vmax: float | None = None):
+def preprocess_img(
+    im, rescale_mode="min_max", *, vmin: float | None = None, vmax: float | None = None
+):
     r"""
     Prepare a batch of images for plotting.
 
@@ -205,6 +207,8 @@ def preprocess_img(im, rescale_mode="min_max", *, vmin: float | None = None, vma
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
     :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    ;param float vmin: minimum value for clipping when using 'clip' rescaling.
+    ;param float vmax: maximum value for clipping when using 'clip' rescaling.
     :return: the batch of pre-processed images.
     """
     # Apply the modulus function if the image is inferred to be complex
@@ -214,9 +218,19 @@ def preprocess_img(im, rescale_mode="min_max", *, vmin: float | None = None, vma
     # Cast image values to float32 numbers
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
-
-    # Normalize values between zero and one
-    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
+    if rescale_mode == "min_max":
+        if vmin is not None or vmax is not None:
+            warn(
+                "The vmin and vmax arguments are ignored when using 'min_max' rescaling.",
+                UserWarning,
+                stacklevel=2,
+            )
+        if vmin is not None and vmax is not None and vmin >= vmax:
+            raise ValueError(
+                f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
+            )
+        # Normalize values between zero and one
+        im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     return im
 
