@@ -5,7 +5,13 @@ from __future__ import annotations
 import torch
 
 
-def normalize_signal(inp, *, mode, vmin=None, vmax=None):
+def normalize_signal(
+    inp: torch.Tensor,
+    *,
+    mode: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> torch.Tensor:
     r"""
     Normalize a batch of signals between zero and one.
 
