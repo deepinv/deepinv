@@ -41,15 +41,7 @@ def main():
         print("^$")
         return
 
-    # 1. Check for changes in the core library code
-    # If any core dependency changes, we must run all examples for safety.
-    core_changes = [f for f in changed_files if f.startswith('deepinv/') and f.endswith('.py')]
-    if core_changes:
-        # Run all examples
-        print(".*")
-        return
-
-    # 2. Check for changes in example files (only run the modified ones)
+    # Check for changes in example files (only run the modified ones)
     example_files = [
         f for f in changed_files
         # Only consider files that are in the example directory and typically start with 'demo_'
