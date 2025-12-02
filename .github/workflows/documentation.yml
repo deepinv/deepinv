@@ -48,21 +48,29 @@ jobs:
           uv sync --extra dataset --extra denoisers --extra doc --extra training
 
       - name: Fetch base branch # ensure we have the base branch for diffing
-        run: git fetch origin ${{ github.event.pull_request.base.ref }}
+        run: git fetch upstream ${{ github.event.pull_request.base.ref }}
 
       - name: Determine Sphinx-Gallery Pattern
         id: get_pattern
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            # Use the remote reference for the base branch and HEAD for the current commit.
-            BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
-            HEAD_REF="HEAD"
+          
+            # Check PR title and body for the keyword "all-tests" (case-insensitive)
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_BODY="${{ github.event.pull_request.body }}"
             
-            echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
-            # Execute the Python script to find affected examples
-            PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
-            
-            echo "Conditional PR Pattern: $PATTERN"
+            if echo "$PR_TITLE" | grep -iq "all-tests" || echo "$PR_BODY" | grep -iq "all-tests"; then
+              # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
+              PATTERN=".*"
+              echo "Keyword 'all-tests' found. Forcing full documentation build (Pattern: $PATTERN)."
+            else
+              # Use the remote reference for the base branch and HEAD for the current commit.
+              BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+              HEAD_REF="HEAD"
+              echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+              # Execute the Python script to find affected examples
+              PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              echo "Conditional PR Pattern: $PATTERN"
           else
             # push to main
             # The pattern ".*" matches all files, ensuring a full build is run.
