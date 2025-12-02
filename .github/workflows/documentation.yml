@@ -52,12 +52,12 @@ jobs:
 
       - name: Determine Sphinx-Gallery Pattern
         id: get_pattern
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
           
             # Check PR body for the keyword "all-tests" (case-insensitive)
-            PR_BODY="${{ github.event.pull_request.body }}"
-            
             if printf "%s" "$PR_BODY" | grep -iq "all-tests"; then
               # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
               PATTERN=".*"
