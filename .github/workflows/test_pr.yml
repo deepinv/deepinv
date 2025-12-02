@@ -87,7 +87,7 @@ jobs:
           path: .testmondata
           key: testmon-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
-            testmon-main-
+            testmon-cpu-main-
 
       - name: Test with pytest and generate coverage report
         if: ${{matrix.version_python == '3.12' }}
@@ -99,7 +99,7 @@ jobs:
         if: github.ref == 'refs/heads/main' # Only save cache on main branch
         with:
           path: .testmondata
-          key: testmon-main-${{ github.run_id }}
+          key: testmon-cpu-main-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux

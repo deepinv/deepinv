@@ -50,7 +50,7 @@ jobs:
       - name: Fetch base branch # ensure we have the base branch for diffing
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
-      - name: Determine Sphinx-Gallery Pattern
+      - name: Determine which examples to run
         id: get_pattern
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -81,8 +81,7 @@ jobs:
           # Pass the determined pattern to the next step
           echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
 
-      - name: Build documentation with conditional example execution
-        # Retrieve the pattern from the previous step's output
+      - name: Build documentation chosen examples
         env:
           SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
 
