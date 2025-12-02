@@ -60,7 +60,7 @@ jobs:
             
             echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
             # Execute the Python script to find affected examples
-            PATTERN=$(uv run /.github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+            PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
             
             echo "Conditional PR Pattern: $PATTERN"
           else
