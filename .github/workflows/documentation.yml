@@ -50,21 +50,25 @@ jobs:
       - name: Fetch base branch # ensure we have the base branch for diffing
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
-      - name: Calculate Sphinx-Gallery Pattern
+      - name: Determine Sphinx-Gallery Pattern
         id: get_pattern
-        # This step uses the GitHub context to get the base branch (target) and head branch (source)
         run: |
-          BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
-          HEAD_REF="HEAD"
-          
-          echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
-          
-          # Execute the Python script and capture its output (the regex pattern)
-          PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
-          
-          echo "Calculated Pattern: $PATTERN"
-          # Set the output variable so the next step can access the pattern
-          echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # Use the remote reference for the base branch and HEAD for the current commit.
+            BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+            HEAD_REF="HEAD"
+            
+            echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+            # Execute the Python script to find affected examples
+            PATTERN=$(python scripts/get_changed_examples.py "$BASE_REF" "$HEAD_REF")
+            
+            echo "Conditional PR Pattern: $PATTERN"
+          else
+            # push to main
+            # The pattern ".*" matches all files, ensuring a full build is run.
+            PATTERN=".*"
+            echo "Full build triggered by ${{ github.event_name }} event."
+          fi
 
       - name: Build documentation with conditional example execution
         # Retrieve the pattern from the previous step's output
