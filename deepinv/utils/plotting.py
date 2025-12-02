@@ -189,7 +189,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 
 
 @torch.no_grad()
-def preprocess_img(im, rescale_mode="min_max", vmin=None, vmax=None):
+def preprocess_img(im, rescale_mode="min_max", *, vmin: float | None = None, vmax: float | None = None):
     r"""
     Prepare a batch of images for plotting.
 
