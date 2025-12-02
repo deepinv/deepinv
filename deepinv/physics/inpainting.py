@@ -122,7 +122,6 @@ class Inpainting(DecomposablePhysics):
         self.img_size = img_size
         self.register_buffer("mask", mask)
         self.to(device)
-        print('test')
 
     def noise(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
