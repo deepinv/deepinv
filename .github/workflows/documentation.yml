@@ -57,11 +57,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
           
-            # Check PR body for the keyword "all-tests" (case-insensitive)
-            if printf "%s" "$PR_BODY" | grep -iq "all-tests"; then
+            # Check PR body for the keyword "test-examples" (case-insensitive)
+            if printf "%s" "$PR_BODY" | grep -iq "test-examples"; then
               # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
               PATTERN=".*"
-              echo "Keyword 'all-tests' found. Forcing full documentation build (Pattern: $PATTERN)."
+              echo "Keyword 'test-examples' found. Forcing full documentation build (Pattern: $PATTERN)."
             else
               # Use the remote reference for the base branch and HEAD for the current commit.
               BASE_REF="origin/${{ github.event.pull_request.base.ref }}"

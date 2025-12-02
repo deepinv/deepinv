@@ -230,7 +230,7 @@ def main():
     if examples_to_run:
         # Generate a regex pattern that matches *only* the affected example filenames
 
-        # 1. Extract just the example filename (e.g., 'plot_basic.py')
+        # 1. Extract just the example filename
         example_names = [f.name for f in examples_to_run]
 
         # 2. Escape special characters and join with '|' (OR operator)
