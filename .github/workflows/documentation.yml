@@ -55,11 +55,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
           
-            # Check PR title and body for the keyword "all-tests" (case-insensitive)
-            PR_TITLE="${{ github.event.pull_request.title }}"
+            # Check PR body for the keyword "all-tests" (case-insensitive)
             PR_BODY="${{ github.event.pull_request.body }}"
             
-            if echo "$PR_TITLE" | grep -iq "all-tests" || echo "$PR_BODY" | grep -iq "all-tests"; then
+            if printf "%s" "$PR_BODY" | grep -iq "all-tests"; then
               # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
               PATTERN=".*"
               echo "Keyword 'all-tests' found. Forcing full documentation build (Pattern: $PATTERN)."
