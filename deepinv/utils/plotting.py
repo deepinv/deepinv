@@ -229,9 +229,12 @@ def preprocess_img(
         raise ValueError(
             f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
         )
-    # Clip / Normalize signal between 0 and 1
+    # Normalize signal between 0 and 1
     im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
+    if rescale_mode == "clip":
+        # Rescale the clipped images between 0 and 1
+        im = (im - vmin) / (vmax - vmin + 1e-10)
     return im
 
 
@@ -370,13 +373,17 @@ def plot(
     vmin = imshow_kwargs.get("vmin", None)
     vmax = imshow_kwargs.get("vmax", None)
     for im in img_list:
-        col_imgs = []
+        row_imgs = []
         im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
         for i in range(min(im.shape[0], max_imgs)):
-            col_imgs.append(
+            row_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
             )
-        imgs.append(col_imgs)
+        imgs.append(row_imgs)
+
+    imshow_kwargs = dict(imshow_kwargs)
+    imshow_kwargs.setdefault("vmin", 0)
+    imshow_kwargs.setdefault("vmax", 1)
 
     if figsize is None:
         figsize = (len(imgs) * 2, len(imgs[0]) * 2)
