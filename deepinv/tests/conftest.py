@@ -103,27 +103,3 @@ def pytest_collection_modifyitems(config, items):
             # All other tests are grouped under "main" and run one at a time
             # but in parallel of the slow tests.
             item.add_marker(pytest.mark.xdist_group("main"))
-
-
-def _get_free_port():
-    # robust-ish: bind to port 0 and ask the OS
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-@pytest.fixture(params=[1, 2])
-def world_size(request):
-    return request.param
-
-
-@pytest.fixture
-def dist_config(world_size):
-    port = _get_free_port()  # unique per-test invocation
-    return {
-        "world_size": world_size,
-        "backend": "gloo",
-        "master_addr": "127.0.0.1",
-        "master_port": str(port),
-        "device_mode": "cpu",
-    }

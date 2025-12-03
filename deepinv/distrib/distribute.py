@@ -274,8 +274,7 @@ def distribute(
         List[Physics],
         Callable[[int, torch.device, Optional[dict]], Physics],
         Denoiser,
-        Prior,
-        Callable[[int, torch.device, Optional[dict]], Union[Prior, Denoiser]],
+        Callable[[int, torch.device, Optional[dict]], Denoiser],
         DataFidelity,
         List[DataFidelity],
         StackedPhysicsDataFidelity,
@@ -305,9 +304,9 @@ def distribute(
     This function takes a DeepInverse object (Physics, DataFidelity, or Prior)
     and distributes it using the provided DistributedContext.
 
-    :param Union[Physics, DataFidelity, Prior] object: DeepInverse object to distribute
+    :param Union[Physics, DataFidelity, Denoiser] object: DeepInverse object to distribute
     :param DistributedContext ctx: distributed context manager
-    :param Optional[str] type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, `'prior'`, or `'auto'` for automatic detection. Default is `'auto'`.
+    :param Optional[str] type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
     :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
         - `'naive'`: Simple object serialization (best for small tensors)
@@ -364,8 +363,6 @@ def distribute(
             and isinstance(object[0], DataFidelity)
         ):
             type_object = "data_fidelity"
-        elif isinstance(object, Prior):
-            type_object = "prior"
         elif isinstance(object, Denoiser):
             type_object = "denoiser"
         elif callable(object):
@@ -385,7 +382,7 @@ def distribute(
             gather_strategy=gather_strategy,
             **kwargs,
         )
-    elif type_object in ["prior", "denoiser"]:
+    elif type_object == "denoiser":
         return distribute_processor(
             object,
             ctx,
