@@ -76,6 +76,7 @@ physics = TomographyWithAstra(
     geometry_type="fanbeam",
     n_detector_pixels=2 * img_size,
     geometry_parameters={"source_radius": 800.0, "detector_radius": 200.0},
+    normalize=False,
 )
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
