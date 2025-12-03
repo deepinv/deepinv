@@ -6,6 +6,15 @@ This example demonstrates blind image deblurring using the pretrained kernel est
 the paper :footcite:t:`carbajal2023blind`. The network estimates spatially-varying blur kernels from a blurred image,
 which are then used in a space-varying blur physics model to reconstruct the sharp image using a non-blind deblurring algorithm.
 
+The model estimates 25 spatially-varying (33 x 33) blur kernels and corresponding spatial multipliers (weights) of the space-varying blur model:
+
+.. math::
+
+    y \approx \sum_{k=1}^{25} h_k \star (w_k \odot x)
+
+where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
+
+
 """
 
 import torch
