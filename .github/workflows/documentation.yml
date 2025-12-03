@@ -53,7 +53,7 @@ jobs:
       - name: Determine which examples to run
         id: get_pattern
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BODY: ${{ steps.get_comments.outputs.pr_comments }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
           
