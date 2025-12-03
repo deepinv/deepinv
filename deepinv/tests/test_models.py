@@ -1482,11 +1482,10 @@ def test_complex_wrapper(mode, device):
 
 
 @pytest.mark.parametrize("channels", [1, 3])
-@pytest.mark.parametrize("filters", [5, 10])
+@pytest.mark.parametrize("filters", [5, 6])
 @pytest.mark.parametrize("blur_kernel_size", [33, 65])
 def test_kernel_identification(channels, filters, blur_kernel_size, device):
     model = dinv.models.KernelIdentificationNetwork(
-        channels=channels,
         filters=filters,
         blur_kernel_size=blur_kernel_size,
         pretrained=None,

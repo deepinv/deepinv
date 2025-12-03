@@ -16,9 +16,8 @@ class KernelIdentificationNetwork(nn.Module):
     with skip connections and two output heads, one for the blur kernel estimation and another for the spatially-varying
     filter weights (multipliers), associated the :class:`deepinv.physics.SpaceVaryingBlur` forward model.
 
-    Current implementation supports blur kernels of size 33x33 (default) and 65x65.
+    Current implementation supports blur kernels of size 33x33 (default) and 65x65, and 1 or 3 input channels.
 
-    :param int channels: number of input channels (3 for RGB, 1 for grayscale), defaults to 3.
     :param int filters: number of blur kernels to estimate, defaults to 25.
     :param int blur_kernel_size: size of the blur kernels to estimate, defaults to 33. Only 33 and 65 are currently supported.
     :param bool bilinear: whether to use bilinear upsampling or transposed convolutions, defaults to False.
@@ -54,7 +53,6 @@ class KernelIdentificationNetwork(nn.Module):
 
     def __init__(
         self,
-        channels=3,
         filters=25,
         blur_kernel_size=33,
         bilinear=False,
@@ -126,7 +124,7 @@ class KernelIdentificationNetwork(nn.Module):
         # load pretrained weights
         if pretrained is not None:
             if pretrained == "download":
-                if channels == 3 and self.K == 25:
+                if self.K == 25:
                     file_name = "carbajal_kernel_identification_network.pth"
                     url = get_weights_url(
                         model_name="kernel_identification", file_name=file_name
@@ -181,7 +179,6 @@ class KernelIdentificationNetwork(nn.Module):
             k = self.kernels_end(k5)
 
         N, F, H, W = k.shape  # H and W should be one
-        print(k.shape, self.K)
         k = k.view(N, self.K, self.blur_kernel_size * self.blur_kernel_size)
 
         if self.no_softmax:
