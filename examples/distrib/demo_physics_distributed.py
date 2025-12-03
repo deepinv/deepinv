@@ -277,7 +277,7 @@ with DistributedContext(seed=42) as ctx:
             figsize=(12, 4),
         )
 
-        print(f"\n✅ Demo completed successfully!")
+        print(f"\n Demo completed successfully!")
         print(f"   Results saved to:")
         print(f"   - distributed_physics_forward.png")
         print(f"   - distributed_physics_adjoint.png")
