@@ -50,15 +50,31 @@ jobs:
       - name: Fetch base branch # ensure we have the base branch for diffing
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
+      - name: Fetch PR issue comments
+        id: get_comments
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMENTS=$(curl -s \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+      
+          echo "pr_comments<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Determine which examples to run
         id: get_pattern
         env:
-          PR_BODY: ${{ steps.get_comments.outputs.pr_comments }}
+          PR_COMMENTS: ${{ steps.get_comments.outputs.pr_comments }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
           
             # Check PR body for the keyword "test-examples" (case-insensitive)
-            if printf "%s" "$PR_BODY" | grep -iq "test-examples"; then
+            if printf "%s" "$PR_COMMENTS" | grep -iq "test-examples"; then
               # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
               PATTERN=".*"
               echo "Keyword 'test-examples' found. Forcing full documentation build (Pattern: $PATTERN)."
