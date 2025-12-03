@@ -12,5 +12,5 @@ from .distortion import (
     ERGAS,
     HaarPSI,
 )
-from .perceptual import NIQE, LPIPS
+from .perceptual import NIQE, LPIPS, BlurStrength
 from .functional import cal_mse, cal_psnr, cal_mae

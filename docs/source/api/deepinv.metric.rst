@@ -49,3 +49,4 @@ No Reference Metrics
 
     deepinv.loss.metric.NIQE
     deepinv.loss.metric.QNR
+    deepinv.loss.metric.BlurStrength

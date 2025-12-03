@@ -98,16 +98,27 @@ dinv.utils.plot({"Blurry": y, "Deblurred RAM": x_ram, "Deblurred DPIR": x_dpir})
 #
 # As here we assume that we do not have access to the ground truth sharp image,
 # we cannot compute reference metrics such as PSNR or SSIM.
-# However, we can still compute no-reference metrics such as NIQE (lower is better) to assess the quality of the reconstructions.
+# However, we can still compute no-reference metrics such as NIQE (lower is better) and Blur Strengh (lower is better)
+# to assess the quality of the reconstructions.
 
-metric = dinv.metric.NIQE()
+niqe = dinv.metric.NIQE()
 
-niqe_blurry = metric(y).item()
-niqe_ram = metric(x_ram).item()
-niqe_dpir = metric(x_dpir).item()
+niqe_blurry = niqe(y).item()
+niqe_ram = niqe(x_ram).item()
+niqe_dpir = niqe(x_dpir).item()
 
 print(
     f"NIQE Blurry: {niqe_blurry:.2f}, NIQE RAM: {niqe_ram:.2f}, NIQE DPIR: {niqe_dpir:.2f}"
+)
+
+bs = dinv.metric.BlurStrength()
+
+bs_blurry = bs(y).item()
+bs_ram = bs(x_ram).item()
+bs_dpir = bs(x_dpir).item()
+
+print(
+    f"Blur Strength Blurry: {bs_blurry:.2f}, Blur Strength RAM: {bs_ram:.2f}, Blur Strength DPIR: {bs_dpir:.2f}"
 )
 
 
