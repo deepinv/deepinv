@@ -16,9 +16,11 @@ class KernelIdentificationNetwork(nn.Module):
     with skip connections and two output heads, one for the blur kernel estimation and another for the spatially-varying
     filter weights (multipliers), associated the :class:`deepinv.physics.SpaceVaryingBlur` forward model.
 
+    Current implementation supports blur kernels of size 33x33 (default) and 65x65.
+
     :param int channels: number of input channels (3 for RGB, 1 for grayscale), defaults to 3.
-    :param int kernels: number of blur kernels to estimate, defaults to 25.
-    :param int blur_kernel_size: size of the blur kernels to estimate, defaults to 33.
+    :param int filters: number of blur kernels to estimate, defaults to 25.
+    :param int blur_kernel_size: size of the blur kernels to estimate, defaults to 33. Only 33 and 65 are currently supported.
     :param bool bilinear: whether to use bilinear upsampling or transposed convolutions, defaults to False.
     :param bool no_softmax: whether to apply softmax to the estimated kernels, defaults to False.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
@@ -28,12 +30,32 @@ class KernelIdentificationNetwork(nn.Module):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str, torch.device device: device to use, defaults to 'cpu'.
 
+    |sep|
+
+    Example usage:
+
+    >>> import deepinv as dinv
+    >>> import torch
+    >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    >>> # load pretrained kernel estimation network
+    >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
+    >>> # define space-varying blur physics
+    >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+    >>> # load blurry image
+    >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
+    >>> with torch.no_grad():
+    ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
+    >>> physics.update(**params) # update physics with estimated kernels
+    >>> print(params["filters"].shape, params["multipliers"].shape)
+    torch.Size([1, 1, 25, 33, 33]) torch.Size([1, 1, 25, 128, 128])
+
+
     """
 
     def __init__(
         self,
         channels=3,
-        kernels=25,
+        filters=25,
         blur_kernel_size=33,
         bilinear=False,
         no_softmax=False,
@@ -47,13 +69,12 @@ class KernelIdentificationNetwork(nn.Module):
             nn.Conv2d(channels, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
         )
-
+        self.blur_kernel_size = blur_kernel_size
         self.inc_gray = nn.Sequential(
             nn.Conv2d(1, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
         )
-        self.blur_kernel_size = blur_kernel_size
-        self.K = kernels
+        self.K = filters
 
         self.down1 = Down(64, 64)
         self.down2 = Down(64, 128)
@@ -75,7 +96,7 @@ class KernelIdentificationNetwork(nn.Module):
             nn.LeakyReLU(inplace=True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
-            nn.Conv2d(64, kernels, kernel_size=3, padding=1),
+            nn.Conv2d(64, self.K, kernel_size=3, padding=1),
             nn.Softmax(dim=1),
         )
 
@@ -98,14 +119,14 @@ class KernelIdentificationNetwork(nn.Module):
             nn.LeakyReLU(inplace=True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
-            nn.Conv2d(64, kernels, kernel_size=3, padding=1),
+            nn.Conv2d(64, self.K, kernel_size=3, padding=1),
         )
         self.kernel_softmax = nn.Softmax(dim=2)
 
         # load pretrained weights
         if pretrained is not None:
             if pretrained == "download":
-                if channels == 3 and kernels == 25 and blur_kernel_size == 33:
+                if channels == 3 and self.K == 25:
                     file_name = "carbajal_kernel_identification_network.pth"
                     url = get_weights_url(
                         model_name="kernel_identification", file_name=file_name
@@ -160,6 +181,7 @@ class KernelIdentificationNetwork(nn.Module):
             k = self.kernels_end(k5)
 
         N, F, H, W = k.shape  # H and W should be one
+        print(k.shape, self.K)
         k = k.view(N, self.K, self.blur_kernel_size * self.blur_kernel_size)
 
         if self.no_softmax:
@@ -191,9 +213,7 @@ class Down(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(inplace=True),
-            # nn.BatchNorm2d(out_channels),
         )
 
         self.down_sampling = nn.MaxPool2d(2)
@@ -220,10 +240,8 @@ class Up(nn.Module):
 
         self.double_conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(inplace=True),
         )
         self.feat = nn.Sequential(
@@ -234,10 +252,8 @@ class Up(nn.Module):
         )
 
     def forward(self, x1, x2=None):
-        # print('initial x1: ', x1.shape)
         x1 = self.up(x1)
         x1 = self.double_conv(x1)
-        # print('x1 after upsampling: ', x1.shape)
 
         # if you have padding issues, see
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
@@ -266,8 +282,7 @@ class PooledSkip(nn.Module):
         self.output_spatial_size = output_spatial_size
 
     def forward(self, x):
-        global_avg_pooling = x.mean((2, 3), keepdim=True)  # self.gap(x)
-        # print('gap shape:' , global_avg_pooling.shape)
+        global_avg_pooling = x.mean((2, 3), keepdim=True)
         return global_avg_pooling.repeat(
             1, 1, self.output_spatial_size, self.output_spatial_size
         )

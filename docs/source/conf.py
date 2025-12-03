@@ -335,6 +335,7 @@ sphinx_gallery_conf = {
             "../../examples/plug-and-play",
             "../../examples/sampling",
             "../../examples/unfolded",
+            "../../examples/blind",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
