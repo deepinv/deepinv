@@ -63,10 +63,9 @@ jobs:
           restore-keys: |
             testmon-gpu-main-
 
-      - name: Test with pytest and generate coverage report
-        if: ${{matrix.version_python == '3.12' }}
+      - name: Test with pytest
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
+          uv run python -m pytest -n 2 --dist=loadgroup --testmon
 
       - name: Save .testmondata
         uses: actions/cache/save@v3
