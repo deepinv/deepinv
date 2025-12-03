@@ -225,12 +225,12 @@ def preprocess_img(
                 UserWarning,
                 stacklevel=2,
             )
-        if vmin is not None and vmax is not None and vmin >= vmax:
-            raise ValueError(
-                f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
-            )
-        # Normalize values between zero and one
-        im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError(
+            f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
+        )
+    # Clip / Normalize signal between 0 and 1
+    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     return im
 
