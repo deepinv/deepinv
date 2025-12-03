@@ -7,8 +7,6 @@ from dummy import DummyCircles
 
 import importlib
 
-import socket
-
 
 @pytest.fixture(
     params=[torch.device("cpu")]
