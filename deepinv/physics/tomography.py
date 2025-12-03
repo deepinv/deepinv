@@ -20,6 +20,7 @@ from deepinv.physics.functional.astra import (
     create_projection_geometry,
     create_object_geometry,
 )
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class Tomography(LinearPhysics):
@@ -121,7 +122,7 @@ class Tomography(LinearPhysics):
         img_width: int,
         circle: bool = False,
         parallel_computation: bool = True,
-        adjoint_via_backprop: bool = False,
+        adjoint_via_backprop: bool = True,
         fbp_interpolate_boundary: bool = False,
         normalize: bool | None = None,
         fan_beam: bool = False,
@@ -192,7 +193,7 @@ class Tomography(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
+            operator_norm = self.compute_norm(
                 torch.randn(
                     (img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
@@ -200,9 +201,10 @@ class Tomography(LinearPhysics):
                 )[None, None],
                 squared=False,
             )
+            self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
 
-    def A(self, x, **kwargs) -> torch.Tensor:
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
         :param torch.Tensor x: input of shape [B,C,H,W]
@@ -217,13 +219,9 @@ class Tomography(LinearPhysics):
 
         return output
 
-    def A_dagger(self, y, **kwargs) -> torch.Tensor:
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes the filtered back-projection (FBP) of the measurements.
-
-        .. warning::
-
-            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
 
         .. tip::
 
@@ -258,7 +256,23 @@ class Tomography(LinearPhysics):
             output = torch.nn.functional.pad(output, (2, 2, 2, 2), mode="replicate")
         return output
 
-    def A_adjoint(self, y, **kwargs) -> torch.Tensor:
+    def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements.
+
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: measurements of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells
+        :return: filtered back-projection of shape [B,C,H,W]
+        """
+        if fbp:
+            return self.fbp(y, **kwargs)
+        else:
+            return super(Tomography, self).A_dagger(y, **kwargs)
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes adjoint of the tomography operator.
 
@@ -357,15 +371,14 @@ class TomographyWithAstra(LinearPhysics):
         The :class:`deepinv.physics.functional.XrayTransform` used in :class:`deepinv.physics.TomographyWithAstra` sequentially processes batch elements, which can make the 2D parallel beam operator significantly slower than its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
 
     :param tuple[int, ...] img_size: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2D or 3D.
-    :param int num_angles: Number of angular positions sampled uniformly in ``angular_range``. (default: 180)
-    :param int | tuple[int, ...], None num_detectors: In 2D, specify an integer for a single line of detector cells. In 3D, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
-    :param tuple[float, float] angular_range: Angular range, defaults to ``(0, torch.pi)``.
+    :param int angles: Number of angular positions sampled uniformly in ``angular_range`` or a Tensor containing angular positions in degrees. (default: 180)
+    :param int | tuple[int, ...], None n_detector_pixels: In 2D, specify an integer for a single line of detector cells. In 3D, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
+    :param tuple[float, float] angular_range: Angular range, defaults to ``(0, 180)``.
     :param float | tuple[float, float] detector_spacing: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
-    :param tuple[float, ...] object_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
+    :param float | tuple[float, ...] pixel_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. Scalar value is interpreted as the same dimension along all axes (default: 1.0)
     :param tuple[float, ...], None bounding_box: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
-    :param torch.Tensor, None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D. (default: ``'parallel'``)
-    :param dict[str, float] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, float] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionary should contains the keys
 
         - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80.),
 
@@ -381,7 +394,7 @@ class TomographyWithAstra(LinearPhysics):
 
         - ``(vx, vy, vz)``: the vertical unit vector of the detector.
 
-        When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``num_angles``/``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
+        When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``True``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
 
@@ -389,7 +402,7 @@ class TomographyWithAstra(LinearPhysics):
 
     :Examples:
 
-        Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
+        Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -398,9 +411,9 @@ class TomographyWithAstra(LinearPhysics):
             >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
             >>> physics = TomographyWithAstra(
             ...        img_size=(5,5),
-            ...        num_angles=10,
-            ...        angular_range=(0, 2*torch.pi),
-            ...        num_detectors=5,
+            ...        angles=10,
+            ...        angular_range=(0, 360),
+            ...        n_detector_pixels=5,
             ...        detector_spacing=2.0,
             ...        geometry_type='fanbeam',
             ...        geometry_parameters={
@@ -413,18 +426,18 @@ class TomographyWithAstra(LinearPhysics):
             >>> print(sinogram.shape)
             torch.Size([1, 1, 10, 5])
 
-        Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
+        Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0, 360]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
 
             >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-            >>> angles = torch.linspace(0, 2*torch.pi, steps=4)[:-1]
+            >>> angles = torch.linspace(0, 360, steps=4)[:-1]
             >>> physics = TomographyWithAstra(
             ...        img_size=(5,5,5),
             ...        angles = angles,
-            ...        num_detectors=(5,5),
-            ...        object_spacing=(1.0,1.0,1.0),
+            ...        n_detector_pixels=(5,5),
+            ...        pixel_spacing=(1.0,1.0,1.0),
             ...        detector_spacing=(2.0,2.0),
             ...        geometry_type='conebeam',
             ...        geometry_parameters={
@@ -443,16 +456,20 @@ class TomographyWithAstra(LinearPhysics):
         This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
 
+    @_deprecated_alias(
+        num_angles="angles",
+        num_detectors="n_detector_pixels",
+        object_spacing="pixel_spacing",
+    )
     def __init__(
         self,
         img_size: tuple[int, ...],
-        num_angles: int = 180,
-        num_detectors: int | tuple[int, ...] | None = None,
-        angular_range: tuple[float, float] = (0, torch.pi),
+        angles: int | torch.Tensor = 180,
+        n_detector_pixels: int | tuple[int, ...] | None = None,
+        angular_range: tuple[float, float] = (0, 180),
         detector_spacing: float | tuple[float, float] = 1.0,
-        object_spacing: tuple[float, ...] = (1.0, 1.0),
+        pixel_spacing: float | tuple[float, ...] = 1.0,
         bounding_box: tuple[float, ...] | None = None,
-        angles: torch.Tensor | None = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, float] = MappingProxyType(
             {
@@ -483,28 +500,28 @@ class TomographyWithAstra(LinearPhysics):
 
         self.img_size = img_size
         self.is_2d = len(img_size) == 2
-        self.num_detectors = (
+        self.n_detector_pixels = (
             math.ceil(math.sqrt(2) * img_size[0])
-            if num_detectors is None
-            else num_detectors
+            if n_detector_pixels is None
+            else n_detector_pixels
         )
         self.geometry_type = geometry_type
         self.device = device
 
-        if angles is None:
-            angles = torch.linspace(*angular_range, steps=num_angles + 1)[:-1]
+        if isinstance(angles, int):
+            angles = torch.linspace(*angular_range, steps=angles + 1)[:-1]
 
         self.object_geometry = create_object_geometry(
             *img_size,
             bounding_box=bounding_box,
-            spacing=object_spacing,
+            pixel_spacing=pixel_spacing,
             is_2d=self.is_2d,
         )
 
         self.projection_geometry = create_projection_geometry(
             geometry_type=geometry_type,
             detector_spacing=detector_spacing,
-            n_detector_pixels=self.num_detectors,
+            n_detector_pixels=self.n_detector_pixels,
             angles=angles,
             is_2d=self.is_2d,
             geometry_parameters=geometry_parameters,
@@ -550,7 +567,7 @@ class TomographyWithAstra(LinearPhysics):
 
     def fbp_weighting(self, sinogram: torch.Tensor) -> torch.Tensor:
         r"""Scales the computation by the inverse number of views and
-        object-to-dector cell ratio.
+        object-to-detector cell ratio.
 
         In conebeam 3D, compute FDK weights to correct inflated distances due to
         tilted rays. Given coordinate :math:`(x,y)`  of a detector cell, the corresponding
@@ -560,9 +577,6 @@ class TomographyWithAstra(LinearPhysics):
         :return: Weighted sinogram.
         """
         import astra
-
-        # NOTE: This import is used by its side effects.
-        from astra import experimental  # noqa: F401
 
         sinogram_scaled = torch.clone(sinogram)
         is_3d = len(sinogram.shape) == 5
@@ -630,19 +644,30 @@ class TomographyWithAstra(LinearPhysics):
 
         return out
 
-    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        r"""Pseudo-inverse estimated using filtered back-projection.
-
-        :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: filtered back-projection of shape [B,C,...,H,W]
-        """
-
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         filtered_y = self.filter(y, dim=-1)
         out = self.A_adjoint(self.fbp_weighting(filtered_y))
         if self.normalize:
             out *= self.operator_norm**2
 
         return out
+
+    def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements, or the Feldkamp-Davis-Kress algorithm (FDK) in cone-beam 3D.
+
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: input of shape [B,C,...,A,N]
+        :return: filtered back-projection of shape [B,C,...,H,W]
+        """
+
+        if fbp:
+            return self.fbp(y, **kwargs)
+        else:
+            return super(TomographyWithAstra, self).A_dagger(y, **kwargs)
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.

@@ -12,7 +12,7 @@ class RandomPatchSampler(ImageDataset):
     r"""
     Dataset for nD images that samples one random patch per image.
 
-    This dataset builds from one or two directories of nD images (must be of format ``.npy``, ``.nii(.gz)`, or ``.b2nd``, if ``loader`` is not specified).
+    This dataset builds from one or two directories of nD images (must be of format ``.npy``, ``.nii(.gz)``, or ``.b2nd``, if ``loader`` is not specified).
     On each epoch, it returns a randomly sampled patch of fixed size from each volume.
 
     .. warning::
@@ -20,28 +20,42 @@ class RandomPatchSampler(ImageDataset):
         This loader uses torch's random functionality. To ensure reproducibility, set the DataLoader's ``generator`` with a fixed seed.
 
     **Supported use cases:**
+
     - Single-directory: provide only the ground-truth folder ``x_dir`` or measurement folder ``y_dir`` (returns patches from that directory).
+
     - Paired-directory: provide both ``x_dir`` and ``y_dir`` (returns matched patches from both).
 
     **Channel handling:**
+
     - If ``ch_axis=None``: a singleton channel dimension is added at axis 0.
+
     - If ``ch_axis=0``: images are assumed channel-first.
+
     - If ``ch_axis=-1``: images are assumed channel-last and transposed to channel-first.
+
     - Patches are never extracted along the channel axis (patch size for that axis is ignored).
 
     **Patch size handling:**
+
     - Accepts either an integer (applied to all spatial dims) or a tuple.
-    - If ``patch_size`` is tuple, and ``patch_size[i] == 1``, this is equivalent to slicing across axis i (singleton at axis i will be squeezed). This can be used to e.g. extract 2D slices from a 3D volume
+
+    - If ``patch_size`` is tuple, and ``patch_size[i] == 1``, this is equivalent to slicing across axis i (singleton at axis i will be squeezed). This can be used to e.g. extract 2D slices from a 3D volume.
+
     - If tuple length is one less than the image ndim, the channel axis is auto-filled with ``None``.
 
     **Randomness & reproducibility:**
-    - Patch coordinates are drawn with Python’s ``random`` module.
-    - To ensure deterministic behavior across workers, set the DataLoader's
-    ``worker_init_fn`` or ``generator`` according to the PyTorch reproducibility guidelines.
 
-    **Notes**
+    - Patch coordinates are drawn with Python’s ``random`` module.
+
+    - To ensure deterministic behavior across workers, set the DataLoader's
+      ``worker_init_fn`` or ``generator`` according to the PyTorch reproducibility guidelines.
+
+    **Notes:**
+
     - All images must have the same dimensionality.
+
     - When both directories are provided, only files present in both are used.
+
     - Shapes of each file are checked for consistency (spatial not smaller than ``patch_size`` + channels remain consistent across files).
     """
 
@@ -208,15 +222,15 @@ class RandomPatchSampler(ImageDataset):
 
     def _get_loader(self, file_format: str):
         if file_format.endswith(".npy"):
-            from deepinv.utils.io_utils import load_np
+            from deepinv.utils.io import load_np
 
             return load_np
         elif file_format.endswith(".nii") or file_format.endswith(".nii.gz"):
-            from deepinv.utils.io_utils import load_nifti
+            from deepinv.utils.io import load_nifti
 
             return load_nifti
         elif file_format.endswith(".b2nd"):
-            from deepinv.utils.io_utils import load_blosc2
+            from deepinv.utils.io import load_blosc2
 
             return load_blosc2
         else:  # pragma: no cover
@@ -237,5 +251,5 @@ class RandomPatchSampler(ImageDataset):
             return torch.from_numpy(arr).to(self.dtype)
         else:  # pragma: no cover
             raise RuntimeError(
-                f"Object returned by loader must be a np.ndarray or torch.tensor after slicing, got {type(arr)}"
+                f"Object returned by loader must be a np.ndarray or torch.Tensor after slicing, got {type(arr)}"
             )

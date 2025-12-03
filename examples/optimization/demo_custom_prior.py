@@ -14,10 +14,10 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import ADMM
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils import load_dataset
 
 
 # %%
@@ -101,7 +101,7 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 # %%
 # Set up the optimization algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------------------
-# We use the :class:`deepinv.optim.optim_builder` function to instantiate the optimization algorithm.
+# We use the :class:`deepinv.optim.optimizers.ADMM` to instantiate the ADMM optimization algorithm.
 #
 # The optimization algorithm is a proximal gradient descent algorithm that solves the following optimization problem:
 #
@@ -132,9 +132,6 @@ prior = L2Prior()
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "lambda": 0.1}
-
 # Logging parameters
 verbose = True
 
@@ -143,21 +140,19 @@ early_stop = True  # Stop algorithm when convergence criteria is reached
 crit_conv = "cost"  # Convergence is reached when the difference of cost function between consecutive iterates is
 # smaller than thres_conv
 thres_conv = 1e-5
-backtracking = False  # use backtraking to automatically adjust the stepsize
 max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,
-    params_algo=params_algo,
+    stepsize=1.0,
+    lambda_reg=0.1,
     early_stop=early_stop,
     max_iter=max_iter,
     crit_conv=crit_conv,
     thres_conv=thres_conv,
-    backtracking=backtracking,
     verbose=verbose,
 )
 

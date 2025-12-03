@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from typing import Sequence  # noqa: F401
+import warnings
 
 
 class Mlp(nn.Module):
@@ -871,6 +871,12 @@ class SwinIR(Denoiser):
             self.mean = torch.Tensor(rgb_mean).view(1, 3, 1, 1)
         else:
             self.mean = torch.zeros(1, 1, 1, 1)
+        if (upscale > 1 and not upsampler) or (upscale == 1 and upsampler):
+            warnings.warn(
+                f"The parameters upscale and upsampler should be set conjointly. Found {upscale=} and {upsampler=}.",
+                UserWarning,
+                stacklevel=1,
+            )
         self.upscale = upscale
         self.upsampler = upsampler
         self.window_size = window_size

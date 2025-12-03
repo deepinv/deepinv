@@ -9,9 +9,12 @@ def normalize_signal(inp, *, mode):
     r"""
     Normalize a batch of signals between zero and one.
 
-    :param torch.Tensor inp: the input signal to normalize, it should be of shape (B, *).
-    :param str mode: the normalization, either 'min_max' for min-max normalization or 'clip' for clipping. Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant value to the closest value between zero and one (which is equivalent to clipping).
+    :param torch.Tensor inp: the input signal to normalize, it should be of shape `(B, *)`.
+    :param str mode: the normalization, either `'min_max'` for min-max normalization or `'clip'` for clipping.
+        Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant
+        value to the closest value between zero and one (which is equivalent to clipping).
     :return: the normalized batch of signals.
+
     """
     if mode == "min_max":
         # Compute the minimum and maximum intensity of the batched signals
