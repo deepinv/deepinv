@@ -137,7 +137,7 @@ Distance
 
 Iterators
 ---------
-.. userguide:: optim-iterators
+.. userguide:: optim_iterators
 
 .. autosummary::
    :toctree: stubs
