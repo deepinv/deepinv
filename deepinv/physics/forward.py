@@ -600,6 +600,7 @@ class LinearPhysics(Physics):
         max_iter: int = 100,
         tol: float = 1e-3,
         verbose: bool = True,
+        rng: torch.Generator | None = None,
         **kwargs,
     ) -> torch.Tensor:
         r"""
@@ -617,7 +618,9 @@ class LinearPhysics(Physics):
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        x = torch.randn_like(x0)
+        if rng is None:
+            rng = torch.Generator(x0.device)
+        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
         x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
