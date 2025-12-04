@@ -125,7 +125,7 @@ Star history
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
 .. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
 .. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
