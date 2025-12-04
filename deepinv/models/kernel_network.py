@@ -64,7 +64,7 @@ class KernelIdentificationNetwork(nn.Module):
 
         self.no_softmax = no_softmax
         self.inc_rgb = nn.Sequential(
-            nn.Conv2d(channels, 64, kernel_size=3, padding=1),
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
         )
         self.blur_kernel_size = blur_kernel_size
