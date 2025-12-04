@@ -3,6 +3,7 @@ import torch
 import deepinv as dinv
 import deepinv.loss.metric as metric
 from deepinv.utils import load_example
+import math
 
 METRICS = [
     "MAE",
@@ -11,6 +12,7 @@ METRICS = [
     "MSE2",
     "NMSE",
     "PSNR",
+    "SNR",
     "SSIM",
     "LpNorm",
     "L1L2",
@@ -21,7 +23,7 @@ METRICS = [
     "SAM",
     "HaarPSI",
 ]
-FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
+FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "peak_signal_noise_ratio"]
 
 
 def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
@@ -46,6 +48,8 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.MAE(**kwargs)
     elif metric_name == "PSNR":
         return metric.PSNR(**kwargs)
+    elif metric_name == "SNR":
+        return metric.SNR(**kwargs)
     elif metric_name == "SSIM":
         return metric.SSIM(**kwargs)
     elif metric_name == "LpNorm":
@@ -186,6 +190,14 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         torch_psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
         assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
+    elif functional_name == "peak_signal_noise_ratio":
+        from torchmetrics.audio import SignalNoiseRatio
+
+        reference_impl = SignalNoiseRatio().to(device)
+        assert torch.allclose(
+            metric.signal_to_noise_ratio(x_net, x), reference_impl(x_net, x)
+        )
+
 
 def test_metric_kwargs():
     # Test reduce
@@ -312,3 +324,25 @@ def test_center_crop():
             "If center_crop is a tuple, all values must be either positive or negative."
             in str(e)
         )
+
+
+@pytest.mark.parametrize("power_signal", [0.0, 1.0, 10.0])
+@pytest.mark.parametrize("power_noise", [0.0, 1.0, 10.0])
+def test_snr(power_signal, power_noise):
+    x = torch.full((1, 1, 16, 16), math.sqrt(power_signal))
+    y = x + torch.full((1, 1, 16, 16), math.sqrt(power_noise))
+
+    snr = metric.signal_noise_ratio(y, x)
+
+    if power_noise == 0.0 and power_signal == 0.0:
+        assert torch.isnan(snr), f"Expected NaN SNR, got {snr.item()}"
+    elif power_noise == 0.0:
+        assert torch.isposinf(snr), f"Expected infinite SNR, got {snr.item()}"
+    elif power_signal == 0.0:
+        assert torch.isneginf(snr), f"Expected -infinite SNR, got {snr.item()}"
+    else:
+        target_snr = 10 * math.log10(power_signal / power_noise)
+        assert torch.isclose(
+            snr,
+            torch.tensor(target_snr),
+        ), f"Expected SNR {target_snr}, got {snr.item()}"

@@ -6,7 +6,12 @@ import torch
 from torch import Tensor
 
 from deepinv.loss.metric.metric import Metric
-from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
+from deepinv.loss.metric.functional import (
+    cal_mse,
+    cal_psnr,
+    cal_mae,
+    signal_noise_ratio,
+)
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
@@ -293,6 +298,39 @@ class PSNR(Metric):
             else x.amin(dim=tuple(range(1, x.ndim)))
         )
         return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
+
+
+class SNR(Metric):
+    r"""
+    Compute the signal-to-noise ratio (SNR)
+
+    For a reference signal :math:`x` corrupted by noise :math:`\varepsilon`
+
+    .. math::
+
+    y = x + \varepsilon,
+
+    the signal-to-noise ratio expressed in dB is defiend as
+
+    .. math::
+
+        \mathrm{SNR} = 10 \log_{10} \frac{\sum_{k=1}^N |x_k|^2}{\sum_{k=1}^N |x_k - y_k|^2}.
+
+    .. note::
+
+    The input is assumed to be batched and the SNR is computed for each element independently.
+
+    :param torch.Tensor preds: The noisy signal.
+    :param torch.Tensor target: The reference signal.
+    :return: (torch.Tensor) The SNR value in decibels (dB).
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.lower_better = False
+
+    def metric(self, x_net, x, *args, **kwargs):
+        return signal_noise_ratio(x_net, x)
 
 
 class L1L2(Metric):

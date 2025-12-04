@@ -25,6 +25,37 @@ def cal_psnr(
     return psnr
 
 
+def signal_noise_ratio(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    r"""
+    Compute the signal-to-noise ratio (SNR)
+
+    For a reference signal :math:`x` corrupted by noise :math:`\varepsilon`
+
+    .. math::
+
+    y = x + \varepsilon,
+
+    the signal-to-noise ratio expressed in dB is defiend as
+
+    .. math::
+
+        \mathrm{SNR} = 10 \log_{10} \frac{\sum_{k=1}^N |x_k|^2}{\sum_{k=1}^N |x_k - y_k|^2}.
+
+    .. note::
+
+    The input is assumed to be batched and the SNR is computed for each element independently.
+
+    :param torch.Tensor preds: The noisy signal.
+    :param torch.Tensor target: The reference signal.
+    :return: (torch.Tensor) The SNR value in decibels (dB).
+    """
+    noise = preds - target
+    signal_power = target.abs().pow(2).flatten(1, -1).mean(dim=1)
+    noise_power = noise.abs().pow(2).flatten(1, -1).mean(dim=1)
+    snr = signal_power / noise_power
+    return 10 * torch.log10(snr)
+
+
 def cal_mse(a, b):
     """Computes the mean squared error (MSE)"""
     return (a - b).abs().pow(2).mean(dim=tuple(range(1, a.ndim)), keepdim=False)
