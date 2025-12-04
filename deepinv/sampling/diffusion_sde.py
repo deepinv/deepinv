@@ -646,6 +646,9 @@ class FlowMatching(EDMDiffusionSDE):
             *args,
             *kwargs,
         )
+    
+    def velocity(self, x, t, *args, **kwargs):
+        return self.drift(x, t, *args, **kwargs)
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
