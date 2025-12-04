@@ -194,8 +194,6 @@ def main():
     # move to Path objects for easier comparison
     # filter only .py files
     changed_files = [f for f in changed_files if f.endswith(".py")]
-    # remove all _demo.py files from changed_files
-    changed_files = [f for f in changed_files if not f.startswith(str("examples"))]
     changed_files = set(Path(f) for f in changed_files)
 
     if not changed_files or changed_files == {""}:
