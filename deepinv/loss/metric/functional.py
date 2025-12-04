@@ -43,7 +43,7 @@ def signal_noise_ratio(preds: torch.Tensor, target: torch.Tensor) -> torch.Tenso
 
     .. note::
 
-    The input is assumed to be batched and the SNR is computed for each element independently.
+        The input is assumed to be batched and the SNR is computed for each element independently.
 
     :param torch.Tensor preds: The noisy signal.
     :param torch.Tensor target: The reference signal.
