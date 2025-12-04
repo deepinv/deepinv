@@ -360,17 +360,19 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
             return ths * torch.linalg.vector_norm(x.view(x.shape[0], -1), dim=-1, ord=1)
 
         prior = Prior(g=prior_g)  # The prior term
+        rng = torch.Generator(x.device).manual_seed(123)
+        lipschitz_const = physics.compute_sqnorm(x, tol=1e-4, rng=rng).item()
 
         if (
             name_algo == "CP"
         ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
-            stepsize = 1.9 / physics.compute_norm(x, tol=1e-4, squared=True).item()
+            stepsize = 1.9 / lipschitz_const
             sigma = 1.0
         elif name_algo == "FISTA":
-            stepsize = 0.9 / physics.compute_norm(x, tol=1e-4, squared=True).item()
+            stepsize = 0.9 / lipschitz_const
             sigma = None
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
-            stepsize = 1.9 / physics.compute_norm(x, tol=1e-4, squared=True).item()
+            stepsize = 1.9 / lipschitz_const
             sigma = None
 
         lambda_reg = 0.9
