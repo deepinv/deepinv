@@ -80,10 +80,26 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
+      - name: Restore .testmondata # Restore testmon data from main to speed up tests
+        uses: actions/cache/restore@v3
+        id: restore-cache
+        with:
+          path: .testmondata
+          key: testmon-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            testmon-cpu-main-
+
       - name: Test with pytest and generate coverage report
         if: ${{matrix.version_python == '3.12' }}
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
+
+      - name: Save .testmondata
+        uses: actions/cache/save@v3
+        if: github.ref == 'refs/heads/main' # Only save cache on main branch
+        with:
+          path: .testmondata
+          key: testmon-cpu-main-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux

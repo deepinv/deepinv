@@ -17,6 +17,7 @@ concurrency:
 jobs:
   test:
     name: Test ${{ matrix.name }}
+    if: ${{ github.repository == 'deepinv/deepinv' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
