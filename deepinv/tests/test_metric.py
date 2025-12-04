@@ -191,11 +191,21 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
     elif functional_name == "peak_signal_noise_ratio":
-        from torchmetrics.audio import SignalNoiseRatio
+        pytest.importorskip(
+            "torchmetrics",
+            reason="This test requires torchmetrics. It should be "
+            "installed with `pip install torchmetrics`",
+        )
+        from torchmetrics.functional.audio import (
+            signal_noise_ratio as signal_noise_ratio_ref,
+        )
 
-        reference_impl = SignalNoiseRatio().to(device)
+        # torchmetrics SNR only supports 1D inputs so we flatten the inputs
+        x_net, x = x_net.flatten(1, -1), x.flatten(1, -1)
+
         assert torch.allclose(
-            metric.signal_to_noise_ratio(x_net, x), reference_impl(x_net, x)
+            metric.signal_noise_ratio(x_net, x),
+            signal_noise_ratio_ref(x_net, x, zero_mean=False),
         )
 
 
