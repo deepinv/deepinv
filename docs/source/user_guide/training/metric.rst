@@ -83,6 +83,9 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.PSNR`
      - :math:`\text{PSNR}(\hat{x},x) = 10 \cdot \log_{10} \left( \frac{\text{MAX}^2}{\text{MSE}(\hat{x},x)} \right)`, where :math:`\text{MAX}` is the maximum possible pixel value of the image
 
+   * - :class:`deepinv.loss.metric.SNR`
+     - :math:`\mathrm{SNR} = 10 \log_{10} \left( \frac{\sum_{i=1}^n |x_i|^2}{\sum_{i=1}^n |x_i - \hat{x}_i|^2} \right)`
+
    * - :class:`deepinv.loss.metric.SSIM`
      - :math:`\text{SSIM}(\hat{x},x) = \frac{(2 \mu_x \mu_{\hat{x}} + C_1)(2 \sigma_{x\hat{x}} + C_2)}{(\mu_x^2 + \mu_{\hat{x}}^2 + C_1)(\sigma_x^2 + \sigma_{\hat{x}}^2 + C_2)}`, where :math:`\mu` and :math:`\sigma` are mean and variance
 
