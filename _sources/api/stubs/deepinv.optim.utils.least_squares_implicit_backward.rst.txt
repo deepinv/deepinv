@@ -1,0 +1,9 @@
+﻿least\_squares\_implicit\_backward
+==================================
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: least_squares_implicit_backward
+
+.. minigallery:: deepinv.optim.utils.least_squares_implicit_backward
+    :add-heading: Examples using ``least_squares_implicit_backward``:

@@ -1,0 +1,728 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Unfolded Algorithms &#8212; deepinv 0.3.6 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=8da8c241"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/reconstruction/unfolded';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Adversarial Networks" href="adversarial.html" />
+    <link rel="prev" title="Diffusion and MCMC Algorithms" href="sampling.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.6 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.6 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adversarial.html">Adversarial Networks</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Unfolded Algorithms</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="unfolded-algorithms">
+<span id="unfolded"></span><h1>Unfolded Algorithms<a class="headerlink" href="#unfolded-algorithms" title="Link to this heading">#</a></h1>
+<p>Unfolded architectures (sometimes called ‘unrolled architectures’) are obtained by replacing parts of these algorithms
+by learnable modules. In turn, they can be trained in an end-to-end fashion to solve inverse problems.
+It suffices to set the argument <code class="docutils literal notranslate"><span class="pre">unfold=True</span></code> when creating an optimization algorithm from the <a class="reference internal" href="optimization.html#optim"><span class="std std-ref">optimization</span></a> module.
+By default, if a neural network is used in place of a regularization or data-fidelity step, the parameters of the network are learnable.
+Moreover, among all the parameters of the algorithm (e.g. step size, regularization parameter, etc.), the user can choose which are learnable and which are not via the argument <code class="docutils literal notranslate"><span class="pre">trainable_params</span></code>.</p>
+<p>The following example creates an unfolded architecture of 5 proximal gradient steps
+using a DnCNN plug-and-play prior a standard L2 data-fidelity term. The network can be trained end-to-end, and
+evaluated with any forward model (e.g., denoising, deconvolution, inpainting, etc.).
+Here, the stepsize <code class="docutils literal notranslate"><span class="pre">stepsize</span></code>, the regularization parameter <code class="docutils literal notranslate"><span class="pre">lambda_reg</span></code>, and the denoiser parameter <code class="docutils literal notranslate"><span class="pre">sigma_denoiser</span></code> of the plug-and-play denoising prior are learnable.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">PGD</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create a trainable unfolded architecture</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">PGD</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">unfold</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data_fidelity</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">L2</span><span class="p">(),</span>
+<span class="gp">... </span>    <span class="n">prior</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">PnP</span><span class="p">(</span><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DnCNN</span><span class="p">()),</span>
+<span class="gp">... </span>    <span class="n">stepsize</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">sigma_denoiser</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">lambda_reg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">max_iter</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">trainable_params</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">,</span> <span class="s2">&quot;sigma_denoiser&quot;</span><span class="p">,</span> <span class="s2">&quot;lambda_reg&quot;</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Forward pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Denoising</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="memory-efficient-back-propagation">
+<h2>Memory-efficient back-propagation<a class="headerlink" href="#memory-efficient-back-propagation" title="Link to this heading">#</a></h2>
+<p>Some unfolded architectures rely on a least-squares solver to compute the proximal step w.r.t. the data-fidelity term (e.g., <a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.ADMMIteration.html#deepinv.optim.optim_iterators.ADMMIteration" title="deepinv.optim.optim_iterators.ADMMIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADMM</span></code></a> or <a class="reference internal" href="../../api/stubs/deepinv.optim.optim_iterators.HQSIteration.html#deepinv.optim.optim_iterators.HQSIteration" title="deepinv.optim.optim_iterators.HQSIteration"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQS</span></code></a>). During backpropagation, a naive implementation requires storing the gradients of every intermediate step of the least squares solver, resulting in significant memory and computational costs.
+We provide a memory-efficient back-propagation strategy that reduces the memory footprint during training, by computing the gradients of the least squares solver in closed-form, without storing any intermediate steps. This closed-form computation requires evaluating the least-squares solver one additional time during the gradient computation.
+This is particularly useful when training deep unfolded architectures with many iterations.
+To enable this feature, set the argument <code class="docutils literal notranslate"><span class="pre">implicit_backward_solver=True</span></code> (default is <code class="code docutils literal notranslate"><span class="pre">True</span></code>) when creating the physics. It is supported for all linear physics
+(<a class="reference internal" href="../../api/stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a>).
+Note that when setting <code class="docutils literal notranslate"><span class="pre">implicit_backward_solver=True</span></code>, we need to use a large enough number of iterations in the physics solver to ensure convergence (as the closed-form gradients assume that we converged to the least squares minimizer), otherwise the gradient might be inaccurate.
+See also <a class="reference internal" href="../../auto_examples/unfolded/demo_unfolded_constant_memory.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constant-memory-py"><span class="std std-ref">Reducing the memory and computational complexity of unfolded network training</span></a> for more details.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQS</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create a trainable unfolded architecture</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">HQS</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">unfold</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data_fidelity</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">L2</span><span class="p">(),</span>
+<span class="gp">... </span>    <span class="n">prior</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">PnP</span><span class="p">(</span><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DnCNN</span><span class="p">()),</span>
+<span class="gp">... </span>    <span class="n">stepsize</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">sigma_denoiser</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">trainable_params</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;stepsize&quot;</span><span class="p">,</span> <span class="s2">&quot;sigma_denoiser&quot;</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Forward pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Blur</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="mf">9.</span><span class="p">,</span> <span class="n">implicit_backward_solver</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="deep-equilibrium">
+<span id="id1"></span><h2>Deep Equilibrium<a class="headerlink" href="#deep-equilibrium" title="Link to this heading">#</a></h2>
+<p>Deep Equilibrium models (DEQ) are a particular class of unfolded architectures where the backward pass
+is performed via Fixed-Point iterations. DEQ algorithms can virtually unroll infinitely many layers leveraging
+the <strong>implicit function theorem</strong>. The backward pass consists in looking for solutions of the fixed-point equation</p>
+<div class="math notranslate nohighlight">
+\[v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right)^{\top} v + u.\]</div>
+<p>where <span class="math notranslate nohighlight">\(u\)</span> is the incoming gradient from the backward pass,
+and <span class="math notranslate nohighlight">\(x^\star\)</span> is the equilibrium point of the forward pass.
+See <a class="reference external" href="http://implicit-layers-tutorial.org/deep_equilibrium_models/">this tutorial</a> for more details.</p>
+<p>For turning an optimization algorithm into a DEQ model, the <code class="docutils literal notranslate"><span class="pre">DEQ</span></code> argument of <a class="reference internal" href="../../api/stubs/deepinv.optim.BaseOptim.html#deepinv.optim.BaseOptim" title="deepinv.optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.BaseOptim</span></code></a> must be an instance of <a class="reference internal" href="../../api/stubs/deepinv.optim.DEQConfig.html#deepinv.optim.DEQConfig" title="deepinv.optim.DEQConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.DEQConfig</span></code></a>, which defines the parameters for equilibrium-based implicit differentiation.
+The <a class="reference internal" href="../../api/stubs/deepinv.optim.DEQConfig.html#deepinv.optim.DEQConfig" title="deepinv.optim.DEQConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.DEQConfig</span></code></a> dataclass has the following attributes and default values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DEQConfig</span><span class="p">:</span>
+    <span class="n">jacobian_free</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Whether to use a Jacobian-free backward pass.</span>
+
+    <span class="c1"># Forward pass Anderson acceleration</span>
+    <span class="n">anderson_acceleration_forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Whether to use Anderson acceleration for solving the forward equilibrium.</span>
+    <span class="n">history_size_forward</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="c1"># Number of past iterates used in Anderson acceleration for the forward pass.</span>
+    <span class="n">beta_anderson_acc_forward</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="c1"># Momentum coefficient in Anderson acceleration for the forward pass.</span>
+    <span class="n">eps_anderson_acc_forward</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span>
+        <span class="c1"># Regularization parameter for Anderson acceleration in the forward pass.</span>
+
+    <span class="c1"># Backward pass Anderson acceleration</span>
+    <span class="n">anderson_acceleration_backward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Whether to use Anderson acceleration for solving the backward equilibrium.</span>
+    <span class="n">history_size_backward</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="c1"># Number of past iterates used in Anderson acceleration for the backward pass.</span>
+    <span class="n">beta_anderson_acc_backward</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="c1"># Momentum coefficient in Anderson acceleration for the backward pass.</span>
+    <span class="n">eps_anderson_acc_backward</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span>
+        <span class="c1"># Regularization parameter for Anderson acceleration in the backward pass.</span>
+    <span class="n">max_iter_backward</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="c1"># Maximum number of iterations in the backward equilibrium solver.</span>
+</pre></div>
+</div>
+<p>By default, DEQ is disabled (<code class="docutils literal notranslate"><span class="pre">DEQ=None</span></code>). As soon as <code class="docutils literal notranslate"><span class="pre">DEQ</span></code> is not <code class="docutils literal notranslate"><span class="pre">None</span></code>, the above <code class="docutils literal notranslate"><span class="pre">DEQConfig</span></code> values are used.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, DEQ is only possible with <a class="reference internal" href="../../api/stubs/deepinv.optim.GD.html#deepinv.optim.GD" title="deepinv.optim.GD"><code class="xref py py-class docutils literal notranslate"><span class="pre">Gradient</span> <span class="pre">Descent</span></code></a>,  <a class="reference internal" href="../../api/stubs/deepinv.optim.PGD.html#deepinv.optim.PGD" title="deepinv.optim.PGD"><code class="xref py py-class docutils literal notranslate"><span class="pre">Proximal</span> <span class="pre">Gradient</span> <span class="pre">Descent</span></code></a> and <a class="reference internal" href="../../api/stubs/deepinv.optim.HQS.html#deepinv.optim.HQS" title="deepinv.optim.HQS"><code class="xref py py-class docutils literal notranslate"><span class="pre">Half-Quadratic-Splitting</span></code></a> optimization algorithms.</p>
+</div>
+</section>
+<section id="predefined-unfolded-architectures">
+<span id="predefined-unfolded"></span><h2>Predefined Unfolded Architectures<a class="headerlink" href="#predefined-unfolded-architectures" title="Link to this heading">#</a></h2>
+<p>We also provide some off-the-shelf unfolded network architectures,
+taken from the respective literatures.</p>
+<div class="pst-scrollable-table-container"><table class="table" id="id2">
+<caption><span class="caption-number">Table 21 </span><span class="caption-text">Predefined unfolded architectures</span><a class="headerlink" href="#id2" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.VarNet.html#deepinv.models.VarNet" title="deepinv.models.VarNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.VarNet</span></code></a></p></td>
+<td><p>VarNet/E2E-VarNet MRI reconstruction models</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/stubs/deepinv.models.MoDL.html#deepinv.models.MoDL" title="deepinv.models.MoDL"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.MoDL</span></code></a></p></td>
+<td><p>MoDL MRI reconstruction model</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="predefined-unfolded-blocks">
+<span id="custom-unfolded-blocks"></span><h2>Predefined Unfolded Blocks<a class="headerlink" href="#predefined-unfolded-blocks" title="Link to this heading">#</a></h2>
+<p>Some more specific unfolded architectures are also available.</p>
+<p>The Primal-Dual Network (PDNet) uses <a class="reference internal" href="../../api/stubs/deepinv.models.PDNet_PrimalBlock.html#deepinv.models.PDNet_PrimalBlock" title="deepinv.models.PDNet_PrimalBlock"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.PDNet_PrimalBlock</span></code></a> and
+<a class="reference internal" href="../../api/stubs/deepinv.models.PDNet_DualBlock.html#deepinv.models.PDNet_DualBlock" title="deepinv.models.PDNet_DualBlock"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.PDNet_DualBlock</span></code></a> as building blocks for the primal and dual steps respectively.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="sampling.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Diffusion and MCMC Algorithms</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="adversarial.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Adversarial Networks</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#memory-efficient-back-propagation">Memory-efficient back-propagation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deep-equilibrium">Deep Equilibrium</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#predefined-unfolded-architectures">Predefined Unfolded Architectures</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#predefined-unfolded-blocks">Predefined Unfolded Blocks</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/user_guide/reconstruction/unfolded.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
