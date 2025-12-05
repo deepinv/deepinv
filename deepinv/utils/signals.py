@@ -62,6 +62,8 @@ def normalize_signal(
         if vmax is None:
             vmax = 1.0
         inp = inp.clamp(min=vmin, max=vmax)
+        inp = (inp - vmin) / (vmax - vmin + 1e-12)  # rescale to [0, 1]
+
     else:  # pragma: no cover
         raise ValueError(
             f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."

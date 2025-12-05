@@ -207,8 +207,8 @@ def preprocess_img(
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
     :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
-    ;param float vmin: minimum value for clipping when using 'clip' rescaling.
-    ;param float vmax: maximum value for clipping when using 'clip' rescaling.
+    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
+    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :return: the batch of pre-processed images.
     """
     # Apply the modulus function if the image is inferred to be complex
@@ -218,10 +218,10 @@ def preprocess_img(
     # Cast image values to float32 numbers
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
-    if rescale_mode == "min_max":
+    if rescale_mode != "clip":
         if vmin is not None or vmax is not None:
             warn(
-                "The vmin and vmax arguments are ignored when using 'min_max' rescaling.",
+                "The vmin and vmax arguments are used only when using 'clip' rescaling.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -232,9 +232,6 @@ def preprocess_img(
     # Normalize signal between 0 and 1
     im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
-    if rescale_mode == "clip":
-        # Rescale the clipped images between 0 and 1
-        im = (im - vmin) / (vmax - vmin + 1e-10)
     return im
 
 
@@ -288,6 +285,8 @@ def plot(
     axs=None,
     return_fig: bool = False,
     return_axs: bool = False,
+    vmin: float | None = None,
+    vmax: float | None = None,
     **imshow_kwargs,
 ):
     r"""
@@ -343,6 +342,8 @@ def plot(
     :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
+    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
+    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
@@ -370,8 +371,6 @@ def plot(
         titles = [titles]
 
     imgs = []
-    vmin = imshow_kwargs.get("vmin", None)
-    vmax = imshow_kwargs.get("vmax", None)
     for im in img_list:
         row_imgs = []
         im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
@@ -380,10 +379,6 @@ def plot(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
             )
         imgs.append(row_imgs)
-
-    imshow_kwargs = dict(imshow_kwargs)
-    imshow_kwargs.setdefault("vmin", 0)
-    imshow_kwargs.setdefault("vmax", 1)
 
     if figsize is None:
         figsize = (len(imgs) * 2, len(imgs[0]) * 2)
