@@ -912,6 +912,7 @@ def test_time_agnostic_net():
 
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
+    torch.manual_seed(0)  # set seed for reproducibility
 
     def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)

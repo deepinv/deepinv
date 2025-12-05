@@ -54,28 +54,68 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
-      - name: Sphinx build
+      - name: Determine which examples to run
+        id: get_pattern
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          uv run python -m sphinx docs/source _build
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+
+            # Check PR body for the keyword "test-examples" (case-insensitive)
+            if printf "%s" "$PR_BODY" | grep -iq "test-examples"; then
+              # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
+              PATTERN=".*"
+              echo "Keyword 'test-examples' found. Forcing full documentation build (Pattern: $PATTERN)."
+            else
+              # Use the remote reference for the base branch and HEAD for the current commit.
+              BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+              HEAD_REF="HEAD"
+              echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+              # Execute the Python script to find affected examples
+              PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              echo "Conditional PR Pattern: $PATTERN"
+            fi
+          else
+            # push to main
+            # The pattern ".*" matches all files, ensuring a full build is run.
+            PATTERN=".*"
+            echo "Full build triggered by ${{ github.event_name }} event."
+          fi
+
+          # Pass the determined pattern to the next step
+          echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
+
+      - name: Build documentation with chosen examples
+        env:
+          SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+
+        run: |
+          echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+          uv run sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
 
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
-          
+
       - name: Upload Documentation Artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: _build/
-          
-      # Log artifact URL 
-      - name: Link to generated docs here
-        run: |
-          echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
-          
+
+      - name: Deploy to ghpages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          force_orphan: true
+          enable_jekyll: false
+
       # Comment results back to PR
       - name: Post result to PR
         if: always() && inputs.pr_number != ''
