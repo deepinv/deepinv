@@ -859,24 +859,47 @@ def test_icnn(dims, device, rng):
     assert grad.shape == x.shape
 
 
-# def test_dip(imsize, device): TODO: fix this test
-#     torch.manual_seed(0)
-#     channels = 64
-#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
-#     f = dinv.models.DeepImagePrior(
-#         generator=dinv.models.ConvDecoder(imsize, layers=3, channels=channels).to(
-#             device
-#         ),
-#         input_size=(channels, imsize[1], imsize[2]),
-#         iterations=30,
-#     )
-#     x = torch.ones(imsize, device=device).unsqueeze(0)
-#     y = physics(x)
-#     mse_in = (y - x).pow(2).mean()
-#     x_net = f(y, physics)
-#     mse_out = (x_net - x).pow(2).mean()
-#
-#     assert mse_out < mse_in
+@pytest.mark.parametrize("model_kind", ["DIP", "Poisson2Sparse"])
+def test_dip_like(model_kind, imsize, device):
+    torch.manual_seed(0)
+    if model_kind == "DIP":
+        physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
+        channels = 64
+        f = dinv.models.DeepImagePrior(
+            generator=dinv.models.ConvDecoder(
+                img_size=imsize, layers=3, channels=channels
+            ).to(device),
+            img_size=(channels, imsize[1], imsize[2]),
+            iterations=30,
+        )
+    elif model_kind == "Poisson2Sparse":
+        physics = dinv.physics.Denoising(
+            dinv.physics.PoissonNoise(gain=0.05, normalize=True)
+        )
+        backbone = dinv.models.ConvLista(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            kernel_size=3,
+            num_filters=512,
+            num_iter=10,
+            stride=2,
+            threshold=0.01,
+        )
+        f = dinv.models.Poisson2Sparse(
+            backbone=backbone,
+            lr=1e-4,
+            num_iter=100,
+            weight_n2n=2.0,
+            weight_l1_regularization=1e-5,
+            verbose=True,
+        ).to(device)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+    mse_in = (y - x).pow(2).mean()
+    x_net = f(y, physics)
+    mse_out = (x_net - x).pow(2).mean()
+
+    assert mse_out < mse_in
 
 
 def test_time_agnostic_net():
@@ -889,6 +912,7 @@ def test_time_agnostic_net():
 
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
+    torch.manual_seed(0)  # set seed for reproducibility
 
     def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
@@ -1428,3 +1452,31 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
     assert output.shape == x.shape
     if clip_output:
         assert torch.all(output <= 1.0) and torch.all(output >= 0.0)
+
+
+@pytest.mark.parametrize("mode", ["real_imag", "abs_angle"])
+def test_complex_wrapper(mode, device):
+    model = dinv.models.DRUNet(pretrained="download").to(device)
+    complex_model = dinv.models.ComplexDenoiserWrapper(model, mode=mode).to(device)
+
+    # Create complex input
+    x = dinv.utils.load_example(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x_complex = x + 1j * x
+    sigma = torch.tensor(0.1, device=device)
+    y = x_complex + sigma * torch.randn_like(x_complex)
+
+    # Forward pass through complex wrapper
+    with torch.no_grad():
+        output = complex_model(y, sigma)
+
+    # Check output shape
+    assert output.shape == x_complex.shape
+    assert torch.is_complex(output)
+    psnr_fn = dinv.metric.PSNR()
+    # Check that denoising improves PSNR
+    assert psnr_fn(output, x_complex) > psnr_fn(y, x_complex) + 1.0

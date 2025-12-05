@@ -122,7 +122,7 @@ class Tomography(LinearPhysics):
         img_width: int,
         circle: bool = False,
         parallel_computation: bool = True,
-        adjoint_via_backprop: bool = False,
+        adjoint_via_backprop: bool = True,
         fbp_interpolate_boundary: bool = False,
         normalize: bool | None = None,
         fan_beam: bool = False,
@@ -193,7 +193,7 @@ class Tomography(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
+            operator_norm = self.compute_norm(
                 torch.randn(
                     (img_width, img_width),
                     generator=torch.Generator(self.device).manual_seed(0),
@@ -201,9 +201,10 @@ class Tomography(LinearPhysics):
                 )[None, None],
                 squared=False,
             )
+            self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
 
-    def A(self, x, **kwargs) -> torch.Tensor:
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
         :param torch.Tensor x: input of shape [B,C,H,W]
@@ -218,13 +219,9 @@ class Tomography(LinearPhysics):
 
         return output
 
-    def A_dagger(self, y, **kwargs) -> torch.Tensor:
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes the filtered back-projection (FBP) of the measurements.
-
-        .. warning::
-
-            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
 
         .. tip::
 
@@ -259,7 +256,23 @@ class Tomography(LinearPhysics):
             output = torch.nn.functional.pad(output, (2, 2, 2, 2), mode="replicate")
         return output
 
-    def A_adjoint(self, y, **kwargs) -> torch.Tensor:
+    def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements.
+
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: measurements of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells
+        :return: filtered back-projection of shape [B,C,H,W]
+        """
+        if fbp:
+            return self.fbp(y, **kwargs)
+        else:
+            return super(Tomography, self).A_dagger(y, **kwargs)
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Computes adjoint of the tomography operator.
 
@@ -631,19 +644,30 @@ class TomographyWithAstra(LinearPhysics):
 
         return out
 
-    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        r"""Pseudo-inverse estimated using filtered back-projection.
-
-        :param torch.Tensor y: input of shape [B,C,...,A,N]
-        :return: filtered back-projection of shape [B,C,...,H,W]
-        """
-
+    def fbp(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         filtered_y = self.filter(y, dim=-1)
         out = self.A_adjoint(self.fbp_weighting(filtered_y))
         if self.normalize:
             out *= self.operator_norm**2
 
         return out
+
+    def A_dagger(self, y: torch.Tensor, fbp: bool = False, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``fbp=True``, which computes the filtered back-projection of the measurements, or the Feldkamp-Davis-Kress algorithm (FDK) in cone-beam 3D.
+
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+        :param torch.Tensor y: input of shape [B,C,...,A,N]
+        :return: filtered back-projection of shape [B,C,...,H,W]
+        """
+
+        if fbp:
+            return self.fbp(y, **kwargs)
+        else:
+            return super(TomographyWithAstra, self).A_dagger(y, **kwargs)
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
