@@ -259,6 +259,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and hasattr(self, key)
                     and isinstance(value, torch.Tensor)
                 ):
+                    if hasattr(value, "device"):
+                        assert getattr(self, key).device == value.device, (
+                            f"Expected device {getattr(self, key).device} "
+                            f"but got {value.device} for parameter {key}"
+                        )
                     self.register_buffer(key, value)
 
     # NOTE: Physics instances can hold instances of torch.Generator as
