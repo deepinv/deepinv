@@ -10,7 +10,7 @@ New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
-- New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` and :func:`deepinv.utils.preprocess_images` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
+- New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` and :func:`deepinv.utils.preprocess_img` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 
 
