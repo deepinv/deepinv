@@ -1105,10 +1105,14 @@ def test_phase_retrieval(name, device):
     physics, imsize = find_phase_retrieval_operator(name, device)
     x = torch.randn(imsize, dtype=torch.cfloat, device=device).unsqueeze(0)
 
+    y = physics(x)
     # nonnegativity
-    assert (physics(x) >= 0).all()
+    assert (y >= 0).all()
     # same outputes for x and -x
-    assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(y, physics(-x))
+
+    x_hat = physics.A_dagger(physics(x))
+    assert x_hat.shape == x.shape
 
 
 def test_phase_retrieval_Avjp(device):

@@ -45,9 +45,65 @@ jobs:
       - name: Install deepinv and its dependencies
         run: |
           uv sync --extra dataset --extra denoisers --extra doc --extra training
-      - name: Sphinx build
+
+      - name: Fetch base branch # ensure we have the base branch for diffing
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
+      - name: Fetch PR issue comments
+        id: get_comments
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          uv run sphinx-build -W docs/source _build
+          COMMENTS=$(curl -s \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+      
+          echo "pr_comments<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Determine which examples to run
+        id: get_pattern
+        env:
+          PR_COMMENTS: ${{ steps.get_comments.outputs.pr_comments }}
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+          
+            # Check PR body for the keyword "test-examples" (case-insensitive)
+            if printf "%s" "$PR_COMMENTS" | grep -iq "test-examples"; then
+              # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
+              PATTERN=".*"
+              echo "Keyword 'test-examples' found. Forcing full documentation build (Pattern: $PATTERN)."
+            else
+              # Use the remote reference for the base branch and HEAD for the current commit.
+              BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+              HEAD_REF="HEAD"
+              echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+              # Execute the Python script to find affected examples
+              PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              echo "Conditional PR Pattern: $PATTERN"
+            fi
+          else
+            # push to main
+            # The pattern ".*" matches all files, ensuring a full build is run.
+            PATTERN=".*"
+            echo "Full build triggered by ${{ github.event_name }} event."
+          fi
+          
+          # Pass the determined pattern to the next step
+          echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
+
+      - name: Build documentation chosen examples
+        env:
+          SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+
+        run: |
+          echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+          uv run sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+
       - name: Run doctests
         env:
           SPHINX_DOCTEST: "1"
@@ -69,26 +125,19 @@ jobs:
             out_path="$out_dir/$base.ipynb"
             uv run .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
           done
+
       - name: Upload Documentation Artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: _build/
+
       # Log artifact URL 
       - name: Link to generated docs here
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
-      - name: Deploy to ghpages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/
-          force_orphan: true
-          enable_jekyll: false  
           
       - name: Minimize uv cache
         run: uv cache prune --ci
