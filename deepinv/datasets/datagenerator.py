@@ -210,7 +210,8 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
                     arr = np.array(img, dtype=np.float32)
                     if arr.ndim == 2:
                         arr = arr[:, :, None]
-                    t = torch.from_numpy(arr.transpose(2, 0, 1) / 255.0)
+                    t = torch.from_numpy(arr.transpose(2, 0, 1))
+                    t.div_(255.0)
                     if tensors and t.shape != tensors[-1].shape:
                         raise RuntimeError(
                             f"generate_dataset expects dataset to return elements of same shape, but received at two different shapes: {t.shape} and {tensors[-1].shape}. Please add a crop/pad or other shape handling to your dataset."
