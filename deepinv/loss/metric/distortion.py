@@ -304,17 +304,11 @@ class SNR(Metric):
     r"""
     Compute the signal-to-noise ratio (SNR)
 
-    For a reference signal :math:`x` corrupted by noise :math:`\varepsilon`
+    The signal-to-noise ratio (in dB) associated to a ground truth signal :math:`x` and a noisy estimate :math:`\hat{x} = \inverse{y}` is defined by
 
     .. math::
 
-        y = x + \varepsilon,
-
-    the signal-to-noise ratio expressed in dB is defiend as
-
-    .. math::
-
-        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x_i\|_2^2}{\|x_i - y_i\|_2^2} \right).
+        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x\|_2^2}{\|x - y\|_2^2} \right).
 
     .. note::
 

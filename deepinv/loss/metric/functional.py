@@ -25,21 +25,15 @@ def cal_psnr(
     return psnr
 
 
-def signal_noise_ratio(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+def signal_noise_ratio(x_hat: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     r"""
     Compute the signal-to-noise ratio (SNR)
 
-    For a reference signal :math:`x` corrupted by noise :math:`\varepsilon`
+    The signal-to-noise ratio (in dB) associated to a ground truth signal :math:`x` and a noisy estimate :math:`\hat{x} = \inverse{y}` is defined by
 
     .. math::
 
-    y = x + \varepsilon,
-
-    the signal-to-noise ratio expressed in dB is defiend as
-
-    .. math::
-
-        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x_i\|_2^2}{\|x_i - y_i\|_2^2} \right).
+        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x\|_2^2}{\|x - y\|_2^2} \right).
 
     .. note::
 
@@ -49,8 +43,8 @@ def signal_noise_ratio(preds: torch.Tensor, target: torch.Tensor) -> torch.Tenso
     :param torch.Tensor target: The reference signal.
     :return: (torch.Tensor) The SNR value in decibels (dB).
     """
-    noise = preds - target
-    signal_power = target.abs().pow(2).flatten(1, -1).mean(dim=1)
+    noise = x_hat - x
+    signal_power = x.abs().pow(2).flatten(1, -1).mean(dim=1)
     noise_power = noise.abs().pow(2).flatten(1, -1).mean(dim=1)
     snr = signal_power / noise_power
     return 10 * torch.log10(snr)
