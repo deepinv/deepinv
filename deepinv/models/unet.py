@@ -72,8 +72,8 @@ class UNet(Denoiser):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
-        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
+    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d` (or 3d variant, when building a 3D network),
+        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` (not yet implemented for 3D) from :footcite:t:`mohan2020robust`.
     :param int scales: Number of downsampling steps stages (network depth). Must be one of ``{2, 3, 4, 5}``.
         The number of trainable parameters increases with the scale.
     :param Sequence[int] channels_per_scale: Number of feature maps at each encoder stage (from shallow to deep). If None, defaults to ``[64, 128, 256, 512, 1024]``.
@@ -109,13 +109,13 @@ class UNet(Denoiser):
             else:
                 scales = 4  # legacy default
 
-        if scales not in (2, 3, 4, 5):
+        if scales not in (2, 3, 4, 5):  # pragma: no cover
             raise ValueError("`scales` must be one of {2, 3, 4, 5}.")
 
         if channels_per_scale is None:
             channels_per_scale = [64, 128, 256, 512, 1024]
 
-        if len(channels_per_scale) < scales:
+        if len(channels_per_scale) < scales:  # pragma: no cover
             raise ValueError(
                 f"`channels_per_scale` must have length at least `scales` "
                 f"(got len={len(channels_per_scale)}, scales={scales})."
@@ -134,7 +134,7 @@ class UNet(Denoiser):
 
         self.residual = residual
         self.cat = cat
-        self.scales = scales
+        self.depth = scales
         self.compact = scales  # backward compatibility, old attribute name
 
         biasfree = batch_norm == "biasfree"
@@ -236,34 +236,28 @@ class UNet(Denoiser):
 
         self.Conv1 = conv_block(ch_in=in_channels, ch_out=cps[0])
         self.Conv2 = conv_block(ch_in=cps[0], ch_out=cps[1])
-        self.Conv3 = (
-            conv_block(ch_in=cps[1], ch_out=cps[2]) if self.scales > 2 else None
-        )
-        self.Conv4 = (
-            conv_block(ch_in=cps[2], ch_out=cps[3]) if self.scales > 3 else None
-        )
-        self.Conv5 = (
-            conv_block(ch_in=cps[3], ch_out=cps[4]) if self.scales > 4 else None
-        )
+        self.Conv3 = conv_block(ch_in=cps[1], ch_out=cps[2]) if self.depth > 2 else None
+        self.Conv4 = conv_block(ch_in=cps[2], ch_out=cps[3]) if self.depth > 3 else None
+        self.Conv5 = conv_block(ch_in=cps[3], ch_out=cps[4]) if self.depth > 4 else None
 
-        self.Up5 = up_conv(ch_in=cps[4], ch_out=cps[3]) if self.scales > 4 else None
+        self.Up5 = up_conv(ch_in=cps[4], ch_out=cps[3]) if self.depth > 4 else None
         self.Up_conv5 = (
             conv_block(ch_in=cps[3] * 2, ch_out=cps[3])
-            if (self.scales > 4 and self.cat)
+            if (self.depth > 4 and self.cat)
             else None
         )
 
-        self.Up4 = up_conv(ch_in=cps[3], ch_out=cps[2]) if self.scales > 3 else None
+        self.Up4 = up_conv(ch_in=cps[3], ch_out=cps[2]) if self.depth > 3 else None
         self.Up_conv4 = (
             conv_block(ch_in=cps[2] * 2, ch_out=cps[2])
-            if (self.scales > 3 and self.cat)
+            if (self.depth > 3 and self.cat)
             else None
         )
 
-        self.Up3 = up_conv(ch_in=cps[2], ch_out=cps[1]) if self.scales > 2 else None
+        self.Up3 = up_conv(ch_in=cps[2], ch_out=cps[1]) if self.depth > 2 else None
         self.Up_conv3 = (
             conv_block(ch_in=cps[1] * 2, ch_out=cps[1])
-            if (self.scales > 2 and self.cat)
+            if (self.depth > 2 and self.cat)
             else None
         )
 
@@ -294,7 +288,7 @@ class UNet(Denoiser):
         :param float sigma: noise level (not used).
         """
 
-        factor = 2 ** (self.scales - 1)
+        factor = 2 ** (self.depth - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward_unet(x)
         else:
