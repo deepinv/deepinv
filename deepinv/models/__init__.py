@@ -39,3 +39,4 @@ from .ram import RAM
 from .client import Client
 from .wrapper import DiffusersDenoiserWrapper, ComplexDenoiserWrapper
 from .poisson2sparse import ConvLista, Poisson2Sparse
+from .kernel_network import KernelIdentificationNetwork

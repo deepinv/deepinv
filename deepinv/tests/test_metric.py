@@ -16,6 +16,7 @@ METRICS = [
     "L1L2",
     "QNR",
     "LPIPS",
+    "BlurStrength",
     "NIQE",
     "ERGAS",
     "SAM",
@@ -56,6 +57,8 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.LPIPS(**kwargs, device=device)
     elif metric_name == "NIQE":
         return metric.NIQE(**kwargs, device=device)
+    elif metric_name == "BlurStrength":
+        return metric.BlurStrength(**kwargs)
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "ERGAS":

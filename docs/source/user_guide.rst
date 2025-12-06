@@ -149,6 +149,15 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
 
+
+    .. grid-item-card::
+        :link: blind
+        :link-type: ref
+
+        :octicon:`webhook` **Blind Inverse Problems**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Reconstruction with mispecified physics and/or noise level.
+
 .. toctree::
    :maxdepth: 2
    :hidden:

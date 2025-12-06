@@ -123,3 +123,9 @@ We implement no-reference perceptual metrics, they only require the reconstructe
 
    * - :class:`deepinv.loss.metric.QNR`
      - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.
+
+   * - :class:`deepinv.loss.metric.BlurStrength`
+     - Calculates the blurriness of an image based on the spread of edges. Can be used to measure motion blur or out-of-focus blur.
+
+   * - :class:`deepinv.loss.metric.SharpnessIndex`
+     - Calculates the sharpness of an image, can be used to asses image quality.
