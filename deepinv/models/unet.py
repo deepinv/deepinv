@@ -1,7 +1,9 @@
 from __future__ import annotations
+from typing import Mapping, Any
 import warnings
 import torch
 import torch.nn as nn
+from torch.nn.modules.module import _IncompatibleKeys
 from .drunet import test_pad
 from .base import Denoiser
 from .utils import fix_dim, conv_nd, batchnorm_nd, maxpool_nd
@@ -221,21 +223,27 @@ class UNet(Denoiser):
 
         self.Up5 = up_conv(ch_in=1024, ch_out=512) if self.compact in [5] else None
         self.Up_conv5 = (
-            conv_block(ch_in=1024, ch_out=512) if self.compact in [5] else None
+            conv_block(ch_in=1024, ch_out=512)
+            if (self.compact in [5] and self.cat)
+            else None
         )
 
         self.Up4 = up_conv(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
         self.Up_conv4 = (
-            conv_block(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
+            conv_block(ch_in=512, ch_out=256)
+            if (self.compact in [4, 5] and self.cat)
+            else None
         )
 
         self.Up3 = up_conv(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
         self.Up_conv3 = (
-            conv_block(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
+            conv_block(ch_in=256, ch_out=128)
+            if (self.compact in [3, 4, 5] and self.cat)
+            else None
         )
 
         self.Up2 = up_conv(ch_in=128, ch_out=64)
-        self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
+        self.Up_conv2 = conv_block(ch_in=128, ch_out=64) if self.cat else None
 
         self.Conv_1x1 = conv(
             in_channels=64,
@@ -306,14 +314,31 @@ class UNet(Denoiser):
             else x
         )
 
-    def forward_standard(self, x):  # kept to avoid breaking changes
+    def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
+        # These are kept to avoid breaking changes
         return self._forward_unet(x)
 
-    def forward_compact4(self, x):
+    def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward_unet(x)
 
-    def forward_compact3(self, x):
+    def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward_unet(x)
 
-    def forward_compact2(self, x):
+    def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward_unet(x)
+
+    def load_state_dict(
+        self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False
+    ) -> _IncompatibleKeys:
+        if not self.cat:
+            # Filter out legacy Up_conv* params from old checkpoints
+            state_dict = {
+                k: v
+                for k, v in state_dict.items()
+                if not any(
+                    k.startswith(prefix)
+                    for prefix in ("Up_conv2", "Up_conv3", "Up_conv4", "Up_conv5")
+                )
+            }
+
+        return super().load_state_dict(state_dict, strict=strict, assign=assign)
