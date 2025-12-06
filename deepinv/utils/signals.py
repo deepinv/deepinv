@@ -5,12 +5,20 @@ from __future__ import annotations
 import torch
 
 
-def normalize_signal(inp, *, mode):
+def normalize_signal(
+    inp: torch.Tensor,
+    *,
+    mode: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> torch.Tensor:
     r"""
     Normalize a batch of signals between zero and one.
 
     :param torch.Tensor inp: the input signal to normalize, it should be of shape `(B, *)`.
     :param str mode: the normalization, either `'min_max'` for min-max normalization or `'clip'` for clipping.
+        If ``clip`` is selected, the values of ``vmin`` and ``vmax`` are used as clipping bounds if provided,
+        otherwise the default bounds of 0.0 and 1.0 are used.
         Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant
         value to the closest value between zero and one (which is equivalent to clipping).
     :return: the normalized batch of signals.
@@ -24,6 +32,11 @@ def normalize_signal(inp, *, mode):
 
         # Clone the signal to avoid input mutations
         inp = inp.clone()
+
+        if vmin is not None:
+            minimum_intensity = torch.full_like(minimum_intensity, vmin)
+        if vmax is not None:
+            maximum_intensity = torch.full_like(maximum_intensity, vmax)
 
         # The indices corresponding to the non-constant batched signals
         indices = maximum_intensity != minimum_intensity
@@ -44,7 +57,13 @@ def normalize_signal(inp, *, mode):
         inp[indices] = inp[indices].clamp(min=0.0, max=1.0)
     elif mode == "clip":
         # Clamp every batched signal between zero and one
-        inp = inp.clamp(min=0.0, max=1.0)
+        if vmin is None:
+            vmin = 0.0
+        if vmax is None:
+            vmax = 1.0
+        inp = inp.clamp(min=vmin, max=vmax)
+        inp = (inp - vmin) / (vmax - vmin + 1e-12)  # rescale to [0, 1]
+
     else:  # pragma: no cover
         raise ValueError(
             f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."
