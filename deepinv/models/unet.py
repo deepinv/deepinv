@@ -246,14 +246,11 @@ class UNet(Denoiser):
             padding=0,
         )
 
-        if self.compact == 5:
-            self._forward = self.forward_standard
-        if self.compact == 4:
-            self._forward = self.forward_compact4
-        if self.compact == 3:
-            self._forward = self.forward_compact3
-        if self.compact == 2:
-            self._forward = self.forward_compact2
+        self.enc_blocks = [self.Conv1, self.Conv2, self.Conv3, self.Conv4, self.Conv5]
+        self.up_blocks = [self.Up2, self.Up3, self.Up4, self.Up5]
+        self.dec_blocks = [self.Up_conv2, self.Up_conv3, self.Up_conv4, self.Up_conv5]
+
+        self._forward = self._forward_unet  # avoid breaking changes
 
         if device is not None:
             self.to(device)
@@ -268,133 +265,55 @@ class UNet(Denoiser):
 
         factor = 2 ** (self.compact - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
-            return self._forward(x)
+            return self._forward_unet(x)
         else:
-            return test_pad(self._forward, x, modulo=factor)
+            return test_pad(self._forward_unet, x, modulo=factor)
 
-    def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
-        # encoding path
+    def _forward_unet(self, x: torch.Tensor) -> torch.Tensor:
         cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
+        network_input = x
 
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
+        enc_feats = []
 
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
+        for i, block in enumerate(self.enc_blocks):
+            if block is None:
+                break
 
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
+            if i == 0:
+                x = block(x)
+            else:
+                x = block(self.Maxpool(x))
 
-        x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
+            enc_feats.append(x)
 
-        # decoding + concat path
-        d5 = self.Up5(x5)
-        if self.cat:
-            d5 = torch.cat((x4, d5), dim=cat_dim)
-            d5 = self.Up_conv5(d5)
+        n_levels = len(enc_feats)
 
-        d4 = self.Up4(d5)
-        if self.cat:
-            d4 = torch.cat((x3, d4), dim=cat_dim)
-            d4 = self.Up_conv4(d4)
+        for level in range(n_levels - 1):
+            id_decoder = (n_levels - 2) - level
 
-        d3 = self.Up3(d4)
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
+            x = self.up_blocks[id_decoder](x)
 
-        d2 = self.Up2(d3)
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
+            if self.cat:
+                skip = enc_feats[-2 - level]
+                x = torch.cat((skip, x), dim=cat_dim)
+                x = self.dec_blocks[id_decoder](x)
 
-        d1 = self.Conv_1x1(d2)
+        x = self.Conv_1x1(x)
 
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+        return (
+            x + network_input
+            if self.residual and self.in_channels == self.out_channels
+            else x
+        )
 
-    def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
-        # def forward_compact4(self, x):
-        # encoding path
-        cat_dim = 1
-        input = x
+    def forward_standard(self, x):  # kept to avoid breaking changes
+        return self._forward_unet(x)
 
-        x1 = self.Conv1(input)  # 1->64
+    def forward_compact4(self, x):
+        return self._forward_unet(x)
 
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)  # 64->128
+    def forward_compact3(self, x):
+        return self._forward_unet(x)
 
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)  # 128->256
-
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)  # 256->512
-
-        d4 = self.Up4(x4)  # 512->256
-        if self.cat:
-            d4 = torch.cat((x3, d4), dim=cat_dim)
-            d4 = self.Up_conv4(d4)
-
-        d3 = self.Up3(d4)  # 256->128
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
-
-        d2 = self.Up2(d3)  # 128->64
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
-
-    def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
-        # encoding path
-        cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
-
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
-
-        d3 = self.Up3(x3)
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
-
-        d2 = self.Up2(d3)
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
-
-    def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
-        # encoding path
-        cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
-
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-
-        d2 = self.Up2(x2)
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+    def forward_compact2(self, x):
+        return self._forward_unet(x)
