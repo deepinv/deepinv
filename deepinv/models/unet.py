@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Mapping, Any
+from typing import Mapping, Any, Sequence
 import warnings
 import torch
 import torch.nn as nn
@@ -89,7 +89,8 @@ class UNet(Denoiser):
         cat: bool = True,
         bias: bool = True,
         batch_norm: bool | str = True,
-        scales: int = 4,
+        scales: int = None,
+        channels_per_scale: Sequence[int] = None,
         device: torch.device | str = None,
         dim: str | int = 2,
     ):
@@ -101,18 +102,39 @@ class UNet(Denoiser):
                 "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
             )
 
+        if scales is None:
+            if channels_per_scale is not None:
+                scales = len(channels_per_scale)
+            else:
+                scales = 4  # legacy default
+
+        if scales not in (2, 3, 4, 5):
+            raise ValueError("`scales` must be one of {2, 3, 4, 5}.")
+
+        if channels_per_scale is None:
+            channels_per_scale = [64, 128, 256, 512, 1024]
+
+        if len(channels_per_scale) < scales:
+            raise ValueError(
+                f"`channels_per_scale` must have length at least `scales` "
+                f"(got len={len(channels_per_scale)}, scales={scales})."
+            )
+
+        cps = channels_per_scale
+
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
         batchnorm = batchnorm_nd(dim)
+        self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
 
         self.residual = residual
         self.cat = cat
-        self.compact = scales
-        self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
+        self.scales = scales
+        self.compact = scales  # backward compatibility, old attribute name
 
         biasfree = batch_norm == "biasfree"
         if biasfree and dim == 3:  # pragma: no cover
@@ -211,52 +233,52 @@ class UNet(Denoiser):
                     nn.ReLU(inplace=True),
                 )
 
-        self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
-        self.Conv2 = conv_block(ch_in=64, ch_out=128)
+        self.Conv1 = conv_block(ch_in=in_channels, ch_out=cps[0])
+        self.Conv2 = conv_block(ch_in=cps[0], ch_out=cps[1])
         self.Conv3 = (
-            conv_block(ch_in=128, ch_out=256) if self.compact in [3, 4, 5] else None
+            conv_block(ch_in=cps[1], ch_out=cps[2]) if self.scales > 2 else None
         )
         self.Conv4 = (
-            conv_block(ch_in=256, ch_out=512) if self.compact in [4, 5] else None
+            conv_block(ch_in=cps[2], ch_out=cps[3]) if self.scales > 3 else None
         )
-        self.Conv5 = conv_block(ch_in=512, ch_out=1024) if self.compact in [5] else None
+        self.Conv5 = (
+            conv_block(ch_in=cps[3], ch_out=cps[4]) if self.scales > 4 else None
+        )
 
-        self.Up5 = up_conv(ch_in=1024, ch_out=512) if self.compact in [5] else None
+        self.Up5 = up_conv(ch_in=cps[4], ch_out=cps[3]) if self.scales > 4 else None
         self.Up_conv5 = (
-            conv_block(ch_in=1024, ch_out=512)
-            if (self.compact in [5] and self.cat)
+            conv_block(ch_in=cps[3] * 2, ch_out=cps[3])
+            if (self.scales > 4 and self.cat)
             else None
         )
 
-        self.Up4 = up_conv(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
+        self.Up4 = up_conv(ch_in=cps[3], ch_out=cps[2]) if self.scales > 3 else None
         self.Up_conv4 = (
-            conv_block(ch_in=512, ch_out=256)
-            if (self.compact in [4, 5] and self.cat)
+            conv_block(ch_in=cps[2] * 2, ch_out=cps[2])
+            if (self.scales > 3 and self.cat)
             else None
         )
 
-        self.Up3 = up_conv(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
+        self.Up3 = up_conv(ch_in=cps[2], ch_out=cps[1]) if self.scales > 2 else None
         self.Up_conv3 = (
-            conv_block(ch_in=256, ch_out=128)
-            if (self.compact in [3, 4, 5] and self.cat)
+            conv_block(ch_in=cps[1] * 2, ch_out=cps[1])
+            if (self.scales > 2 and self.cat)
             else None
         )
 
-        self.Up2 = up_conv(ch_in=128, ch_out=64)
-        self.Up_conv2 = conv_block(ch_in=128, ch_out=64) if self.cat else None
+        self.Up2 = up_conv(ch_in=cps[1], ch_out=cps[0])
+        self.Up_conv2 = (
+            conv_block(ch_in=cps[0] * 2, ch_out=cps[0]) if self.cat else None
+        )
 
         self.Conv_1x1 = conv(
-            in_channels=64,
+            in_channels=cps[0],
             out_channels=out_channels,
             bias=bias,
             kernel_size=1,
             stride=1,
             padding=0,
         )
-
-        self.enc_blocks = [self.Conv1, self.Conv2, self.Conv3, self.Conv4, self.Conv5]
-        self.up_blocks = [self.Up2, self.Up3, self.Up4, self.Up5]
-        self.dec_blocks = [self.Up_conv2, self.Up_conv3, self.Up_conv4, self.Up_conv5]
 
         self._forward = self._forward_unet  # avoid breaking changes
 
@@ -271,19 +293,20 @@ class UNet(Denoiser):
         :param float sigma: noise level (not used).
         """
 
-        factor = 2 ** (self.compact - 1)
+        factor = 2 ** (self.scales - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward_unet(x)
         else:
             return test_pad(self._forward_unet, x, modulo=factor)
 
     def _forward_unet(self, x: torch.Tensor) -> torch.Tensor:
-        cat_dim = 1
+
         network_input = x
 
+        enc_blocks = [self.Conv1, self.Conv2, self.Conv3, self.Conv4, self.Conv5]
         enc_feats = []
 
-        for i, block in enumerate(self.enc_blocks):
+        for i, block in enumerate(enc_blocks):
             if block is None:
                 break
 
@@ -296,15 +319,18 @@ class UNet(Denoiser):
 
         n_levels = len(enc_feats)
 
+        up_blocks = [self.Up2, self.Up3, self.Up4, self.Up5]
+        dec_blocks = [self.Up_conv2, self.Up_conv3, self.Up_conv4, self.Up_conv5]
+
         for level in range(n_levels - 1):
             id_decoder = (n_levels - 2) - level
 
-            x = self.up_blocks[id_decoder](x)
+            x = up_blocks[id_decoder](x)
 
             if self.cat:
                 skip = enc_feats[-2 - level]
-                x = torch.cat((skip, x), dim=cat_dim)
-                x = self.dec_blocks[id_decoder](x)
+                x = torch.cat((skip, x), dim=1)
+                x = dec_blocks[id_decoder](x)
 
         x = self.Conv_1x1(x)
 
