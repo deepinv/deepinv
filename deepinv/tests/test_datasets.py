@@ -252,13 +252,21 @@ def test_generate_dataset():
         )
     # Test that no error is raised when we add crop
     ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
-    _ = generate_dataset(
+    hdf_path = generate_dataset(
         train_dataset=ds,
         batch_size=1,
         physics=physics,
         device="cpu",
         save_dir="./measurements",
     )
+    from torchvision.transforms import ToTensor
+
+    hdf_ds = HDF5Dataset(hdf_path)
+    for sample_hdf, sample in zip(hdf_ds, ds):
+        sample = ToTensor()(sample)
+        assert sample_hdf[0].equal(
+            sample
+        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
     shutil.rmtree("./measurements")
     shutil.rmtree("./set14")
 

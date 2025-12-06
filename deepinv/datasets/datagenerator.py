@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Any
 
 from tqdm import tqdm
 import os
@@ -153,60 +153,75 @@ class HDF5Dataset(ImageDataset):
             self.hd5 = None
 
 
-def collate(dataset: Dataset):
+def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
+    """
+    Infer an appropriate `collate_fn` for a DataLoader based on the type returned by the dataset.
+
+    Because `dataset` may return arbitrary Python objects, and we have no control
+    over its internals, this helper inspects the first sample and constructs a
+    custom `collate_fn` when necessary (for now, this is only implemented for PIL Images)
+
+    Behaviour
+    ---------
+    - If the dataset returns `torch.Tensor` or `np.ndarray` (or lists/tuples
+      whose first element is one of these), `None` is returned. The default
+      DataLoader collate logic already handles batching these types.
+
+    - If the dataset returns a PIL Image (or a list/tuple whose first element
+      is a PIL Image),  a custom collate function is returned that:
+        * converts each image to a float32 tensor in [0, 1] with shape
+          `(C, H, W)` using `torchvision.transforms.ToTensor`,
+        * stacks all samples into a batched tensor of shape (N, C, H, W), and
+        * raises an error if any images differ in shape.
+
+    - Any other return type leads to a `RuntimeError`.
+
+    Only the first sample (`dataset[0]`) is inspected, so the dataset is
+    assumed to be type-consistent.
+    """
     example_output = dataset[0]
     example_output = (
         example_output[0]
-        if (isinstance(example_output, list) or isinstance(example_output, tuple))
+        if isinstance(example_output, (list, tuple))
         else example_output
     )
 
-    if isinstance(example_output, torch.Tensor):
-        return None
-    elif isinstance(
-        example_output, np.ndarray
-    ):  # torch dataloader autoconverts this to tensor
+    if isinstance(example_output, (Tensor, np.ndarray)):
         return None
     else:
-        try:
-            from PIL import Image
+        from PIL import Image
 
-            if isinstance(example_output, Image.Image):
+        if isinstance(example_output, Image.Image):
+            from torchvision.transforms import ToTensor
 
-                def collate_pillow(
-                    batch: list[Image.Image | list[Image.Image]],
-                ) -> torch.Tensor:
-                    tensors = []
-                    for sample in batch:
-                        if isinstance(sample, Image.Image):
-                            img = sample
-                        elif isinstance(sample, (list, tuple)):
-                            # only keeping the first element is same behavior as when dataset returns list of tensors!
-                            img = sample[0]
-                        else:  # pragma: no cover
-                            raise ValueError(
-                                f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
-                            )
-                        arr = np.array(img, dtype=np.float32)
-                        if arr.ndim == 2:
-                            arr = arr[:, :, None]
-                        t = torch.from_numpy(arr.transpose(2, 0, 1) / 255.0)
-                        if tensors and t.shape != tensors[-1].shape:
-                            raise RuntimeError(
-                                f"generate_dataset expects dataset to return elements of same shape, but received at two different shapes: {t.shape} and {tensors[-1].shape}. Please add a crop/pad or other shape handling to your dataset."
-                            )
-                        tensors.append(t)
-                    return torch.stack(tensors, dim=0)
+            _to_tensor = ToTensor()
 
-                return collate_pillow
-            else:  # pragma: no cover
-                raise RuntimeError(
-                    f"Dataset must return either numpy array, torch tensor, or PIL image, but got type {type(example_output)}"
-                )
+            def collate_pillow(
+                batch: list[Image.Image | list[Image.Image]],
+            ) -> Tensor:
+                tensors = []
+                for sample in batch:
+                    if isinstance(sample, Image.Image):
+                        img = sample
+                    elif isinstance(sample, (list, tuple)):
+                        # only keeping the first element is same behavior as when dataset returns list of tensors!
+                        img = sample[0]
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
+                        )
+                    t = _to_tensor(img)
+                    if tensors and t.shape != tensors[-1].shape:
+                        raise RuntimeError(
+                            f"generate_dataset expects dataset to return elements of same shape, but received at two different shapes: {t.shape} and {tensors[-1].shape}. Please add a crop/pad or other shape handling to your dataset."
+                        )
+                    tensors.append(t)
+                return torch.stack(tensors, dim=0)
 
-        except ImportError:  # pragma: no cover
+            return collate_pillow
+        else:  # pragma: no cover
             raise RuntimeError(
-                f"Tried to convert dataset so it outputs Tensors, but original dataset does not return Tensors or Arrays, and PIL is not installed. Original output type is {type(example_output)}"
+                f"Dataset must return either numpy array, torch tensor, or PIL image, but got type {type(example_output)}"
             )
 
 
@@ -467,7 +482,7 @@ def generate_dataset(
                     subset,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory=not _is_cpu(device),
+                    pin_memory=torch.device(device).type != "cpu",
                     drop_last=False,
                     collate_fn=collate(dataset),
                 )
