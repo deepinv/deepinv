@@ -39,7 +39,7 @@ def signal_noise_ratio(preds: torch.Tensor, target: torch.Tensor) -> torch.Tenso
 
     .. math::
 
-        \mathrm{SNR} = 10 \log_{10} \left( \frac{\sum_{i=1}^n |x_i|^2}{\sum_{i=1}^n |x_i - y_i|^2} \right).
+        \mathrm{SNR} = 10 \log_{10} \left( \frac{\|x_i\|_2^2}{\|x_i - y_i\|_2^2} \right).
 
     .. note::
 
