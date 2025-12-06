@@ -196,4 +196,4 @@ Maintainers commands
 Maintainers can use the following slash commands as comments on a pull request to trigger specific tests:
 
 - `/test-examples`: runs **all** sphinx gallery examples on CPU using CPU-enabled runners.
-- `/test-gpu`: runs tests and generates docs on GPU using GPU-enabled runners.
+- `/gpu-tests`: runs tests and generates docs on GPU using GPU-enabled runners.
