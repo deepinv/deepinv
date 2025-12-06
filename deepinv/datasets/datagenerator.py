@@ -334,11 +334,6 @@ def generate_dataset(
 
     hf_paths = []
 
-    def _is_cpu(dev: torch.device | str) -> bool:
-        if isinstance(dev, str):
-            return dev.lower() == "cpu"
-        return isinstance(dev, torch.device) and dev.type == "cpu"
-
     for g in range(G):
         hf_path = f"{save_dir}/{dataset_filename}{g}.h5"
         hf_paths.append(hf_path)
