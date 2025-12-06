@@ -74,8 +74,9 @@ class UNet(Denoiser):
     :param bool bias: use learnable biases.
     :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
         if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
-    :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
+    :param int scales: Number of downsampling steps stages (network depth). Must be one of ``{2, 3, 4, 5}``.
         The number of trainable parameters increases with the scale.
+    :param Sequence[int] channels_per_scale: Number of feature maps at each encoder stage (from shallow to deep). If None, defaults to ``[64, 128, 256, 512, 1024]``.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
