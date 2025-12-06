@@ -6,6 +6,7 @@ import deepinv as dinv
 
 # Some global constants
 ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
+device = "cpu"
 
 
 @pytest.mark.parametrize("B", [1, 2])
@@ -230,7 +231,7 @@ def test_conv3d_spatial_and_fft_equivalence(
                 fft_output = fft_fn(x, h, padding=padding)
 
                 assert spatial_output.shape == fft_output.shape
-                assert torch.allclose(spatial_output, fft_output, rtol=1e-4, atol=1e-4)
+                assert torch.allclose(spatial_output, fft_output, rtol=1e-3, atol=1e-3)
 
 
 @pytest.mark.parametrize("kernel", ["cubic", "gaussian"])

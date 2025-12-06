@@ -90,7 +90,7 @@ def conv2d(
         if ph == 0 and pw == 0:
             _warn_once_padding([ph, pw], padding)
 
-        pad = (pw, pw - iw, ph, ph - ih)  # because functional.pad is w,h instead of h,w
+        pad = (pw - iw, pw, ph - ih, ph)  # because functional.pad is w,h instead of h,w
         x = F.pad(x, pad, mode=padding, value=0)
         B, C, H, W = x.size()
 
@@ -221,7 +221,7 @@ def conv2d_fft(
 
     else:
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
-        pad = (pw, pw - iw, ph, ph - ih)  # (W_left, W_right, H_top, H_bottom)
+        pad = (pw, pw, ph, ph)  # (W_left, W_right, H_top, H_bottom)
         x_pad = F.pad(x, pad, mode=padding, value=0)
         out = _circular_conv_fft(
             x_pad,
@@ -232,7 +232,7 @@ def conv2d_fft(
             shift_filter=True,
         )
         # Extract central region back to original size
-        out = out[:, :, _center_crop_slice_1d(ph, ih), _center_crop_slice_1d(pw, iw)]
+        out = out[:, :, _center_crop_slice_1d(ph, 0), _center_crop_slice_1d(pw, 0)]
 
     return out.contiguous()
 
@@ -308,18 +308,19 @@ def conv_transpose2d_fft(
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> C* -> P*
         # S*: embed y into center of padded grid
-        y_big = F.pad(y, (pw, pw - iw, ph, ph - ih), mode="constant", value=0)
+        y_big = F.pad(y, (pw, pw, ph, ph), mode="constant", value=0)
         # C*: circular transpose conv on padded grid using centered filter
         z_big = _circular_conv_fft(
             y_big,
             filter,
-            s=(H + 2 * ph - ih, W + 2 * pw - iw),
+            s=(H + 2 * ph, W + 2 * pw),
             real_fft=real_fft,
             dims=(-2, -1),
             shift_filter=True,
             transpose=True,
         )
         # P*: adjoint of padding -> fold to original H x W
+        z_big = z_big[..., ih:, iw:]
         out = _apply_transpose_padding(z_big, padding=padding, p=(ph, pw), i=(ih, iw))
 
     return out.contiguous()
@@ -363,12 +364,12 @@ def conv3d(
         pd, ph, pw = d // 2, h // 2, w // 2
         id, ih, iw = (d - 1) % 2, (h - 1) % 2, (w - 1) % 2
         pad = (
-            pw,
             pw - iw,
-            ph,
+            pw,
             ph - ih,
-            pd,
+            ph,
             pd - id,
+            pd,
         )  # F.pad expects (W_left, W_right, H_top, H_bottom, D_front, D_back)
         x = F.pad(x, pad, mode=padding, value=0)
 
@@ -501,11 +502,11 @@ def conv3d_fft(
         # Linear convolution on a padded grid via circular FFT-conv on that grid.
         pad = (
             pw,
-            pw - iw,
+            pw,
             ph,
-            ph - ih,
+            ph,
             pd,
-            pd - id,
+            pd,
         )  # (W_left, W_right, H_top, H_bottom, D_front, D_back)
         x_pad = F.pad(x, pad, mode=padding, value=0)
         out = _circular_conv_fft(
@@ -520,9 +521,9 @@ def conv3d_fft(
         out = out[
             :,
             :,
-            _center_crop_slice_1d(pd, id),
-            _center_crop_slice_1d(ph, ih),
-            _center_crop_slice_1d(pw, iw),
+            _center_crop_slice_1d(pd, 0),
+            _center_crop_slice_1d(ph, 0),
+            _center_crop_slice_1d(pw, 0),
         ]
 
     return out.contiguous()
@@ -598,15 +599,13 @@ def conv_transpose3d_fft(
     else:
         # Forward: pad (P) -> conv (C) -> crop (S)
         # Adjoint:  S* -> R* -> C* -> P*
-        Dp = D + 2 * pd - id
-        Hp = H + 2 * ph - ih
-        Wp = W + 2 * pw - iw
+        Dp = D + 2 * pd
+        Hp = H + 2 * ph
+        Wp = W + 2 * pw
         img_size = (Dp, Hp, Wp)
 
         # S*: embed y into center of padded grid
-        y_big = F.pad(
-            y, (pw, pw - iw, ph, ph - ih, pd, pd - id), mode="constant", value=0
-        )
+        y_big = F.pad(y, (pw, pw, ph, ph, pd, pd), mode="constant", value=0)
 
         # C*: circular transpose conv on padded grid
         z_big = _circular_conv_fft(
@@ -620,6 +619,7 @@ def conv_transpose3d_fft(
         )
 
         # P*: adjoint of padding -> fold to original D x H x W
+        z_big = z_big[..., id:, ih:, iw:]
         out = _apply_transpose_padding(
             z_big, padding=padding, p=(pd, ph, pw), i=(id, ih, iw)
         )
@@ -647,27 +647,27 @@ def _tgt_src_for_axis(mode: str, s: int, p: int, i: int):
     """
     if mode == "circular":
         if s == 0:
-            return slice(None), slice(p, -p + i), False, False
+            return slice(None), slice(p - i, -p if p > 0 else None), False, False
         elif s == -1:
-            return slice(0, p - i), slice(-p + i, None), False, False
+            return slice(0, p), slice(-p, None), False, False
         else:
-            return slice(-p, None), slice(None, p), False, False
+            return slice(-(p - i), None), slice(None, p - i), False, False
 
     if mode == "reflect":
         if s == 0:
-            return slice(None), slice(p, -p + i), False, False
+            return slice(None), slice(p - i, -p if p > 0 else None), False, False
         elif s == -1:
-            return slice(1, 1 + p), slice(0, p), True, False
+            return slice(1, 1 + (p - i)), slice(0, p - i), True, False
         else:
-            return slice(-p + i - 1, -1), slice(-p + i, None), True, False
+            return slice(-p - 1, -1), slice(-p, None), True, False
 
     if mode == "replicate":
         if s == 0:
-            return slice(None), slice(p, -p + i), False, False
+            return slice(None), slice(p - i, -p if p > 0 else None), False, False
         elif s == -1:
-            return 0, slice(0, p), False, True
+            return 0, slice(0, p - i), False, True
         else:
-            return -1, slice(-p + i, None), False, True
+            return -1, slice(-p, None), False, True
     else:
         _raise_value_error_padding_messages(mode)
 
@@ -675,7 +675,7 @@ def _tgt_src_for_axis(mode: str, s: int, p: int, i: int):
 def _center_crop_slice_1d(p: int, i: int) -> slice:
     # When p == i == 0, return the whole axis; otherwise replicate p : -p + i
     # This prevent issues with 0:-0 slices
-    return slice(None) if (p == 0 and i == 0) else slice(p, -p + i)
+    return slice(None) if (p == 0 and i == 0) else slice(p - i, -p if p > 0 else None)
 
 
 def _apply_transpose_padding(
@@ -796,7 +796,7 @@ def filter_fft(
 
     filter = F.pad(filter, pad, mode="constant", value=0)
 
-    shifts = tuple(-int((f - 1) / 2) for f in f_size)
+    shifts = tuple(-int(f / 2) for f in f_size)
     filter = torch.roll(filter, shifts=shifts, dims=dims)
     return fft.rfftn(filter, dim=dims) if real_fft else fft.fftn(filter, dim=dims)
 

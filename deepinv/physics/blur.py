@@ -543,7 +543,7 @@ class BlurFFT(DecomposablePhysics):
             mask = torch.cat([mask, mask], dim=-1)
 
             self.register_buffer("filter", filter)
-            self.register_buffer("angle", torch.exp(-1.0j * angle))
+            self.register_buffer("angle", torch.exp(1.0j * angle))  # phase: e^{i*angle}
             self.register_buffer("mask", mask)
 
         super().update_parameters(**kwargs)
