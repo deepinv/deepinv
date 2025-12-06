@@ -1251,13 +1251,19 @@ def test_noise_domain(device):
     assert y1[0, 2, 2, 2] == 0
 
 
-def test_blur(device):
+@pytest.mark.parametrize(
+    "img_size", [(1, 64, 64), (3, 65, 65), (1, 64, 65), (3, 65, 64)]
+)
+@pytest.mark.parametrize("filter_size", [(1, 5, 5), (1, 6, 6), (1, 6, 5)])
+def test_blur(img_size, filter_size, device):
     r"""
     Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
-    x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
-    h = torch.ones((1, 1, 5, 5)) / 25.0
+    x = torch.randn(*img_size, device=device).unsqueeze(0)
+    h = torch.ones(*filter_size, device=device).unsqueeze(0) / (
+        filter_size[1] * filter_size[2]
+    )
 
     physics_blur = dinv.physics.Blur(
         filter=h,
@@ -1266,7 +1272,7 @@ def test_blur(device):
     )
 
     physics_blurfft = dinv.physics.BlurFFT(
-        img_size=(1, x.shape[-2], x.shape[-1]),
+        img_size=img_size,
         filter=h,
         device=device,
     )
@@ -1280,11 +1286,8 @@ def test_blur(device):
     assert y1.shape == y2.shape
     assert back1.shape == back2.shape
 
-    error_A = (y1 - y2).flatten().abs().max()
-    error_At = (back1 - back2).flatten().abs().max()
-
-    assert error_A < 1e-6
-    assert error_At < 1e-6
+    assert torch.allclose(y1, y2, atol=1e-5)
+    assert torch.allclose(back1, back2, atol=1e-5)
 
 
 def test_reset_noise(device):

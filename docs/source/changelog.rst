@@ -37,6 +37,7 @@ New Features
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -69,6 +70,7 @@ New Features
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 - Add SpatialUnwrapping forward model and ItohFidelity data fidelity (:gh:`723` by `Brayan Monroy`_)
+- make FFT and spatial convolution equivalent (:gh:`825` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
