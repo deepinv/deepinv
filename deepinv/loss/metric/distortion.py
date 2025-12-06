@@ -320,8 +320,8 @@ class SNR(Metric):
 
         The input is assumed to be batched and the SNR is computed for each element independently.
 
-    :param torch.Tensor preds: The noisy signal.
-    :param torch.Tensor target: The reference signal.
+    :param torch.Tensor x_net: The noisy signal.
+    :param torch.Tensor x: The reference signal.
     :return: (torch.Tensor) The SNR value in decibels (dB).
     """
 

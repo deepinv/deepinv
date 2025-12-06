@@ -23,7 +23,7 @@ METRICS = [
     "SAM",
     "HaarPSI",
 ]
-FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "peak_signal_noise_ratio"]
+FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
 def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
@@ -190,7 +190,7 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         torch_psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
         assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
-    elif functional_name == "peak_signal_noise_ratio":
+    elif functional_name == "signal_noise_ratio":
         pytest.importorskip(
             "torchmetrics",
             reason="This test requires torchmetrics. It should be "
