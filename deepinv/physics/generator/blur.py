@@ -189,26 +189,30 @@ class DiffractionBlurGenerator(PSFGenerator):
     r"""
     Diffraction limited blur generator.
 
-    Generates 2D diffraction PSFs in optics using Zernike decomposition of the phase mask
-    (Fresnel/Fraunhoffer diffraction theory).
+    Generates 2D diffraction PSFs in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
 
     Zernike polynomials are a sequence of orthogonal polynomials defined on the unit disk.
     They are commonly used in optical systems to describe wavefront aberrations.
 
-    The PSF :math:`h(\theta)` is defined as the squared magnitude of the Fourier transform of the pupil function :math:`\phi_{\theta}` as:
+
+
+    The PSF :math:`h(\theta)` is defined as the squared magnitude of the Fourier transform of the pupil function :math:`p_{\theta} = \exp(- i 2 \pi \phi_{\theta})`:
 
     .. math::
 
         h(\theta) = \left| \mathcal{F} \left( \exp \left( - i 2 \pi \phi_\theta \right) \right) \right|^2,
 
-    where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}`  is the phase aberration expressed in the Zernike basis:
+    where :math:`\phi_\theta : \mathbb{R}^2 \to \mathbb{R}`  is the wavefront error function (or aberration function), expressed in the Zernike basis:
 
     .. math::
+
         \phi_\theta= \sum_{k \in K} \theta_k z_k
 
     where :math:`K` is set of indices of Zernike polynomials :math:`z_k` used in the decomposition (equal to `zernike_index`).
     See :footcite:t:`lakshminarayanan2011zernike` for more details
     (`or this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
+
+    In the ideal diffraction-limited case (i.e., no aberrations), the PSF corresponds to the Airy pattern.
 
     The Zernike polynomials :math:`z_k` are indexed using the ``'noll'`` or ``'ansi'`` convention (defined by `index_convention` parameter).
     Conversion from the two conventions to the standard radial-angular indexing is done internally (see `wikipedia page <https://en.wikipedia.org/wiki/Zernike_polynomials>`_).
@@ -294,7 +298,7 @@ class DiffractionBlurGenerator(PSFGenerator):
             XX0, XX1 = torch.meshgrid(lin_0, lin_1, indexing="ij")
             dist = (XX0**2 + XX1**2) ** 0.5
             radius = min(psf_size) / 2
-            apodize_length = 10
+            apodize_length = min(10, radius)
             self.apodize_mask = bump_function(
                 dist, a=radius - apodize_length, b=apodize_length
             )
@@ -356,7 +360,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         angle: torch.Tensor = None,
         seed: int = None,
         **kwargs,
-    ):
+    ) -> dict:
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 
@@ -366,11 +370,10 @@ class DiffractionBlurGenerator(PSFGenerator):
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
-            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
-            `coeff`: list of sampled Zernike coefficients in this realization,
-            `pupil`: the pupil function,
-            `angle`: the random rotation angle in degrees if `random_rotate` is `True`, nothing otherwise.
-        :rtype: dict
+            - `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
+            - `coeff`: list of sampled Zernike coefficients in this realization,
+            - `pupil`: the pupil function,
+            - `angle`: the random rotation angle in degrees if `random_rotate` is `True`, nothing otherwise.
         """
 
         self.rng_manual_seed(seed)
@@ -950,12 +953,40 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
 class DiffractionBlurGenerator3D(PSFGenerator):
     r"""
-    3D diffraction limited kernels using Zernike decomposition of the phase mask.
+    3D diffraction limited kernels using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
 
-    Fresnel/Fraunhoffer diffraction theory, this class uses :class:`deepinv.physics.generator.DiffractionBlurGenerator` under the hood to generate the pupil function. Refer to its documentation for more details.
+    This method simulates the propagation of the wavefront from the pupil plane
+    (frequency domain) to multiple defocus planes in the image space.
+    The pupil function is constructed using a Zernike polynomial decomposition
+    of the wavefront aberrations, see :class:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
 
-    :param tuple psf_size: give in the order (depth, height, width)
-    :param int num_channels: number of channels. Default to 1.
+    At each depth :math:`z`, the pupil function is modulated by a phase term
+    corresponding to the axial wave vector :math:`k_z`,
+    which is derived from the dispersion relation of light in free space.
+
+    .. math::
+
+        k_z = \sqrt{k_{\text{total}}^2 - k_{\text{lateral}}^2}
+
+    where :math:`k_{\text{total}}` is the total wave number (`kb`) and :math:`k_{\text{lateral}}` is the lateral wave vector component.
+    The pupil function at depth :math:`z` is given by:
+
+    .. math::
+
+        P(x, y, z) = P(x, y, 0) \cdot \exp \left( - i 2 \pi \cdot k_z \cdot z \right)
+
+    And the depth planes are sampled according to the `stepz_pixel` parameter, which defines the ratio between the physical size of the :math:`z` direction to that in the :math:`x/y` direction of the voxels in the 3D image.
+
+
+    The 3D PSF is then computed by square modulus of Fourier transform of the modulated pupil function at each depth plane, followed by normalization across the spatial dimensions.
+
+
+    .. note::
+
+        This class uses :class:`deepinv.physics.generator.DiffractionBlurGenerator` under the hood to generate the pupil function at :math:`z=0`. Refer to its documentation for more details.
+
+    :param tuple psf_size: give in the order `(depth, height, width)` the size of the PSF to generate.
+    :param int num_channels: number of channels. Default to `1`.
     :param tuple[int] zernike_index: list of activated Zernike coefficients.
     :param float fc: cutoff frequency `(NA/emission_wavelength) * pixel_size`. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`.
     :param float kb: wave number `(NI/emission_wavelength) * pixel_size` or `(NA/NI) * fc`. Must be greater than `fc`. Defaults to `0.3`.
@@ -1069,7 +1100,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         angle: torch.Tensor = None,
         seed: int = None,
         **kwargs,
-    ):
+    ) -> dict:
         r"""
         Generate a batch of PSF with a batch of Zernike coefficients
 
@@ -1079,11 +1110,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         :param int seed: the seed for the random number generator.
 
         :return: dictionary with keys
-            `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
-            `pupil`: the pupil function,
-            `coeff`: list of sampled Zernike coefficients in this realization,
-            `angle`: the random rotation angles in degrees if `random_rotate` is `True`, nothing otherwise.
-        :rtype: dict
+            - `filter`: tensor of size `(batch_size x num_channels x psf_size[0] x psf_size[1])` batch of PSFs,
+            - `pupil`: the pupil function,
+            - `coeff`: list of sampled Zernike coefficients in this realization,
+            - `angle`: the random rotation angles in degrees if `random_rotate` is `True`, nothing otherwise.
         """
         gen_dict = self.generator2d.step(
             batch_size=batch_size, coeff=coeff, seed=seed, **kwargs
@@ -1094,7 +1124,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
         propKer = torch.exp(-1j * 2 * torch.pi * d * self._defocus) + 0j
         p = pupil[:, None, ...] * propKer[None, ...]
-        p[torch.isnan(p)] = 0
+        p = torch.nan_to_num(p, nan=0.0)
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
         pfft = torch.fft.fft2(pshift, dim=(-2, -1))
         psf = torch.fft.ifftshift(pfft, dim=(-2, -1))

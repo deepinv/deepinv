@@ -97,7 +97,7 @@ diffraction_generator = DiffractionBlurGenerator3D(
 # For optician physicists: ``fc`` is the cutoff frequency, which should be below 0.25
 # to respect Shannon's sampling theorem,  ``kb`` is the wave number, used for propagation
 # in depth. Letting ``NA`` denote the numerical aperture, ``NI`` denote the index
-# of refraction of the immersion medium and lambda denote the emission wavelength,
+# of refraction of the immersion medium and `lambda` denote the emission wavelength,
 # the quantities are related through:
 # `fc = (NA/lambda) * pixel_size`.
 # `kb = (NI/lambda) * pixel_size`.
