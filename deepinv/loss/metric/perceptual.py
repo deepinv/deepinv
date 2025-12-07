@@ -235,20 +235,24 @@ class SharpnessIndex(Metric):
     """
     No-reference sharpness index metric for images.
 
-    Measures how sharp an image is, and can be used to assess the quality of images :cite:t:`blanchet2012sharpness` :cite:t:`leclaire2015sharpness`.
+    Measures how sharp an image is, defined as
+
+    .. math::
+
+        \text{SI}(x) = -\log \Phi( \frac{\mathbb{E}_{\omega}( \text{TV}(\omega * x) - \text{TV}(x) )}{\sqrt{\mathbb{V}_{\omega}(\text{TV}(\omega * x))}} )
+
+    where :math:`\Phi` is the CDF of a standard Gaussian distribution, :math:`\text{TV}` is the total variation,
+    and :math:`\omega \sim \mathcal{N}(0, I)` is a Gaussian white noise distribution.
+
     Higher values indicate sharper images.
 
-    Available preprocessing modes are:
-
-    - pmode = 0, raw S index of input image
-    - pmode = 1, S index of the periodic component of input image
-    - pmode = 2, S index of the 1/2,1/2-translated of input image
-    - pmode = 3 (default), S index of the 1/2,1/2-translated of the periodic component of input image
+    The metric is used to introduced in :cite:t:`blanchet2012sharpness`.
+    We use the fast implementation presented in :cite:t:`leclaire2015sharpness`.
 
     Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
-    :param int pmode: preprocessing mode for sharpness index computation. Default: 3. Default mode (pmode = 3) should be used, unless you want to work on very
-        specific images that are naturally periodic or not quantized (see paper)
+    :param bool periodic_component: if True (default), compute the periodic component of the image before computing the metric.
+    :param bool dequantize: if True (default), perform image dequantization by (1/2, 1/2) translation in Fourier domain before computing the metric.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
@@ -270,10 +274,11 @@ class SharpnessIndex(Metric):
     torch.Size([2])
 
     """
-    def __init__(self, pmode=3, **kwargs):
+    def __init__(self, periodic_component=True, dequantize=True, **kwargs):
         super().__init__(**kwargs)
         self.lower_better = False
-        self.pmode = pmode  # preprocessing mode
+        self.periodic_component = periodic_component
+        self.dequantize = dequantize
 
     def metric(self, x_net, *args, **kwargs):
         """
@@ -285,9 +290,9 @@ class SharpnessIndex(Metric):
         B, C, H, W = x_net.shape
 
         # ---- preprocessing modes ----
-        if self.pmode in (1, 3):
-            x_net = perdecomp(x_net)
-        if self.pmode in (2, 3):
+        if self.periodic_component:
+            x_net = per_decomp(x_net)
+        if self.dequantize:
             x_net = dequant(x_net)
 
         gx = torch.roll(x_net, shifts=-1, dims=3) - x_net  # (B,C,H,W)
@@ -345,13 +350,12 @@ class SharpnessIndex(Metric):
         s = torch.zeros_like(t)
         positive = vara > 0
         ts = t[positive] / math.sqrt(2)
-
         s_pos = -logerfc(ts) / math.log(10) + math.log10(2)
         s[positive] = s_pos
         return s.mean(dim=1)  # (B,)
 
 
-def perdecomp(u):
+def per_decomp(u):
     """
     Periodic + smooth decomposition of a 2D image.
 
@@ -437,7 +441,35 @@ def dequant(u):
     v = torch.fft.ifft2(fv).real
     return v
 
-def logerfc(x):
-    # for numerical stability use log(erfc(x)) directly
-    return torch.log(torch.erfc(x))
 
+
+def logerfc(x):
+    """
+    Compute log(erfc(x)) with asymptotic expansion for large x.
+
+    Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
+    """
+
+    x = x.double()
+    y = torch.empty_like(x)
+
+    # mask for large x (asymptotic approximation)
+    ind = x > 20
+
+    # if x > 20  → use asymptotic expansion
+    if ind.any():
+        X = x[ind]
+        z = X.pow(-2)
+        s = torch.ones_like(X)
+
+        # MATLAB loop: for k = 8:-1:1
+        for k in range(8, 0, -1):
+            s = 1 - (k - 0.5) * z * s
+
+        y[ind] = -0.5 * math.log(math.pi) - X**2 + torch.log(s / X)
+
+    # if x ≤ 20  → directly log(erfc(x))
+    if (~ind).any():
+        y[~ind] = torch.log(torch.erfc(x[~ind]))
+
+    return y
