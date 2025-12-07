@@ -18,6 +18,12 @@ class UNet(Denoiser):
     upsampling stages). The width of each stage is controlled by ``channels_per_scale``, which gives the number of
     feature maps from shallow to deep.
 
+    If ``scales`` is not given, it is inferred from ``channels_per_scale`` (its length). If both are omitted, defaults to
+    configuration with ``scales=4`` and ``channels_per_scale=[64, 128, 256, 512, 1024]``. When
+    ``scales`` is specified explicitly together with ``channels_per_scale``, only the first ``scales`` entries
+    of ``channels_per_scale`` are used; its length must be at least ``scales``. The number of trainable parameters
+    increases with both ``scales`` and the values in ``channels_per_scale``.
+
     .. warning::
         When using the bias-free batch norm ``BFBatchNorm2d`` via ``batch_norm="biasfree"``, NaNs may be encountered
         during training, causing the whole training procedure to fail.
