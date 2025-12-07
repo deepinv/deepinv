@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube|
+|Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab| |youtube| |paper|
 
 
 Introduction
@@ -30,6 +30,11 @@ Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. 
 * `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems
 * `Sampling algorithms and diffusion models <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification
 * A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
+
+Mailing list
+~~~~~~~~~~~~
+
+`Join our mailing list <https://forms.gle/TFyT7M2HAWkJYfvQ7>`_ for occasional updates on releases and new features.
 
 Install
 -------
@@ -65,6 +70,19 @@ Or, for updating an existing installation:
    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 
+Finding help
+------------
+
+If you have any questions or suggestions, please join the conversation in our
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_.
+
+Maintainers
+~~~~~~~~~~~
+
+Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
+
 Contributing
 ------------
 
@@ -74,36 +92,25 @@ and we need your help to get there!
 
 Interested? `Check out how you can contribute <https://deepinv.github.io/deepinv/contributing.html>`_!
 
-Finding help
-------------
-
-If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
-`open an issue <https://github.com/deepinv/deepinv/issues>`_.
-
-Maintainers
------------
-
-Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
-
-
 Citation
 --------
-If you use DeepInverse in your research, please cite `our paper on arXiv <https://arxiv.org/abs/2505.20160>`_:
+If you use DeepInverse in your research, please cite `our paper on JOSS <https://joss.theoj.org/papers/10.21105/joss.08923>`_:
 
 
 .. code-block:: bash
 
-    @software{tachella2025deepinverse,
-          title={DeepInverse: A Python package for solving imaging inverse problems with deep learning},
-          author={Julián Tachella and Matthieu Terris and Samuel Hurault and Andrew Wang and Dongdong Chen and Minh-Hai Nguyen and Maxime Song and Thomas Davies and Leo Davy and Jonathan Dong and Paul Escande and Johannes Hertrich and Zhiyuan Hu and Tobías I. Liaudat and Nils Laurent and Brett Levac and Mathurin Massias and Thomas Moreau and Thibaut Modrzyk and Brayan Monroy and Sebastian Neumayer and Jérémy Scanvic and Florian Sarron and Victor Sechaud and Georg Schramm and Romain Vo and Pierre Weiss},
-          year={2025},
-          eprint={2505.20160},
-          archivePrefix={arXiv},
-          primaryClass={eess.IV},
-          url={https://arxiv.org/abs/2505.20160},
+    @article{tachella2025deepinverse,
+        title = {DeepInverse: A Python package for solving imaging inverse problems with deep learning},
+        journal = {Journal of Open Source Software},
+        doi = {10.21105/joss.08923},
+        url = {https://doi.org/10.21105/joss.08923},
+        year = {2025},
+        publisher = {The Open Journal},
+        volume = {10},
+        number = {115},
+        pages = {8923},
+        author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
-
 
 Star history
 ------------
@@ -117,11 +124,11 @@ Star history
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
-.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
@@ -132,6 +139,8 @@ Star history
 .. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing
+   :target: https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb
 .. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
    :target: https://www.youtube.com/@deepinv
+.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
+   :target: https://doi.org/10.21105/joss.08923

@@ -188,3 +188,12 @@ In order to contribute a new dataset, you must provide tests alongisde it to che
 We get around this by mocking datasets in the tests. First, write the tests and the implementation, and make sure that the tests pass locally, on the real data. Then, write `mocking code <https://en.wikipedia.org/wiki/Mock_object>`_, code that intercepts calls to input/output (IO) related functions, e.g. `os.listdir`, and make them return a hard coded value, thereby making execution go as if the data was there. For more details and examples, see `this pull request <https://github.com/deepinv/deepinv/pull/490>`_.
 
 Once the implementation, the tests and the mocking code are written, that they pass locally and on the CI servers, the maintainers will be able to review the code and merge it into the main branch if everything goes well. You should bear in mind though that the maintainers won't have the time to make sure the tests pass on the real data, so they will have to trust that you did things correctly.
+
+
+Maintainers commands
+--------------------
+
+Maintainers can use the following slash commands as comments on a pull request to trigger specific tests:
+
+- `/test-examples`: runs **all** sphinx gallery examples on CPU using CPU-enabled runners.
+- `/gpu-tests`: runs tests and generates docs on GPU using GPU-enabled runners.

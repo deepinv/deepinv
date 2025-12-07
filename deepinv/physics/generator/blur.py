@@ -52,7 +52,7 @@ class MotionBlurGenerator(PSFGenerator):
 
         k(t, s) = \sigma^2 \left( 1 + \frac{\sqrt{5} |t -s|}{l} + \frac{5 (t-s)^2}{3 l^2} \right) \exp \left(-\frac{\sqrt{5} |t-s|}{l}\right)
 
-    :param tuple psf_size: the shape of the generated PSF in 2D, should be `(kernel_size, kernel_size)`
+    :param int, tuple[int] psf_size: the shape of the generated PSF in 2D, should be `(kernel_size, kernel_size)`. If an `int` is given, the same value will be used for both dimensions.
     :param int num_channels: number of images channels. Defaults to 1.
     :param float l: the length scale of the trajectory, defaults to 0.3
     :param float sigma: the standard deviation of the Gaussian Process, defaults to 0.25
@@ -81,6 +81,9 @@ class MotionBlurGenerator(PSFGenerator):
         n_steps: int = 1000,
     ) -> None:
         kwargs = {"l": l, "sigma": sigma, "n_steps": n_steps}
+        if isinstance(psf_size, int):
+            psf_size = (psf_size, psf_size)
+
         if len(psf_size) != 2:
             raise ValueError(
                 "psf_size must 2D. Add channels via num_channels parameter"
