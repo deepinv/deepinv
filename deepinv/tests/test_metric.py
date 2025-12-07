@@ -17,6 +17,10 @@ METRICS = [
     "QNR",
     "LPIPS",
     "BlurStrength",
+    "SharpnessIndex",
+    "SharpnessIndex1",
+    "SharpnessIndex2",
+    "SharpnessIndex3",
     "NIQE",
     "ERGAS",
     "SAM",
@@ -59,6 +63,14 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.NIQE(**kwargs, device=device)
     elif metric_name == "BlurStrength":
         return metric.BlurStrength(**kwargs)
+    elif metric_name == "SharpnessIndex":
+        return metric.BlurStrength(**kwargs)
+    elif metric_name == "SharpnessIndex1":
+        return metric.BlurStrength(dequantize=False, **kwargs)
+    elif metric_name == "SharpnessIndex2":
+        return metric.BlurStrength(periodic_component=False, **kwargs)
+    elif metric_name == "SharpnessIndex3":
+        return metric.BlurStrength(dequantize=False, periodic_component=False, **kwargs)
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "ERGAS":
