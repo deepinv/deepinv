@@ -81,7 +81,6 @@ class UNet(Denoiser):
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
-        batchnorm = batchnorm_nd(dim)
         self.Maxpool = maxpool_nd(dim)(kernel_size=2, stride=2)
 
         self.in_channels = in_channels
@@ -96,131 +95,44 @@ class UNet(Denoiser):
         if biasfree and dim == 3:  # pragma: no cover
             raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
-        def conv_block(ch_in, ch_out):
-            if batch_norm:
-                return nn.Sequential(
-                    conv(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else batchnorm(ch_out)
-                    ),
-                    nn.ReLU(inplace=True),
-                    conv(
-                        ch_out,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else batchnorm(ch_out)
-                    ),
-                    nn.ReLU(inplace=True),
-                )
-            else:
-                return nn.Sequential(
-                    conv(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
-                    conv(
-                        ch_out,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
-                )
+        b = UNetConvBlockBuilder(dim, circular_padding, biasfree, bias, batch_norm)
 
-        def up_conv(ch_in, ch_out):
-            if batch_norm:
-                return nn.Sequential(
-                    nn.Upsample(scale_factor=2),
-                    conv(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else batchnorm(ch_out)
-                    ),
-                    nn.ReLU(inplace=True),
-                )
-            else:
-                return nn.Sequential(
-                    nn.Upsample(scale_factor=2),
-                    conv(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
-                )
+        self.Conv1 = b.conv_block(ch_in=in_channels, ch_out=cps[0])
+        self.Conv2 = b.conv_block(ch_in=cps[0], ch_out=cps[1])
+        self.Conv3 = (
+            b.conv_block(ch_in=cps[1], ch_out=cps[2]) if self.depth > 2 else None
+        )
+        self.Conv4 = (
+            b.conv_block(ch_in=cps[2], ch_out=cps[3]) if self.depth > 3 else None
+        )
+        self.Conv5 = (
+            b.conv_block(ch_in=cps[3], ch_out=cps[4]) if self.depth > 4 else None
+        )
 
-        conv_block = ConvBlock
-
-        self.Conv1 = conv_block(ch_in=in_channels, ch_out=cps[0])
-        self.Conv2 = conv_block(ch_in=cps[0], ch_out=cps[1])
-        self.Conv3 = conv_block(ch_in=cps[1], ch_out=cps[2]) if self.depth > 2 else None
-        self.Conv4 = conv_block(ch_in=cps[2], ch_out=cps[3]) if self.depth > 3 else None
-        self.Conv5 = conv_block(ch_in=cps[3], ch_out=cps[4]) if self.depth > 4 else None
-
-        self.Up5 = up_conv(ch_in=cps[4], ch_out=cps[3]) if self.depth > 4 else None
+        self.Up5 = b.up_conv(ch_in=cps[4], ch_out=cps[3]) if self.depth > 4 else None
         self.Up_conv5 = (
-            conv_block(ch_in=cps[3] * 2, ch_out=cps[3])
+            b.conv_block(ch_in=cps[3] * 2, ch_out=cps[3])
             if (self.depth > 4 and self.cat)
             else None
         )
 
-        self.Up4 = up_conv(ch_in=cps[3], ch_out=cps[2]) if self.depth > 3 else None
+        self.Up4 = b.up_conv(ch_in=cps[3], ch_out=cps[2]) if self.depth > 3 else None
         self.Up_conv4 = (
-            conv_block(ch_in=cps[2] * 2, ch_out=cps[2])
+            b.conv_block(ch_in=cps[2] * 2, ch_out=cps[2])
             if (self.depth > 3 and self.cat)
             else None
         )
 
-        self.Up3 = up_conv(ch_in=cps[2], ch_out=cps[1]) if self.depth > 2 else None
+        self.Up3 = b.up_conv(ch_in=cps[2], ch_out=cps[1]) if self.depth > 2 else None
         self.Up_conv3 = (
-            conv_block(ch_in=cps[1] * 2, ch_out=cps[1])
+            b.conv_block(ch_in=cps[1] * 2, ch_out=cps[1])
             if (self.depth > 2 and self.cat)
             else None
         )
 
-        self.Up2 = up_conv(ch_in=cps[1], ch_out=cps[0])
+        self.Up2 = b.up_conv(ch_in=cps[1], ch_out=cps[0])
         self.Up_conv2 = (
-            conv_block(ch_in=cps[0] * 2, ch_out=cps[0]) if self.cat else None
+            b.conv_block(ch_in=cps[0] * 2, ch_out=cps[0]) if self.cat else None
         )
 
         self.Conv_1x1 = conv(
@@ -322,6 +234,90 @@ class UNet(Denoiser):
         return super().load_state_dict(state_dict, strict=strict, assign=assign)
 
 
+class UNetConvBlockBuilder:
+    def __init__(
+        self,
+        dim: int,
+        circular_padding: bool,
+        biasfree: bool,
+        bias: bool,
+        norm: bool,
+    ):
+        self.padding_mode = "circular" if circular_padding else "zeros"
+        self.biasfree_norm = biasfree
+        self.use_bias = bias
+        self.norm = norm
+
+        self.dim = dim
+
+    def make_norm(self, ch_out):
+        if not self.norm:
+            return None
+        return (
+            BFBatchNorm2d(ch_out, use_bias=self.use_bias)
+            if self.biasfree_norm
+            else batchnorm_nd(self.dim)(ch_out)
+        )
+
+    def conv_block(self, ch_in, ch_out):
+        conv = conv_nd(self.dim)
+        layers = []
+
+        layers.append(
+            conv(
+                ch_in,
+                ch_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=self.use_bias,
+                padding_mode=self.padding_mode,
+            ),
+        )
+        norm = self.make_norm(ch_out)
+        if norm is not None:
+            layers.append(norm)
+        layers.append(nn.ReLU(inplace=True))
+        layers.append(
+            conv(
+                ch_out,
+                ch_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=self.use_bias,
+                padding_mode=self.padding_mode,
+            )
+        )
+        norm = self.make_norm(ch_out)
+        if norm is not None:
+            layers.append(norm)
+        layers.append(nn.ReLU(inplace=True))
+        return nn.Sequential(*layers)
+
+    def up_conv(self, ch_in, ch_out):
+        conv = conv_nd(self.dim)
+        layers = []
+
+        layers.append(nn.Upsample(scale_factor=2))
+        layers.append(
+            conv(
+                ch_in,
+                ch_out,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=self.use_bias,
+                padding_mode=self.padding_mode,
+            ),
+        )
+        norm = self.make_norm(ch_out)
+        if norm is not None:
+            layers.append(norm)
+        layers.append(nn.ReLU(inplace=True))
+        return nn.Sequential(*layers)
+
+
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From :footcite:t:`mohan2020robust`.
@@ -362,10 +358,6 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         if self.affine:
             y = self.weight.view(-1, 1) * y
             if self.use_bias:
-                y += self.bias.view(-1, 1)
+                y += self.use_bias.view(-1, 1)
 
         return y.view(return_shape).transpose(0, 1)
-
-class ConvBlock:
-    def __init__(self, dim : int, batchnorm : bool | str, circular_padding : bool, bias: bool, ):
-        (pass)
