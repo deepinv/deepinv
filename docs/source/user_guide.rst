@@ -172,6 +172,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
+   user_guide/reconstruction/blind
 
 
 Training, Testing and Utilities
