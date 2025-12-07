@@ -9,51 +9,6 @@ from .base import Denoiser
 from .utils import fix_dim, conv_nd, batchnorm_nd, maxpool_nd
 
 
-class BFBatchNorm2d(nn.BatchNorm2d):
-    r"""
-    From :footcite:t:`mohan2020robust`.
-    """
-
-    def __init__(
-        self, num_features, eps=1e-5, momentum=0.1, use_bias=False, affine=True
-    ):
-        super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
-        self.use_bias = use_bias
-        self.affine = affine
-
-    def forward(self, x):
-        self._check_input_dim(x)
-        y = x.transpose(0, 1)
-        return_shape = y.shape
-        y = y.contiguous().view(x.size(1), -1)
-        if self.use_bias:
-            mu = y.mean(dim=1)
-        sigma2 = y.var(dim=1)
-        if self.training is not True:
-            if self.use_bias:
-                y = y - self.running_mean.view(-1, 1)
-            y = y / (self.running_var.view(-1, 1) ** 0.5 + self.eps)
-        else:
-            if self.track_running_stats is True:
-                with torch.no_grad():
-                    if self.use_bias:
-                        self.running_mean = (
-                            1 - self.momentum
-                        ) * self.running_mean + self.momentum * mu
-                    self.running_var = (
-                        1 - self.momentum
-                    ) * self.running_var + self.momentum * sigma2
-            if self.use_bias:
-                y = y - mu.view(-1, 1)
-            y = y / (sigma2.view(-1, 1) ** 0.5 + self.eps)
-        if self.affine:
-            y = self.weight.view(-1, 1) * y
-            if self.use_bias:
-                y += self.bias.view(-1, 1)
-
-        return y.view(return_shape).transpose(0, 1)
-
-
 class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
@@ -234,6 +189,8 @@ class UNet(Denoiser):
                     nn.ReLU(inplace=True),
                 )
 
+        conv_block = ConvBlock
+
         self.Conv1 = conv_block(ch_in=in_channels, ch_out=cps[0])
         self.Conv2 = conv_block(ch_in=cps[0], ch_out=cps[1])
         self.Conv3 = conv_block(ch_in=cps[1], ch_out=cps[2]) if self.depth > 2 else None
@@ -363,3 +320,52 @@ class UNet(Denoiser):
             }
 
         return super().load_state_dict(state_dict, strict=strict, assign=assign)
+
+
+class BFBatchNorm2d(nn.BatchNorm2d):
+    r"""
+    From :footcite:t:`mohan2020robust`.
+    """
+
+    def __init__(
+        self, num_features, eps=1e-5, momentum=0.1, use_bias=False, affine=True
+    ):
+        super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
+        self.use_bias = use_bias
+        self.affine = affine
+
+    def forward(self, x):
+        self._check_input_dim(x)
+        y = x.transpose(0, 1)
+        return_shape = y.shape
+        y = y.contiguous().view(x.size(1), -1)
+        if self.use_bias:
+            mu = y.mean(dim=1)
+        sigma2 = y.var(dim=1)
+        if self.training is not True:
+            if self.use_bias:
+                y = y - self.running_mean.view(-1, 1)
+            y = y / (self.running_var.view(-1, 1) ** 0.5 + self.eps)
+        else:
+            if self.track_running_stats is True:
+                with torch.no_grad():
+                    if self.use_bias:
+                        self.running_mean = (
+                            1 - self.momentum
+                        ) * self.running_mean + self.momentum * mu
+                    self.running_var = (
+                        1 - self.momentum
+                    ) * self.running_var + self.momentum * sigma2
+            if self.use_bias:
+                y = y - mu.view(-1, 1)
+            y = y / (sigma2.view(-1, 1) ** 0.5 + self.eps)
+        if self.affine:
+            y = self.weight.view(-1, 1) * y
+            if self.use_bias:
+                y += self.bias.view(-1, 1)
+
+        return y.view(return_shape).transpose(0, 1)
+
+class ConvBlock:
+    def __init__(self, dim : int, batchnorm : bool | str, circular_padding : bool, bias: bool, ):
+        (pass)
