@@ -14,8 +14,9 @@ device = "cpu"
 @pytest.mark.parametrize("padding", ALL_CONV_PADDING)
 @pytest.mark.parametrize("real_fft", [True, False])
 @pytest.mark.parametrize("use_fft", [False, True])
+@pytest.mark.parametrize("correlation", [True, False])
 def test_conv2d_adjointness(
-    device, B, nchan_im, nchan_filt, padding, real_fft, use_fft
+    device, B, nchan_im, nchan_filt, padding, real_fft, use_fft, correlation
 ):
     torch.manual_seed(0)
 
@@ -31,8 +32,8 @@ def test_conv2d_adjointness(
         conv2d_fn = partial(dF.conv2d_fft, real_fft=real_fft)
         conv_transpose2d_fn = partial(dF.conv_transpose2d_fft, real_fft=real_fft)
     else:
-        conv2d_fn = dF.conv2d
-        conv_transpose2d_fn = dF.conv_transpose2d
+        conv2d_fn = partial(dF.conv2d, correlation=correlation)
+        conv_transpose2d_fn = partial(dF.conv_transpose2d, correlation=correlation)
 
     for sim in size_im:
         for sfil in size_filt:
@@ -77,7 +78,6 @@ def test_conv2d_spatial_and_fft_equivalence(
     else:
         spatial_fn = dF.conv2d
         fft_fn = partial(dF.conv2d_fft, real_fft=True)
-
     for sim in size_im:
         for sfil in size_filt:
             for bf in (1, B):
