@@ -268,6 +268,7 @@ def test_generate_dataset():
         assert sample_hdf[0].equal(
             sample
         ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    hdf_ds.hd5.close()
     shutil.rmtree(tmp_data_dir)
     os.remove(hdf_path)
 
