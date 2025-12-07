@@ -13,9 +13,10 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    This network is a fully convolutional denoiser based on the U-Net architecture. The number of downsample steps
-    can be controlled with the ``scales`` parameter. The number of trainable parameters increases with the number of
-    scales.
+    This network is a fully convolutional denoiser based on the U-Net architecture. The depth of the network is
+    controlled by ``scales``, which sets the number of encoder downsampling stages (and corresponding decoder
+    upsampling stages). The width of each stage is controlled by ``channels_per_scale``, which gives the number of
+    feature maps from shallow to deep.
 
     .. warning::
         When using the bias-free batch norm ``BFBatchNorm2d`` via ``batch_norm="biasfree"``, NaNs may be encountered
