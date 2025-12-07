@@ -239,7 +239,8 @@ class SharpnessIndex(Metric):
 
     .. math::
 
-        \text{SI}(x) = -\log \Phi( \frac{\mathbb{E}_{\omega}( \text{TV}(\omega * x) - \text{TV}(x) )}{\sqrt{\mathbb{V}_{\omega}(\text{TV}(\omega * x))}} )
+            \text{SI}(x) = -\log \Phi( \frac{\mathbb{E}_{\omega}( \text{TV}(\omega * x) - \text{TV}(x) )}{\sqrt{\mathbb{V}_{\omega}(\text{TV}(\omega * x))}} )
+
 
     where :math:`\Phi` is the CDF of a standard Gaussian distribution, :math:`\text{TV}` is the total variation,
     and :math:`\omega \sim \mathcal{N}(0, I)` is a Gaussian white noise distribution.
