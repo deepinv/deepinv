@@ -102,7 +102,9 @@ dinv.utils.plot({"Blurry": y, "Deblurred RAM": x_ram, "Deblurred DPIR": x_dpir})
 # Sharpness Index (higher is better)
 # to assess the quality of the reconstructions.
 
-niqe = dinv.metric.NIQE()
+center_crop = -10 # remove 10 pixels from each border to avoid boundary effects
+
+niqe = dinv.metric.NIQE(center_crop=center_crop)
 
 niqe_blurry = niqe(y).item()
 niqe_ram = niqe(x_ram).item()
@@ -112,7 +114,7 @@ print(
     f"NIQE (lower better): Blurry={niqe_blurry:.2f}, RAM={niqe_ram:.2f}, DPIR={niqe_dpir:.2f}"
 )
 
-bs = dinv.metric.BlurStrength()
+bs = dinv.metric.BlurStrength(center_crop=center_crop)
 
 bs_blurry = bs(y).item()
 bs_ram = bs(x_ram).item()
@@ -122,7 +124,7 @@ print(
     f"Blur Strength (lower better): Blurry={bs_blurry:.2f}, RAM={bs_ram:.2f}, DPIR={bs_dpir:.2f}"
 )
 
-si = dinv.metric.SharpnessIndex()
+si = dinv.metric.SharpnessIndex(center_crop=center_crop)
 
 si_blurry = si(y).item()
 si_ram = si(x_ram).item()
