@@ -418,7 +418,7 @@ def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
 
 def _test_multiprocess_physics_worker(rank, world_size, args):
     """Worker for multi-process physics tests."""
-    with DistributedContext(device_mode=args["device_mode"]) as ctx:
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics, needs_num_ops = create_physics_specification(
             args["spec_type"], ctx.device, args["num_operators"]
         )
@@ -830,7 +830,7 @@ def _test_adjoint_operations_worker(rank, world_size, args):
 def test_adjoint_operations(device_config, gather_strategy):
     """Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations."""
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
-    if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
+    if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
 
     test_args = {
