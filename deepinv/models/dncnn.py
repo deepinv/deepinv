@@ -48,6 +48,7 @@ class DnCNN(Denoiser):
 
         conv = conv_nd(dim)
 
+        print("test")
         self.depth = depth
 
         self.in_conv = conv(
