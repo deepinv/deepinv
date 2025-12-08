@@ -99,7 +99,7 @@ class NIQE(Metric):
 
 
 class BlurStrength(Metric):
-    """
+    r"""
     No-reference blur strength metric for batched images.
 
     Returns a value in (0, 1) for each image in the batch, where 0 indicates a very sharp image and 1 indicates a very blurry image.
@@ -110,7 +110,7 @@ class BlurStrength(Metric):
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`{\ell}_2` spatial norm, ``min_max`` normalizes by min and max of each input.
     :param bool check_input_range: if True, ``pyiqa`` will raise error if inputs aren't in the appropriate range ``[0, 1]``.
     :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
         If an `int` is provided, the cropping is applied equally on all spatial dimensions (by default, all dimensions except the first two).
@@ -232,14 +232,14 @@ def sobel_1d(x, axis):
 
 
 class SharpnessIndex(Metric):
-    """
+    r"""
     No-reference sharpness index metric for images.
 
     Measures how sharp an image is, defined as
 
     .. math::
 
-            \text{SI}(x) = -\log \Phi( \frac{\mathbb{E}_{\omega}( \text{TV}(\omega * x) - \text{TV}(x) )}{\sqrt{\mathbb{V}_{\omega}(\text{TV}(\omega * x))}} )
+            \text{SI}(x) = -\log \Phi \left( \frac{\mathbb{E}_{\omega} \{ \text{TV}(\omega * x)\} - \text{TV}(x)  }{\sqrt{\mathbb{V}_{\omega} \{ \text{TV}(\omega * x) \} } } \right)
 
 
     where :math:`\Phi` is the CDF of a standard Gaussian distribution, :math:`\text{TV}` is the total variation,
@@ -247,8 +247,8 @@ class SharpnessIndex(Metric):
 
     Higher values indicate sharper images.
 
-    The metric is used to introduced in :cite:t:`blanchet2012sharpness`.
-    We use the fast implementation presented in :cite:t:`leclaire2015sharpness`.
+    The metric is used to introduced by :cite:t:`blanchet2012sharpness`.
+    We use the fast implementation presented by :cite:t:`leclaire2015sharpness`.
 
     Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
@@ -280,6 +280,7 @@ class SharpnessIndex(Metric):
         self.lower_better = False
         self.periodic_component = periodic_component
         self.dequantize = dequantize
+        assert self.periodic_component or self.dequantize, "At least one of periodic_component or dequantize must be True."
 
     def metric(self, x_net, *args, **kwargs):
         """
