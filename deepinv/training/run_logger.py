@@ -352,8 +352,6 @@ class LocalLogger(RunLogger):
         self.metrics_dir = self.run_log_dir / "metrics"
         self.images_dir = self.run_log_dir / "images"
 
-        self.loss_history = []
-
         self.stdout_logger = getLogger("stdout_logger")
         self.stdout_logger.setLevel("INFO")
 
@@ -373,18 +371,7 @@ class LocalLogger(RunLogger):
         fh.setLevel("INFO")
         self.stdout_logger.addHandler(fh)
 
-        # Setup average meters for losses
-        self.img_counter = 0  # Initialize image counter
-
-        # Initialize dictionaries to hold meters for different phases
-        self.losses_train = {}
-        self.losses_val = {}
-        self.losses_test = {}
-        self.metrics_train = {}
-        self.metrics_val = {}
-        self.metrics_test = {}
-
-        self.loss_history = []
+        self.img_counter = 0  # Initialize image counter ???
 
         self.stdout_logger.info(f"Log directory initialized: {self.run_log_dir}")
 
@@ -401,8 +388,6 @@ class LocalLogger(RunLogger):
         epoch: int | None = None,
         phase: str = "train",
     ) -> None:
-        if phase == "train":
-            self.loss_history.append(["total_loss_avg"])
 
         # Human readable logging
         loss_str = "| ".join([f"{name}: {value:.6f}" for name, value in losses.items()])
