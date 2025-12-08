@@ -2232,3 +2232,42 @@ class PDCP(BaseOptim):
             trainable_params=trainable_params,
             **kwargs,
         )
+
+
+class SIRT(BaseOptim):
+    r"""Simultaneous Iterative Reconstruction Technique (SIRT) optimization module.
+
+    Implementation of the `Simultaneous Iterative Reconstruction Technique (SIRT) <https://www.sciencedirect.com/science/article/pii/0022519372901804>`_
+    algorithm for solving linear inverse problems of the form :math:`y = Ax + \epsilon`, where :math:`\epsilon` models all the errors in the modelisation.
+    This algorithm is widely used in tomography, especially for X-ray computed tomography.
+
+    Iterations are given by
+    .. math::
+        \begin{equation*}
+        x_{k+1} = x_k + \gamma V A^{\top} W (y - A x_k)
+        \end{equation*}
+
+    where
+    - :math:`\gamma` is a stepsize parameter,
+    - :math:`W = \mathrm{diag}\left(\frac{1}{\sum_{i}a_{ij}}\right)`, a diagonal matrix where each diagonal element is the inverse of the sum of the elements of the corresponding row of the forward operator :math:`A`,
+    - :math:`V = \mathrm{diag}\left(\frac{1}{\sum_{j}a_{ij}}\right)`, a diagonal matrix where each diagonal element is the inverse of the sum of the elements of the corresponding column of the forward operator :math:`A`.
+    """
+
+    def __init__(
+        self,
+        prior: Prior | list[Prior] = None,
+        stepsize: float = 1.0,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        **kwargs,
+    ):
+        super(SIRT, self).__init__(
+            SIRTIteration(),
+            params_algo={"stepsize": stepsize},
+            max_iter=max_iter,
+            **kwargs,
+        )
