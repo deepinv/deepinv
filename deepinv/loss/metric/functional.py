@@ -44,10 +44,13 @@ def signal_noise_ratio(x_hat: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     :return: (torch.Tensor) The SNR value in decibels (dB).
     """
     noise = x_hat - x
-    signal_power = x.abs().pow(2).flatten(1, -1).mean(dim=1)
-    noise_power = noise.abs().pow(2).flatten(1, -1).mean(dim=1)
-    snr = signal_power / noise_power
-    return 10 * torch.log10(snr)
+    # For a more efficient implementation, we compute the SNR from the signal
+    # and noise L2 norms instead of their powers.
+    signal_norm = torch.linalg.vector_norm(x.flatten(1, -1), p=2, dim=1)
+    noise_norm = torch.linalg.vector_norm(noise.flatten(1, -1), p=2, dim=1)
+    sqrt_snr = signal_norm / noise_norm
+    # The factor 20 instead of 10 comes from the square root.
+    return 20 * torch.log10(sqrt_snr)
 
 
 def cal_mse(a, b):
