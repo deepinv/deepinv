@@ -389,14 +389,25 @@ class DistributedContext:
         # Use shape[0] instead of len(local_results) to handle empty tensor case correctly
         if local_concat.shape[0] < max_local_count:
             padding_rows = max_local_count - local_concat.shape[0]
-            padding = torch.zeros(
-                (padding_rows, max_numel), dtype=local_concat.dtype, device=self.device
-            )
-            local_concat_padded = torch.cat([local_concat, padding], dim=0)
+            # Handle edge case: if local_concat is completely empty (0, max_numel),
+            # directly create the padded tensor instead of concatenating
+            if local_concat.shape[0] == 0:
+                local_concat_padded = torch.zeros(
+                    (max_local_count, max_numel),
+                    dtype=canonical_dtype,
+                    device=self.device,
+                )
+            else:
+                padding = torch.zeros(
+                    (padding_rows, max_numel),
+                    dtype=local_concat.dtype,
+                    device=self.device,
+                )
+                local_concat_padded = torch.cat([local_concat, padding], dim=0)
         else:
             local_concat_padded = local_concat
 
-        # Ensure contiguous memory layout (important for Gloo backend)
+        # Ensure contiguous memory layout (for Gloo backend)
         local_concat_padded = local_concat_padded.contiguous()
 
         # All-gather with fixed size - use canonical dtype for consistency
@@ -414,7 +425,6 @@ class DistributedContext:
 
         # Step 4: Reconstruct TensorList from gathered data
         out: list = [None] * num_operators
-        metadata_idx = 0
 
         for rank_idx, rank_metadata in enumerate(gathered_metadata):
             if rank_metadata is None:
