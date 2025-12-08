@@ -11,6 +11,7 @@ from .distortion import (
     SpectralAngleMapper,
     ERGAS,
     HaarPSI,
+    CosineSimilarity,
 )
 from .perceptual import NIQE, LPIPS
 from .functional import cal_mse, cal_psnr, cal_mae

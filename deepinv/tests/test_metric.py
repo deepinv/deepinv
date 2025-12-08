@@ -20,6 +20,7 @@ METRICS = [
     "ERGAS",
     "SAM",
     "HaarPSI",
+    "CosineSimilarity",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
@@ -65,6 +66,8 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
     elif metric_name == "HaarPSI":
         kwargs.pop("norm_inputs")
         return metric.HaarPSI(norm_inputs="clip", **kwargs)
+    elif metric_name == "CosineSimilarity":
+        return metric.CosineSimilarity(**kwargs)
     else:
         raise ValueError("Incorrect metric name.")
 
@@ -129,7 +132,10 @@ def test_metrics(
     # In general, metrics can be either lower or higher = better
     # However, if we set train_loss=True, all metrics become lower = better.
     if train_loss:
-        assert m(x_hat, x).item() > m(x, x).item()
+        if metric_name not in "CosineSimilarity":
+            assert m(x_hat, x).item() > m(x, x).item()
+        else:
+            assert m(x_hat, x).item() < m(x, x).item()
 
     # Test various args and kwargs which could be passed to metrics
     assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
