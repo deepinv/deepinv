@@ -410,11 +410,10 @@ def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
 # =============================================================================
 
 
-@pytest.mark.parametrize("gather_strategy", ["naive", "concatenated", "broadcast"])
 @pytest.mark.parametrize(
     "physics_spec", ["physics_list", "stacked_physics", "callable_factory"]
 )
-def test_distribute_physics_forward(device_config, gather_strategy, physics_spec):
+def test_distribute_physics_forward(device_config, physics_spec):
     """Test distributing physics operators and forward operation."""
     # Skip GPU tests if not available
     if device_config.get("skip_reason"):
@@ -434,12 +433,9 @@ def test_distribute_physics_forward(device_config, gather_strategy, physics_spec
                 ctx,
                 type_object="physics",
                 num_operators=num_operators,
-                gather_strategy=gather_strategy,
             )
         else:
-            distributed_physics = distribute(
-                physics, ctx, gather_strategy=gather_strategy
-            )
+            distributed_physics = distribute(physics, ctx)
 
         # Test forward
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
@@ -492,13 +488,16 @@ def _test_multiprocess_physics_worker(rank, world_size, args):
         return "success"
 
 
-@pytest.mark.parametrize("gather_strategy", ["naive", "concatenated"])
+@pytest.mark.parametrize("gather_strategy", ["naive", "concatenated", "broadcast"])
+@pytest.mark.parametrize("num_operators", [1, 2, 5])
 @pytest.mark.parametrize("physics_spec", ["physics_list", "stacked_physics"])
-def test_distribute_physics_multiprocess(device_config, gather_strategy, physics_spec):
+def test_distribute_physics_multiprocess(
+    device_config, gather_strategy, physics_spec, num_operators
+):
     """Test physics distribution in multi-process mode."""
     x = torch.randn(1, 1, 16, 16)
     test_args = {
-        "num_operators": 4,
+        "num_operators": num_operators,
         "x": x,
         "spec_type": physics_spec,
         "gather_strategy": gather_strategy,

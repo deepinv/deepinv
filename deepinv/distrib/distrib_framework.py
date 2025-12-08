@@ -308,6 +308,7 @@ class DistributedContext:
                 out[idx] = result
             return TensorList(out)
 
+        print(f"Rank {self.rank}: Gathering {len(local_results)} tensors")
         # Step 1: Share metadata (indices, shapes, dtypes)
         local_metadata = [
             (idx, tuple(result.shape), result.dtype, result.numel())
@@ -323,6 +324,13 @@ class DistributedContext:
             if rank_metadata is not None:
                 all_metadata.extend(rank_metadata)
 
+        # Determine canonical dtype for all_gather (use first tensor's dtype for consistency)
+        if all_metadata:
+            canonical_dtype = all_metadata[0][2]  # dtype from first tensor
+        else:
+            canonical_dtype = torch.float32
+
+        print(f"Rank {self.rank}: Using canonical dtype {canonical_dtype}")
         # Step 2: Flatten and pad local tensors to max size
         if len(local_results) > 0:
             # Find max numel across all tensors globally
@@ -331,10 +339,13 @@ class DistributedContext:
             # Flatten and pad each local tensor
             flattened_padded = []
             for result in local_results:
-                flat = result.flatten()
+                # Convert to canonical dtype for consistency across ranks
+                flat = result.to(canonical_dtype).flatten()
                 if flat.numel() < max_numel:
                     padding = torch.zeros(
-                        max_numel - flat.numel(), dtype=flat.dtype, device=self.device
+                        max_numel - flat.numel(),
+                        dtype=canonical_dtype,
+                        device=self.device,
                     )
                     flat = torch.cat([flat, padding])
                 flattened_padded.append(flat)
@@ -345,29 +356,30 @@ class DistributedContext:
             )  # Shape: [num_local, max_numel]
         else:
             # This rank has no tensors - create empty placeholder
-            max_numel = max((numel for _, _, _, numel in all_metadata), default=1)
+            if all_metadata:
+                max_numel = max(numel for _, _, _, numel in all_metadata)
+            else:
+                max_numel = 1
+
             local_concat = torch.zeros(
-                (0, max_numel), dtype=torch.float32, device=self.device
+                (0, max_numel), dtype=canonical_dtype, device=self.device
             )
 
+        print(f"Rank {self.rank}: local_concat shape {local_concat.shape}")
         # Step 3: All-gather the concatenated tensor
-        # First, share how many tensors each rank has
-        num_local_tensors = torch.tensor(
-            [len(local_results)], dtype=torch.int64, device=self.device
-        )
-        all_num_tensors = [
-            torch.zeros(1, dtype=torch.int64, device=self.device)
-            for _ in range(self.world_size)
-        ]
-        dist.all_gather(all_num_tensors, num_local_tensors)
+        # Calculate max_local_count from gathered_metadata (no need for extra communication)
+        max_local_count = 0
+        for rank_metadata in gathered_metadata:
+            if rank_metadata is not None:
+                max_local_count = max(max_local_count, len(rank_metadata))
 
         # Prepare buffers for all_gather - need to use all_gather_into_tensor for variable sizes
         # Create a single flattened buffer for all ranks' data
-        max_local_count = max(count.item() for count in all_num_tensors)
 
         # Pad local_concat to max_local_count if needed
-        if len(local_results) < max_local_count:
-            padding_rows = max_local_count - len(local_results)
+        # Use shape[0] instead of len(local_results) to handle empty tensor case correctly
+        if local_concat.shape[0] < max_local_count:
+            padding_rows = max_local_count - local_concat.shape[0]
             padding = torch.zeros(
                 (padding_rows, max_numel), dtype=local_concat.dtype, device=self.device
             )
@@ -375,11 +387,14 @@ class DistributedContext:
         else:
             local_concat_padded = local_concat
 
-        # All-gather with fixed size
+        # Ensure contiguous memory layout (important for Gloo backend)
+        local_concat_padded = local_concat_padded.contiguous()
+
+        # All-gather with fixed size - use canonical dtype for consistency
         tensor_lists = [
             torch.zeros(
                 (max_local_count, max_numel),
-                dtype=local_concat_padded.dtype,
+                dtype=canonical_dtype,
                 device=self.device,
             )
             for _ in range(self.world_size)
@@ -388,6 +403,7 @@ class DistributedContext:
         # All-gather the actual data
         dist.all_gather(tensor_lists, local_concat_padded)
 
+        print(f"Rank {self.rank}: Completed all_gather of tensor lists")
         # Step 4: Reconstruct TensorList from gathered data
         out: list = [None] * num_operators
         metadata_idx = 0
