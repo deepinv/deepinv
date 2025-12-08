@@ -525,3 +525,4 @@ Changed
 .. _Vicky De Ridder: https://github.com/nucli-vicky
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
+.. _Thibaut Modrzyk: https://github.com/Tmodrzyk
