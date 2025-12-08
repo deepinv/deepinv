@@ -41,9 +41,6 @@ def tiling_splitting_strategy(
     stride: Optional[int | tuple[int, ...]] = None,
     tiling_dims: Optional[int | tuple[int, ...]] = None,
     pad_mode: str = "reflect",
-    # Deprecated args for compatibility
-    hw_dims: Optional[tuple[int, int]] = None,
-    dhw_dims: Optional[tuple[int, int, int]] = None,
 ) -> tuple[list[Index], dict]:
     r"""
     Generalized uniform-batching tiler with global padding for N dimensions.
@@ -61,18 +58,10 @@ def tiling_splitting_strategy(
     :param int | tuple[int, ...] | None stride: stride between patches. If None, uses patch_size.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile. If None, defaults to last N dimensions where N is len(patch_size) if tuple, else 2.
     :param str pad_mode: padding mode.
-    :param tuple[int, int] | None hw_dims: (Deprecated) dimensions corresponding to height and width.
-    :param tuple[int, int, int] | None dhw_dims: (Deprecated) dimensions corresponding to depth, height, and width.
-    :return: (tuple) tuple of (global_slices, metadata).
+    :return: tuple of (global_slices, metadata).
     """
     shape = list(signal_shape)
     ndim = len(shape)
-
-    # Handle deprecated args
-    if hw_dims is not None:
-        tiling_dims = hw_dims
-    if dhw_dims is not None:
-        tiling_dims = dhw_dims
 
     # Determine dimensions to tile
     if tiling_dims is None:

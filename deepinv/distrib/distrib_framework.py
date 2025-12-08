@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import copy
 from typing import Callable, Optional, Union, Sequence
 
 import torch
@@ -195,7 +196,7 @@ class DistributedContext:
         Get local indices for this rank based on round robin sharding.
 
         :param int num_items: total number of items to shard.
-        :return: (list) list of indices assigned to this rank.
+        :return: list of indices assigned to this rank.
         """
         indices = [i for i in range(num_items) if (i % self.world_size) == self.rank]
 
@@ -212,14 +213,14 @@ class DistributedContext:
     # ----------------------
     # Collectives
     # ----------------------
-    def all_reduce_(self, t: torch.Tensor, op: str = "sum"):
+    def all_reduce_(self, t: torch.Tensor, op: str = "sum") -> torch.Tensor:
         r"""
         In-place all_reduce (returns `t`). Uses SUM for both cases; divides for mean.
         Works on both Gloo and NCCL for all dtypes that backend supports.
 
         :param torch.Tensor t: tensor to reduce.
         :param str op: reduction operation (`'sum'` or `'mean'`).
-        :return: (:class:`torch.Tensor`) the reduced tensor.
+        :return: the reduced tensor.
         """
         if self.is_dist:
             dist.all_reduce(t, op=dist.ReduceOp.SUM)
@@ -227,7 +228,7 @@ class DistributedContext:
                 t /= float(self.world_size)
         return t
 
-    def broadcast_(self, t: torch.Tensor, src: int = 0):
+    def broadcast_(self, t: torch.Tensor, src: int = 0) -> torch.Tensor:
         if self.is_dist:
             dist.broadcast(t, src=src)
         return t
@@ -609,7 +610,7 @@ class DistributedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
         :param dict kwargs: optional parameters for the forward operator.
-        :return: (TensorList) complete list of measurements from all operators (or local list if reduce=False).
+        :return: complete list of measurements from all operators (or local list if reduce=False).
         """
         return self._map_reduce(
             x, lambda p, x, **kw: p.A(x, **kw), reduce=reduce, **kwargs
@@ -625,7 +626,7 @@ class DistributedPhysics(Physics):
         :param torch.Tensor x: input signal.
         :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
         :param dict kwargs: optional parameters for the forward model.
-        :return: (TensorList) complete list of noisy measurements from all operators.
+        :return: complete list of noisy measurements from all operators.
         """
         return self._map_reduce(
             x, lambda p, x, **kw: p.forward(x, **kw), reduce=reduce, **kwargs
@@ -634,22 +635,16 @@ class DistributedPhysics(Physics):
 
 class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     r"""
-    Distributed linear physics operators with efficient adjoint and reduction operations.
+    Distributed linear physics operators.
 
-    This class extends DistributedPhysics for linear operators, providing two types of methods:
+    This class extends DistributedPhysics for linear operators. It provides distributed
+    operations that automatically handle communication and reductions.
 
-    **Local methods** (``*_local``): Compute operations only on local operators owned by this rank.
-    These methods are efficient as they perform no inter-rank communication. They return partial
-    results that must be manually reduced across ranks if needed.
-
-    **Global methods** (``A_adjoint``, ``A_vjp``, etc.): Complete distributed operations that
-    automatically handle communication and reductions. These methods call their corresponding
-    local method and then perform a single all-reduce to combine results from all ranks.
-
-    The local/global pattern enables:
-    - Efficient single-reduction operations (vs. multiple reductions)
-    - Flexibility to defer reductions when composing multiple operations
-    - Clear separation between computation and communication
+    All linear operations (``A_adjoint``, ``A_vjp``, etc.) support a ``reduce`` parameter.
+    - If ``reduce=True`` (default): The method computes the global result by performing a single all-reduce
+      across all ranks.
+    - If ``reduce=False``: The method computes only the local contribution from operators owned by this rank,
+      without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
@@ -715,7 +710,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param TensorList y: full list of measurements from all operators.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the adjoint operation.
-        :return: (torch.Tensor) complete adjoint result :math:`A^T y` (or local contribution if reduce=False).
+        :return: complete adjoint result :math:`A^T y` (or local contribution if reduce=False).
         """
         if isinstance(y, TensorList):
             y_local = [y[i] for i in self.local_indexes]
@@ -760,7 +755,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param TensorList v: full list of cotangent vectors from all operators.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the VJP operation.
-        :return: (torch.Tensor) complete VJP result (or local contribution if reduce=False).
+        :return: complete VJP result (or local contribution if reduce=False).
         """
         if isinstance(v, TensorList):
             v_local = [v[i] for i in self.local_indexes]
@@ -800,7 +795,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param torch.Tensor x: input tensor.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) complete :math:`A^T A x` result (or local contribution if reduce=False).
+        :return: complete :math:`A^T A x` result (or local contribution if reduce=False).
         """
         if len(self.local_physics) == 0:
             # Return zeros with proper shape for empty local set
@@ -826,7 +821,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param TensorList y: full list of measurements from all operators.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param dict kwargs: optional parameters for the operation.
-        :return: (torch.Tensor) complete :math:`A A^T` result (or local contribution if reduce=False).
+        :return: complete :math:`A A^T` result (or local contribution if reduce=False).
         """
         if isinstance(y, TensorList):
             y_local = [y[i] for i in self.local_indexes]
@@ -865,7 +860,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         :param torch.Tensor x_like: local tensor to reduce.
         :param str reduction: reduction mode, either ``'sum'`` or ``'mean'``.
-        :return: (torch.Tensor) globally reduced tensor.
+        :return: globally reduced tensor.
         """
         if not torch.is_tensor(x_like):
             # handle 0.0 placeholder for empty local set
@@ -917,7 +912,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator.
 
-        :return: (torch.Tensor) pseudoinverse solution. If ``local_only=True``, returns approximation.
+        :return: pseudoinverse solution. If ``local_only=True``, returns approximation.
             If ``local_only=False``, returns exact least squares solution.
         """
         if local_only:
@@ -995,7 +990,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator
 
-        :return: (torch.Tensor) squared spectral norm. If ``local_only=True``, returns upper bound.
+        :return: squared spectral norm. If ``local_only=True``, returns upper bound.
             If ``local_only=False``, returns exact value.
         """
 
@@ -1117,7 +1112,7 @@ class DistributedProcessing:
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param args: additional positional arguments passed to the processor.
         :param kwargs: additional keyword arguments passed to the processor.
-        :return: (torch.Tensor) processed signal with the same shape as input.
+        :return: processed signal with the same shape as input.
         """
         self._init_shape_and_strategy(x.shape)
         return self._apply_op(x, *args, reduce=reduce, **kwargs)
@@ -1194,7 +1189,7 @@ class DistributedProcessing:
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
         :param args: additional positional arguments passed to the processor.
         :param kwargs: additional keyword arguments passed to the processor.
-        :return: (torch.Tensor) processed signal with the same shape as input.
+        :return: processed signal with the same shape as input.
         """
         # Handle empty case early
         if not self.local_indices:
@@ -1269,7 +1264,12 @@ class DistributedDataFidelity:
     3. Perform a single reduction across ranks
 
     :param DistributedContext ctx: distributed context manager.
-    :param DataFidelity data_fidelity: base data fidelity term to distribute.
+    :param Union[DataFidelity, Callable] data_fidelity: either a DataFidelity instance
+        or a factory function that creates DataFidelity instances for each operator.
+        The factory should have signature
+        ``factory(index: int, device: torch.device, shared: Optional[dict]) -> DataFidelity``.
+    :param None, int num_operators: number of operators (required if data_fidelity is a factory).
+    :param None, dict shared: shared data dictionary passed to factory function for all operators.
     :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
         Default is ``'sum'``.
 
@@ -1295,8 +1295,10 @@ class DistributedDataFidelity:
     def __init__(
         self,
         ctx: DistributedContext,
-        factory: Callable[[int, torch.device, Optional[dict]], DataFidelity],
-        num_operators: int,
+        data_fidelity: Union[
+            DataFidelity, Callable[[int, torch.device, Optional[dict]], DataFidelity]
+        ],
+        num_operators: Optional[int] = None,
         *,
         shared: Optional[dict] = None,
         reduction: str = "sum",
@@ -1305,21 +1307,42 @@ class DistributedDataFidelity:
         Initialize distributed data fidelity.
 
         :param DistributedContext ctx: distributed context manager.
-        :param DataFidelity data_fidelity: base data fidelity term to distribute.
+        :param Union[DataFidelity, Callable] data_fidelity: data fidelity term or factory.
+        :param Optional[int] num_operators: number of operators (required if data_fidelity is a factory).
         :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``.
         """
         self.ctx = ctx
         self.reduction_mode = reduction
         self.local_data_fidelities = []
+        self.single_fidelity = None
 
-        if factory is not None and num_operators is not None:
+        if isinstance(data_fidelity, DataFidelity):
+            self.single_fidelity = copy.deepcopy(data_fidelity)
+            if hasattr(self.single_fidelity, "to"):
+                self.single_fidelity.to(ctx.device)
+        elif callable(data_fidelity):
+            if num_operators is None:
+                raise ValueError("num_operators must be provided when using a factory.")
             # Create local data fidelity instances using factory
             local_indexes = list(ctx.local_indices(num_operators))
             for i in local_indexes:
-                df = factory(i, ctx.device, shared)
+                df = data_fidelity(i, ctx.device, shared)
                 self.local_data_fidelities.append(df)
         else:
-            raise ValueError("Factory and num_operators must be provided.")
+            raise ValueError(
+                "data_fidelity must be a DataFidelity instance or a factory callable."
+            )
+
+    def _get_fidelity(self, i: int) -> DataFidelity:
+        if self.single_fidelity is not None:
+            return self.single_fidelity
+        return self.local_data_fidelities[i]
+
+    def _check_is_distributed_physics(self, physics: DistributedLinearPhysics):
+        if not isinstance(physics, DistributedLinearPhysics):
+            raise ValueError(
+                "physics must be a DistributedLinearPhysics instance to be used with DistributedDataFidelity."
+            )
 
     def fn(
         self,
@@ -1349,8 +1372,10 @@ class DistributedDataFidelity:
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
         :param DistributedLinearPhysics physics: distributed physics operator.
         :param dict kwargs: additional arguments passed to the distance function.
-        :return: (torch.Tensor) scalar data fidelity value.
+        :return: scalar data fidelity value.
         """
+        self._check_is_distributed_physics(physics)
+
         # Get local measurements
         y_local = [y[i] for i in physics.local_indexes]
 
@@ -1363,7 +1388,7 @@ class DistributedDataFidelity:
             result_local = torch.tensor(0.0, device=self.ctx.device)
         else:
             contribs = [
-                self.local_data_fidelities[i].d.fn(Ax_i, y_i, *args, **kwargs)
+                self._get_fidelity(i).d.fn(Ax_i, y_i, *args, **kwargs)
                 for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
             ]
             result_local = torch.stack(contribs, dim=0).sum(0)
@@ -1403,8 +1428,10 @@ class DistributedDataFidelity:
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
         :param DistributedLinearPhysics physics: distributed physics operator.
         :param dict kwargs: additional arguments passed to the distance function gradient.
-        :return: (torch.Tensor) gradient with same shape as x.
+        :return: gradient with same shape as x.
         """
+        self._check_is_distributed_physics(physics)
+
         # Get local measurements
         y_local = [y[i] for i in physics.local_indexes]
 
@@ -1418,7 +1445,7 @@ class DistributedDataFidelity:
         else:
             # Compute gradients w.r.t. Ax
             grad_d_local = [
-                self.local_data_fidelities[i].d.grad(Ax_i, y_i, *args, **kwargs)
+                self._get_fidelity(i).d.grad(Ax_i, y_i, *args, **kwargs)
                 for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
             ]
             # Apply A_vjp locally (this is A^T @ grad_d)

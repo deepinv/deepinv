@@ -67,6 +67,8 @@ def distribute_physics(
 
     :param Physics physics: Physics object to distribute
     :param DistributedContext ctx: distributed context manager
+    :param None, int num_operators: number of physics operators when using a factory for physics, otherwise inferred.
+    :param str type_object: type of physics object to distribute. Options are `'physics'` or `'linear_physics'`. Default is `'physics'`.
     :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
         - `'naive'`: Simple object serialization (best for small tensors)
@@ -76,7 +78,6 @@ def distribute_physics(
     :param kwargs: additional keyword arguments for DistributedPhysics
 
     :returns: Distributed version of the input Physics object
-    :rtype: DistributedPhysics
 
     |sep|
 
@@ -159,7 +160,6 @@ def distribute_processor(
     :param kwargs: additional keyword arguments for DistributedProcessing
 
     :returns: Distributed version of the input processor
-    :rtype: DistributedProcessing
 
     |sep|
 
@@ -202,7 +202,7 @@ def distribute_data_fidelity(
         Callable[[int, torch.device, Optional[dict]], DataFidelity],
     ],
     ctx: DistributedContext,
-    num_operators: int,
+    num_operators: Optional[int] = None,
     **kwargs,
 ) -> DistributedDataFidelity:
     r"""
@@ -210,11 +210,10 @@ def distribute_data_fidelity(
 
     :param DataFidelity data_fidelity: DataFidelity object to distribute
     :param DistributedContext ctx: distributed context manager
-    :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
+    :param None, int num_operators: number of data fidelity operators when using a factory for data_fidelity, otherwise inferred.
     :param kwargs: additional keyword arguments for DistributedDataFidelity
 
     :returns: Distributed version of the input DataFidelity object
-    :rtype: DistributedDataFidelity
 
     |sep|
 
@@ -224,17 +223,18 @@ def distribute_data_fidelity(
 
         >>> from deepinv.optim.data_fidelity import L2
         >>> data_fidelity = L2()
-        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
+        >>> ctx = DistributedContext()
         >>> ddata_fidelity = distribute_data_fidelity(data_fidelity, ctx)
     """
     # DataFidelity factory
 
     if isinstance(data_fidelity, DataFidelity):
-
-        def data_fidelity_factory(
-            idx: int, device: torch.device, shared: Optional[dict]
-        ):
-            return data_fidelity.to(device)
+        return DistributedDataFidelity(
+            ctx,
+            data_fidelity=data_fidelity,
+            num_operators=num_operators,
+            **kwargs,
+        )
 
     elif isinstance(data_fidelity, StackedPhysicsDataFidelity):
         data_fidelity_list_extracted = data_fidelity.data_fidelity_list
@@ -262,7 +262,7 @@ def distribute_data_fidelity(
 
     return DistributedDataFidelity(
         ctx,
-        factory=data_fidelity_factory,
+        data_fidelity=data_fidelity_factory,
         num_operators=num_operators,
         **kwargs,
     )
@@ -282,8 +282,8 @@ def distribute(
     ],
     ctx: DistributedContext,
     *,
-    type_object: Optional[str] = "auto",
     num_operators: Optional[int] = None,
+    type_object: Optional[str] = "auto",
     dtype: Optional[torch.dtype] = torch.float32,
     gather_strategy: str = "concatenated",
     tiling_strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
@@ -306,6 +306,7 @@ def distribute(
 
     :param Union[Physics, DataFidelity, Denoiser] object: DeepInverse object to distribute
     :param DistributedContext ctx: distributed context manager
+    :param None, int num_operators: number of physics operators when using a factory for physics, otherwise inferred.
     :param Optional[str] type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
     :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
@@ -313,10 +314,22 @@ def distribute(
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
         - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
         Default is `'concatenated'`.
+    :param Optional[Union[str, DistributedSignalStrategy]] tiling_strategy: strategy for tiling the signal (for Denoiser/Prior). Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
+    :param Optional[int | tuple[int, ...]] tiling_dims: dimensions to tile over (for Denoiser/Prior).
+        If ``None`` (default), tiles the last N-2 dimensions (spatial dimensions).
+        If an int ``N``, tiles the last ``N`` dimensions.
+        If a tuple, specifies exact dimensions to tile.
+        Examples:
+        - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles H and W.
+        - For ``(B, C, D, H, W)`` volume: ``tiling_dims=3`` tiles D, H, W.
+    :param int | tuple[int, ...] patch_size: size of patches for tiling strategies (for Denoiser/Prior).
+        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is 256.
+    :param int | tuple[int, ...] receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser/Prior).
+        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is 64.
+    :param None, int max_batch_size: maximum number of patches to process in a single batch (for Denoiser/Prior). If `None`, all patches are batched together. Set to 1 for sequential processing.
     :param kwargs: additional keyword arguments for specific distributed classes
 
     :returns: Distributed version of the input object
-    :rtype: Union[DistributedLinearPhysics, DistributedDataFidelity, DistributedProcessing, DistributedDataFidelity]
 
     |sep|
 
@@ -396,10 +409,6 @@ def distribute(
             **kwargs,
         )
     elif type_object == "data_fidelity":
-        if num_operators is None:
-            raise ValueError(
-                "num_operators must be provided when distributing data_fidelity"
-            )
         return distribute_data_fidelity(
             object,
             ctx,

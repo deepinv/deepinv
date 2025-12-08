@@ -176,6 +176,10 @@ with DistributedContext(seed=42) as ctx:
 
     data_fidelity = L2()
 
+    distributed_data_fidelity = distribute(
+        data_fidelity, ctx
+    )  # Distribute L2 data fidelity, optional.
+
     if ctx.rank == 0:
         print(f"\nCreated L2 data fidelity")
 
@@ -227,7 +231,7 @@ with DistributedContext(seed=42) as ctx:
     with torch.no_grad():
         for it in range(num_iterations):
             # Data fidelity gradient step using the data_fidelity.grad() method
-            grad = data_fidelity.grad(x, measurements, distributed_physics)
+            grad = distributed_data_fidelity.grad(x, measurements, distributed_physics)
 
             # Gradient descent step
             x = x - step_size * grad

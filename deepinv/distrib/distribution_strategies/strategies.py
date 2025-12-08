@@ -52,7 +52,7 @@ class DistributedSignalStrategy(ABC):
 
         :param torch.Tensor X: the complete signal tensor.
         :param list[int] local_indices: global indices of patches assigned to this rank.
-        :return: (list) list of (global_index, prepared_patch) pairs ready for processing.
+        :return: list of (global_index, prepared_patch) pairs ready for processing.
         """
         pass
 
@@ -76,7 +76,7 @@ class DistributedSignalStrategy(ABC):
         r"""
         Get the total number of patches this strategy creates.
 
-        :return: (:class:`int`) total number of patches.
+        :return: total number of patches.
         """
         pass
 
@@ -92,7 +92,7 @@ class DistributedSignalStrategy(ABC):
 
         :param list[torch.Tensor] patches: list of prepared patches.
         :param None, int max_batch_size: maximum number of patches per batch. If `None`, all patches are batched together. If 1, each patch is processed individually.
-        :return: (list) batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.
+        :return: batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.
         """
         if not patches:
             return []
@@ -142,7 +142,7 @@ class DistributedSignalStrategy(ABC):
 
         :param list[torch.Tensor] processed_batches: results from processing batched patches.
         :param int num_patches: expected number of individual patches.
-        :return: (list) individual processed patches in original order.
+        :return: list of individual processed patches in original order.
         """
         if len(processed_batches) == 0:
             return []
@@ -306,8 +306,8 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
     :param Sequence[int] signal_shape: shape of the complete signal tensor.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
-    :param int | tuple[int, ...] patch_size: size of each patch.
-    :param int | tuple[int, ...] receptive_field_size: padding radius around each patch.
+    :param int | tuple[int, ...] patch_size: size of each patch, supports non-cuboid patch size.
+    :param int | tuple[int, ...] receptive_field_size: padding radius around each patch, supports non-cuboid receptive field size.
     :param int | tuple[int, ...] | None stride: stride between patches (default: patch_size for non-overlapping).
     :param str pad_mode: padding mode for edge patches.
     """
@@ -466,7 +466,7 @@ def create_strategy(
     :param str strategy_name: name of the strategy (`'basic'`, `'smart_tiling'`).
     :param Sequence[int] signal_shape: shape of the signal tensor.
     :param int n_dimension: number of dimensions of the signal (e.g., 2 for images, 3 for volumes).
-    :return: (:class:`DistributedSignalStrategy`) the created strategy instance.
+    :return: the created strategy instance.
     """
     # Handle tiling_dims priority: kwargs > n_dimension
     if "tiling_dims" in kwargs and kwargs["tiling_dims"] is not None:

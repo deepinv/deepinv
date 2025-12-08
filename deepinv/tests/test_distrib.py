@@ -58,26 +58,32 @@ def _get_gpu_count():
     return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
-@pytest.fixture(params=["cpu", "gpu"])
+@pytest.fixture(params=["cpu_single", "cpu_multi", "gpu_single", "gpu_multi"])
 def device_config(request):
     """
     Parameterized fixture for device configuration.
 
     Returns:
         dict with keys:
-            - device_mode: "cpu" or "gpu"
+            - device_mode: "cpu_single", "cpu_multi", "gpu_single", or "gpu_multi"
             - world_size: number of processes to spawn
             - skip_reason: reason to skip if device not available
     """
     mode = request.param
 
-    if mode == "cpu":
+    if mode == "cpu_single":
+        return {
+            "device_mode": "cpu",
+            "world_size": 1,
+            "skip_reason": None,
+        }
+    elif mode == "cpu_multi":
         return {
             "device_mode": "cpu",
             "world_size": 2,
             "skip_reason": None,
         }
-    elif mode == "gpu":
+    elif mode == "gpu_single":
         gpu_count = _get_gpu_count()
         if gpu_count == 0:
             return {
@@ -85,15 +91,21 @@ def device_config(request):
                 "world_size": 0,
                 "skip_reason": "No GPUs available",
             }
-        elif gpu_count == 1:
-            # Single GPU: can't test multi-process NCCL
+        elif gpu_count > 0:
             return {
                 "device_mode": "gpu",
                 "world_size": 1,
                 "skip_reason": None,
             }
+    elif mode == "gpu_multi":
+        gpu_count = _get_gpu_count()
+        if gpu_count < 2:
+            return {
+                "device_mode": "gpu",
+                "world_size": 0,
+                "skip_reason": "Less than 2 GPUs available",
+            }
         else:
-            # Multi-GPU: use 2 GPUs for testing
             return {
                 "device_mode": "gpu",
                 "world_size": min(2, gpu_count),
@@ -114,9 +126,9 @@ def _worker(rank, world_size, test_func, test_args, result_queue, dist_config):
     os.environ["MASTER_ADDR"] = dist_config["master_addr"]
     os.environ["MASTER_PORT"] = dist_config["master_port"]
 
-    # For GPU mode, set CUDA_VISIBLE_DEVICES to isolate GPUs
+    # For GPU mode, set the right device for each rank
     if dist_config["device_mode"] == "gpu":
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
+        torch.cuda.set_device(rank)
 
     try:
         result = test_func(rank, world_size, test_args)
@@ -192,7 +204,6 @@ def run_distributed_test(
     # Multi-process configuration
     dist_config = {
         "world_size": world_size,
-        "backend": "nccl" if device_mode == "gpu" else "gloo",
         "master_addr": "127.0.0.1",
         "master_port": str(_get_free_port()),
         "device_mode": device_mode,
@@ -201,8 +212,6 @@ def run_distributed_test(
     # Keep thread pools small for spawn safety
     os.environ.setdefault("OMP_NUM_THREADS", "1")
     os.environ.setdefault("MKL_NUM_THREADS", "1")
-    if device_mode == "cpu":
-        os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
 
     # Use 'spawn' for safety with PyTorch/NumPy
     ctx = mp.get_context("spawn")
@@ -528,23 +537,38 @@ def test_distribute_data_fidelity_single(device_config):
         physics_list = create_test_physics_list(ctx.device, num_operators)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
+        # 1. Test factory method
         def fidelity_factory(idx, device, shared):
             return L2()
 
-        distributed_fidelity = DistributedDataFidelity(
-            ctx, fidelity_factory, num_operators=num_operators
+        distributed_fidelity_factory = distribute(
+            fidelity_factory, ctx=ctx, num_operators=num_operators, type_object="data_fidelity"
         )
+
+        assert isinstance(distributed_fidelity_factory, DistributedDataFidelity)
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
 
         # Test fn() and grad()
-        fid = distributed_fidelity.fn(x, y, distributed_physics)
-        grad = distributed_fidelity.grad(x, y, distributed_physics)
+        fid_factory = distributed_fidelity_factory.fn(x, y, distributed_physics)
+        grad_factory = distributed_fidelity_factory.grad(x, y, distributed_physics)
 
         # fid should be a scalar or tensor with minimal dimensions
-        assert torch.is_tensor(fid)
-        assert grad.shape == x.shape
+        assert torch.is_tensor(fid_factory)
+        assert grad_factory.shape == x.shape
+
+        # 2. Test single object method
+        single_fidelity = L2()
+        distributed_fidelity_single = distribute(single_fidelity, ctx=ctx)
+
+        fid_single = distributed_fidelity_single.fn(x, y, distributed_physics)
+        grad_single = distributed_fidelity_single.grad(x, y, distributed_physics)
+
+        assert torch.is_tensor(fid_single)
+        assert grad_single.shape == x.shape
+        assert torch.allclose(fid_factory, fid_single)
+        assert torch.allclose(grad_factory, grad_single)
 
 
 # =============================================================================
@@ -965,11 +989,8 @@ def test_data_fidelity_vs_stacked(device_config):
         # Create distributed version
         distributed_physics = distribute(physics_list, ctx=ctx)
 
-        def fidelity_factory(idx, device, shared):
-            return L2()
-
-        distributed_fidelity = DistributedDataFidelity(
-            ctx, fidelity_factory, num_operators=num_operators
+        distributed_fidelity = distribute(
+            L2(), ctx=ctx, num_operators=num_operators
         )
 
         # Create stacked version for comparison
@@ -1009,11 +1030,8 @@ def test_data_fidelity_different_fidelities(device_config):
         # Test L1 and L2
         for FidelityClass in [L1, L2]:
 
-            def fidelity_factory(idx, device, shared):
-                return FidelityClass()
-
-            distributed_fidelity = DistributedDataFidelity(
-                ctx, fidelity_factory, num_operators=num_operators
+            distributed_fidelity = distribute(
+                FidelityClass(), ctx=ctx, num_operators=num_operators
             )
 
             x = torch.randn(1, 1, 16, 16, device=ctx.device)
@@ -1112,11 +1130,8 @@ def test_reduce_false_data_fidelity(device_config):
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
-        def fidelity_factory(idx, device, shared):
-            return L2()
-
-        distributed_fidelity = DistributedDataFidelity(
-            ctx, fidelity_factory, num_operators=3
+        distributed_fidelity = distribute(
+            L2(), ctx=ctx, num_operators=3
         )
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
@@ -1133,3 +1148,24 @@ def test_reduce_false_data_fidelity(device_config):
         grad_global = distributed_fidelity.grad(x, y, distributed_physics, reduce=True)
         assert torch.is_tensor(grad_local)
         assert torch.is_tensor(grad_global)
+
+
+def test_distribute_helper_data_fidelity(device_config):
+    """Test distribute_data_fidelity helper with single object."""
+    if device_config.get("skip_reason"):
+        pytest.skip(device_config["skip_reason"])
+
+    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+        num_operators = 3
+        physics_list = create_test_physics_list(ctx.device, num_operators)
+        distributed_physics = distribute(physics_list, ctx=ctx)
+
+        fidelity = L2()
+        # No num_operators needed
+        distributed_fidelity = distribute(fidelity, ctx=ctx)
+
+        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+        y = distributed_physics.A(x)
+
+        fid = distributed_fidelity.fn(x, y, distributed_physics)
+        assert torch.is_tensor(fid)
