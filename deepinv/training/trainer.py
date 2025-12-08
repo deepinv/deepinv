@@ -984,7 +984,7 @@ class Trainer:
         phase: str,
     ) -> None:
         r"""
-        Plot ground truths, measurements and reconstructions and at test time, optionally save them.
+        Save the reconstructions.
 
         :param int epoch: Current epoch.
         :param None, torch.Tensor x: Ground truth.
