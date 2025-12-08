@@ -56,7 +56,13 @@ class NIQE(Metric):
     r"""
     Natural Image Quality Evaluator (NIQE) metric.
 
-    Calculates the NIQE :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    Calculates the no-reference metric :math:`\text{NIQE}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+
+    This metric was introduced by :cite:t:`saad2012blind`, and
+    relies on a natural scene statistics model of video DCT coefficients, as well as a temporal model of motion coherency.
+
+    Lower values indicate better perceptual quality.
+
     It is a no-reference image quality metric that estimates the quality of images.
     Uses implementation from `pyiqa <https://pypi.org/project/pyiqa/>`_.
 
