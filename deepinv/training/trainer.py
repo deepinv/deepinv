@@ -984,7 +984,7 @@ class Trainer:
         phase: str,
     ) -> None:
         r"""
-        Save the reconstructions.
+        Plot ground truths, measurements and reconstructions and at test time, optionally save them.
 
         :param int epoch: Current epoch.
         :param None, torch.Tensor x: Ground truth.
@@ -1303,12 +1303,12 @@ class Trainer:
         r"""
         Test the model by computing metrics and logging images.
 
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
-            for how we expect data to be provided.
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
+        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If `None`, uses the metrics provided during Trainer initialization.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
+        :param None, str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``.
+        :param None, RunLogger, list[RunLogger] loggers: Logging backends (e.g. LocalLogger, WandbLogger, MLflowLogger, etc.).
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
-        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
-            ``None``, uses the metrics provided during Trainer initialization.
         :returns: dict of metrics results with means and stds.
         """
         # Setup

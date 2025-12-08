@@ -391,7 +391,7 @@ class CSGMGenerator(Reconstructor):
                 break
         return z
 
-    def forward(self, y: Tensor, physics: Physics, *args, **kwargs):
+    def forward(self, y: Tensor, physics: Physics, *args, **kwargs) -> Tensor:
         r"""Forward pass of generator model.
 
         At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.

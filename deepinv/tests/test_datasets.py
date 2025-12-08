@@ -8,10 +8,11 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, CenterCrop
 from deepinv.loss import Metric
 import numpy as np
 
+import deepinv as dinv
 from deepinv.datasets import (
     DIV2K,
     Urban100HR,
@@ -231,6 +232,46 @@ def test_hdfdataset(physgen):
     check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
     dataset.close()
     assert dataset.hd5 is None
+
+
+def test_generate_dataset():
+    tmp_data_dir = "set14"
+    # Dataset returns PIL images, no cropping so different sizes
+    ds = Set14HR(tmp_data_dir, download=True)
+
+    physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+    with pytest.raises(
+        RuntimeError,
+        match="generate_dataset expects dataset to return elements of same shape",
+    ):
+        _ = generate_dataset(
+            train_dataset=ds,
+            batch_size=4,
+            physics=physics,
+            device="cpu",
+            save_dir="measurements",
+        )
+    # Test that no error is raised when we add crop
+    ds = Set14HR(tmp_data_dir, transform=CenterCrop(32))
+    hdf_path = generate_dataset(
+        train_dataset=ds,
+        batch_size=1,
+        physics=physics,
+        device="cpu",
+        save_dir="measurements",
+        dataset_filename="generate_dataset_test",
+    )
+    from torchvision.transforms import ToTensor
+
+    hdf_ds = HDF5Dataset(hdf_path)
+    for sample_hdf, sample in zip(hdf_ds, ds):
+        sample = ToTensor()(sample)
+        assert sample_hdf[0].equal(
+            sample
+        ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    hdf_ds.hd5.close()
+    shutil.rmtree(tmp_data_dir)
+    os.remove(hdf_path)
 
 
 def test_tensordataset():

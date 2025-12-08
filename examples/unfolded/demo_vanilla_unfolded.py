@@ -7,6 +7,7 @@ The DnCNN denoiser and the algorithm parameters (stepsize, regularization parame
 For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.
 """
 
+# %%
 import deepinv as dinv
 import torch
 from deepinv.models.utils import get_weights_url
