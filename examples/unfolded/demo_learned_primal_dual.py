@@ -18,6 +18,7 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
+from deepinv.training import LocalLogger
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -256,10 +257,10 @@ trainer = dinv.Trainer(
     epochs=epochs,
     scheduler=scheduler,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    val_dataloader=test_dataloader,
     device=device,
     online_measurements=True,
-    save_path=str(CKPT_DIR / operation),
+    loggers=LocalLogger(log_dir=CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
@@ -282,7 +283,9 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-trainer.test(test_dataloader)
+trainer.test(
+    test_dataloader, loggers=LocalLogger(log_dir=CKPT_DIR / operation / "test")
+)
 
 test_sample = next(iter(test_dataloader))
 model.eval()

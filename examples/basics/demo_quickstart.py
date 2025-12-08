@@ -271,7 +271,7 @@ dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
 
 import torch
 
-dinv.test(
+dinv.training.test(
     model,
     torch.utils.data.DataLoader(dataset),
     physics,

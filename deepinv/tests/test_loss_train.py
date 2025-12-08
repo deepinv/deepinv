@@ -16,6 +16,23 @@ from deepinv.physics.generator import (
     DiffractionBlurGenerator,
 )
 from deepinv.datasets.base import ImageDataset
+from deepinv.training import LocalLogger
+import uuid
+
+
+@pytest.fixture
+def logger(tmp_path_factory, request):
+    base = tmp_path_factory.mktemp(f"{request.node.name}-logs", numbered=True)
+
+    def make_logger(suffix=None):
+        # For some tests two runs are getting launched in less than a second
+        # so we add a random suffix to avoid clashes
+        sid = suffix or uuid.uuid4().hex[:6]
+        run_dir = base / f"run-{sid}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return LocalLogger(log_dir=run_dir, project_name="test_project")
+
+    return make_logger
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -189,7 +206,7 @@ optim_algos = ["PGD"]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, device):
+def test_optim_algo(name_algo, imsize, device, logger):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
@@ -259,18 +276,18 @@ def test_optim_algo(name_algo, imsize, device):
     trainer = dinv.Trainer(
         model=model_unfolded,
         train_dataloader=train_dataloader,
-        eval_dataloader=test_dataloader,
+        val_dataloader=test_dataloader,
         epochs=epochs,
         losses=losses,
         physics=physics,
         optimizer=optimizer,
         device=device,
-        save_path=str(CKPT_DIR),
+        loggers=[logger(str(CKPT_DIR))],
         verbose=True,
         online_measurements=True,
     )
     trainer.train()
-    trainer.test(test_dataloader)
+    trainer.test(test_dataloader, loggers=logger())
 
 
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):

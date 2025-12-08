@@ -3,9 +3,8 @@
 Trainer
 =======
 
-Training a reconstruction model can be done using the :class:`deepinv.Trainer` class, which can be easily customized
-to fit your needs. A trainer can be used for both training :func:`deepinv.Trainer.train`
-and testing :func:`deepinv.Trainer.test` a model, and can be used to save and load models.
+Training a reconstruction model can be done using the :class:`deepinv.Trainer` class, which can be easily customized to fit your needs.
+A trainer can be used for both training and testing :func:`deepinv.Trainer.test` a model, and can be used to save and load models.
 
 .. seealso::
     
