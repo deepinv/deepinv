@@ -33,11 +33,6 @@ def normalize_signal(
         # Clone the signal to avoid input mutations
         inp = inp.clone()
 
-        if vmin is not None:
-            minimum_intensity = torch.full_like(minimum_intensity, vmin)
-        if vmax is not None:
-            maximum_intensity = torch.full_like(maximum_intensity, vmax)
-
         # The indices corresponding to the non-constant batched signals
         indices = maximum_intensity != minimum_intensity
 
