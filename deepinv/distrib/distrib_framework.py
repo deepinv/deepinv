@@ -252,11 +252,15 @@ class DistributedContext:
         Best for: Small tensors where serialization overhead is negligible.
 
         Communication pattern: 1 all_gather_object call (high overhead, simple)
+        
+        Note: This strategy uses all_gather_object which is only supported by the Gloo backend.
+        For NCCL (GPU) environments, use 'concatenated' or 'broadcast' strategies instead.
 
         :param list[int] local_indices: indices owned by this rank
         :param list[torch.Tensor] local_results: local tensor results
         :param int num_operators: total number of operators
         :return: TensorList with all results
+        :raises RuntimeError: if using NCCL backend (GPU multi-process mode)
         """
         if not self.is_dist:
             # Single process: just build the list
@@ -264,6 +268,14 @@ class DistributedContext:
             for idx, result in zip(local_indices, local_results, strict=False):
                 out[idx] = result
             return TensorList(out)
+        
+        # Check if we're using NCCL backend (not compatible with all_gather_object)
+        if dist.get_backend() == "nccl":
+            raise RuntimeError(
+                "The 'naive' gather strategy uses all_gather_object which is not supported "
+                "by the NCCL backend (GPU multi-process mode). Please use 'concatenated' or "
+                "'broadcast' gather strategies instead."
+            )
 
         # Pair indices with tensors
         pairs = list(zip(local_indices, local_results, strict=False))
@@ -568,23 +580,41 @@ class DistributedPhysics(Physics):
 
     # -------- Factorized map-reduce logic --------
     def _map_reduce(
-        self, x: torch.Tensor, local_op: Callable, reduce: bool = True, **kwargs
-    ) -> Union[TensorList, list[torch.Tensor]]:
+        self, 
+        x: Union[torch.Tensor, list[torch.Tensor]], 
+        local_op: Callable, 
+        reduce: bool = True,
+        sum_results: bool = False,
+        **kwargs
+    ) -> Union[TensorList, list[torch.Tensor], torch.Tensor]:
         """
-        Efficient map-reduce pattern for distributed operations.
+        Map-reduce pattern for distributed operations.
 
         Maps local_op over local physics operators, then gathers results using
         the configured gather strategy.
 
-        :param torch.Tensor x: input tensor
+        :param Union[torch.Tensor, list[torch.Tensor]] x: input tensor(s). If a list,
+            should match the number of local operators (per-operator inputs).
         :param Callable local_op: operation to apply, e.g., lambda p, x: p.A(x)
         :param bool reduce: whether to gather results across ranks.
-        :return: TensorList of gathered results or list of local results
+        :param bool sum_results: if True, sum all gathered results into a single tensor
+        :return: TensorList of gathered results, list of local results, or summed tensor
         """
-        # Step 1: Map - apply operation to local physics operators
-        local_results = [local_op(p, x, **kwargs) for p in self.local_physics]
+        # Handle per-operator inputs (e.g., for A_adjoint where each operator gets different y_i)
+        if isinstance(x, (list, tuple)):
+            if len(x) != len(self.local_physics):
+                raise ValueError(
+                    f"When passing list/tuple to _map_reduce, length must match local operators: "
+                    f"got {len(x)}, expected {len(self.local_physics)}"
+                )
+            local_results = [local_op(p, x_i, **kwargs) for p, x_i in zip(self.local_physics, x, strict=False)]
+        else:
+            # Single input shared by all operators (e.g., for A(x))
+            local_results = [local_op(p, x, **kwargs) for p in self.local_physics]
 
         if not reduce:
+            if sum_results and len(local_results) > 0:
+                return torch.stack(local_results, dim=0).sum(0)
             return local_results
 
         if not self.ctx.is_dist:
@@ -592,23 +622,30 @@ class DistributedPhysics(Physics):
             out: list = [None] * self.num_operators
             for idx, result in zip(self.local_indexes, local_results, strict=False):
                 out[idx] = result
+            
+            if sum_results:
+                return torch.stack([out[i] for i in range(self.num_operators)], dim=0).sum(0)
             return TensorList(out)
 
         # Step 2: Reduce - gather results using selected strategy
         if self.gather_strategy == "naive":
-            return self.ctx.gather_tensorlist_naive(
+            gathered = self.ctx.gather_tensorlist_naive(
                 self.local_indexes, local_results, self.num_operators
             )
         elif self.gather_strategy == "concatenated":
-            return self.ctx.gather_tensorlist_concatenated(
+            gathered = self.ctx.gather_tensorlist_concatenated(
                 self.local_indexes, local_results, self.num_operators
             )
         elif self.gather_strategy == "broadcast":
-            return self.ctx.gather_tensorlist_broadcast(
+            gathered = self.ctx.gather_tensorlist_broadcast(
                 self.local_indexes, local_results, self.num_operators
             )
         else:
             raise ValueError(f"Unknown gather strategy: {self.gather_strategy}")
+        
+        if sum_results:
+            return torch.stack([gathered[i] for i in range(self.num_operators)], dim=0).sum(0)
+        return gathered
 
     def A(
         self, x: torch.Tensor, reduce: bool = True, **kwargs
@@ -724,6 +761,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param dict kwargs: optional parameters for the adjoint operation.
         :return: complete adjoint result :math:`A^T y` (or local contribution if reduce=False).
         """
+        # Extract local measurements
         if isinstance(y, TensorList):
             y_local = [y[i] for i in self.local_indexes]
         elif len(y) == self.num_operators:
@@ -734,21 +772,22 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             raise ValueError(
                 f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
             )
-
-        if len(y_local) == 0:
-            # Return zeros with proper shape for empty local set
-            local = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        else:
-            contribs = [
-                p.A_adjoint(y_i, **kwargs)
-                for p, y_i in zip(self.local_physics, y_local, strict=False)
-            ]
-            local = torch.stack(contribs, dim=0).sum(0)
-
-        if not reduce:
-            return local
-
-        return self._reduce_global(local)
+        
+        # Use _map_reduce with per-operator inputs and sum_results=True
+        # This gathers all A_i^T(y_i) and sums them automatically
+        result = self._map_reduce(
+            y_local,
+            lambda p, y_i, **kw: p.A_adjoint(y_i, **kw),
+            reduce=reduce,
+            sum_results=True,
+            **kwargs
+        )
+        
+        # Apply reduction mode normalization if needed
+        if reduce and self.reduction_mode == "mean":
+            result = result / float(self.num_operators)
+        
+        return result
 
     def A_vjp(
         self,
@@ -869,6 +908,10 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         This is an internal helper that converts local (per-rank) results into global
         results by summing contributions from all ranks. Optionally normalizes by the
         number of operators if mean reduction is requested.
+        
+        Note: This method is primarily used by operations like A_adjoint_A where
+        the result is already a proper tensor from all ranks. For A_adjoint, we use
+        the _map_reduce pattern which handles empty local sets more robustly.
 
         :param torch.Tensor x_like: local tensor to reduce.
         :param str reduction: reduction mode, either ``'sum'`` or ``'mean'``.
@@ -877,11 +920,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         if not torch.is_tensor(x_like):
             # handle 0.0 placeholder for empty local set
             x_like = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-            x_like = x_like.expand(())  # scalar
 
-        # Ensure all ranks participate in collective even with empty data
+        # Ensure all ranks participate in collective
         if self.ctx.is_dist:
-            # For ranks with empty local sets, x_like should be zeros
             self.ctx.all_reduce_(x_like, op="sum")
 
         if self.reduction_mode == "mean" or reduction == "mean":

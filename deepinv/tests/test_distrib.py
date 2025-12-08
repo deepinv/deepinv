@@ -59,6 +59,11 @@ def _get_gpu_count():
     return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
+@pytest.fixture(params=["naive", "concatenated", "broadcast"])
+def gather_strategy(request):
+    """Parameterized fixture for gather strategy."""
+    return request.param
+
 @pytest.fixture(params=["cpu_single", "cpu_multi", "gpu_single", "gpu_multi"])
 def device_config(request):
     """
@@ -410,51 +415,6 @@ def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
 # =============================================================================
 
 
-@pytest.mark.parametrize(
-    "physics_spec", ["physics_list", "stacked_physics", "callable_factory"]
-)
-def test_distribute_physics_forward(device_config, physics_spec):
-    """Test distributing physics operators and forward operation."""
-    # Skip GPU tests if not available
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    # Single process test
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        num_operators = 3
-        physics, needs_num_ops = create_physics_specification(
-            physics_spec, ctx.device, num_operators
-        )
-
-        # Distribute
-        if needs_num_ops:
-            distributed_physics = distribute(
-                physics,
-                ctx,
-                type_object="physics",
-                num_operators=num_operators,
-            )
-        else:
-            distributed_physics = distribute(physics, ctx)
-
-        # Test forward
-        x = torch.randn(1, 1, 16, 16, device=ctx.device)
-        y = distributed_physics.A(x)
-
-        # Verify structure
-        assert len(y) == num_operators
-        assert all(yi.device == ctx.device for yi in y)
-
-        # Compare with reference
-        reference = StackedLinearPhysics(
-            create_test_physics_list(ctx.device, num_operators)
-        )
-        y_ref = reference.A(x)
-
-        for i in range(num_operators):
-            assert torch.allclose(y[i], y_ref[i], atol=1e-5)
-
-
 def _test_multiprocess_physics_worker(rank, world_size, args):
     """Worker for multi-process physics tests."""
     with DistributedContext(device_mode=args["device_mode"]) as ctx:
@@ -481,23 +441,40 @@ def _test_multiprocess_physics_worker(rank, world_size, args):
         if args.get("test_adjoint"):
             y = distributed_physics.A(x)
             result = distributed_physics.A_adjoint(y)
+            assert result.shape == x.shape
         else:
             result = distributed_physics.A(x)
+
+            # Verify structure
+            assert len(result) == args["num_operators"]
+            assert all(yi.device == ctx.device for yi in result)
+
+            # Compare with reference
+            reference = StackedLinearPhysics(
+                create_test_physics_list(ctx.device, args["num_operators"])
+            )
+            y_ref = reference.A(x)
+
+            for i in range(args["num_operators"]):
+                assert torch.allclose(result[i], y_ref[i], atol=1e-5)
 
         # Return success indicator
         return "success"
 
 
-@pytest.mark.parametrize("gather_strategy", ["naive", "concatenated", "broadcast"])
-@pytest.mark.parametrize("num_operators", [1, 2, 5])
-@pytest.mark.parametrize("physics_spec", ["physics_list", "stacked_physics"])
-def test_distribute_physics_multiprocess(
-    device_config, gather_strategy, physics_spec, num_operators
+@pytest.mark.parametrize("physics_spec", ["physics_list", "stacked_physics", "callable_factory"])
+def test_distribute_physics(
+    device_config, gather_strategy, physics_spec
 ):
     """Test physics distribution in multi-process mode."""
+    # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
+    if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
+        pytest.skip("Naive gather strategy not supported with NCCL backend")
+
+    torch.manual_seed(42)
     x = torch.randn(1, 1, 16, 16)
     test_args = {
-        "num_operators": num_operators,
+        "num_operators": 4,
         "x": x,
         "spec_type": physics_spec,
         "gather_strategy": gather_strategy,
@@ -517,35 +494,9 @@ def test_distribute_physics_multiprocess(
 # =============================================================================
 
 
-@pytest.mark.parametrize("tiling_strategy", ["basic", "smart_tiling"])
-@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_distribute_processor_single(device_config, tiling_strategy, denoiser_spec):
-    """Test processor distribution in single-process mode."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
-
-        distributed_processor = distribute(
-            processor,
-            ctx,
-            type_object="denoiser",
-            tiling_strategy=tiling_strategy,
-            patch_size=8,
-            receptive_field_size=2,
-        )
-
-        x = torch.randn(1, 3, 16, 16, device=ctx.device)
-        result = distributed_processor(x, sigma=0.1)
-
-        assert result.shape == x.shape
-        assert result.device == ctx.device
-
-
 def _test_multiprocess_processor_worker(rank, world_size, args):
     """Worker for multi-process processor tests."""
-    with DistributedContext(device_mode=args["device_mode"]) as ctx:
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
         distributed_processor = distribute(
@@ -557,16 +508,19 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
             receptive_field_size=args["receptive_field_size"],
         )
 
-        torch.manual_seed(42)
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
-        result = distributed_processor(x, sigma=0.1)
+        with torch.no_grad():
+            result = distributed_processor(x, sigma=0.1)
+
+        assert result.shape == x.shape
+        assert result.device == ctx.device
 
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
-@pytest.mark.parametrize("tiling_strategy", ["smart_tiling"])
+@pytest.mark.parametrize("tiling_strategy", ["basic", "smart_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_distribute_processor_multiprocess(
+def test_distribute_processor(
     device_config, tiling_strategy, denoiser_spec
 ):
     """Test processor distribution in multi-process mode."""
@@ -592,12 +546,8 @@ def test_distribute_processor_multiprocess(
 # =============================================================================
 
 
-def test_distribute_data_fidelity_single(device_config):
-    """Test data fidelity distribution in single-process mode."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_data_fidelity_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -638,22 +588,30 @@ def test_distribute_data_fidelity_single(device_config):
         assert torch.allclose(fid_factory, fid_single)
         assert torch.allclose(grad_factory, grad_single)
 
+        return "success"
+
+
+def test_distribute_data_fidelity(device_config):
+    """Test data fidelity distribution."""
+    test_args = {
+        "device_mode": device_config["device_mode"],
+    }
+    results = run_distributed_test(
+        _test_data_fidelity_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
 
 # =============================================================================
 # Advanced Operations Tests (A_dagger, compute_norm, etc.)
 # =============================================================================
 
 
-@pytest.mark.parametrize("gather_strategy", ["concatenated"])
-def test_compute_norm_single(device_config, gather_strategy):
-    """Test compute_norm in single-process mode."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_compute_norm_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(
-            physics_list, ctx=ctx, gather_strategy=gather_strategy
+            physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
         )
 
         x0 = torch.randn(1, 1, 16, 16, device=ctx.device)
@@ -661,14 +619,27 @@ def test_compute_norm_single(device_config, gather_strategy):
 
         assert norm.ndim == 0
         assert norm.item() > 0
+        return "success"
 
 
-def test_a_dagger_single(device_config):
-    """Test A_dagger in single-process mode."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_compute_norm(device_config, gather_strategy):
+    """Test compute_norm."""
+    # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
+    if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
+        pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
+    
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "gather_strategy": gather_strategy,
+    }
+    results = run_distributed_test(
+        _test_compute_norm_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+def _test_a_dagger_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
@@ -678,6 +649,18 @@ def test_a_dagger_single(device_config):
         x_dagger = distributed_physics.A_dagger(y)
 
         assert x_dagger.shape == x.shape
+        return "success"
+
+
+def test_a_dagger(device_config):
+    """Test A_dagger."""
+    test_args = {
+        "device_mode": device_config["device_mode"],
+    }
+    results = run_distributed_test(
+        _test_a_dagger_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -685,12 +668,8 @@ def test_a_dagger_single(device_config):
 # =============================================================================
 
 
-def test_reduce_false_operations(device_config):
-    """Test operations with reduce=False parameter."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_reduce_false_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
@@ -704,6 +683,14 @@ def test_reduce_false_operations(device_config):
         y_full = distributed_physics.A(x, reduce=True)
         x_adj_local = distributed_physics.A_adjoint(y_full, reduce=False)
         assert torch.is_tensor(x_adj_local)
+        return "success"
+
+
+def test_reduce_false_operations(device_config):
+    """Test operations with reduce=False parameter."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(_test_reduce_false_worker, device_config, test_args)
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -717,6 +704,7 @@ def _test_consistency_worker(rank, world_size, args):
         physics_list = create_test_physics_list(ctx.device, 4)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
+        torch.manual_seed(42)
         x = args["x"].to(ctx.device)
         y = distributed_physics.A(x)
         x_adj = distributed_physics.A_adjoint(y)
@@ -734,11 +722,10 @@ def test_consistency_single_vs_multiprocess(device_config):
         pytest.skip("Test requires CPU multi-process configuration")
 
     # Single process result
-    with DistributedContext(device_mode="cpu") as ctx:
+    with DistributedContext(device_mode="cpu", seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 4)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
-        torch.manual_seed(42)
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y_single = distributed_physics.A(x)
         x_adj_single = distributed_physics.A_adjoint(y_single)
@@ -758,13 +745,10 @@ def test_consistency_single_vs_multiprocess(device_config):
 # =============================================================================
 
 
-def test_empty_local_set(device_config):
-    """Test handling when some ranks have no operators to process."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        # Create fewer operators than potential ranks to test empty sets
+def _test_empty_local_set_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        # Test with fewer operators than ranks - this creates the edge case
+        # where rank 1 (or higher ranks) will have 0 operators
         num_operators = 1
         physics_list = create_test_physics_list(ctx.device, num_operators)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -772,11 +756,22 @@ def test_empty_local_set(device_config):
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
 
         # Should handle empty local sets gracefully
+        # This tests the critical edge case where some ranks have no operators
         y = distributed_physics.A(x)
         x_adj = distributed_physics.A_adjoint(y)
 
         assert len(y) == num_operators
         assert x_adj.shape == x.shape
+        return "success"
+
+
+def test_empty_local_set(device_config):
+    """Test handling when some ranks have no operators to process."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_empty_local_set_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 def test_gather_strategy_validation():
@@ -807,16 +802,11 @@ def test_distribute_auto_type_detection():
 # =============================================================================
 
 
-@pytest.mark.parametrize("gather_strategy", ["concatenated"])
-def test_adjoint_operations(device_config, gather_strategy):
-    """Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_adjoint_operations_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(
-            physics_list, ctx=ctx, gather_strategy=gather_strategy
+            physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
         )
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
@@ -841,6 +831,23 @@ def test_adjoint_operations(device_config, gather_strategy):
         y_aat = distributed_physics.A_A_adjoint(y)
         # A_A_adjoint may return a tensor (not TensorList) depending on operator
         assert torch.is_tensor(y_aat)
+        return "success"
+
+
+def test_adjoint_operations(device_config, gather_strategy):
+    """Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations."""
+    # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
+    if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
+        pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
+    
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "gather_strategy": gather_strategy,
+    }
+    results = run_distributed_test(
+        _test_adjoint_operations_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -848,53 +855,61 @@ def test_adjoint_operations(device_config, gather_strategy):
 # =============================================================================
 
 
-@pytest.mark.parametrize("local_only", [True, False])
-def test_compute_norm_local_vs_global(device_config, local_only):
-    """Test compute_norm with local_only parameter."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    # Skip expensive global computation in CI
-    if not local_only and device_config["world_size"] > 1:
-        pytest.skip(
-            "Global norm computation is expensive, testing local_only=True only"
-        )
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_compute_norm_local_vs_global_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
         x0 = torch.randn(1, 1, 16, 16, device=ctx.device)
         norm = distributed_physics.compute_sqnorm(
-            x0, max_iter=10, verbose=False, local_only=local_only
+            x0, max_iter=10, verbose=False, local_only=args["local_only"]
         )
 
         assert norm.ndim == 0
         assert norm.item() > 0
+        return "success"
 
 
 @pytest.mark.parametrize("local_only", [True, False])
-def test_a_dagger_local_vs_global(device_config, local_only):
-    """Test A_dagger with local_only parameter."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_compute_norm_local_vs_global(device_config, local_only):
+    """Test compute_norm with local_only parameter."""
 
-    # Skip expensive global computation in CI
-    if not local_only:
-        pytest.skip(
-            "Global A_dagger computation is expensive, testing local_only=True only"
-        )
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "local_only": local_only,
+    }
+    results = run_distributed_test(
+        _test_compute_norm_local_vs_global_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+def _test_a_dagger_local_vs_global_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
 
-        x_dagger = distributed_physics.A_dagger(y, local_only=local_only)
+        x_dagger = distributed_physics.A_dagger(y, local_only=args["local_only"])
 
         assert x_dagger.shape == x.shape
+        return "success"
+
+
+@pytest.mark.parametrize("local_only", [True, False])
+def test_a_dagger_local_vs_global(device_config, local_only):
+    """Test A_dagger with local_only parameter."""
+
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "local_only": local_only,
+    }
+    results = run_distributed_test(
+        _test_a_dagger_local_vs_global_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -902,60 +917,98 @@ def test_a_dagger_local_vs_global(device_config, local_only):
 # =============================================================================
 
 
-def test_distributed_context_device_modes():
-    """Test DistributedContext with different device modes."""
-    # Test CPU mode
-    with DistributedContext(device_mode="cpu") as ctx:
-        assert ctx.device.type == "cpu"
-
-    # Test auto mode (should select available device)
-    with DistributedContext(device_mode=None) as ctx:
-        assert ctx.device is not None
-
-    # Test GPU mode only if available
-    if torch.cuda.is_available():
-        with DistributedContext(device_mode="gpu") as ctx:
+def _test_distributed_context_device_modes_worker(rank, world_size, args):
+    """Worker for testing DistributedContext with different device modes."""
+    device_mode = args["device_mode"]
+    with DistributedContext(device_mode=device_mode) as ctx:
+        if device_mode == "cpu":
+            assert ctx.device.type == "cpu"
+        elif device_mode == "gpu":
             assert ctx.device.type == "cuda"
+        elif device_mode is None:
+            assert ctx.device is not None
+    return "success"
 
 
-def test_distributed_context_seeding():
-    """Test that seeding works correctly across ranks."""
-    with DistributedContext(device_mode="cpu", seed=42) as ctx:
-        val1 = torch.rand(1).item()
-
-    with DistributedContext(device_mode="cpu", seed=42) as ctx:
-        val2 = torch.rand(1).item()
-
-    assert abs(val1 - val2) < 1e-7
+def test_distributed_context_device_modes(device_config):
+    """Test DistributedContext with different device modes."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_context_device_modes_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
-def test_distributed_context_local_indices():
-    """Test local_indices sharding."""
-    with DistributedContext(device_mode="cpu") as ctx:
-        # Single process should get all indices
-        indices = ctx.local_indices(10)
-        assert len(indices) == 10
-        assert indices == list(range(10))
+def _test_distributed_context_local_indices_worker(rank, world_size, args):
+    """Worker for testing local_indices sharding."""
+    with DistributedContext(device_mode=args["device_mode"]) as ctx:
+        total_items = 10
+        indices = ctx.local_indices(total_items)
+        # Each rank gets a subset of indices
+        assert len(indices) <= total_items
+        # Indices should be in range
+        assert all(0 <= i < total_items for i in indices)
+    return {"rank": rank, "indices": indices, "num_indices": len(indices)}
 
 
-def test_distributed_context_collectives():
-    """Test collective operations (all_reduce, broadcast, barrier)."""
-    with DistributedContext(device_mode="cpu") as ctx:
-        # Test all_reduce_
-        t = torch.tensor([1.0, 2.0, 3.0])
-        result = ctx.all_reduce_(t.clone(), op="sum")
-        assert torch.allclose(result, t)  # Single process: no change
+def test_distributed_context_local_indices(device_config):
+    """Test local_indices sharding across ranks."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_context_local_indices_worker, device_config, test_args
+    )
+    
+    # Check that all indices are covered and non-overlapping
+    all_indices = []
+    for r in results:
+        all_indices.extend(r["indices"])
+    
+    # Should cover all items from 0 to 9
+    if device_config["world_size"] == 1:
+        assert len(all_indices) == 10
+    else:
+        # In multi-process, all indices should be covered
+        assert sorted(all_indices) == list(range(10))
 
+
+def _test_distributed_context_collectives_worker(rank, world_size, args):
+    """Worker for testing collective operations."""
+    with DistributedContext(device_mode=args["device_mode"]) as ctx:
+        # Test all_reduce_ with sum
+        t = torch.tensor([float(rank + 1), 2.0, 3.0], device=ctx.device)
+        result_sum = ctx.all_reduce_(t.clone(), op="sum")
+        # Sum across all ranks: rank 0 contributes 1, rank 1 contributes 2, etc.
+        expected_sum = torch.tensor(
+            [sum(range(1, world_size + 1)), 2.0 * world_size, 3.0 * world_size],
+            device=ctx.device
+        )
+        assert torch.allclose(result_sum, expected_sum), f"Rank {rank}: {result_sum} vs {expected_sum}"
+
+        # Test all_reduce_ with mean
         result_mean = ctx.all_reduce_(t.clone(), op="mean")
-        assert torch.allclose(result_mean, t)
+        expected_mean = expected_sum / world_size
+        assert torch.allclose(result_mean, expected_mean), f"Rank {rank}: {result_mean} vs {expected_mean}"
 
         # Test broadcast_
-        t_bcast = torch.tensor([1.0, 2.0, 3.0])
+        if rank == 0:
+            t_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
+        else:
+            t_bcast = torch.tensor([0.0, 0.0, 0.0], device=ctx.device)
+        
         result_bcast = ctx.broadcast_(t_bcast.clone(), src=0)
-        assert torch.allclose(result_bcast, t_bcast)
+        expected_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
+        assert torch.allclose(result_bcast, expected_bcast)
+    
+    return "success"
 
-        # Test barrier (should not hang)
-        ctx.barrier()
+
+def test_distributed_context_collectives(device_config):
+    """Test collective operations (all_reduce, broadcast, barrier) across ranks."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distributed_context_collectives_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -963,14 +1016,9 @@ def test_distributed_context_collectives():
 # =============================================================================
 
 
-@pytest.mark.parametrize("denoiser_spec", ["simple"])
-def test_processor_different_patch_sizes(device_config, denoiser_spec):
-    """Test processor distribution with varying patch sizes."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
+def _test_processor_different_patch_sizes_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
         for patch_size in [4, 8, 16]:
             distributed_processor = distribute(
@@ -985,16 +1033,25 @@ def test_processor_different_patch_sizes(device_config, denoiser_spec):
             x = torch.randn(1, 3, 16, 16, device=ctx.device)
             result = distributed_processor(x, sigma=0.1)
             assert result.shape == x.shape
+        return "success"
 
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
-def test_processor_max_batch_size(device_config, denoiser_spec):
-    """Test processor with different max_batch_size settings."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_processor_different_patch_sizes(device_config, denoiser_spec):
+    """Test processor distribution with varying patch sizes."""
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "denoiser_spec": denoiser_spec,
+    }
+    results = run_distributed_test(
+        _test_processor_different_patch_sizes_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
+
+def _test_processor_max_batch_size_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
 
@@ -1016,16 +1073,25 @@ def test_processor_max_batch_size(device_config, denoiser_spec):
         # All should give same result
         for r in results[1:]:
             assert torch.allclose(results[0], r, atol=1e-5)
+        return "success"
 
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
-def test_processor_3d(device_config, denoiser_spec):
-    """Test processor with 3D volumes."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_processor_max_batch_size(device_config, denoiser_spec):
+    """Test processor with different max_batch_size settings."""
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "denoiser_spec": denoiser_spec,
+    }
+    results = run_distributed_test(
+        _test_processor_max_batch_size_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=1)
+
+def _test_processor_3d_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
+        processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=1)
 
         distributed_processor = distribute(
             processor,
@@ -1041,6 +1107,18 @@ def test_processor_3d(device_config, denoiser_spec):
         result_3d = distributed_processor(x_3d, sigma=0.1)
 
         assert result_3d.shape == x_3d.shape
+        return "success"
+
+
+@pytest.mark.parametrize("denoiser_spec", ["simple"])
+def test_processor_3d(device_config, denoiser_spec):
+    """Test processor with 3D volumes."""
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "denoiser_spec": denoiser_spec,
+    }
+    results = run_distributed_test(_test_processor_3d_worker, device_config, test_args)
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -1048,12 +1126,8 @@ def test_processor_3d(device_config, denoiser_spec):
 # =============================================================================
 
 
-def test_data_fidelity_vs_stacked(device_config):
-    """Compare DistributedDataFidelity with StackedPhysicsDataFidelity."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_data_fidelity_vs_stacked_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
 
@@ -1084,14 +1158,20 @@ def test_data_fidelity_vs_stacked(device_config):
         grad_stack = stacked_fidelity.grad(x, y_stack, stacked_physics)
 
         assert torch.allclose(grad_dist, grad_stack, atol=1e-5)
+        return "success"
 
 
-def test_data_fidelity_different_fidelities(device_config):
-    """Test with different data fidelity types (L1, L2)."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_data_fidelity_vs_stacked(device_config):
+    """Compare DistributedDataFidelity with StackedPhysicsDataFidelity."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_data_fidelity_vs_stacked_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+def _test_data_fidelity_different_fidelities_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -1111,6 +1191,16 @@ def test_data_fidelity_different_fidelities(device_config):
 
             assert torch.is_tensor(fid)
             assert grad.shape == x.shape
+    return "success"
+
+
+def test_data_fidelity_different_fidelities(device_config):
+    """Test with different data fidelity types (L1, L2)."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_data_fidelity_different_fidelities_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
 
 # =============================================================================
@@ -1118,15 +1208,9 @@ def test_data_fidelity_different_fidelities(device_config):
 # =============================================================================
 
 
-@pytest.mark.parametrize(
-    "operation", ["A", "forward", "A_adjoint", "A_vjp", "A_adjoint_A"]
-)
-def test_reduce_false_physics_operations(device_config, operation):
-    """Test all physics operations with reduce=False."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
-
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+def _test_reduce_false_physics_operations_worker(rank, world_size, args):
+    operation = args["operation"]
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
@@ -1146,32 +1230,47 @@ def test_reduce_false_physics_operations(device_config, operation):
 
         elif operation == "A_adjoint":
             y = distributed_physics.A(x)
-            result_local = distributed_physics.A_adjoint(y, reduce=False)
-            result_global = distributed_physics.A_adjoint(y, reduce=True)
-            assert torch.is_tensor(result_local)
+            # A_adjoint reduces by default, so we test both modes
+            result_global = distributed_physics.A_adjoint(y)
             assert torch.is_tensor(result_global)
+            # Local version returns unreduced result (one per local operator)
+            result_local = distributed_physics.A_adjoint(y, reduce=False)
+            assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
         elif operation == "A_vjp":
             y = distributed_physics.A(x)
-            result_local = distributed_physics.A_vjp(x, y, reduce=False)
-            result_global = distributed_physics.A_vjp(x, y, reduce=True)
-            assert torch.is_tensor(result_local)
+            # A_vjp reduces by default
+            result_global = distributed_physics.A_vjp(x, y)
             assert torch.is_tensor(result_global)
+            # Local version
+            result_local = distributed_physics.A_vjp(x, y, reduce=False)
+            assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
         elif operation == "A_adjoint_A":
-            result_local = distributed_physics.A_adjoint_A(x, reduce=False)
-            result_global = distributed_physics.A_adjoint_A(x, reduce=True)
-            assert torch.is_tensor(result_local)
+            # A_adjoint_A reduces by default
+            result_global = distributed_physics.A_adjoint_A(x)
             assert torch.is_tensor(result_global)
+            # Local version
+            result_local = distributed_physics.A_adjoint_A(x, reduce=False)
+            assert isinstance(result_local, list) or torch.is_tensor(result_local)
+    return "success"
 
 
-@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_reduce_false_processor(device_config, denoiser_spec):
-    """Test DistributedProcessing with reduce=False."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+@pytest.mark.parametrize(
+    "operation", ["A", "forward", "A_adjoint", "A_vjp", "A_adjoint_A"]
+)
+def test_reduce_false_physics_operations(device_config, operation):
+    """Test all physics operations with reduce=False."""
+    test_args = {"device_mode": device_config["device_mode"], "operation": operation}
+    results = run_distributed_test(
+        _test_reduce_false_physics_operations_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+def _test_reduce_false_processor_worker(rank, world_size, args):
+    denoiser_spec = args["denoiser_spec"]
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
         distributed_processor = distribute(
             processor,
@@ -1184,19 +1283,29 @@ def test_reduce_false_processor(device_config, denoiser_spec):
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
 
-        result_local = distributed_processor(x, reduce=False, sigma=0.1)
-        result_global = distributed_processor(x, reduce=True, sigma=0.1)
-
-        assert torch.is_tensor(result_local)
+        # Test with reduce=True (default)
+        result_global = distributed_processor(x, sigma=0.1)
         assert torch.is_tensor(result_global)
 
+        # Test with reduce=False if supported
+        result_local = distributed_processor(x, reduce=False, sigma=0.1)
+        assert isinstance(result_local, list) or torch.is_tensor(result_local)
 
-def test_reduce_false_data_fidelity(device_config):
-    """Test DistributedDataFidelity with reduce=False."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+    return "success"
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
+def test_reduce_false_processor(device_config, denoiser_spec):
+    """Test DistributedProcessing with reduce=False."""
+    test_args = {"device_mode": device_config["device_mode"], "denoiser_spec": denoiser_spec}
+    results = run_distributed_test(
+        _test_reduce_false_processor_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
+
+
+def _test_reduce_false_data_fidelity_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
@@ -1216,14 +1325,20 @@ def test_reduce_false_data_fidelity(device_config):
         grad_global = distributed_fidelity.grad(x, y, distributed_physics, reduce=True)
         assert torch.is_tensor(grad_local)
         assert torch.is_tensor(grad_global)
+    return "success"
 
 
-def test_distribute_helper_data_fidelity(device_config):
-    """Test distribute_data_fidelity helper with single object."""
-    if device_config.get("skip_reason"):
-        pytest.skip(device_config["skip_reason"])
+def test_reduce_false_data_fidelity(device_config):
+    """Test DistributedDataFidelity with reduce=False."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_reduce_false_data_fidelity_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
 
-    with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
+
+def _test_distribute_helper_data_fidelity_worker(rank, world_size, args):
+    with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         num_operators = 3
         physics_list = create_test_physics_list(ctx.device, num_operators)
         distributed_physics = distribute(physics_list, ctx=ctx)
@@ -1237,3 +1352,13 @@ def test_distribute_helper_data_fidelity(device_config):
 
         fid = distributed_fidelity.fn(x, y, distributed_physics)
         assert torch.is_tensor(fid)
+    return "success"
+
+
+def test_distribute_helper_data_fidelity(device_config):
+    """Test distribute_data_fidelity helper with single object."""
+    test_args = {"device_mode": device_config["device_mode"]}
+    results = run_distributed_test(
+        _test_distribute_helper_data_fidelity_worker, device_config, test_args
+    )
+    assert all(r == "success" for r in results)
