@@ -345,13 +345,15 @@ def create_physics_specification(spec_type, device, num_operators):
         raise ValueError(f"Unknown spec_type: {spec_type}")
 
 
-def create_drunet_denoiser(num_channels=1, device='cpu', dtype=torch.float32) -> Denoiser:
+def create_drunet_denoiser(
+    num_channels=1, device="cpu", dtype=torch.float32
+) -> Denoiser:
     """Create a DRUNet denoiser appropriate for the given ground truth shape.
-    
+
     Automatically detects whether to use:
     - Grayscale (1 channel) or color (3 channels) based on channel dimension
     - 2D or 3D based on number of spatial dimensions
-    
+
     Parameters
     ----------
     num_channels : int
@@ -359,7 +361,7 @@ def create_drunet_denoiser(num_channels=1, device='cpu', dtype=torch.float32) ->
         Device to load the model on. Default: 'cpu'.
     dtype : torch.dtype, optional
         Data type for the model. Default: torch.float32.
-        
+
     Returns
     -------
     DRUNet
@@ -374,7 +376,9 @@ def create_drunet_denoiser(num_channels=1, device='cpu', dtype=torch.float32) ->
         # Color: use default RGB DRUNet
         model = DRUNet(device=device)
     else:
-        raise ValueError(f"Unsupported number of channels: {num_channels}. Expected 1 (grayscale) or 3 (color).")
+        raise ValueError(
+            f"Unsupported number of channels: {num_channels}. Expected 1 (grayscale) or 3 (color)."
+        )
 
     # Move to device and dtype
     return model.to(dtype)
@@ -395,14 +399,11 @@ def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
         return SimpleDenoiser(scale=0.9).to(device)
 
     elif spec_type == "drunet":
-        return create_drunet_denoiser(
-            num_channels=num_channels, device=device
-        )
-    
+        return create_drunet_denoiser(num_channels=num_channels, device=device)
+
     else:
         raise ValueError(f"Unknown denoiser spec_type: {spec_type}")
 
-        
 
 # =============================================================================
 # Core Tests: Distributed Physics Operations
@@ -566,7 +567,9 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("tiling_strategy", ["smart_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_distribute_processor_multiprocess(device_config, tiling_strategy, denoiser_spec):
+def test_distribute_processor_multiprocess(
+    device_config, tiling_strategy, denoiser_spec
+):
     """Test processor distribution in multi-process mode."""
     test_args = {
         "device_mode": device_config["device_mode"],
@@ -959,6 +962,7 @@ def test_distributed_context_collectives():
 # =============================================================================
 # Processor Batch Size and Tiling Tests
 # =============================================================================
+
 
 @pytest.mark.parametrize("denoiser_spec", ["simple"])
 def test_processor_different_patch_sizes(device_config, denoiser_spec):
