@@ -308,7 +308,6 @@ class DistributedContext:
                 out[idx] = result
             return TensorList(out)
 
-        print(f"Rank {self.rank}: Gathering {len(local_results)} tensors")
         # Step 1: Share metadata (indices, shapes, dtypes)
         local_metadata = [
             (idx, tuple(result.shape), result.dtype, result.numel())
@@ -330,7 +329,6 @@ class DistributedContext:
         else:
             canonical_dtype = torch.float32
 
-        print(f"Rank {self.rank}: Using canonical dtype {canonical_dtype}")
         # Step 2: Flatten and pad local tensors to max size
         if len(local_results) > 0:
             # Find max numel across all tensors globally
@@ -365,7 +363,6 @@ class DistributedContext:
                 (0, max_numel), dtype=canonical_dtype, device=self.device
             )
 
-        print(f"Rank {self.rank}: local_concat shape {local_concat.shape}")
         # Step 3: All-gather the concatenated tensor
         # Calculate max_local_count from gathered_metadata (no need for extra communication)
         max_local_count = 0
@@ -403,7 +400,6 @@ class DistributedContext:
         # All-gather the actual data
         dist.all_gather(tensor_lists, local_concat_padded)
 
-        print(f"Rank {self.rank}: Completed all_gather of tensor lists")
         # Step 4: Reconstruct TensorList from gathered data
         out: list = [None] * num_operators
         metadata_idx = 0
