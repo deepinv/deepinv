@@ -251,5 +251,5 @@ class RandomPatchSampler(ImageDataset):
             return torch.from_numpy(arr).to(self.dtype)
         else:  # pragma: no cover
             raise RuntimeError(
-                f"Object returned by loader must be a np.ndarray or torch.tensor after slicing, got {type(arr)}"
+                f"Object returned by loader must be a np.ndarray or torch.Tensor after slicing, got {type(arr)}"
             )

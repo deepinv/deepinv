@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
 
@@ -15,7 +16,13 @@ class AutoEncoder(Denoiser):
 
     """
 
-    def __init__(self, dim_input, dim_mid=1000, dim_hid=32, residual=True):
+    def __init__(
+        self,
+        dim_input: int,
+        dim_mid: int = 1000,
+        dim_hid: int = 32,
+        residual: bool = True,
+    ):
         super().__init__()
         self.residual = residual
 
@@ -30,7 +37,7 @@ class AutoEncoder(Denoiser):
             torch.nn.Linear(dim_mid, dim_input),
         )
 
-    def forward(self, x, sigma=None, **kwargs):
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         B, *S = x.shape
 
         x = x.reshape(B, -1)

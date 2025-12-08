@@ -12,6 +12,11 @@ jobs:
   benchmark-comparison:
     name: benchmark
     runs-on: ubuntu-latest
+
+    env:
+      # Configure a constant location for the uv cache
+      UV_CACHE_DIR: /tmp/.uv-cache
+
     strategy:
       matrix:
         include:
@@ -22,47 +27,60 @@ jobs:
             name: "no optional dependencies"
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
-          cache: 'pip' # caching pip dependencies
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
       - name: "Set up Hyperfine"
         run: |
           sudo apt-get update && sudo apt-get install -y hyperfine
 
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.uv-cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
+
       - name: Install deepinv and its dependencies
         shell: bash
         run: |
+          uv venv --python 3.11
           # if the extra is empty, install without optional dependencies
           if [ "${{ matrix.extra }}" = "" ]; then
-            pip install .
+            uv pip install .
           else
-            pip install .[${{ matrix.extra }}]
+            EXTRAS=""
+            for extra in $(echo "${{ matrix.extra }}" | tr ',' ' '); do
+              EXTRAS="$EXTRAS --extra $extra"
+            done
+            uv sync $EXTRAS
           fi
 
       - name: "Benchmark torch+torchvision"
         run: |
           echo "Benchmarking torch..."
-          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch, torchvision"'
+          hyperfine --warmup 3 --show-output --export-json torch.json 'uv run python -c "import torch, torchvision"'
 
       - name: "Benchmark PR"
         run: |
           echo "Benchmarking PR branch..."
-          hyperfine --warmup 3 --show-output --export-json head.json 'python -c "import deepinv"'
+          hyperfine --warmup 3 --show-output --export-json head.json 'uv run python -c "import deepinv"'
 
       - name: "Checkout main branch"
         run: |
-          pip uninstall -y deepinv # Clean up for the next step
+          uv pip uninstall deepinv # Clean up for the next step
           git fetch origin main --depth=1
           git checkout main
-          pip install .
+          uv pip install .
 
       - name: "Benchmark main"
         run: |
           echo "Benchmarking main branch..."
-          hyperfine --warmup 3 --show-output --export-json base.json 'python -c "import deepinv"'
+          hyperfine --warmup 3 --show-output --export-json base.json 'uv run python -c "import deepinv"'
 
       - name: "Compare results and fail on regression"
         uses: actions/github-script@v7
@@ -92,3 +110,6 @@ jobs:
             } else {
               core.info('✅ No significant performance regression detected.');
             }
+      
+      - name: Minimize uv cache
+        run: uv cache prune --ci

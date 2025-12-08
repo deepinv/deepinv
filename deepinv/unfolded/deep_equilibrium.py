@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import torch
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
@@ -11,8 +12,14 @@ class BaseDEQ(BaseUnfold):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
+    .. deprecated:: 0.3.6
+
+       The ``BaseDEQ`` class is deprecated and will be removed in future versions.
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
+
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
-    that can be virtually unrolled infinitely leveraging the implicit function theorem.
+    that can be virtually unrolled infinitely, leveraging the implicit function theorem.
     The backward pass is performed using fixed point iterations to find solutions of the fixed-point equation
 
     .. math::
@@ -118,7 +125,7 @@ class BaseDEQ(BaseUnfold):
                         }
 
                 # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, F_fn=None):
+                def init_iterate_fn(y, physics, cost_fn=None):
                     return {"est": (grad,)}  # initialize the fixed point algorithm.
 
                 backward_FP = FixedPoint(
@@ -148,7 +155,7 @@ def DEQ_builder(
     params_algo: dict | None = None,
     data_fidelity: DataFidelity | None = None,
     prior=None,
-    F_fn=None,
+    cost_fn=None,
     g_first=False,
     bregman_potential=None,
     **kwargs,
@@ -156,9 +163,15 @@ def DEQ_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.unfolded.BaseDEQ` class.
 
+    .. deprecated:: 0.3.6
+
+       The ``DEQ_builder`` function is deprecated and will be removed in future versions.
+       Instead of using this function, define a DEQ algorithm using the :class:`deepinv.optim.BaseOptim` class with argument `DEQ=True`,
+       e.g. ``model = PGD(data_fidelity, prior, ..., DEQ = True, ...)``.
+
     .. note::
 
-        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
@@ -175,11 +188,19 @@ def DEQ_builder(
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
-    :param Callable F_fn: Custom user input cost function. default: None.
+    :param Callable cost_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
+    if "F_fn" in kwargs:
+        F_fn = kwargs.pop("F_fn")
+        warnings.warn(
+            "`F_fn` is deprecated and will be removed in a future release. "
+            "Use `cost_fn` instead.",
+            DeprecationWarning,
+        )
+        cost_fn = F_fn
     if params_algo is None:
         params_algo = {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.03}
     if data_fidelity is None:
@@ -187,7 +208,7 @@ def DEQ_builder(
     iterator = create_iterator(
         iteration,
         prior=prior,
-        F_fn=F_fn,
+        cost_fn=cost_fn,
         g_first=g_first,
         bregman_potential=bregman_potential,
     )

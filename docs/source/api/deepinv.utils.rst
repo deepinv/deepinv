@@ -22,6 +22,8 @@ Plotting
         deepinv.utils.plot_ortho3D
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
+        deepinv.utils.normalize_signal
+        deepinv.utils.plotting.config_matplotlib
 
 
 TensorList
@@ -121,4 +123,7 @@ Other
    :nosignatures:
 
     deepinv.utils.get_freer_gpu
+    deepinv.utils.dirac
     deepinv.utils.dirac_like
+    deepinv.utils.dirac_comb
+    deepinv.utils.dirac_comb_like

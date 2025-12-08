@@ -1,6 +1,7 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 from __future__ import annotations
 import torch
+import torch.nn as nn
 from .utils import (
     get_weights_url,
     test_onesplit,
@@ -14,10 +15,7 @@ from .utils import (
     avgpool_nd,
 )
 from .base import Denoiser
-from typing import Sequence  # noqa: F401
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+from collections import OrderedDict
 
 
 class DRUNet(Denoiser):
@@ -208,6 +206,7 @@ class DRUNet(Denoiser):
             noise_level_map = (
                 torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
             )
+
         x = torch.cat((x, noise_level_map), 1)
         shape_is_safe = all((s % 8 == 0 and s > 31) for s in x.shape[2:])
         if shape_is_safe:
@@ -226,9 +225,6 @@ class DRUNet(Denoiser):
 """
 Functional blocks below
 """
-from collections import OrderedDict
-import torch
-import torch.nn as nn
 
 
 """

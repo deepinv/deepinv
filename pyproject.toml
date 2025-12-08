@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -56,6 +56,7 @@ test = [
     "pytest-cov",
     "pytest-xdist",
     "coverage",
+    "pytest-testmon",
 ]
 
 doc = [
@@ -67,7 +68,8 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
-    "sphinxcontrib.bibtex"
+    "sphinxcontrib.bibtex",
+    "nbformat",
 ]
 
 lint = [
@@ -89,6 +91,9 @@ denoisers = [
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "spyrit>=3.0.0; platform_system=='Linux'",
+    "diffusers", 
+    "transformers",
 ]
 
 # optional dependencies for specific datasets
@@ -124,7 +129,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-branch = true
+branch = false
 omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
@@ -138,12 +143,13 @@ exclude_also = [
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251"]
+select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004", "A005", "UP007", "UP045", "FA100", "FA102", "TID251", "N805", "E402"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
 "__init__.py" = ["F401"]
-"examples/**/*" = ["TID253"]
+"deepinv/__init__.py" = ["E402"]
+"examples/**/*" = ["TID253", "E402"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
@@ -152,3 +158,4 @@ banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets",
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "torch.norm".msg = "Use torch.linalg.vector_norm, torch.linalg.matrix_norm or torch.linalg.norm instead of the deprecated torch.norm"
+ 

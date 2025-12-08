@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from typing import Union, Sequence  # noqa: F401
 from .utils import get_weights_url
 from .base import Denoiser
 
