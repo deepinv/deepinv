@@ -542,7 +542,10 @@ def test_distribute_data_fidelity_single(device_config):
             return L2()
 
         distributed_fidelity_factory = distribute(
-            fidelity_factory, ctx=ctx, num_operators=num_operators, type_object="data_fidelity"
+            fidelity_factory,
+            ctx=ctx,
+            num_operators=num_operators,
+            type_object="data_fidelity",
         )
 
         assert isinstance(distributed_fidelity_factory, DistributedDataFidelity)
@@ -989,9 +992,7 @@ def test_data_fidelity_vs_stacked(device_config):
         # Create distributed version
         distributed_physics = distribute(physics_list, ctx=ctx)
 
-        distributed_fidelity = distribute(
-            L2(), ctx=ctx, num_operators=num_operators
-        )
+        distributed_fidelity = distribute(L2(), ctx=ctx, num_operators=num_operators)
 
         # Create stacked version for comparison
         stacked_physics = StackedLinearPhysics(physics_list)
@@ -1130,9 +1131,7 @@ def test_reduce_false_data_fidelity(device_config):
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(physics_list, ctx=ctx)
 
-        distributed_fidelity = distribute(
-            L2(), ctx=ctx, num_operators=3
-        )
+        distributed_fidelity = distribute(L2(), ctx=ctx, num_operators=3)
 
         x = torch.randn(1, 1, 16, 16, device=ctx.device)
         y = distributed_physics.A(x)
