@@ -29,6 +29,7 @@ from deepinv.physics.blur import gaussian_blur
 from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Denoiser
+from deepinv.models.drunet import DRUNet
 from deepinv.optim import L2, L1
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 
@@ -290,7 +291,7 @@ def run_distributed_test(
 class SimpleDenoiser(Denoiser):
     """Simple test denoiser that scales the input."""
 
-    def __init__(self, scale=0.95):
+    def __init__(self, scale=0.9):
         super().__init__()
         self.scale = scale
 
@@ -343,6 +344,65 @@ def create_physics_specification(spec_type, device, num_operators):
     else:
         raise ValueError(f"Unknown spec_type: {spec_type}")
 
+
+def create_drunet_denoiser(num_channels=1, device='cpu', dtype=torch.float32) -> Denoiser:
+    """Create a DRUNet denoiser appropriate for the given ground truth shape.
+    
+    Automatically detects whether to use:
+    - Grayscale (1 channel) or color (3 channels) based on channel dimension
+    - 2D or 3D based on number of spatial dimensions
+    
+    Parameters
+    ----------
+    num_channels : int
+    device : str or torch.device, optional
+        Device to load the model on. Default: 'cpu'.
+    dtype : torch.dtype, optional
+        Data type for the model. Default: torch.float32.
+        
+    Returns
+    -------
+    DRUNet
+        Configured DRUNet denoiser model.
+    """
+
+    # Determine if grayscale or color
+    if num_channels == 1:
+        # Grayscale: use single-channel DRUNet
+        model = DRUNet(in_channels=1, out_channels=1, device=device)
+    elif num_channels == 3:
+        # Color: use default RGB DRUNet
+        model = DRUNet(device=device)
+    else:
+        raise ValueError(f"Unsupported number of channels: {num_channels}. Expected 1 (grayscale) or 3 (color).")
+
+    # Move to device and dtype
+    return model.to(dtype)
+
+
+def create_denoiser(spec_type, device, num_channels=1) -> Denoiser:
+    """
+    Create denoiser based on specification type.
+
+    Args:
+        spec_type: "simple" or "callable_factory"
+        device: torch device
+
+    Returns:
+        denoiser or denoiser factory
+    """
+    if spec_type == "simple":
+        return SimpleDenoiser(scale=0.9).to(device)
+
+    elif spec_type == "drunet":
+        return create_drunet_denoiser(
+            num_channels=num_channels, device=device
+        )
+    
+    else:
+        raise ValueError(f"Unknown denoiser spec_type: {spec_type}")
+
+        
 
 # =============================================================================
 # Core Tests: Distributed Physics Operations
@@ -458,13 +518,14 @@ def test_distribute_physics_multiprocess(device_config, gather_strategy, physics
 
 
 @pytest.mark.parametrize("tiling_strategy", ["basic", "smart_tiling"])
-def test_distribute_processor_single(device_config, tiling_strategy):
+@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
+def test_distribute_processor_single(device_config, tiling_strategy, denoiser_spec):
     """Test processor distribution in single-process mode."""
     if device_config.get("skip_reason"):
         pytest.skip(device_config["skip_reason"])
 
     with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
 
         distributed_processor = distribute(
             processor,
@@ -476,7 +537,7 @@ def test_distribute_processor_single(device_config, tiling_strategy):
         )
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
-        result = distributed_processor(x)
+        result = distributed_processor(x, sigma=0.1)
 
         assert result.shape == x.shape
         assert result.device == ctx.device
@@ -485,7 +546,7 @@ def test_distribute_processor_single(device_config, tiling_strategy):
 def _test_multiprocess_processor_worker(rank, world_size, args):
     """Worker for multi-process processor tests."""
     with DistributedContext(device_mode=args["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(args["denoiser_spec"], ctx.device, num_channels=3)
 
         distributed_processor = distribute(
             processor,
@@ -498,19 +559,21 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
 
         torch.manual_seed(42)
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
-        result = distributed_processor(x)
+        result = distributed_processor(x, sigma=0.1)
 
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
 @pytest.mark.parametrize("tiling_strategy", ["smart_tiling"])
-def test_distribute_processor_multiprocess(device_config, tiling_strategy):
+@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
+def test_distribute_processor_multiprocess(device_config, tiling_strategy, denoiser_spec):
     """Test processor distribution in multi-process mode."""
     test_args = {
         "device_mode": device_config["device_mode"],
         "tiling_strategy": tiling_strategy,
         "patch_size": 8,
         "receptive_field_size": 2,
+        "denoiser_spec": denoiser_spec,
     }
 
     results = run_distributed_test(
@@ -897,14 +960,14 @@ def test_distributed_context_collectives():
 # Processor Batch Size and Tiling Tests
 # =============================================================================
 
-
-def test_processor_different_patch_sizes(device_config):
+@pytest.mark.parametrize("denoiser_spec", ["simple"])
+def test_processor_different_patch_sizes(device_config, denoiser_spec):
     """Test processor distribution with varying patch sizes."""
     if device_config.get("skip_reason"):
         pytest.skip(device_config["skip_reason"])
 
     with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
 
         for patch_size in [4, 8, 16]:
             distributed_processor = distribute(
@@ -917,17 +980,18 @@ def test_processor_different_patch_sizes(device_config):
             )
 
             x = torch.randn(1, 3, 16, 16, device=ctx.device)
-            result = distributed_processor(x)
+            result = distributed_processor(x, sigma=0.1)
             assert result.shape == x.shape
 
 
-def test_processor_max_batch_size(device_config):
+@pytest.mark.parametrize("denoiser_spec", ["simple"])
+def test_processor_max_batch_size(device_config, denoiser_spec):
     """Test processor with different max_batch_size settings."""
     if device_config.get("skip_reason"):
         pytest.skip(device_config["skip_reason"])
 
     with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
 
@@ -943,7 +1007,7 @@ def test_processor_max_batch_size(device_config):
                 receptive_field_size=2,
                 max_batch_size=max_batch,
             )
-            result = distributed_processor(x)
+            result = distributed_processor(x, sigma=0.1)
             results.append(result)
 
         # All should give same result
@@ -951,13 +1015,14 @@ def test_processor_max_batch_size(device_config):
             assert torch.allclose(results[0], r, atol=1e-5)
 
 
-def test_processor_3d(device_config):
+@pytest.mark.parametrize("denoiser_spec", ["simple"])
+def test_processor_3d(device_config, denoiser_spec):
     """Test processor with 3D volumes."""
     if device_config.get("skip_reason"):
         pytest.skip(device_config["skip_reason"])
 
     with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=1)
 
         distributed_processor = distribute(
             processor,
@@ -970,7 +1035,7 @@ def test_processor_3d(device_config):
 
         # Test with 3D input
         x_3d = torch.randn(1, 1, 16, 16, 16, device=ctx.device)
-        result_3d = distributed_processor(x_3d)
+        result_3d = distributed_processor(x_3d, sigma=0.1)
 
         assert result_3d.shape == x_3d.shape
 
@@ -1097,13 +1162,14 @@ def test_reduce_false_physics_operations(device_config, operation):
             assert torch.is_tensor(result_global)
 
 
-def test_reduce_false_processor(device_config):
+@pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
+def test_reduce_false_processor(device_config, denoiser_spec):
     """Test DistributedProcessing with reduce=False."""
     if device_config.get("skip_reason"):
         pytest.skip(device_config["skip_reason"])
 
     with DistributedContext(device_mode=device_config["device_mode"]) as ctx:
-        processor = SimpleDenoiser(scale=0.9).to(ctx.device)
+        processor = create_denoiser(denoiser_spec, ctx.device, num_channels=3)
         distributed_processor = distribute(
             processor,
             ctx,
@@ -1115,8 +1181,8 @@ def test_reduce_false_processor(device_config):
 
         x = torch.randn(1, 3, 16, 16, device=ctx.device)
 
-        result_local = distributed_processor(x, reduce=False)
-        result_global = distributed_processor(x, reduce=True)
+        result_local = distributed_processor(x, reduce=False, sigma=0.1)
+        result_global = distributed_processor(x, reduce=True, sigma=0.1)
 
         assert torch.is_tensor(result_local)
         assert torch.is_tensor(result_global)
