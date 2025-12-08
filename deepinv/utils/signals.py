@@ -1,6 +1,7 @@
 """Signal processing utilities"""
 
 from __future__ import annotations
+from warnings import warn
 
 import torch
 
@@ -24,6 +25,17 @@ def normalize_signal(
     :return: the normalized batch of signals.
 
     """
+    if mode != "clip":
+        if vmin is not None or vmax is not None:
+            warn(
+                "The vmin and vmax arguments are used only when using 'clip' rescaling.",
+                UserWarning,
+                stacklevel=2,
+            )
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError(
+            f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
+        )
     if mode == "min_max":
         # Compute the minimum and maximum intensity of the batched signals
         non_batched_dims = list(range(1, inp.ndim))

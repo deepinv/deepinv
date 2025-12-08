@@ -218,17 +218,7 @@ def preprocess_img(
     # Cast image values to float32 numbers
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
-    if rescale_mode != "clip":
-        if vmin is not None or vmax is not None:
-            warn(
-                "The vmin and vmax arguments are used only when using 'clip' rescaling.",
-                UserWarning,
-                stacklevel=2,
-            )
-    if vmin is not None and vmax is not None and vmin >= vmax:
-        raise ValueError(
-            f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
-        )
+
     # Normalize signal between 0 and 1
     im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
