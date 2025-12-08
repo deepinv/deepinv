@@ -206,14 +206,16 @@ def test_no_reference_metrics(
 
     # test noise
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
-    if metric_name not in ("BlurStrength"): # BlurStrength not robust to noise
+    if metric_name not in ("BlurStrength"):  # BlurStrength not robust to noise
         if not m.lower_better and not train_loss:
             assert m(x_hat).item() < m(x).item()
         else:
             assert m(x_hat).item() > m(x).item()
 
     # test blur
-    x_hat = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(3), img_size=x.shape[1:], device=device)(x)
+    x_hat = dinv.physics.BlurFFT(
+        filter=dinv.physics.blur.gaussian_blur(3), img_size=x.shape[1:], device=device
+    )(x)
     if not m.lower_better and not train_loss:
         assert m(x_hat).item() < m(x).item()
     else:

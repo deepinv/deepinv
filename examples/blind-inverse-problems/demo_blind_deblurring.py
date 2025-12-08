@@ -102,7 +102,7 @@ dinv.utils.plot({"Blurry": y, "Deblurred RAM": x_ram, "Deblurred DPIR": x_dpir})
 # Sharpness Index (higher is better)
 # to assess the quality of the reconstructions.
 
-center_crop = -10 # remove 10 pixels from each border to avoid boundary effects
+center_crop = -10  # remove 10 pixels from each border to avoid boundary effects
 
 niqe = dinv.metric.NIQE(center_crop=center_crop)
 

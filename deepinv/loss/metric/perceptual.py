@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import math
 
+
 class LPIPS(Metric):
     r"""
     Learned Perceptual Image Patch Similarity (LPIPS) metric.
@@ -275,12 +276,15 @@ class SharpnessIndex(Metric):
     torch.Size([2])
 
     """
+
     def __init__(self, periodic_component=True, dequantize=True, **kwargs):
         super().__init__(**kwargs)
         self.lower_better = False
         self.periodic_component = periodic_component
         self.dequantize = dequantize
-        assert self.periodic_component or self.dequantize, "At least one of periodic_component or dequantize must be True."
+        assert (
+            self.periodic_component or self.dequantize
+        ), "At least one of periodic_component or dequantize must be True."
 
     def metric(self, x_net, *args, **kwargs):
         """
@@ -305,8 +309,12 @@ class SharpnessIndex(Metric):
         fu = torch.fft.fft2(x_net)  # (B,C,H,W) complex
 
         # frequency grids
-        p = torch.arange(W, device=x_net.device).reshape(1, 1, 1, W) * (2 * torch.pi / W)
-        q = torch.arange(H, device=x_net.device).reshape(1, 1, H, 1) * (2 * torch.pi / H)
+        p = torch.arange(W, device=x_net.device).reshape(1, 1, 1, W) * (
+            2 * torch.pi / W
+        )
+        q = torch.arange(H, device=x_net.device).reshape(1, 1, H, 1) * (
+            2 * torch.pi / H
+        )
 
         P = p  # broadcast to (B,C,H,W)
         Q = q
@@ -316,7 +324,9 @@ class SharpnessIndex(Metric):
         sinQ = torch.sin(Q / 2)
 
         fgx2 = fu * sinP
-        fgx2 = 4 * (fgx2.real**2 + fgx2.imag**2)  # |4*fu*sin|^2 but matches MATLAB’s real(4*z*conj(z))
+        fgx2 = 4 * (
+            fgx2.real**2 + fgx2.imag**2
+        )  # |4*fu*sin|^2 but matches MATLAB’s real(4*z*conj(z))
 
         fgy2 = fu * sinQ
         fgy2 = 4 * (fgy2.real**2 + fgy2.imag**2)
@@ -379,11 +389,11 @@ def per_decomp(u):
 
     v[..., 0, :] += u_top - u_bottom
 
-    v[..., H - 1, :] -= (u_top - u_bottom)
+    v[..., H - 1, :] -= u_top - u_bottom
 
     v[..., :, 0] += u_left - u_right
 
-    v[..., :, W - 1] -= (u_left - u_right)
+    v[..., :, W - 1] -= u_left - u_right
 
     # frequency grids (fx, fy)
     X = torch.arange(W, dtype=torch.float64, device=u.device).reshape(1, 1, 1, W)
@@ -405,6 +415,7 @@ def per_decomp(u):
     # periodic part
     p = u - s
     return p
+
 
 def dequant(u):
     """
@@ -428,21 +439,20 @@ def dequant(u):
     x = torch.arange(mx, mx + W, device=u.device)
     y = torch.arange(my, my + H, device=u.device)
 
-    x_mod = (x % W) - mx         # (W,)
-    y_mod = (y % H) - my         # (H,)
+    x_mod = (x % W) - mx  # (W,)
+    y_mod = (y % H) - my  # (H,)
 
-    Tx = torch.exp(-1j * math.pi / W * x_mod)     # (W,) complex
-    Ty = torch.exp(-1j * math.pi / H * y_mod)     # (H,) complex
+    Tx = torch.exp(-1j * math.pi / W * x_mod)  # (W,) complex
+    Ty = torch.exp(-1j * math.pi / H * y_mod)  # (H,) complex
 
     # Outer product Ty' * Tx → shape (H, W)
-    shift = Ty[:, None] * Tx[None, :]             # (H, W)
+    shift = Ty[:, None] * Tx[None, :]  # (H, W)
 
     # Apply Fourier-domain phase shift
     fu = torch.fft.fft2(u)
     fv = fu * shift  # broadcasting over (B,C)
     v = torch.fft.ifft2(fv).real
     return v
-
 
 
 def logerfc(x):
