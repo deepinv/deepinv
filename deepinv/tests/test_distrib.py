@@ -64,6 +64,7 @@ def gather_strategy(request):
     """Parameterized fixture for gather strategy."""
     return request.param
 
+
 @pytest.fixture(params=["cpu_single", "cpu_multi", "gpu_single", "gpu_multi"])
 def device_config(request):
     """
@@ -462,10 +463,10 @@ def _test_multiprocess_physics_worker(rank, world_size, args):
         return "success"
 
 
-@pytest.mark.parametrize("physics_spec", ["physics_list", "stacked_physics", "callable_factory"])
-def test_distribute_physics(
-    device_config, gather_strategy, physics_spec
-):
+@pytest.mark.parametrize(
+    "physics_spec", ["physics_list", "stacked_physics", "callable_factory"]
+)
+def test_distribute_physics(device_config, gather_strategy, physics_spec):
     """Test physics distribution in multi-process mode."""
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
@@ -520,9 +521,7 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
 
 @pytest.mark.parametrize("tiling_strategy", ["basic", "smart_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
-def test_distribute_processor(
-    device_config, tiling_strategy, denoiser_spec
-):
+def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
     """Test processor distribution in multi-process mode."""
     test_args = {
         "device_mode": device_config["device_mode"],
@@ -596,9 +595,7 @@ def test_distribute_data_fidelity(device_config):
     test_args = {
         "device_mode": device_config["device_mode"],
     }
-    results = run_distributed_test(
-        _test_data_fidelity_worker, device_config, test_args
-    )
+    results = run_distributed_test(_test_data_fidelity_worker, device_config, test_args)
     assert all(r == "success" for r in results)
 
 
@@ -627,14 +624,12 @@ def test_compute_norm(device_config, gather_strategy):
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
-    
+
     test_args = {
         "device_mode": device_config["device_mode"],
         "gather_strategy": gather_strategy,
     }
-    results = run_distributed_test(
-        _test_compute_norm_worker, device_config, test_args
-    )
+    results = run_distributed_test(_test_compute_norm_worker, device_config, test_args)
     assert all(r == "success" for r in results)
 
 
@@ -657,9 +652,7 @@ def test_a_dagger(device_config):
     test_args = {
         "device_mode": device_config["device_mode"],
     }
-    results = run_distributed_test(
-        _test_a_dagger_worker, device_config, test_args
-    )
+    results = run_distributed_test(_test_a_dagger_worker, device_config, test_args)
     assert all(r == "success" for r in results)
 
 
@@ -839,7 +832,7 @@ def test_adjoint_operations(device_config, gather_strategy):
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu_multi":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
-    
+
     test_args = {
         "device_mode": device_config["device_mode"],
         "gather_strategy": gather_strategy,
@@ -957,12 +950,12 @@ def test_distributed_context_local_indices(device_config):
     results = run_distributed_test(
         _test_distributed_context_local_indices_worker, device_config, test_args
     )
-    
+
     # Check that all indices are covered and non-overlapping
     all_indices = []
     for r in results:
         all_indices.extend(r["indices"])
-    
+
     # Should cover all items from 0 to 9
     if device_config["world_size"] == 1:
         assert len(all_indices) == 10
@@ -980,25 +973,29 @@ def _test_distributed_context_collectives_worker(rank, world_size, args):
         # Sum across all ranks: rank 0 contributes 1, rank 1 contributes 2, etc.
         expected_sum = torch.tensor(
             [sum(range(1, world_size + 1)), 2.0 * world_size, 3.0 * world_size],
-            device=ctx.device
+            device=ctx.device,
         )
-        assert torch.allclose(result_sum, expected_sum), f"Rank {rank}: {result_sum} vs {expected_sum}"
+        assert torch.allclose(
+            result_sum, expected_sum
+        ), f"Rank {rank}: {result_sum} vs {expected_sum}"
 
         # Test all_reduce_ with mean
         result_mean = ctx.all_reduce_(t.clone(), op="mean")
         expected_mean = expected_sum / world_size
-        assert torch.allclose(result_mean, expected_mean), f"Rank {rank}: {result_mean} vs {expected_mean}"
+        assert torch.allclose(
+            result_mean, expected_mean
+        ), f"Rank {rank}: {result_mean} vs {expected_mean}"
 
         # Test broadcast_
         if rank == 0:
             t_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
         else:
             t_bcast = torch.tensor([0.0, 0.0, 0.0], device=ctx.device)
-        
+
         result_bcast = ctx.broadcast_(t_bcast.clone(), src=0)
         expected_bcast = torch.tensor([10.0, 20.0, 30.0], device=ctx.device)
         assert torch.allclose(result_bcast, expected_bcast)
-    
+
     return "success"
 
 
@@ -1297,7 +1294,10 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
 def test_reduce_false_processor(device_config, denoiser_spec):
     """Test DistributedProcessing with reduce=False."""
-    test_args = {"device_mode": device_config["device_mode"], "denoiser_spec": denoiser_spec}
+    test_args = {
+        "device_mode": device_config["device_mode"],
+        "denoiser_spec": denoiser_spec,
+    }
     results = run_distributed_test(
         _test_reduce_false_processor_worker, device_config, test_args
     )

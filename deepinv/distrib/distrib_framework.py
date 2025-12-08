@@ -252,7 +252,7 @@ class DistributedContext:
         Best for: Small tensors where serialization overhead is negligible.
 
         Communication pattern: 1 all_gather_object call (high overhead, simple)
-        
+
         Note: This strategy uses all_gather_object which is only supported by the Gloo backend.
         For NCCL (GPU) environments, use 'concatenated' or 'broadcast' strategies instead.
 
@@ -268,7 +268,7 @@ class DistributedContext:
             for idx, result in zip(local_indices, local_results, strict=False):
                 out[idx] = result
             return TensorList(out)
-        
+
         # Check if we're using NCCL backend (not compatible with all_gather_object)
         if dist.get_backend() == "nccl":
             raise RuntimeError(
@@ -580,12 +580,12 @@ class DistributedPhysics(Physics):
 
     # -------- Factorized map-reduce logic --------
     def _map_reduce(
-        self, 
-        x: Union[torch.Tensor, list[torch.Tensor]], 
-        local_op: Callable, 
+        self,
+        x: Union[torch.Tensor, list[torch.Tensor]],
+        local_op: Callable,
         reduce: bool = True,
         sum_results: bool = False,
-        **kwargs
+        **kwargs,
     ) -> Union[TensorList, list[torch.Tensor], torch.Tensor]:
         """
         Map-reduce pattern for distributed operations.
@@ -607,7 +607,10 @@ class DistributedPhysics(Physics):
                     f"When passing list/tuple to _map_reduce, length must match local operators: "
                     f"got {len(x)}, expected {len(self.local_physics)}"
                 )
-            local_results = [local_op(p, x_i, **kwargs) for p, x_i in zip(self.local_physics, x, strict=False)]
+            local_results = [
+                local_op(p, x_i, **kwargs)
+                for p, x_i in zip(self.local_physics, x, strict=False)
+            ]
         else:
             # Single input shared by all operators (e.g., for A(x))
             local_results = [local_op(p, x, **kwargs) for p in self.local_physics]
@@ -622,9 +625,11 @@ class DistributedPhysics(Physics):
             out: list = [None] * self.num_operators
             for idx, result in zip(self.local_indexes, local_results, strict=False):
                 out[idx] = result
-            
+
             if sum_results:
-                return torch.stack([out[i] for i in range(self.num_operators)], dim=0).sum(0)
+                return torch.stack(
+                    [out[i] for i in range(self.num_operators)], dim=0
+                ).sum(0)
             return TensorList(out)
 
         # Step 2: Reduce - gather results using selected strategy
@@ -642,9 +647,11 @@ class DistributedPhysics(Physics):
             )
         else:
             raise ValueError(f"Unknown gather strategy: {self.gather_strategy}")
-        
+
         if sum_results:
-            return torch.stack([gathered[i] for i in range(self.num_operators)], dim=0).sum(0)
+            return torch.stack(
+                [gathered[i] for i in range(self.num_operators)], dim=0
+            ).sum(0)
         return gathered
 
     def A(
@@ -772,7 +779,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             raise ValueError(
                 f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
             )
-        
+
         # Use _map_reduce with per-operator inputs and sum_results=True
         # This gathers all A_i^T(y_i) and sums them automatically
         result = self._map_reduce(
@@ -780,13 +787,13 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             lambda p, y_i, **kw: p.A_adjoint(y_i, **kw),
             reduce=reduce,
             sum_results=True,
-            **kwargs
+            **kwargs,
         )
-        
+
         # Apply reduction mode normalization if needed
         if reduce and self.reduction_mode == "mean":
             result = result / float(self.num_operators)
-        
+
         return result
 
     def A_vjp(
@@ -908,7 +915,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         This is an internal helper that converts local (per-rank) results into global
         results by summing contributions from all ranks. Optionally normalizes by the
         number of operators if mean reduction is requested.
-        
+
         Note: This method is primarily used by operations like A_adjoint_A where
         the result is already a proper tensor from all ranks. For A_adjoint, we use
         the _map_reduce pattern which handles empty local sets more robustly.
