@@ -25,6 +25,7 @@ Fixed
 - Fixed :class:`deepinv.sampling.DPS` initialization when measurements have different size than image (:gh:`946` by `Julian Tachella`_)
 - Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
+- `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
 
 v0.3.6
