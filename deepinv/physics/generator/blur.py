@@ -7,6 +7,8 @@ from deepinv.physics.functional import histogramdd, conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias
 
+from .zernike import Zernike
+
 
 class PSFGenerator(PhysicsGenerator):
     r"""
@@ -317,7 +319,9 @@ class DiffractionBlurGenerator(PSFGenerator):
 
         # Fourier plane is discretized on [-0.5,0.5]x[-0.5,0.5]
         XX, YY = torch.meshgrid(lin_x / self.fc, lin_y / self.fc, indexing="ij")
-        self.register_buffer("rho", cart2pol(XX, YY))  # Cartesian coordinates
+        self.register_buffer(
+            "rho", cart2pol(XX, YY)
+        )  # Cartesian coordinates to polar coordinates
         self.register_buffer(
             "indicator_circ",
             bump_function(self.rho, 1 - self.step_rho / 2, b=self.step_rho / 2),
@@ -346,8 +350,8 @@ class DiffractionBlurGenerator(PSFGenerator):
             ),
         )
         for k, index in enumerate(self.zernike_index):
-            n, m = zernike_index_conversion(index, convention=index_convention)
-            self.Z[:, :, k] = get_zernike_polynomial(
+            n, m = Zernike.index_conversion(index, convention=index_convention)
+            self.Z[:, :, k] = Zernike.cartesian_evaluate(
                 n, m, XX, YY
             )  # defining the k-th Zernike polynomial
 
@@ -435,289 +439,6 @@ class DiffractionBlurGenerator(PSFGenerator):
         :return: a tensor of shape `(batch_size,)` angles in degrees.
         """
         return torch.rand(batch_size, generator=self.rng, **self.factory_kwargs) * 360
-
-
-def get_zernike_polynomial(
-    n: int, m: int, x: torch.Tensor, y: torch.Tensor
-) -> torch.Tensor:
-    r"""
-    Define the Zernike polynomial of radial order :math:`n` and angular (or azimuthal) frequency :math:`m`.
-
-    The Zernike polynomials are a sequence of orthogonal polynomials defined on the unit disk.
-    They are commonly used in optical systems to describe wavefront aberrations.
-
-    This function implements the Zernike polynomials up to order 7 using explicit formulas from :footcite:t:`lakshminarayanan2011zernike`
-    (see `this link <https://e-l.unifi.it/pluginfile.php/1055875/mod_resource/content/1/Appunti_2020_Lezione%2014_4_Zernikepolynomialsaguidefinal.pdf>`_).
-
-    :param int n: the radial order of the Zernike polynomial (`n >= 0`)
-    :param int m: the angular frequency of the Zernike polynomial (`-n <= m <= n` and `n - m` is even)
-    :param torch.Tensor x: x coordinates in the polar plane of any shape.
-    :param torch.Tensor y: y coordinates in the polar plane of any shape.
-
-    :return: the Zernike polynomial evaluated at `(x, y)` of the same shape as `x` and `y`.
-    """
-    out_of_range_error_message = f"The value of m={m} is not valid for n={n}. It should be in the range -n <= m <= n and n - m should be even."
-    if n == 0:
-        if m == 0:
-            return torch.ones_like(x) * (2**0.5)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 1:
-        if m == -1:
-            return 2 * x
-        elif m == 1:
-            return 2 * y
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 2:
-        if m == -2:
-            return 6**0.5 * 2 * x * y
-        elif m == 0:
-            return 3**0.5 * (-1 + 2 * x**2 + 2 * y**2)
-        elif m == 2:
-            return 6**0.5 * (-(x**2) + y**2)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 3:
-        rms = 2 * 2**0.5
-        if m == -3:
-            return rms * (-(x**3) + 3 * x * y**2)
-        elif m == -1:
-            return rms * (-2 * x + 3 * x**3 + 3 * x * y**2)
-        elif m == 1:
-            return rms * (-2 * y + 3 * y**3 + 3 * x**2 * y)
-        elif m == 3:
-            return rms * (y**3 - 3 * x**2 * y)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 4:
-        sq10 = 10**0.5
-        sq5 = 5**0.5
-        if m == -4:
-            return sq10 * (-4 * x**3 * y + 4 * x * y**3)
-        elif m == -2:
-            return sq10 * (-6 * x * y + 8 * x**3 * y + 8 * x * y**3)
-        elif m == 0:
-            return sq5 * (
-                1 - 6 * x**2 - 6 * y**2 + 6 * x**4 + 12 * x**2 * y**2 + 6 * y**4
-            )
-        elif m == 2:
-            return sq10 * (3 * x**2 - 3 * y**2 - 4 * x**4 + 4 * y**4)
-        elif m == 4:
-            return sq10 * (x**4 - 6 * x**2 * y**2 + y**4)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 5:
-        rms = 2 * 3**0.5
-        if m == -5:
-            return rms * (x**5 - 10 * x**3 * y**2 + 5 * x * y**4)
-        elif m == -3:
-            return rms * (
-                4 * x**3 - 12 * x * y**2 - 5 * x**5 + 10 * x**3 * y**2 + 15 * x * y**4
-            )
-        elif m == -1:
-            return rms * (
-                3 * x
-                - 12 * x**3
-                - 12 * x * y**2
-                + 10 * x**5
-                + 20 * x**3 * y**2
-                + 10 * x * y**4
-            )
-        elif m == 1:
-            return rms * (
-                3 * y
-                - 12 * y**3
-                - 12 * x**2 * y
-                + 10 * y**5
-                + 20 * x**2 * y**3
-                + 10 * x**4 * y
-            )
-        elif m == 3:
-            return rms * (
-                -4 * y**3 + 12 * x**2 * y + 5 * y**5 - 10 * x**2 * y**3 - 15 * x**4 * y
-            )
-        elif m == 5:
-            return rms * (y**5 - 10 * x**2 * y**3 + 5 * x**4 * y)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 6:
-        sq14 = 14**0.5
-        sq7 = 7**0.5
-        if m == -6:
-            return sq14 * (6 * x**5 * y - 20 * x**3 * y**3 + 6 * x * y**5)
-        elif m == -4:
-            return sq14 * (
-                20 * x**3 * y - 20 * x * y**3 - 24 * x**5 * y + 24 * x * y**5
-            )
-        elif m == -2:
-            return sq14 * (
-                12 * x * y
-                - 40 * x**3 * y
-                - 40 * x * y**3
-                + 30 * x**5 * y
-                + 60 * x**3 * y**3
-                + 30 * x * y**5
-            )  # There is a sign error in the last term of the paper (TAB 1)
-        elif m == 0:
-            return sq7 * (
-                -1
-                + 12 * x**2
-                + 12 * y**2
-                - 30 * x**4
-                - 60 * x**2 * y**2
-                - 30 * y**4
-                + 20 * x**6
-                + 60 * x**4 * y**2
-                + 60 * x**2 * y**4
-                + 20 * y**6
-            )
-        elif m == 2:
-            return sq14 * (
-                -6 * x**2
-                + 6 * y**2
-                + 20 * x**4
-                - 20 * y**4
-                - 15 * x**6
-                - 15 * x**4 * y**2
-                + 15 * x**2 * y**4
-                + 15 * y**6
-            )
-        elif m == 4:
-            return sq14 * (
-                -5 * x**4
-                + 30 * x**2 * y**2
-                - 5 * y**4
-                + 6 * x**6
-                - 30 * x**4 * y**2
-                - 30 * x**2 * y**4
-                + 6 * y**6
-            )
-        elif m == 6:
-            return sq14 * (-(x**6) + 15 * x**4 * y**2 - 15 * x**2 * y**4 + y**6)
-        else:
-            raise ValueError(out_of_range_error_message)
-    elif n == 7:
-        rms = 4
-        if m == -7:
-            return rms * (-(x**7) + 21 * x**5 * y**2 - 35 * x**3 * y**4 + 7 * x * y**6)
-        elif m == -5:
-            return rms * (
-                -6 * x**5
-                + 60 * x**3 * y**2
-                - 30 * x * y**4
-                + 7 * x**7
-                - 63 * x**5 * y**2
-                - 35 * x**3 * y**4
-                + 35 * x * y**6
-            )
-        elif m == -3:
-            return rms * (
-                -10 * x**3
-                + 30 * x * y**2
-                + 30 * x**5
-                - 60 * x**3 * y**2
-                - 90 * x * y**4
-                - 21 * x**7
-                + 21 * x**5 * y**2
-                + 105 * x**3 * y**4
-                + 63 * x * y**6
-            )
-        elif m == -1:
-            return rms * (
-                -4 * x
-                + 30 * x**3
-                + 30 * x * y**2
-                - 60 * x**5
-                - 120 * x**3 * y**2
-                - 60 * x * y**4
-                + 35 * x**7
-                + 105 * x**5 * y**2
-                + 105 * x**3 * y**4
-                + 35 * x * y**6
-            )
-        elif m == 1:
-            return rms * (
-                -4 * y
-                + 30 * y**3
-                + 30 * x**2 * y
-                - 60 * y**5
-                - 120 * x**2 * y**3
-                - 60 * x**4 * y
-                + 35 * y**7
-                + 105 * x**2 * y**5
-                + 105 * x**4 * y**3
-                + 35 * x**6 * y
-            )
-        elif m == 3:
-            return rms * (
-                10 * y**3
-                - 30 * x**2 * y
-                - 30 * y**5
-                + 60 * x**2 * y**3
-                + 90 * x**4 * y
-                + 21 * y**7
-                - 21 * x**2 * y**5
-                - 105 * x**4 * y**3
-                - 63 * x**6 * y
-            )  # There is a sign error in the last term of the paper (TAB 1)
-        elif m == 5:
-            return rms * (
-                -6 * y**5
-                + 60 * x**2 * y**3
-                - 30 * x**4 * y
-                + 7 * y**7
-                - 63 * x**2 * y**5
-                - 35 * x**4 * y**3
-                + 35 * x**6 * y
-            )
-        elif m == 7:
-            return rms * (y**7 - 21 * x**2 * y**5 + 35 * x**4 * y**3 - 7 * x**6 * y)
-        else:
-            raise ValueError(out_of_range_error_message)
-
-    else:
-        # TODO: For higher order polynomials, explicit formulas are not implemented here.
-        # We fall back to the general definition using recursion.
-        raise NotImplementedError(
-            "Zernike polynomials of radial order > 7 are not implemented yet."
-        )
-
-
-def zernike_index_conversion(
-    index: int, *, convention: str = "ansi"
-) -> tuple[int, int]:
-    r"""
-    Converts a single index for Zernike polynomials between different conventions.
-    For more details on the conventions, see `wikipedia <https://en.wikipedia.org/wiki/Zernike_polynomials#Zernike_polynomials>`_.
-
-    :param int index: the single index of the Zernike polynomial.
-    :param str convention: the convention to convert to. Currently only 'ansi' (for OSA/ANSI standard indices) and 'noll' (for Noll's sequential indices) are implemented.
-
-    Single index for Zernike polynomials:
-    """
-    # For ansi, we implement the following conversion:
-    # https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
-    if convention.lower() == "ansi":
-        n = floor((2 * index + 0.25) ** 0.5 - 0.5)
-        m = 2 * index - n * (n + 2)
-        return n, m
-
-    # For Noll's sequential indices, we refer to the following link:
-    # https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices
-    # The formula is taken from: https://oeis.org/A375779/a375779.pdf
-    elif convention.lower() == "noll":
-        if index < 1:
-            raise ValueError("Noll index must be >= 1")
-
-        n = floor((2 * (index - 1) + 0.25) ** 0.5 - 0.5)
-        m = n % 2 + 2 * floor((index - n * (n + 1) / 2 - 1 + (n + 1) % 2) / 2)
-        # Correct sign of m
-        m = m * (-1) ** index
-
-        return n, m
-    else:
-        raise NotImplementedError("Only 'ansi' and 'noll' conventions are implemented.")
 
 
 def rotate_image_via_shear(image: torch.Tensor, angle_deg: torch.Tensor, center=None):
