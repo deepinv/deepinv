@@ -46,8 +46,8 @@ def signal_noise_ratio(x_hat: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     noise = x_hat - x
     # For a more efficient implementation, we compute the SNR from the signal
     # and noise L2 norms instead of their powers.
-    signal_norm = torch.linalg.vector_norm(x.flatten(1, -1), p=2, dim=1)
-    noise_norm = torch.linalg.vector_norm(noise.flatten(1, -1), p=2, dim=1)
+    signal_norm = torch.linalg.vector_norm(x.flatten(1, -1), ord=2, dim=1)
+    noise_norm = torch.linalg.vector_norm(noise.flatten(1, -1), ord=2, dim=1)
     sqrt_snr = signal_norm / noise_norm
     # The factor 20 instead of 10 comes from the square root.
     return 20 * torch.log10(sqrt_snr)
