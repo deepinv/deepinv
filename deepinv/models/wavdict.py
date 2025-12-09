@@ -164,7 +164,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Returns a flattened list containing the wavelet coefficients.
 
-        :param Tensor x: input image.
+        :param torch.Tensor x: input image.
         :param str wavelet: mother wavelet.
         :param int level: decomposition level.
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
@@ -229,7 +229,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Soft thresholding of the wavelet coefficients.
 
-        :param Tensor x: wavelet coefficients.
+        :param torch.Tensor x: wavelet coefficients.
         :param float, Tensor ths: threshold.
         """
         ths = self._expand_ths_as(ths, x)
@@ -254,7 +254,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Hard thresholding of the wavelet coefficients.
 
-        :param Tensor x: wavelet coefficients of shape (B, C, H, W) or (B, C, D, H, W).
+        :param torch.Tensor x: wavelet coefficients of shape (B, C, H, W) or (B, C, D, H, W).
         :param float, Tensor ths: threshold of shape (B,) or scalar. If scalar, same threshold is used for all elements in batch.
         """
 
@@ -268,7 +268,7 @@ class WaveletDenoiser(Denoiser):
         Hard thresholding of the wavelet coefficients by keeping only the top-k coefficients and setting the others to
         0.
 
-        :param Tensor x: wavelet coefficients.
+        :param torch.Tensor x: wavelet coefficients.
         :param float, int ths: top k coefficients to keep. If ``float``, it is interpreted as a proportion of the total
             number of coefficients. If ``int``, it is interpreted as the number of coefficients to keep.
         """
@@ -468,7 +468,7 @@ class WaveletDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
+        :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
             ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
@@ -562,7 +562,7 @@ class WaveletDictDenoiser(Denoiser):
         r"""
         Run the model on a noisy image.
 
-        :param Tensor y: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
+        :param torch.Tensor y: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param float, torch.Tensor ths: noise level.
         """
         z_p = y.repeat(len(self.list_prox), *([1] * (len(y.shape))))
