@@ -9,7 +9,6 @@ For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
 """
 
-# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
