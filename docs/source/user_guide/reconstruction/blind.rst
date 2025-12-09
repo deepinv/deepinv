@@ -13,25 +13,31 @@ Estimating physics parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In many imaging problems, the physics parameters (e.g. blur kernel) are unknown and must be estimated alongside the image.
-The library provides models that can estimate the parameters from the observed data, and then use any reconstructor
+The library provides models that can estimate the parameters from the observed data, and then use any non-blind reconstructor
 (e.g., :class:`RAM <deepinv.models.RAM>`, :class:`DPIR <deepinv.optim.DPIR>`, etc.) to recover the image.
 
-.. seealso::
-
-  See the example :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py`.
 
 .. list-table:: Identification models
    :widths: 15 15 15 20 20
    :header-rows: 1
 
-   * - Model
+   * - Model/Algorithm
      - Tensor Size (C, H, W)
      - Pretrained Weights
      - Physics
      - Parameters estimated
+     - Examples
 
    * - :class:`deepinv.models.KernelIdentificationNetwork`
      - C=3; H,W>8
      - RGB
      - :class:`deepinv.physics.SpaceVaryingBlur`
      - `filters`, `multipliers`
+     - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
+
+   * - :func:`deepinv.MultiCoilMRI.estimate_coil_maps`
+     - C=2; H,W>64
+     - (non-learned)
+     - :class:`deepinv.physics.MultiCoilMRI`
+     - `coil_maps`
+     - :ref:`blind deblurring <sphx_glr_auto_examples_physics_demo_mri_tour.py>`.

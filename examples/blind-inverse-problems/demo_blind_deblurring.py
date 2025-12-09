@@ -89,12 +89,10 @@ model = DPIR(sigma=0.05, device=device)
 x_dpir = model(y, physics)
 x_dpir = x_dpir.clamp(0, 1)
 
-dinv.utils.plot({"Blurry": y, "Deblurred RAM": x_ram, "Deblurred DPIR": x_dpir})
-
 
 # %%
-# No reference metrics
-# ~~~~~~~~~~~~~~~~~~~~
+# No reference metrics and visualization
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # As here we assume that we do not have access to the ground truth sharp image,
 # we cannot compute reference metrics such as PSNR or SSIM.
@@ -110,19 +108,11 @@ niqe_blurry = niqe(y).item()
 niqe_ram = niqe(x_ram).item()
 niqe_dpir = niqe(x_dpir).item()
 
-print(
-    f"NIQE (lower better): Blurry={niqe_blurry:.2f}, RAM={niqe_ram:.2f}, DPIR={niqe_dpir:.2f}"
-)
-
 bs = dinv.metric.BlurStrength(center_crop=center_crop)
 
 bs_blurry = bs(y).item()
 bs_ram = bs(x_ram).item()
 bs_dpir = bs(x_dpir).item()
-
-print(
-    f"Blur Strength (lower better): Blurry={bs_blurry:.2f}, RAM={bs_ram:.2f}, DPIR={bs_dpir:.2f}"
-)
 
 si = dinv.metric.SharpnessIndex(center_crop=center_crop)
 
@@ -130,8 +120,15 @@ si_blurry = si(y).item()
 si_ram = si(x_ram).item()
 si_dpir = si(x_dpir).item()
 
-print(
-    f"Sharpness Index (higher better): Blurry={si_blurry:.2f}, RAM={si_ram:.2f}, DPIR={si_dpir:.2f}"
+
+dinv.utils.plot(
+    {"Blurry": y, "RAM": x_ram, "DPIR": x_dpir},
+    subtitles=[
+        f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f} \n  NIQE: {niqe_blurry:.2f}",
+        f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f} \n  NIQE: {niqe_ram:.2f} ",
+        f"SI: {si_dpir:.0f} \n BS: {bs_dpir:.3f} \n  NIQE: {niqe_dpir:.2f} ",
+    ],
+    figsize=(10, 5),
 )
 
 # %%

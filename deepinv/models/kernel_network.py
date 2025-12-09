@@ -6,17 +6,21 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .utils import get_weights_url
+import warnings
 
 
 class KernelIdentificationNetwork(nn.Module):
     r"""
-    Kernel identification network
+    Space varying blur kernel estimation network.
 
-    U-Net like architecture based on the paper :footcite:t:`carbajal2023blind`,
-    with skip connections and two output heads, one for the blur kernel estimation and another for the spatially-varying
-    filter weights (multipliers), associated the :class:`deepinv.physics.SpaceVaryingBlur` forward model.
+    U-Net proposed by :footcite:t:`carbajal2023blind`, estimating
+    the parameters of :class:`deepinv.physics.SpaceVaryingBlur` forward model, i.e., blur kernels and corresponding spatial multipliers (weights).
 
     Current implementation supports blur kernels of size 33x33 (default) and 65x65, and 1 or 3 input channels.
+
+    Images are assumed to be in range [0, 1] before being passed to the network, and to be **non-gamma corrected** (i.e., linear RGB).
+    If your blurry image has been gamma-corrected (e.g., standard sRGB images), consider applying an inverse gamma correction (e.g., raising to the power of 2.2)
+    before passing it to the network for better results.
 
     :param int filters: number of blur kernels to estimate, defaults to 25.
     :param int blur_kernel_size: size of the blur kernels to estimate, defaults to 33. Only 33 and 65 are currently supported.
@@ -36,11 +40,8 @@ class KernelIdentificationNetwork(nn.Module):
     >>> import deepinv as dinv
     >>> import torch
     >>> device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    >>> # load pretrained kernel estimation network
     >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
-    >>> # define space-varying blur physics
     >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
-    >>> # load blurry image
     >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
     >>> with torch.no_grad():
     ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
@@ -134,10 +135,11 @@ class KernelIdentificationNetwork(nn.Module):
                         map_location=lambda storage, loc: storage,
                         file_name=file_name,
                         check_hash=True,
+                        weights_only=True,
                     )
-                    self.load_state_dict(ckpt)
+                    self.load_state_dict(ckpt, strict=True)
                 else:
-                    print(
+                    warnings.warn(
                         "Pretrained weights not available for the specified configuration. Proceeding without loading weights."
                     )
             else:
@@ -146,6 +148,14 @@ class KernelIdentificationNetwork(nn.Module):
         self.to(device)
 
     def forward(self, x):
+        r"""
+        Forward pass of the kernel estimation network.
+
+        :param x: input blurry image of shape (N, C, H, W) with values in [0, 1]. Assumed to be non-gamma corrected (i.e., linear RGB).
+        :return: dictionary with estimated blur kernels and spatial multipliers:
+            -  ``'filters'``: estimated blur kernels of shape (N, 1, K, blur_kernel_size, blur_kernel_size)
+            -  ``'multipliers'``: estimated spatial multipliers of shape (N, 1, K, H, W)
+        """
         x = x - 0.5  # normalize input to [−0.5,0.5]
         # Encoder
         if x.shape[1] == 3:

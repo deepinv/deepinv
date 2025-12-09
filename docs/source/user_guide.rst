@@ -156,7 +156,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`webhook` **Blind Inverse Problems**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Reconstruction with mispecified physics and/or noise level.
+        Reconstruction with misspecified physics and/or noise level.
 
 .. toctree::
    :maxdepth: 2
