@@ -65,9 +65,6 @@ class DnCNN(Denoiser):
 
         self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
-        # if pretrain and ckpt_path is not None:
-        #    self.load_state_dict(torch.load(ckpt_path, map_location=lambda storage, loc: storage), strict=True)
-
         if pretrained is not None:
             if pretrained.startswith("download"):
                 if dim == 3:  # pragma: no cover
@@ -111,6 +108,9 @@ class DnCNN(Denoiser):
 
         :param torch.Tensor x: noisy image
         :param float sigma: noise level (not used)
+
+        .. note::
+            The argument ``sigma`` is included for compatibility with the base class :class:`Denoiser <deepinv.models.base.Denoiser>` but is not used in this model.
         """
         x1 = self.in_conv(x)
         x1 = self.nl_list[0](x1)
