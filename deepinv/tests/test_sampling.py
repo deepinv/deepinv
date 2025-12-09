@@ -113,7 +113,8 @@ def test_algo(name_algo, device):
     test_sample = torch.ones((1, 3, 64, 64), device=device)
 
     sigma = 1
-    physics = dinv.physics.Denoising()
+    # choose physics that changes the image size
+    physics = dinv.physics.Blur(dinv.physics.blur.gaussian_blur(3), device=device)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -279,6 +280,7 @@ def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
+        FlowMatching,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
@@ -307,7 +309,11 @@ def test_sde(device):
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
-    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+    sde_classes = [
+        FlowMatching,
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+    ]
     for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
         for solver in solvers:
             for sde_class in sde_classes:

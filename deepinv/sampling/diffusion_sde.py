@@ -14,7 +14,7 @@ from deepinv.sampling.utils import trapz_torch
 
 
 class _WrapperDenoiserMinusOneOne(nn.Module):
-    """
+    r"""
     A wrapper for denoisers trained on :math:`[x_{\mathrm{min}}, x_{\mathrm{max}}]` images to be used with math:`[-1, 1]` images, i.e. on diffusion sampling iterates.
 
     :param deepinv.models.Denoiser denoiser: the denoiser to be wrapped.
@@ -95,7 +95,6 @@ class BaseSDE(nn.Module):
         self.solver.rng_manual_seed(seed)
         if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sample_init(x_init, rng=self.solver.rng)
-
         solution = self.solver.sample(
             self, x_init, *args, **kwargs, get_trajectory=get_trajectory
         )
@@ -129,6 +128,28 @@ class BaseSDE(nn.Module):
         """
         raise NotImplementedError
 
+    def forward(
+        self,
+        x_init: Tensor = None,
+        seed: int = None,
+        get_trajectory: bool = False,
+        *args,
+        **kwargs,
+    ) -> SDEOutput:
+        r"""
+        We forward function corresponds to SDE sampling.
+
+        :param torch.Tensor x_init: initial value.
+        :param int seed: the seed for the pseudo-random number generator used in the solver.
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
+        :param \*args: additional arguments for the solver.
+        :param \*\*kwargs: additional keyword arguments for the solver.
+
+        :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
+        """
+        return self.sample(x_init, seed, get_trajectory, *args, **kwargs)
+
+
 
 class DiffusionSDE(BaseSDE):
     r"""
@@ -146,7 +167,7 @@ class DiffusionSDE(BaseSDE):
 
     :param Callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param Callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
-    :param Callable, float alpha: a (possibly time-dependent) scalar weighting the diffusion term. :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
@@ -178,9 +199,8 @@ class DiffusionSDE(BaseSDE):
         if not isinstance(alpha, Callable):
             alpha_value = alpha
 
-            def alpha(t: Tensor | float) -> Tensor:
-                t = self._handle_time_step(t)
-                return alpha_value * torch.ones_like(t)
+            def alpha(t: Tensor | float) -> scalar:
+                return alpha_value
 
         def backward_drift(x, t, *args, **kwargs):
             return -forward_drift(x, t) + ((1 + alpha(t)) / 2) * forward_diffusion(
@@ -203,11 +223,7 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = (
-            deepcopy(denoiser)
-            if not minus_one_one
-            else _WrapperDenoiserMinusOneOne(deepcopy(denoiser))
-        )
+        self.denoiser = denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
@@ -261,7 +277,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     This class implements the diffusion generative SDE based on the formulation from :footcite:t:`karras2022elucidating` (with :math:`\beta(t) = \alpha(t) s(t)^2 \sigma(t) \sigma'(t)`):
 
     .. math::
-        d x_t = \left(\frac{s'(t)}{s(t)} x_t - \frac{1 + \alpha(t)}{2} s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
+        d x_t = \left(\frac{s'(t)}{s(t)} x_t - \frac{1 + \alpha(t)}{2} s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t
 
     where :math:`s(t)` is a time-dependent scale, :math:`\sigma(t)` is a time-dependent noise level, and :math:`\alpha(t)` is weighting the diffusion term.
     It corresponds to the reverse-time SDE of the following forward-time SDE:
@@ -270,11 +286,17 @@ class EDMDiffusionSDE(DiffusionSDE):
         d x_t = \frac{s'(t)}{s(t)} x_t dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
 
     The scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers must satisfy :math:`s(0) = 1`, :math:`\sigma(0) = 0` and :math:`\lim_{t \to \infty} \sigma(t) = +\infty`.
-
+    
+    
     Common choices include the variance-preserving formulation :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}` and the variance-exploding formulation :math:`s(t) = 1`.
+    
     For choosing variance-preserving formulation, set `variance_preserving=True` and do not provide `scale_t` and `scale_prime_t`.
+    
     For choosing variance-exploding formulation, set `variance_exploding=True` and do not provide `scale_t` and `scale_prime_t`.
 
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
 
     :param Callable sigma_t: a time-dependent noise level schedule.
     :param Callable scale_t: a time-dependent scale schedule.
@@ -284,7 +306,7 @@ class EDMDiffusionSDE(DiffusionSDE):
     :param Callable scale_prime_t: the derivative of `scale_t`. If not provided, it will be computed using autograd. Default to `None`.
     :param bool variance_preserving: whether to use the variance-preserving formulation, which imposes :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`. Default to `False`.
     :param bool variance_exploding: whether to use the variance-exploding formulation, which imposes :math:`s(t) = 1`. Default to `False`.
-    :param Callable, float alpha: the weighting factor of the diffusion term. Default to `1.0`.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param float T: the end time of the forward SDE. Default to `1.0`.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`. Default to `None`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE. Default to `None`.
@@ -315,7 +337,8 @@ class EDMDiffusionSDE(DiffusionSDE):
     ):
         self.T = T
         self.sigma_t = sigma_t
-        self.variance_preserving = variance_preserving
+        assert not (variance_preserving and variance_exploding), ("Cannot set both variance_preserving and variance_exploding to True.")
+
         if scale_t is None:
             if variance_preserving:
 
@@ -350,20 +373,22 @@ class EDMDiffusionSDE(DiffusionSDE):
         if sigma_prime_t is None:
 
             def sigma_prime_t(t):
-                t = self._handle_time_step(t).requires_grad_(True)
-                s = self.sigma_t(t)
-                s.backward()
-                return t.grad.item()
+                with torch.enable_grad():
+                    t = self._handle_time_step(t).requires_grad_(True)
+                    s = self.sigma_t(t)
+                    s.backward()
+                    return t.grad.item()
 
         self.sigma_prime_t = sigma_prime_t
 
         if scale_prime_t is None:
 
             def scale_prime_t(t):
-                t = self._handle_time_step(t).requires_grad_(True)
-                s = self.scale_t(t)
-                s.backward()
-                return t.grad.item()
+                with torch.enable_grad():
+                    t = self._handle_time_step(t).requires_grad_(True)
+                    s = self.scale_t(t)
+                    s.backward()
+                    return t.grad.item()
 
         self.scale_prime_t = scale_prime_t
 
@@ -371,7 +396,7 @@ class EDMDiffusionSDE(DiffusionSDE):
             return (scale_prime_t(t) / scale_t(t)) * x
 
         def forward_diffusion(t):
-            return torch.sqrt(2 * (scale_t(t) ** 2) * sigma_t(t) * sigma_prime_t(t))
+            return scale_t(t) * torch.sqrt(2 * sigma_t(t) * sigma_prime_t(t))
 
         super().__init__(
             forward_drift=forward_drift,
@@ -408,11 +433,8 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
-        return (
-            torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
-            * self.sigma_t(self.T)
-            * self.scale_t(self.T)
-        )
+        init = torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype) * self.sigma_t(self.T) * self.scale_t(self.T)
+        return init
 
 
 class SongDiffusionSDE(EDMDiffusionSDE):
@@ -438,14 +460,20 @@ class SongDiffusionSDE(EDMDiffusionSDE):
         s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{\xi(s)}{s(s)^2} ds}.
 
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
+
     For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
+    
     For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
+
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
 
     :param Callable beta_t: a time-dependent linear drift of the forward-time SDE.
     :param Callable B_t: time integral of beta_t between 0 and t. If None, it is calculated by numerical integration.
     :param Callable xi_t: a time-dependent linear diffusion of the forward-time SDE.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
-    :param Callable, float alpha: the weighting factor of the diffusion term.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param float T: the end time of the forward SDE.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
@@ -482,7 +510,8 @@ class SongDiffusionSDE(EDMDiffusionSDE):
                     "Either beta_t or xi_t must be provided if variance_preserving is True"
                 )
         elif variance_exploding:
-            beta_t = lambda t: 0 * t
+            beta_t = lambda t: 0 * self._handle_time_step(t)
+            B_t = lambda t: 0 * self._handle_time_step(t)
 
         if B_t is None:
 
@@ -493,6 +522,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
                 )
 
         def scale_t(t: Tensor | float) -> Tensor:
+            t = self._handle_time_step(t)
             return torch.exp(-B_t(t))
 
         def scale_prime_t(t: Tensor | float) -> Tensor:
@@ -551,12 +581,17 @@ class FlowMatching(EDMDiffusionSDE):
     .. math::
         s(t) = a(t), \quad \sigma(t) = \frac{b(t)}{a(t)} .
 
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
+
+
     :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
     :param Callable a_prime_t: time derivatime :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
     :param Callable b_t: time-dependent parameter :math:`b(t)` of flow-matching.Default to `lambda t: t`.
     :param Callable b_prime_t: time derivative :math:`b'(t)` of :math:`b(t)`. Default to `lambda t: 1`.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
-    :param Callable, float alpha: the weighting factor of the diffusion term. Default to `0.`.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
@@ -602,9 +637,8 @@ class FlowMatching(EDMDiffusionSDE):
             scale_prime_t=scale_prime_t,
             sigma_t=sigma_t,
             sigma_prime_t=sigma_prime_t,
-            forward_diffusion=forward_diffusion,
             alpha=alpha,
-            T=1,
+            T=0.99,
             denoiser=denoiser,
             solver=solver,
             dtype=dtype,
@@ -612,6 +646,9 @@ class FlowMatching(EDMDiffusionSDE):
             *args,
             *kwargs,
         )
+    
+    def velocity(self, x, t, *args, **kwargs):
+        return self.drift(x, t, *args, **kwargs)
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
@@ -672,10 +709,14 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
     This class is the reverse-time SDE of the VP-SDE, serving as the generation process.
 
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to `t=0`.
+
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
     :param float beta_min: the minimum noise level.
     :param float beta_max: the maximum noise level.
-    :param Callable, float alpha: the weighting factor of the diffusion term.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
@@ -782,7 +823,7 @@ class PosteriorDiffusion(Reconstructor):
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
         if denoiser is None:
-            denoiser = deepcopy(sde.denoiser)
+            denoiser = sde.denoiser
         if minus_one_one:
             denoiser = _WrapperDenoiserMinusOneOne(denoiser)
 

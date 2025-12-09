@@ -1,6 +1,11 @@
 from __future__ import annotations
 import torch
 import numpy as np
+from torch import Tensor
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class Denoiser(torch.nn.Module):
@@ -25,7 +30,7 @@ class Denoiser(torch.nn.Module):
         super().__init__()
         self.to(device)
 
-    def forward(self, x, sigma, **kwargs):
+    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
         The input `x` is expected to be with pixel values in `[0, 1]` range, up to random noise. The output is also expected to be in `[0, 1]` range.
@@ -48,7 +53,7 @@ class Denoiser(torch.nn.Module):
         dtype: torch.dtype = torch.float32,
         *args,
         **kwarg,
-    ):
+    ) -> Tensor:
         r"""
         Convert various noise level types to the appropriate format for batch processing.
             If `sigma` is a single float or int, the same value will be used for each sample in the batch.
@@ -124,17 +129,17 @@ class Reconstructor(torch.nn.Module):
 
     """
 
-    def __init__(self, device="cpu"):
+    def __init__(self, device: str | torch.device = "cpu"):
         super().__init__()
         self.to(device)
 
-    def forward(self, y, physics, **kwargs):
+    def forward(self, y: Tensor, physics: Physics, **kwargs) -> torch.Tensor:
         r"""
         Applies reconstruction model :math:`\inversef{y}{A}`.
 
         :param torch.Tensor y: measurements.
         :param deepinv.physics.Physics physics: forward model :math:`A`.
-        :returns: (:class:`torch.Tensor`) reconstructed tensor.
+        :return: reconstructed images.
         """
 
         raise NotImplementedError()

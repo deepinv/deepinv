@@ -53,7 +53,6 @@ def trapz_torch(
     :return torch.Tensor: Integral of func from a to b. Shape (...), integration along the last dimension.
     """
     # Create uniform grid between a and b
-    shape = a.shape
     t = torch.linspace(0, 1, n_steps, device=b.device, dtype=b.dtype)
     # (..., 1) + (..., 1) * (1D linspace) => (..., N)
     x = a.unsqueeze(-1) + (b - a).unsqueeze(-1) * t
