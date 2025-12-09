@@ -102,7 +102,7 @@ class WaveletDenoiser(Denoiser):
         try:
             import pywt
             import ptwt
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise RuntimeError(
                 "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
             )
@@ -173,7 +173,7 @@ class WaveletDenoiser(Denoiser):
         try:
             import pywt
             import ptwt
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise RuntimeError(
                 "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
             )
@@ -209,7 +209,7 @@ class WaveletDenoiser(Denoiser):
         try:
             import pywt
             import ptwt
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise RuntimeError(
                 "WaveletDenoiser requires the Pytorch Wavelets package. Please install it (pip install ptwt)"
             )
@@ -350,7 +350,7 @@ class WaveletDenoiser(Denoiser):
 
         return coeffs
 
-    def pad_input(self, x: Tensor) -> Tensor:
+    def pad_input(self, x: Tensor) -> tuple[Tensor, tuple[int, ...]]:
         r"""
         Pad the input to make it compatible with the wavelet transform.
         """
