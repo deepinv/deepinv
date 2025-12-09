@@ -318,6 +318,9 @@ class WaveletDenoiser(Denoiser):
         return y
 
     def thresold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
+        return self.threshold_2D(coeffs, ths)
+
+    def threshold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Thresholds coefficients of the 2D wavelet transform.
         """
