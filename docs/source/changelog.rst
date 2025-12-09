@@ -37,6 +37,8 @@ New Features
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
 - Better diffraction blur generator with higher Zernike orders, rotation and apodization (:gh:`826` by `Minh Hai Nguyen`_)
+- Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
+- Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed

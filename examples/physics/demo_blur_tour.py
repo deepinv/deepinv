@@ -214,9 +214,15 @@ plot(
 )
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used:\n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern
-n_zernike = diffraction_generator.n_zernike
+n_zernike = len(
+    zernike_polynomials
+)  # number of Zernike coefficients in the decomposition
 filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike, device=device))
 plot(
     [f for f in filters["filter"][:, None] ** 0.3],
@@ -224,12 +230,15 @@ plot(
 )
 
 # %%
-# Finally, notice that you can activate the aberrations you want in the ANSI (or Noll)
+# Finally, notice that you can activate the aberrations you want in the ANSI/Noll
 # nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
     (psf_size, psf_size),
     fc=1 / 8,
-    zernike_index=(5, 6),
+    zernike_index=(
+        5,
+        6,
+    ),  # or equivalently zernike_index = ((2, 2), (3, -3)) for (n,m) indices
     index_convention="ansi",
     device=device,
     dtype=dtype,
@@ -239,7 +248,9 @@ plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="PSF obtained with astigmatism only",
 )
-
+print(
+    "Zernike polynomials used:\n", "\n ".join(diffraction_generator.zernike_polynomials)
+)
 # %%
 # Generator Mixture
 # ~~~~~~~~~~~~~~~~~

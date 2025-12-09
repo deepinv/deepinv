@@ -8,6 +8,7 @@ fluorescence microscopes.
 
 """
 
+# %%
 import torch
 import deepinv as dinv
 
@@ -130,10 +131,14 @@ print(blurs["coeff"])
 
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used: \n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern.
-n_zernike = (
-    diffraction_generator.n_zernike
+n_zernike = len(
+    zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 blurs = diffraction_generator.step(
     batch_size=3, coeff=torch.zeros(3, n_zernike, device=device)
