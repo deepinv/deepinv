@@ -85,10 +85,10 @@ jobs:
         id: restore-cache
         with:
           path: .testmondata
-          key: testmon-cpu-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
+          key: testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
           restore-keys: |
-            testmon-cpu-${{ matrix.os }}-${{ matrix.version_python }}
-            testmon-cpu-${{ matrix.os }}
+            testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}
+            testmon-cpu-main-${{ matrix.os }}
 
       - name: Test with pytest and generate coverage report
         if: ${{matrix.version_python == '3.12' }}

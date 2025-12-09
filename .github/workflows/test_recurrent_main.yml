@@ -116,7 +116,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: .testmondata
-          key: testmon-cpu-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
+          key: testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux
