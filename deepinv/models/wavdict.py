@@ -10,7 +10,7 @@ from .base import Denoiser
 # 2D: [Tensor, list[Tensor], list[Tensor]]
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
 
-Wavcoef: TypeAlias = list[Tensor | list[Tensor]] | list[Tensor, dict[str, Tensor]]
+Wavcoef = list[Tensor | list[Tensor]] | list[Tensor, dict[str, Tensor]]
 
 
 def _get_axes(is_complex: bool, dimension: int) -> tuple[int, ...]:
@@ -129,7 +129,7 @@ class WaveletDenoiser(Denoiser):
         dec[0] = _complexify(dec[0], self.is_complex)
         return dec
 
-    def flatten_coeffs(self, dec: Wavcoef) -> torch.Tensor:
+    def flatten_coeffs(self, dec: Wavcoef) -> Tensor:
         r"""
         Flattens the wavelet coefficients and returns them in a single torch vector of shape (n_coeffs,).
         """
@@ -230,7 +230,7 @@ class WaveletDenoiser(Denoiser):
         Soft thresholding of the wavelet coefficients.
 
         :param torch.Tensor x: wavelet coefficients.
-        :param float, Tensor ths: threshold.
+        :param float, torch.Tensor ths: threshold.
         """
         ths = self._expand_ths_as(ths, x)
         return torch.maximum(torch.tensor(0.0), x - abs(ths)) + torch.minimum(
@@ -255,7 +255,7 @@ class WaveletDenoiser(Denoiser):
         Hard thresholding of the wavelet coefficients.
 
         :param torch.Tensor x: wavelet coefficients of shape (B, C, H, W) or (B, C, D, H, W).
-        :param float, Tensor ths: threshold of shape (B,) or scalar. If scalar, same threshold is used for all elements in batch.
+        :param float, torch.Tensor ths: threshold of shape (B,) or scalar. If scalar, same threshold is used for all elements in batch.
         """
 
         out = x.clone()
@@ -469,7 +469,7 @@ class WaveletDenoiser(Denoiser):
         Run the model on a noisy image.
 
         :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
-        :param int, float, Tensor ths: thresholding parameter :math:`\gamma`.
+        :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
             ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
             or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
