@@ -6,33 +6,28 @@ from torch import Tensor
 from .base import Denoiser
 
 
-# To fix; just for future reference of how coeffs type is:
+# Coeffs is, depending on the dimension:
 # 2D: [Tensor, list[Tensor], list[Tensor]]
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
-TupleRest: TypeAlias = tuple[Tensor, ...]
-DictRest: TypeAlias = dict[str, Tensor]
 
-TupleCoeffs: TypeAlias = tuple[Tensor, TupleRest, TupleRest]
-DictCoeffs: TypeAlias = tuple[Tensor, DictRest, DictRest]
-
-Coeffs: TypeAlias = TupleCoeffs | DictCoeffs
+Wavcoef: TypeAlias = list[Tensor | list[Tensor]] | list[Tensor, dict[str, Tensor]]
 
 
-def _get_axes(is_complex: bool, dimension: int):
+def _get_axes(is_complex: bool, dimension: int) -> tuple[int, ...]:
     axes = (-3, -2, -1) if dimension == 3 else (-2, -1)
     if is_complex:
         axes = tuple(a - 1 for a in axes)
     return axes
 
 
-def _complexify(x: Tensor, is_complex: bool):
+def _complexify(x: Tensor, is_complex: bool) -> Tensor:
     """If the input was complex, convert back to complex."""
     if is_complex:
         return torch.view_as_complex(x.contiguous())
     return x
 
 
-def _realify(x: Tensor, dimension: int):
+def _realify(x: Tensor, dimension: int) -> tuple[Tensor, tuple[int, ...]]:
     is_complex = x.is_complex()
     if is_complex:
         x = torch.view_as_real(x)
@@ -134,7 +129,7 @@ class WaveletDenoiser(Denoiser):
         dec[0] = _complexify(dec[0], self.is_complex)
         return dec
 
-    def flatten_coeffs(self, dec: torch.Tensor) -> torch.Tensor:
+    def flatten_coeffs(self, dec: Wavcoef) -> torch.Tensor:
         r"""
         Flattens the wavelet coefficients and returns them in a single torch vector of shape (n_coeffs,).
         """
@@ -207,7 +202,7 @@ class WaveletDenoiser(Denoiser):
             ]
         return vec
 
-    def iwt(self, coeffs) -> Tensor:
+    def iwt(self, coeffs: Wavcoef) -> Tensor:
         r"""
         Applies the wavelet recomposition.
         """
@@ -322,7 +317,7 @@ class WaveletDenoiser(Denoiser):
             y = self.hard_threshold_topk(x, ths)
         return y
 
-    def thresold_2D(self, coeffs: Tensor, ths: float | int | Tensor) -> Tensor:
+    def thresold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Thresholds coefficients of the 2D wavelet transform.
         """
@@ -332,7 +327,7 @@ class WaveletDenoiser(Denoiser):
                 coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
         return coeffs
 
-    def threshold_3D(self, coeffs: Tensor, ths: float | int | Tensor) -> Tensor:
+    def threshold_3D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Thresholds coefficients of the 3D wavelet transform.
         """
@@ -342,7 +337,7 @@ class WaveletDenoiser(Denoiser):
                 coeffs[level][key] = self.thresold_func(coeffs[level][key], ths_cur[c])
         return coeffs
 
-    def threshold_ND(self, coeffs: Tensor, ths: float | int | Tensor) -> Tensor:
+    def threshold_ND(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         r"""
         Apply thresholding to the wavelet coefficients of arbitrary dimension.
         """
@@ -393,7 +388,7 @@ class WaveletDenoiser(Denoiser):
 
     def reshape_ths(
         self, ths: int | float | Tensor | Sequence[int | float], level: int
-    ):
+    ) -> list[float | Tensor] | Tensor:
         r"""
         Reshape the thresholding parameter in the appropriate format, i.e. either:
          - a list of 3 elements, or
@@ -416,9 +411,9 @@ class WaveletDenoiser(Denoiser):
                     ths_cur = [ths_cur[0]] * numel
         else:
             if ths.ndim == 0 or ths.ndim == 1:  # a tensor of shape 0 or (B,)
-                return self._reshape_ths_one_dim(ths, level)
+                ths_cur = self._reshape_ths_one_dim(ths, level)
             elif ths.ndim == 2:  # (B, n_levels-1)
-                return self._reshape_ths_two_dim(ths, level)
+                ths_cur = self._reshape_ths_two_dim(ths, level)
             elif ths.ndim == 3:
                 # (B, n_levels-1, numel) or (B, n_levels-1, 1)
                 ths_cur = self._reshape_ths_three_dim(ths, level)
@@ -426,14 +421,13 @@ class WaveletDenoiser(Denoiser):
                 raise ValueError(
                     f"Expected tensor of 0, 1, 2 or 3 dimensions. Got tensor of {ths.ndim} dimensions"
                 )
-
         return ths_cur
 
-    def _reshape_ths_one_dim(self, ths: Tensor, level: int):
+    def _reshape_ths_one_dim(self, ths: Tensor, level: int) -> list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         return [ths] * numel
 
-    def _reshape_ths_two_dim(self, ths, level: int):
+    def _reshape_ths_two_dim(self, ths: Tensor, level: int) -> list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             return [ths[:, 0]] * numel
@@ -441,7 +435,7 @@ class WaveletDenoiser(Denoiser):
             assert ths.size(1) == self.level
             return [ths[:, level - 2]] * numel
 
-    def _reshape_ths_three_dim(self, ths, level: int):
+    def _reshape_ths_three_dim(self, ths: Tensor, level: int) -> Tensor | list[Tensor]:
         numel = 3 if self.dimension == 2 else 7
         if ths.size(1) == 1:
             ths = ths.expand(-1, self.level, -1)
@@ -536,7 +530,7 @@ class WaveletDictDenoiser(Denoiser):
     def __init__(
         self,
         level: int = 3,
-        list_wv=("db8", "db4"),
+        list_wv: Sequence[str] = ("db8", "db4"),
         max_iter: int = 10,
         non_linearity: str = "soft",
         wvdim: int = 2,
