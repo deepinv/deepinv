@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Any, TypeAlias
+from typing import Sequence, Any
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -306,6 +306,9 @@ class WaveletDenoiser(Denoiser):
             return torch.reshape(out, x.shape)
 
     def thresold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
+        return self.threshold_func(x, ths)
+
+    def threshold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
         r"""
         Apply thresholding to the wavelet coefficients.
         """
@@ -327,7 +330,7 @@ class WaveletDenoiser(Denoiser):
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
             for c in range(3):
-                coeffs[level][c] = self.thresold_func(coeffs[level][c], ths_cur[c])
+                coeffs[level][c] = self.threshold_func(coeffs[level][c], ths_cur[c])
         return coeffs
 
     def threshold_3D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
@@ -337,7 +340,7 @@ class WaveletDenoiser(Denoiser):
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
             for c, key in enumerate(["aad", "ada", "daa", "add", "dad", "dda", "ddd"]):
-                coeffs[level][key] = self.thresold_func(coeffs[level][key], ths_cur[c])
+                coeffs[level][key] = self.threshold_func(coeffs[level][key], ths_cur[c])
         return coeffs
 
     def threshold_ND(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
@@ -345,7 +348,7 @@ class WaveletDenoiser(Denoiser):
         Apply thresholding to the wavelet coefficients of arbitrary dimension.
         """
         if self.dimension == 2:
-            coeffs = self.thresold_2D(coeffs, ths)
+            coeffs = self.threshold_2D(coeffs, ths)
         elif self.dimension == 3:
             coeffs = self.threshold_3D(coeffs, ths)
         else:
