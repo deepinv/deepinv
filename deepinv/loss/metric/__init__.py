@@ -3,6 +3,7 @@ from .distortion import (
     MSE,
     NMSE,
     PSNR,
+    SNR,
     SSIM,
     LpNorm,
     L1L2,
@@ -13,4 +14,4 @@ from .distortion import (
     HaarPSI,
 )
 from .perceptual import NIQE, LPIPS, BlurStrength, SharpnessIndex
-from .functional import cal_mse, cal_psnr, cal_mae
+from .functional import cal_mse, cal_psnr, cal_mae, signal_noise_ratio
