@@ -41,8 +41,8 @@ class RAM(Reconstructor, Denoiser):
       >>> x = dinv.utils.load_example("butterfly.png")
       >>> physics = dinv.physics.Downsampling(filter="bicubic")
       >>> y = physics(x)
-      >>> model = dinv.models.RAM() # doctest:+ELLIPSIS
-      ...
+      >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
+      Downloading...
       >>> x_hat = model(y, physics) # run model
       >>> dinv.metric.PSNR()(x_hat, x) > 31.98
       tensor([True])
