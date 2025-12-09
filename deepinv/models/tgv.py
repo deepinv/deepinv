@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from .base import Denoiser
 from .tv import TVDenoiser
@@ -36,12 +37,20 @@ class TGVDenoiser(Denoiser):
     :param torch.Tensor, None x2: Primary variable. Default: None.
     :param torch.Tensor, None u2: Dual variable. Default: None.
     :param torch.Tensor, None r2: Auxiliary variable. Default: None.
+    :param float, torch.Tensor ths: Regularization parameter. Can also be passed to ``forward``. Default: None
 
 
     """
 
     def __init__(
-        self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
+        self,
+        verbose: bool = False,
+        n_it_max: int = 1000,
+        crit: float = 1e-5,
+        x2: torch.Tensor = None,
+        u2: torch.Tensor = None,
+        r2: torch.Tensor = None,
+        ths: float | torch.Tensor = None,
     ):
         super(TGVDenoiser, self).__init__()
 
@@ -49,6 +58,7 @@ class TGVDenoiser(Denoiser):
         self.n_it_max = n_it_max
         self.crit = crit
         self.restart = True
+        self.ths = ths
 
         self.tau = 0.01  # > 0
 
@@ -60,10 +70,10 @@ class TGVDenoiser(Denoiser):
 
         self.has_converged = False
 
-    def prox_tau_fx(self, x, y):
+    def prox_tau_fx(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return (x + self.tau * y) / (1 + self.tau)
 
-    def prox_tau_fr(self, r, lambda1):
+    def prox_tau_fr(self, r: torch.Tensor, lambda1: torch.Tensor):
         left = torch.sqrt(torch.sum(r**2, axis=-1)) / (self.tau * lambda1)
         tmp = r - r / (
             torch.maximum(
@@ -72,7 +82,7 @@ class TGVDenoiser(Denoiser):
         )
         return tmp
 
-    def prox_sigma_g_conj(self, u, lambda2):
+    def prox_sigma_g_conj(self, u: torch.Tensor, lambda2: torch.Tensor) -> torch.Tensor:
         return u / (
             torch.maximum(
                 torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
@@ -80,14 +90,20 @@ class TGVDenoiser(Denoiser):
             ).unsqueeze(-1)
         )
 
-    def forward(self, y, ths=None, **kwargs):
+    def forward(self, y: torch.Tensor, ths: float | torch.Tensor = None, **kwargs):
         r"""
         Computes the proximity operator of the TGV norm.
 
         :param torch.Tensor y: Noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
-        :param float, torch.Tensor ths: Regularization parameter.
+        :param float, torch.Tensor ths: Regularization parameter. Takes priority over ``ths`` passed at initialization.
         :return: Denoised image.
         """
+        if ths is None and self.ths is None:  # pragma: no cover
+            raise RuntimeError(
+                "Regularization parameter (ths) was not passed at init nor at forward. Please provide ths to one of these methods."
+            )
+        elif ths is None:
+            ths = self.ths
         restart = (
             True
             if (self.restart or self.x2 is None or self.x2.shape != y.shape)
@@ -109,27 +125,26 @@ class TGVDenoiser(Denoiser):
         f = 3 if (y.ndim - 2) == 3 else 1
         sigma = 1 / self.tau / (72 * f)
 
-        if ths is not None:
-            lambda1 = (
-                self._handle_sigma(
-                    ths,
-                    batch_size=y.size(0),
-                    ndim=y.ndim,
-                    device=y.device,
-                    dtype=y.dtype,
-                )
-                * 0.1
+        lambda1 = (
+            self._handle_sigma(
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim,
+                device=y.device,
+                dtype=y.dtype,
             )
-            lambda2 = (
-                self._handle_sigma(
-                    ths,
-                    batch_size=y.size(0),
-                    ndim=y.ndim,
-                    device=y.device,
-                    dtype=y.dtype,
-                )
-                * 0.15
+            * 0.1
+        )
+        lambda2 = (
+            self._handle_sigma(
+                ths,
+                batch_size=y.size(0),
+                ndim=y.ndim,
+                device=y.device,
+                dtype=y.dtype,
             )
+            * 0.15
+        )
 
         cy = (y**2).sum() / 2
         primalcostlowerbound = 0
@@ -202,21 +217,21 @@ class TGVDenoiser(Denoiser):
         return self.x2
 
     @staticmethod
-    def nabla(x):
+    def nabla(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the finite differences operator associated with tensors of the same shape as x.
         """
         return TVDenoiser.nabla(x)
 
     @staticmethod
-    def nabla_adjoint(x):
+    def nabla_adjoint(x: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the finite difference operator.
         """
         return TVDenoiser.nabla_adjoint(x)
 
     @staticmethod
-    def epsilon(I):
+    def epsilon(I: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the jacobian of a vector field.
         """
@@ -249,7 +264,6 @@ class TGVDenoiser(Denoiser):
                 slice_input_to = (*slice_to, i)
 
                 # Slice for output component
-                slice_output_from = (*slice_from, comp_idx)
                 slice_output_to = (*slice_to, comp_idx)
 
                 # Apply finite difference
@@ -260,7 +274,7 @@ class TGVDenoiser(Denoiser):
         return G
 
     @staticmethod
-    def epsilon_adjoint(G):
+    def epsilon_adjoint(G: torch.Tensor) -> torch.Tensor:
         r"""
         Applies the adjoint of the jacobian of a vector field.
         """
