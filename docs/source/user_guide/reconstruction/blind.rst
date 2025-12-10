@@ -41,7 +41,7 @@ The library provides the following parameter estimation models/algorithms:
      - `filters`, `multipliers`
      - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
 
-   * - :func:`deepinv.MultiCoilMRI.estimate_coil_maps`
+   * - :func:`ESPIRiT <deepinv.MultiCoilMRI.estimate_coil_maps>`
      - C=2; H,W>64
      - (non-learned)
      - :class:`deepinv.physics.MultiCoilMRI`
