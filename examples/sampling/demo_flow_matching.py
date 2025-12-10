@@ -11,7 +11,6 @@ This is equivalent to flow-matching with closed-form velocity, analyzed for exam
 import torch
 import deepinv as dinv
 from deepinv.sampling import (
-    VarianceExplodingDiffusion,
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,
@@ -25,7 +24,7 @@ from deepinv.models import MMSE
 #
 # The closed-form MMSE denoser is calculated by computing the distance between the input image and all the points of the dataset.
 # This can be quite long to compute for large images and large datasets.
-# In this toy example, we use as dataset the testset of MNIST.
+# In this toy example, we use the training set of MNIST.
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -43,9 +42,7 @@ dataloader = torch.utils.data.DataLoader(
 )
 # Since the MNIST dataset is relatively small, we can also load it entirely in memory as a tensor
 tensors = torch.cat([data[0] for data in iter(dataloader)]).to(device)
-denoiser = dinv.models.MMSE(
-    dataloader=tensors.clone(), device=device, dtype=torch.float32
-)
+denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
 
 
 # %% Define the Flow-Matching ODE and perform unconditional generation
