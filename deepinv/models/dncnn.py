@@ -25,6 +25,7 @@ class DnCNN(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
         It is possible to download weights trained via the regularization method in :footcite:t:`pesquet2021learning`, using ``pretrained='download_lipschitz'``.
+        When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'`` or ``pretrained='download_lipschitz_2d'``, which provides a good starting point for fine-tuning.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
@@ -69,9 +70,7 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if dim == 3 and (
-                    pretrained == "download" or pretrained == "download_lipschitz"
-                ):  # pragma: no cover
+                if dim == 3 and pretrained in ("download", "download_lipschitz"):  # pragma: no cover
                     raise ValueError(
                         "No 3D weights for DnCNN are available for download. You can either initialize with 2D weights by using `download_2d` or `download_lipschitz_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
                     )
@@ -99,7 +98,7 @@ class DnCNN(Denoiser):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
-            if dim == 3 and pretrained.startswith("download"):
+            if dim == 3 and pretrained in ("download_2d", "download_lipschitz_2d"):
                 initialize_3d_from_2d(self, ckpt, isotropic=pretrained_2d_isotropic)
             else:
                 self.load_state_dict(ckpt, strict=True)

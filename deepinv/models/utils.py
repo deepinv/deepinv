@@ -461,7 +461,7 @@ def initialize_3d_from_2d(
         only the depth dimension is considered.
     """
     for name, module in model_3d.named_modules():
-        if isinstance(module, nn.Conv3d) or isinstance(module, nn.ConvTranspose3d):
+        if isinstance(module, (nn.Conv3d, nn.ConvTranspose3d)):
 
             module.weight.data[:] = 0.0
             with torch.no_grad():
