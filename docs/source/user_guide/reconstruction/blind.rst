@@ -46,4 +46,4 @@ The library provides the following parameter estimation models/algorithms:
      - (non-learned)
      - :class:`deepinv.physics.MultiCoilMRI`
      - `coil_maps`
-     - :ref:`blind deblurring <sphx_glr_auto_examples_physics_demo_mri_tour.py>`.
+     - :ref:`MRI coil map estimation <sphx_glr_auto_examples_physics_demo_mri_tour.py>`.
