@@ -88,14 +88,6 @@ class MMSE(Denoiser):
             x, sigma, self.dataloader, self.device, self.dtype, verbose
         )
 
-    @staticmethod
-    def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
-        r"""
-        Select appropriate accumulator dtype to avoid numerical issues.
-        The distance computations can be computed faster in half precision
-        """
-        return _select_accumulator_dtype(dtype)
-
 
 def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
     r"""

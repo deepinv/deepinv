@@ -5,6 +5,7 @@ from deepinv.physics import Physics
 from deepinv.models import Denoiser
 from deepinv.utils._typing import _handle_sigma
 
+
 class NoisyDataFidelity(DataFidelity):
     r"""
     Preconditioned data fidelity term for noisy data :math:`- \log p(y|x + \sigma(t) \omega)`
@@ -95,7 +96,7 @@ class NoisyDataFidelity(DataFidelity):
         :return: (torch.Tensor) loss term.
         """
         return self.d(physics.A(x), y) * self.weight
-        
+
 
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
@@ -203,11 +204,13 @@ class ScoreADLDataFidelity(NoisyDataFidelity):
     def __init__(self, weight=1.0, *args, **kwargs):
         super().__init__()
         self.weight = weight
-    
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs) -> torch.Tensor:
+
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor:
         return self.precond(self.diff(x, y, physics), physics=physics) * self.weight
-    
-    
+
+
 class ScoreSDEDataFidelity(NoisyDataFidelity):
     r"""
     Score-based data fidelity term for diffusion algorithms.
@@ -227,13 +230,13 @@ class ScoreSDEDataFidelity(NoisyDataFidelity):
     def __init__(self, weight=1.0, *args, **kwargs):
         super().__init__()
         self.weight = weight
-        
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs) -> torch.Tensor:
+
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
+    ) -> torch.Tensor:
         sigma = _handle_sigma(sigma, x.size(0), x.ndim, x.device, x.dtype)
         y = y + sigma * torch.randn_like(y)
         return self.diff(x, y, physics) * self.weight
-    
+
     def precond(self, u, physics, *args, **kwargs):
-        return u 
-    
-    
+        return u
