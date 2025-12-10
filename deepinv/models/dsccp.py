@@ -20,7 +20,7 @@ class DScCP(Denoiser):
     DScCP stands for Deep Strongly Convex Chambolle Pock.
 
     The pretrained weights are trained with the default parameters of the network, i.e. depth=20 layers, n_channels_per_layer=64 channels.
-    They can be downloaded via setting ``pretrained='download'``. 
+    They can be downloaded via setting ``pretrained='download'``.
 
     :param int depth: depth i.e. number of convolutional layers.
     :param int n_channels_per_layer: number of channels per convolutional layer.

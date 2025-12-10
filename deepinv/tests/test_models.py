@@ -1547,20 +1547,24 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         x = volume_data / volume_data.max()
 
         # crop to smaller size for faster testing: [181,217,181] -> [32,64,64]
-        x_crop = x[:,:,100-16:100+16,100-32:100+32,100-32:100+32].to(device)
-        sigma = 0.1 
+        x_crop = x[
+            :, :, 100 - 16 : 100 + 16, 100 - 32 : 100 + 32, 100 - 32 : 100 + 32
+        ].to(device)
+        sigma = 0.1
         y = x_crop + sigma * torch.randn_like(x_crop)
-        
-        psnr_fn = dinv.metric.PSNR()    
+
+        psnr_fn = dinv.metric.PSNR()
         improvement = 10 if model_name == "DRUNet" else 8
-        
+
         model = model.eval().to(device)
         y_denoised = model(y, sigma=sigma)
-        
+
         model_noinit = model_noinit.eval().to(device)
         y_denoised_noinit = model_noinit(y, sigma=sigma)
-        
+
         psnr_init = psnr_fn(y_denoised, x_crop).item()
         psnr_noinit = psnr_fn(y_denoised_noinit, x_crop).item()
-        
-        assert psnr_init > psnr_noinit + improvement, f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
+
+        assert (
+            psnr_init > psnr_noinit + improvement
+        ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"

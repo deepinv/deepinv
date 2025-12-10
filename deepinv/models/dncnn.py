@@ -70,7 +70,10 @@ class DnCNN(Denoiser):
 
         if pretrained is not None:
             if pretrained.startswith("download"):
-                if dim == 3 and pretrained in ("download", "download_lipschitz"):  # pragma: no cover
+                if dim == 3 and pretrained in (
+                    "download",
+                    "download_lipschitz",
+                ):  # pragma: no cover
                     raise ValueError(
                         "No 3D weights for DnCNN are available for download. You can either initialize with 2D weights by using `download_2d` or `download_lipschitz_2d`, which provides a good starting point for fine-tuning, or set pretrained to None or path to your own pretrained weights."
                     )
