@@ -10,7 +10,6 @@ New Features
 ^^^^^^^^^^^^
 - Add :class:`deepinv.physics.LaplaceNoise` model (:gh:`921` by `Brayan Monroy`_)
 - New way to create optimization models. Standard optimization algorithms (and their unfolded versions) can be created using their class name directly instead of using the `optim_builder` (or `unfolded_builder`) function. (:gh:`592` by `Samuel Hurault`_)
-- Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 - Added `testmon <https://www.testmon.org/>`_ and conditional run of sphinx-gallery examples to CI to speed up tests (:gh:`966` by `Julian Tachella`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
