@@ -104,11 +104,7 @@ class TGVDenoiser(Denoiser):
             )
         elif ths is None:
             ths = self.ths
-        restart = (
-            True
-            if (self.restart or self.x2 is None or self.x2.shape != y.shape)
-            else False
-        )
+        restart = self.restart or self.x2 is None or self.x2.shape != y.shape
 
         if restart:
             self.x2 = y.clone()

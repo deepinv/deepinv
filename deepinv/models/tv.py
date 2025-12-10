@@ -102,14 +102,10 @@ class TVDenoiser(Denoiser):
             ths = self.ths
 
         restart = (
-            True
-            if (
-                self.restart
-                or self.x2 is None
-                or self.u2 is None
-                or self.x2.shape != y.shape
-            )
-            else False
+            self.restart
+            or self.x2 is None
+            or self.u2 is None
+            or self.x2.shape != y.shape
         )
 
         if restart:
