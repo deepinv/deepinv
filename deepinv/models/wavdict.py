@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Any
+from typing import Sequence, Any, Union
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -10,7 +10,9 @@ from .base import Denoiser
 # 2D: [Tensor, list[Tensor], list[Tensor]]
 # 3D: [Tensor, dict[str, Tensor], dict[str, Tensor]]
 
-Wavcoef = list[Tensor, list[Tensor]] | list[Tensor, dict[str, Tensor]]
+Wavcoef = Union[
+    list[Union[Tensor, list[Tensor]]], list[Union[Tensor, dict[str, Tensor]]]
+]
 
 
 def _get_axes(is_complex: bool, dimension: int) -> tuple[int, ...]:
