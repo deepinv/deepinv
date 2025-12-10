@@ -597,7 +597,8 @@ class Trainer:
                 self.epoch_start = checkpoint["epoch"] + 1
                 msg += ", epoch_start"
 
-            print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
+            if self.verbose:
+                print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
