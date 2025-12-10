@@ -20,7 +20,7 @@ See the example :class:`sphx_glr_auto_examples_blind-inverse-problems_demo_optim
 Estimating physics parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If only measurement data is available :math:`\theta` at inference time, we can estimate the parameters from the observed data,
-and then use any non-blind reconstructor (e.g., :class:`RAM <deepinv.models.RAM>`, :class:`DPIR <deepinv.optim.DPIR>`, etc.) to recover the image.
+and then use any non-blind reconstructor to recover the image.
 The library provides the following parameter estimation models/algorithms:
 
 .. list-table:: Identification models
