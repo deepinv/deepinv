@@ -136,33 +136,29 @@ class BlurStrength(Metric):
 
     """
 
-    def __init__(self, h_size=11, **kwargs):
+    def __init__(self, h_size: int = 11, **kwargs):
         super().__init__(**kwargs)
         self.h_size = h_size
         self.lower_better = True
 
-    def metric(self, x_net, *args, **kwargs):
+    def metric(self, x_net: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         Compute blur strength metric for a batch of images.
 
         :param x_net: (B, C, ...) input tensors with C=1 or 3 channels. The spatial dimensions can be 1D, 2D, or higher.
         :return: (B,) tensor of blur strength values in (0,1) for each image in the batch.
         """
-        # convert to grayscale: (B, C, ...) → (B, 1, ...)
         assert x_net.shape[1] in [1, 3], "Input must have 1 or 3 channels."
 
         x = x_net
 
         if x.shape[1] == 3:  # RGB to grayscale
-            r = x[:, 0:1]
-            g = x[:, 1:2]
-            b = x[:, 2:3]
-            x = 0.2989 * r + 0.5870 * g + 0.1140 * b
+            x = 0.2989 * x[:, [0]] + 0.5870 * x[:, [1]] + 0.1140 * x[:, [2]]
 
-        B, C, *spatial = x.shape
+        spatial = x.shape[2:]
         n_spatial = len(spatial)
 
-        # slices = slice(2, s-1) per dimension
+        # crop
         slices = (slice(None), slice(None)) + tuple(slice(2, s - 1) for s in spatial)
 
         # Compute metric for each spatial axis
@@ -171,11 +167,11 @@ class BlurStrength(Metric):
         # spatial axes start at dim=2
         for ax in range(2, 2 + n_spatial):
             # 1D uniform blur
-            filt = uniform_filter1d(x, self.h_size, axis=ax)
+            filt = self.uniform_filter1d(x, self.h_size, axis=ax)
 
             # Sobel derivatives
-            sharp = torch.abs(sobel_1d(x, axis=ax))
-            blur = torch.abs(sobel_1d(filt, axis=ax))
+            sharp = torch.abs(self.sobel_1d(x, axis=ax))
+            blur = torch.abs(self.sobel_1d(filt, axis=ax))
 
             # clamp/sharpness difference
             t = torch.clamp(sharp - blur, min=0)
@@ -191,51 +187,58 @@ class BlurStrength(Metric):
         results = torch.stack(results, dim=1)  # (B, n_spatial)
         return results.max(dim=1).values  # (B,)
 
+    @staticmethod
+    def uniform_filter1d(x: torch.Tensor, size: int, axis: int) -> torch.Tensor:
+        r"""
+        Batched 1D uniform filter along an arbitrary axis.
 
-def uniform_filter1d(x, size, axis):
-    """
-    Batched 1D uniform filter along an arbitrary axis.
-    x: (B, C, ...)
-    """
-    pad = size // 2
-    kernel = torch.ones(1, 1, size, device=x.device, dtype=x.dtype) / size
+        :param torch.Tensor x: input tensor of shape `(B, C, ...)`
+        :param int size: size of filter
+        :param int axis: axis along which to compute filter
+        :return: filtered tensor of shape `(B, C, ...)`
+        """
+        pad = size // 2
+        kernel = torch.ones(1, 1, size, device=x.device, dtype=x.dtype) / size
 
-    # move axis to last dim
-    x_perm = x.transpose(axis, -1)
-    orig_shape = x_perm.shape
+        # move axis to last dim
+        x_perm = x.transpose(axis, -1)
+        orig_shape = x_perm.shape
 
-    # flatten spatial dims except last
-    x_flat = x_perm.reshape(-1, 1, orig_shape[-1])
+        # flatten spatial dims except last
+        x_flat = x_perm.reshape(-1, 1, orig_shape[-1])
 
-    x_flat = F.pad(x_flat, (pad, pad), mode="reflect")
-    out = F.conv1d(x_flat, kernel)
+        x_flat = F.pad(x_flat, (pad, pad), mode="reflect")
+        out = F.conv1d(x_flat, kernel)
 
-    out = out.reshape(orig_shape)
-    out = out.transpose(axis, -1)
-    return out
+        out = out.reshape(orig_shape)
+        out = out.transpose(axis, -1)
+        return out
 
+    @staticmethod
+    def sobel1d(x: torch.Tensor, axis: int) -> torch.Tensor:
+        r"""
+        Batched 1D Sobel derivative along an arbitrary axis.
 
-def sobel_1d(x, axis):
-    """
-    Batched 1D Sobel derivative along an arbitrary axis.
-    x: (B, C, ...)
-    """
-    kernel = torch.tensor([[-1.0, 0.0, 1.0]], device=x.device, dtype=x.dtype)
-    pad = 1
+        :param torch.Tensor x: `(B, C, ...)`
+        :param int axis: axis along which to compute sobel derivative along.
+        :return: :class:`torch.Tensor` of shape `(B, C, ...)`
+        """
+        kernel = torch.tensor([[-1.0, 0.0, 1.0]], device=x.device, dtype=x.dtype)
+        pad = 1
 
-    # move target axis to last dim
-    x_perm = x.transpose(axis, -1)
-    orig_shape = x_perm.shape
+        # move target axis to last dim
+        x_perm = x.transpose(axis, -1)
+        orig_shape = x_perm.shape
 
-    # flatten all leading dims
-    x_flat = x_perm.reshape(-1, 1, orig_shape[-1])
+        # flatten all leading dims
+        x_flat = x_perm.reshape(-1, 1, orig_shape[-1])
 
-    x_pad = F.pad(x_flat, (pad, pad), mode="reflect")
-    out = F.conv1d(x_pad, kernel.unsqueeze(0))
+        x_pad = F.pad(x_flat, (pad, pad), mode="reflect")
+        out = F.conv1d(x_pad, kernel.unsqueeze(0))
 
-    out = out.reshape(orig_shape)
-    out = out.transpose(axis, -1)
-    return out
+        out = out.reshape(orig_shape)
+        out = out.transpose(axis, -1)
+        return out
 
 
 class SharpnessIndex(Metric):
@@ -259,8 +262,8 @@ class SharpnessIndex(Metric):
 
     Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
-    :param bool periodic_component: if True (default), compute the periodic component of the image before computing the metric.
-    :param bool dequantize: if True (default), perform image dequantization by (1/2, 1/2) translation in Fourier domain before computing the metric.
+    :param bool periodic_component: if `True` (default), compute the periodic component of the image before computing the metric.
+    :param bool dequantize: if `True` (default), perform image dequantization by (1/2, 1/2) translation in Fourier domain before computing the metric.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
@@ -283,7 +286,9 @@ class SharpnessIndex(Metric):
 
     """
 
-    def __init__(self, periodic_component=True, dequantize=True, **kwargs):
+    def __init__(
+        self, periodic_component: bool = True, dequantize: bool = True, **kwargs
+    ) -> torch.Tensor:
         super().__init__(**kwargs)
         self.lower_better = False
         self.periodic_component = periodic_component
@@ -301,11 +306,11 @@ class SharpnessIndex(Metric):
         """
         B, C, H, W = x_net.shape
 
-        # ---- preprocessing modes ----
+        # preprocessing modes
         if self.periodic_component:
-            x_net = per_decomp(x_net)
+            x_net = self.per_decomp(x_net)
         if self.dequantize:
-            x_net = dequant(x_net)
+            x_net = self.dequant(x_net)
 
         gx = torch.roll(x_net, shifts=-1, dims=3) - x_net  # (B,C,H,W)
         gy = torch.roll(x_net, shifts=-1, dims=2) - x_net
@@ -322,19 +327,16 @@ class SharpnessIndex(Metric):
             2 * torch.pi / H
         )
 
-        P = p  # broadcast to (B,C,H,W)
-        Q = q
-
         # fgx2 = real(4 * fu * sin(P/2) * conj(fu))
-        sinP = torch.sin(P / 2)
-        sinQ = torch.sin(Q / 2)
+        sin_p = torch.sin(p / 2)
+        sin_q = torch.sin(q / 2)
 
-        fgx2 = fu * sinP
+        fgx2 = fu * sin_p
         fgx2 = 4 * (
             fgx2.real**2 + fgx2.imag**2
         )  # |4*fu*sin|^2 but matches MATLAB’s real(4*z*conj(z))
 
-        fgy2 = fu * sinQ
+        fgy2 = fu * sin_q
         fgy2 = 4 * (fgy2.real**2 + fgy2.imag**2)
 
         # sums
@@ -368,126 +370,129 @@ class SharpnessIndex(Metric):
         s = torch.zeros_like(t)
         positive = vara > 0
         ts = t[positive] / math.sqrt(2)
-        s_pos = -logerfc(ts) / math.log(10) + math.log10(2)
+        s_pos = -self.logerfc(ts) / math.log(10) + math.log10(2)
         s[positive] = s_pos
         return s.mean(dim=1)  # (B,)
 
+    @staticmethod
+    def per_decomp(u: torch.Tensor) -> torch.Tensor:
+        r"""
+        Periodic + smooth decomposition of a 2D image.
 
-def per_decomp(u):
-    """
-    Periodic + smooth decomposition of a 2D image.
+        Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
-    Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
+        :param torch.Tensor u: (B, C, H, W) tensor
+        :return: p: periodic component minus smooth component (B, C, H, W)
+        """
+        B, C, H, W = u.shape
+        u = u.double()
 
-    :param torch.Tensor u: (B, C, H, W) tensor
-    :return: p: periodic component minus smooth component (B, C, H, W)
-    """
-    B, C, H, W = u.shape
-    u = u.double()
+        v = torch.zeros_like(u)
 
-    v = torch.zeros_like(u)
+        # temp differences for broadcasting
+        u_top = u[..., 0, :]  # (B,C,W)
+        u_bottom = u[..., H - 1, :]
+        u_left = u[..., :, 0]  # (B,C,H)
+        u_right = u[..., :, W - 1]
 
-    # temp differences for broadcasting
-    u_top = u[..., 0, :]  # (B,C,W)
-    u_bottom = u[..., H - 1, :]
-    u_left = u[..., :, 0]  # (B,C,H)
-    u_right = u[..., :, W - 1]
+        v[..., 0, :] += u_top - u_bottom
 
-    v[..., 0, :] += u_top - u_bottom
+        v[..., H - 1, :] -= u_top - u_bottom
 
-    v[..., H - 1, :] -= u_top - u_bottom
+        v[..., :, 0] += u_left - u_right
 
-    v[..., :, 0] += u_left - u_right
+        v[..., :, W - 1] -= u_left - u_right
 
-    v[..., :, W - 1] -= u_left - u_right
+        # frequency grids (fx, fy)
+        X = torch.arange(W, dtype=torch.float64, device=u.device).reshape(1, 1, 1, W)
+        Y = torch.arange(H, dtype=torch.float64, device=u.device).reshape(1, 1, H, 1)
 
-    # frequency grids (fx, fy)
-    X = torch.arange(W, dtype=torch.float64, device=u.device).reshape(1, 1, 1, W)
-    Y = torch.arange(H, dtype=torch.float64, device=u.device).reshape(1, 1, H, 1)
+        fx = torch.cos(2 * torch.pi * (X) / W)  # (1,1,1,W) broadcasted
+        fy = torch.cos(2 * torch.pi * (Y) / H)  # (1,1,H,1)
 
-    fx = torch.cos(2 * torch.pi * (X) / W)  # (1,1,1,W) broadcasted
-    fy = torch.cos(2 * torch.pi * (Y) / H)  # (1,1,H,1)
+        # denominator = 2 - fx - fy
+        denom = 2.0 - fx - fy
 
-    # denominator = 2 - fx - fy
-    denom = 2.0 - fx - fy
+        denom[..., 0, 0] = 2.0
 
-    denom[..., 0, 0] = 2.0
+        # compute smooth part: s = real(ifft2( fft2(v) * 0.5 ./ denom ))
+        fv = torch.fft.fft2(v)
+        s = torch.fft.ifft2(fv * (0.5 / denom))
+        s = s.real
 
-    # compute smooth part: s = real(ifft2( fft2(v) * 0.5 ./ denom ))
-    fv = torch.fft.fft2(v)
-    s = torch.fft.ifft2(fv * (0.5 / denom))
-    s = s.real
+        # periodic part
+        p = u - s
+        return p
 
-    # periodic part
-    p = u - s
-    return p
+    @staticmethod
+    def dequant(u: torch.Tensor) -> torch.Tensor:
+        r"""
+        Image dequantization via (1/2, 1/2) translation in Fourier domain.
 
+        Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
-def dequant(u):
-    """
-    Image dequantization via (1/2, 1/2) translation in Fourier domain.
+        :param torch.Tensor u: (B, C, H, W) tensor
+        :return: (:class:torch.Tensor) dequantized image (B, C, H, W)
+        """
+        B, C, H, W = u.shape
+        u = u.double()
 
-    Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
+        # Compute mx, my exactly as in MATLAB
+        mx = W // 2
+        my = H // 2
 
-    :param torch.Tensor u: (B, C, H, W) tensor
-    :return: (:class:torch.Tensor) dequantized image (B, C, H, W)
-    """
-    B, C, H, W = u.shape
-    u = u.double()
+        # Build Tx and Ty (complex exponential phase shift)
 
-    # Compute mx, my exactly as in MATLAB
-    mx = W // 2
-    my = H // 2
+        # index arrays
+        x = torch.arange(mx, mx + W, device=u.device)
+        y = torch.arange(my, my + H, device=u.device)
 
-    # Build Tx and Ty (complex exponential phase shift)
+        x_mod = (x % W) - mx  # (W,)
+        y_mod = (y % H) - my  # (H,)
 
-    # index arrays
-    x = torch.arange(mx, mx + W, device=u.device)
-    y = torch.arange(my, my + H, device=u.device)
+        Tx = torch.exp(-1j * math.pi / W * x_mod)  # (W,) complex
+        Ty = torch.exp(-1j * math.pi / H * y_mod)  # (H,) complex
 
-    x_mod = (x % W) - mx  # (W,)
-    y_mod = (y % H) - my  # (H,)
+        # Outer product Ty' * Tx → shape (H, W)
+        shift = Ty[:, None] * Tx[None, :]  # (H, W)
 
-    Tx = torch.exp(-1j * math.pi / W * x_mod)  # (W,) complex
-    Ty = torch.exp(-1j * math.pi / H * y_mod)  # (H,) complex
+        # Apply Fourier-domain phase shift
+        fu = torch.fft.fft2(u)
+        fv = fu * shift  # broadcasting over (B,C)
+        v = torch.fft.ifft2(fv).real
+        return v
 
-    # Outer product Ty' * Tx → shape (H, W)
-    shift = Ty[:, None] * Tx[None, :]  # (H, W)
+    @staticmethod
+    def logerfc(x: torch.Tensor) -> torch.Tensor:
+        r"""
+        Compute `log(erfc(x))` with asymptotic expansion for large `x`.
 
-    # Apply Fourier-domain phase shift
-    fu = torch.fft.fft2(u)
-    fv = fu * shift  # broadcasting over (B,C)
-    v = torch.fft.ifft2(fv).real
-    return v
+        Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
 
+        :param torch.Tensor x: `(B, C, H, W)` tensor
+        :return: `(B,)` tensor of logarithmic value of `x`
+        """
 
-def logerfc(x):
-    """
-    Compute log(erfc(x)) with asymptotic expansion for large x.
+        x = x.double()
+        y = torch.empty_like(x)
 
-    Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
-    """
+        # mask for large x (asymptotic approximation)
+        ind = x > 20
 
-    x = x.double()
-    y = torch.empty_like(x)
+        # if x > 20  → use asymptotic expansion
+        if ind.any():
+            X = x[ind]
+            z = X.pow(-2)
+            s = torch.ones_like(X)
 
-    # mask for large x (asymptotic approximation)
-    ind = x > 20
+            # MATLAB loop: for k = 8:-1:1
+            for k in range(8, 0, -1):
+                s = 1 - (k - 0.5) * z * s
 
-    # if x > 20  → use asymptotic expansion
-    if ind.any():
-        X = x[ind]
-        z = X.pow(-2)
-        s = torch.ones_like(X)
+            y[ind] = -0.5 * math.log(math.pi) - X**2 + torch.log(s / X)
 
-        # MATLAB loop: for k = 8:-1:1
-        for k in range(8, 0, -1):
-            s = 1 - (k - 0.5) * z * s
+        # if x ≤ 20  → directly log(erfc(x))
+        if (~ind).any():
+            y[~ind] = torch.log(torch.erfc(x[~ind]))
 
-        y[ind] = -0.5 * math.log(math.pi) - X**2 + torch.log(s / X)
-
-    # if x ≤ 20  → directly log(erfc(x))
-    if (~ind).any():
-        y[~ind] = torch.log(torch.erfc(x[~ind]))
-
-    return y
+        return y
