@@ -189,7 +189,9 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 
 
 @torch.no_grad()
-def preprocess_img(im, rescale_mode="min_max"):
+def preprocess_img(
+    im, rescale_mode="min_max", *, vmin: float | None = None, vmax: float | None = None
+):
     r"""
     Prepare a batch of images for plotting.
 
@@ -205,6 +207,8 @@ def preprocess_img(im, rescale_mode="min_max"):
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
     :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
+    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :return: the batch of pre-processed images.
     """
     # Apply the modulus function if the image is inferred to be complex
@@ -215,8 +219,8 @@ def preprocess_img(im, rescale_mode="min_max"):
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
 
-    # Normalize values between zero and one
-    im = normalize_signal(im, mode=rescale_mode)
+    # Normalize signal between 0 and 1
+    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     return im
 
@@ -250,27 +254,29 @@ def rescale_img(im, rescale_mode="min_max"):
 
 
 def plot(
-    img_list,
-    titles=None,
-    save_fn=None,
-    save_dir=None,
-    tight=True,
-    max_imgs=4,
-    rescale_mode="min_max",
-    show=True,
-    close=False,
-    figsize=None,
-    subtitles=None,
-    suptitle=None,
-    cmap="gray",
-    fontsize=None,
-    interpolation="none",
-    cbar=False,
-    dpi=1200,
+    img_list: torch.Tensor | list[torch.Tensor] | dict[str, torch.Tensor],
+    titles: str | list[str] | None = None,
+    save_fn: str | Path | None = None,
+    save_dir: str | Path | None = None,
+    tight: bool = True,
+    max_imgs: int = 4,
+    rescale_mode: str = "min_max",
+    show: bool = True,
+    close: bool = False,
+    figsize: tuple[int, int] | None = None,
+    subtitles: list | None = None,
+    suptitle: str | None = None,
+    cmap: str = "gray",
+    fontsize: int | None = None,
+    interpolation: str = "none",
+    cbar: bool = False,
+    dpi: int = 1200,
     fig=None,
     axs=None,
-    return_fig=False,
-    return_axs=False,
+    return_fig: bool = False,
+    return_axs: bool = False,
+    vmin: float | None = None,
+    vmax: float | None = None,
     **imshow_kwargs,
 ):
     r"""
@@ -326,6 +332,8 @@ def plot(
     :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
+    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
+    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
     """
@@ -354,13 +362,13 @@ def plot(
 
     imgs = []
     for im in img_list:
-        col_imgs = []
-        im = preprocess_img(im, rescale_mode=rescale_mode)
+        row_imgs = []
+        im = preprocess_img(im, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax)
         for i in range(min(im.shape[0], max_imgs)):
-            col_imgs.append(
+            row_imgs.append(
                 im[i, ...].detach().permute(1, 2, 0).squeeze().cpu().numpy()
             )
-        imgs.append(col_imgs)
+        imgs.append(row_imgs)
 
     if figsize is None:
         figsize = (len(imgs) * 2, len(imgs[0]) * 2)
@@ -911,7 +919,8 @@ def plot_videos(
         >>> from deepinv.utils import plot_videos
         >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
         >>> y = torch.rand((1, 3, 5, 16, 16))
-        >>> plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython)
+        >>> plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython) #doctest: +ELLIPSIS
+        ...
         >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 

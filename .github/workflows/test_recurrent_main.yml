@@ -17,6 +17,7 @@ concurrency:
 jobs:
   test:
     name: Test ${{ matrix.name }}
+    if: ${{ github.repository == 'deepinv/deepinv' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -107,11 +108,15 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
-      # ----------------------------
-
       - name: Test with pytest and generate coverage report 
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          uv run python -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v --testmon
+
+      - name: Save .testmondata
+        uses: actions/cache/save@v3
+        with:
+          path: .testmondata
+          key: testmon-cpu-main-${{ matrix.os }}-${{ matrix.version_python }}-${{ github.run_id }}
 
       - name: Upload coverage to Codecov
         # Only upload coverage on Linux
