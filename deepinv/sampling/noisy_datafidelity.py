@@ -151,13 +151,15 @@ class DPSDataFidelity(NoisyDataFidelity):
         *args,
         get_model_outputs=False,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: physics model
         :param float sigma: Standard deviation of the noise.
-        :return: (:class:`torch.Tensor`) score term.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
         """
         with torch.enable_grad():
             x.requires_grad_(True)
@@ -194,7 +196,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         *args,
         get_model_outputs=False,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
         Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
 
@@ -202,7 +204,9 @@ class DPSDataFidelity(NoisyDataFidelity):
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         :param float sigma: standard deviation of the noise.
-        :return: (torch.Tensor) loss term.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.
+
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).
         """
 
         if isinstance(sigma, torch.Tensor):
