@@ -3,19 +3,25 @@
 Blind Inverse Problems
 ======================
 
-Blind inverse problems involve the simultaneous estimation of both the target signal and unknown parameters of the forward model, such as blur kernels or noise parameters.
-Following the :ref:`notation of the library <parameter-dependent-operators>`, we consider measurements of the form :math:`y = \noise{\forw{x, \theta}}`, where :math:`\theta` represents unknown physics parameters.
-Noise parameters associated to :math:`\noise{\cdot}` may also be unknown.
-The goal is to jointly estimate the signal :math:`x` and the forward operator :math:`\theta` parameters (and other noise parameters) from the measurements :math:`y`
+Following the :ref:`notation of the library <parameter-dependent-operators>`, here we consider measurements of the form
+:math:`y = \noise{\forw{x, \theta}}`, where :math:`\theta` represents unknown physics parameters.
+Noise parameters associated to :math:`\noise{\cdot}` may also be unknown. In this section, we consider two classes of problems:
+
+- **Calibration problems**: Estimate the unknown parameters :math:`\theta` given paired signal and measurement data :math:`(x,y)`
+
+- **Blind inverse problems**: Jointly estimate the signal :math:`x` and :math:`\theta` parameters (and other noise parameters) from the measurements :math:`y`
 Some methods directly estimate the signal without explicitly estimating the parameters.
+
+Calibration problems
+~~~~~~~~~~~~~~~~~~~~
+If paired measurement and signal data is available at inference time, physics parameters can be estimated using optimization methods.
+See the example :class:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameters.py` for more details.
 
 Estimating physics parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In many imaging problems, the physics parameters (e.g. blur kernel) are unknown and must be estimated alongside the image.
-The library provides models that can estimate the parameters from the observed data, and then use any non-blind reconstructor
-(e.g., :class:`RAM <deepinv.models.RAM>`, :class:`DPIR <deepinv.optim.DPIR>`, etc.) to recover the image.
-
+If only measurement data is available :math:`\theta` at inference time, we can estimate the parameters from the observed data,
+and then use any non-blind reconstructor (e.g., :class:`RAM <deepinv.models.RAM>`, :class:`DPIR <deepinv.optim.DPIR>`, etc.) to recover the image.
+The library provides the following parameter estimation models/algorithms:
 
 .. list-table:: Identification models
    :widths: 15 15 15 20 20
