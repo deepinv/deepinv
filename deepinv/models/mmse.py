@@ -22,9 +22,10 @@ class MMSE(Denoiser):
 
         Here, :math:`w(x_k \vert y)` is the posterior weight of atom :math:`x_k` knowing the measurement :math:`y`.
 
-    :param dataloader: Pytorch dataloader containing the dataset to use as prior.
-    :param device: Device to perform computations on. Default to CPU.
-    :param dtype: dtype to compute the estimates. Default to `torch.float32`.
+    :param torch.utils.data.DataLoader | torch.Tensor dataloader: Pytorch dataloader or tensor containing the dataset to use as prior. If a tensor is provided, it is assumed to contain all the dataset in memory.
+    If the dataset is small, using a tensor can significantly speed up computations.
+    :param torch.device, str device: Device to perform computations on. Default to CPU.
+    :param torch.dtype dtype: dtype to compute the estimates. Default to `torch.float32`.
         For large datasets, using `torch.float16` or `torch.bfloat16` can significantly speed up computations.
         In this case, the accumulation is performed in `torch.float32` to avoid numerical issues.
 
@@ -33,7 +34,8 @@ class MMSE(Denoiser):
     :Examples:
 
         >>> import deepinv as dinv
-        >>> from torchvision import datasets, transforms
+        >>> from torchvision import datasets
+        >>> import torchvision.transforms.v2 as v2
         >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         >>> dataset = datasets.MNIST(
         ...        root=".",
@@ -42,7 +44,9 @@ class MMSE(Denoiser):
         ...        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
             )
         >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
-        >>> x = next(iter(dataloader))[0].to(device)
+        >>> # Since the MNIST dataset is small, we can also load it entirely in memory as a tensor
+        >>> dataloader = torch.cat([data[0] for data in iter(dataloader)]).to(device)
+        >>> x = dataloader[0:4]
         >>> denoiser = dinv.models.MMSE(dataloader=dataloader, device=device, dtype=torch.float32)
         >>> sigma = 0.1
         >>> x_noisy = x + sigma * torch.randn_like(x)
@@ -53,7 +57,7 @@ class MMSE(Denoiser):
 
     def __init__(
         self,
-        dataloader: data.DataLoader = None,
+        dataloader: data.DataLoader | torch.Tensor = None,
         device: torch.device | str = "cpu",
         dtype: torch.dtype = torch.float32,
     ) -> None:
@@ -79,54 +83,10 @@ class MMSE(Denoiser):
         sigma = self._handle_sigma(
             sigma, batch_size=x.size(0), device=self.device, dtype=self.dtype, ndim=2
         )
-        two_sigma_squared = 2 * sigma.pow(2)  # (Bx,1)
-        shape = x.shape
-        Bx = x.size(0)
 
-        x = x.to(self.dtype).view(Bx, -1)  # (Bx, 1, C*H*W)
-
-        # Streaming accumulation across dataset atoms for each batch
-        acc_dtype = self._select_accumulator_dtype(self.dtype)
-
-        numerator = torch.zeros(
-            Bx, np.prod(shape[1:]), device=self.device, dtype=acc_dtype
+        return MMSEFunction.apply(
+            x, sigma, self.dataloader, self.device, self.dtype, verbose
         )
-        denominator = torch.zeros(Bx, 1, device=self.device, dtype=acc_dtype)
-        # Row-wise shift for numerical stability in log-domain
-        shift = torch.full((Bx, 1), -torch.inf, device=self.device, dtype=acc_dtype)
-
-        pb = tqdm(self.dataloader, desc="MMSE Denoiser", disable=not verbose)
-        for batch in pb:
-            if isinstance(batch, (list, tuple)):
-                batch = batch[0]
-            batch = batch.to(
-                device=self.device, dtype=self.dtype, non_blocking=True
-            )  # (Bd, C, H, W)
-            Bd = batch.size(0)
-            batch = batch.view(Bd, -1)  # (1, Bd, C*H*W)
-
-            # Pairwise squared distances: (Bx, Bd)
-            dist2 = self._cdist_squared(x, batch).to(acc_dtype, non_blocking=True)
-            logw = -dist2 / (two_sigma_squared + 1e-12)  # (Bx, Bd)
-
-            # Update shift and rescale running sums
-            batch_shift = logw.max(dim=1, keepdim=True).values  # (Bx,1)
-            new_shift = torch.maximum(shift, batch_shift)
-            # Rescale existing sums to new shift
-            rescale = torch.exp(shift - new_shift)  # (Bx,1)
-            numerator = numerator * rescale
-            denominator = denominator * rescale
-
-            # Compute stabilized weights for current batch
-            weights = torch.exp(logw - new_shift)  # (Bx, Bd)
-
-            # Weighted sum via matmul
-            numerator = numerator + weights @ batch.to(acc_dtype, non_blocking=True)
-            denominator = denominator + weights.sum(dim=1, keepdim=True)
-            shift = new_shift
-
-        x_denoised = numerator / denominator
-        return x_denoised.view(shape)
 
     @staticmethod
     def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
@@ -134,22 +94,166 @@ class MMSE(Denoiser):
         Select appropriate accumulator dtype to avoid numerical issues.
         The distance computations can be computed faster in half precision
         """
-        if dtype in [torch.float16, torch.bfloat16]:
-            return torch.float32
-        return dtype
+        return _select_accumulator_dtype(dtype)
+
+
+def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
+    r"""
+    Select appropriate accumulator dtype to avoid numerical issues.
+    The distance computations can be computed faster in half precision
+    """
+    if dtype in [torch.float16, torch.bfloat16, torch.half]:
+        return torch.float32
+    return dtype
+
+
+class MMSEFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x, sigma, dataloader, device, dtype, verbose):
+        ctx.dataloader = dataloader
+        ctx.device = device
+        ctx.dtype = dtype
+        ctx.verbose = verbose
+
+        two_sigma_squared = 2 * sigma.pow(2)
+        shape = x.shape
+        Bx = x.size(0)
+
+        x_flat = x.to(dtype).view(Bx, -1)
+
+        acc_dtype = _select_accumulator_dtype(dtype)
+
+        if isinstance(dataloader, torch.Tensor):
+            ctx.is_tensor_mode = True
+            batch = dataloader.to(device=device, dtype=dtype)
+            if batch.ndim > 2:
+                batch = batch.view(batch.size(0), -1)
+
+            dist2 = torch.cdist(x_flat, batch).pow(2).to(acc_dtype)
+            logw = -dist2 / (two_sigma_squared + 1e-12)
+
+            weights = torch.nn.functional.softmax(logw, dim=1)
+
+            x_denoised = weights @ batch.to(acc_dtype)
+            x_denoised = x_denoised.view(shape)
+
+            ctx.save_for_backward(x, sigma, x_denoised, weights, dist2)
+            return x_denoised
+
+        ctx.is_tensor_mode = False
+        numerator = torch.zeros(Bx, np.prod(shape[1:]), device=device, dtype=acc_dtype)
+        denominator = torch.zeros(Bx, 1, device=device, dtype=acc_dtype)
+        shift = torch.full((Bx, 1), -torch.inf, device=device, dtype=acc_dtype)
+
+        pb = tqdm(dataloader, desc="MMSE Denoiser", disable=not verbose)
+        for batch in pb:
+            if isinstance(batch, (list, tuple)):
+                batch = batch[0]
+            batch = batch.to(device=device, dtype=dtype, non_blocking=True)
+            Bd = batch.size(0)
+            batch = batch.view(Bd, -1)
+
+            dist2 = torch.cdist(x_flat, batch).pow(2).to(acc_dtype, non_blocking=True)
+            logw = -dist2 / (two_sigma_squared + 1e-12)
+
+            batch_shift = logw.max(dim=1, keepdim=True).values
+            new_shift = torch.maximum(shift, batch_shift)
+            rescale = torch.exp(shift - new_shift)
+            numerator = numerator * rescale
+            denominator = denominator * rescale
+
+            weights = torch.exp(logw - new_shift)
+            numerator = numerator + weights @ batch.to(acc_dtype, non_blocking=True)
+            denominator = denominator + weights.sum(dim=1, keepdim=True)
+            shift = new_shift
+
+        x_denoised = numerator / denominator
+        x_denoised = x_denoised.view(shape)
+
+        ctx.save_for_backward(x, sigma, x_denoised, shift, denominator)
+
+        return x_denoised
 
     @staticmethod
-    def _cdist_squared(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        r"""
-        Compute pairwise squared Euclidean distances between two sets of vectors.
-        Similar to :func:`torch.cdist` but support half precision inputs.
+    def backward(ctx, grad_output):
+        dataloader = ctx.dataloader
+        device = ctx.device
+        dtype = ctx.dtype
+        verbose = ctx.verbose
 
-        :param x: Tensor of shape (N, D)
-        :param y: Tensor of shape (M, D)
-        :return: Tensor of shape (N, M) containing the pairwise squared distances.
-        """
-        x_norm = (x**2).sum(dim=1).unsqueeze(1)  # (N, 1)
-        y_norm = (y**2).sum(dim=1).unsqueeze(0)  # (1, M)
-        dist2 = x_norm + y_norm - 2.0 * torch.mm(x, y.t())  # (N, M)
-        dist2 = torch.clamp(dist2, min=0.0)
-        return dist2
+        if grad_output is None:
+            return None, None, None, None, None, None
+
+        if ctx.is_tensor_mode:
+            x, sigma, x_denoised, weights, dist2 = ctx.saved_tensors
+            batch = dataloader.to(device=device, dtype=dtype)
+            if batch.ndim > 2:
+                batch = batch.view(batch.size(0), -1)
+        else:
+            x, sigma, x_denoised, shift, denominator = ctx.saved_tensors
+
+        Bx = x.size(0)
+        x_flat = x.to(dtype).view(Bx, -1)
+        grad_output_flat = grad_output.view(Bx, -1)
+        x_denoised_flat = x_denoised.view(Bx, -1)
+
+        acc_dtype = _select_accumulator_dtype(dtype)
+
+        num_grad_x = torch.zeros_like(x_flat, dtype=acc_dtype)
+        num_grad_sigma_1 = torch.zeros(Bx, 1, device=device, dtype=acc_dtype)
+        num_grad_sigma_2 = torch.zeros(Bx, 1, device=device, dtype=acc_dtype)
+
+        two_sigma_squared = 2 * sigma.pow(2)
+
+        if ctx.is_tensor_mode:
+            P = grad_output_flat @ batch.t()
+            num_grad_x = (weights * P).to(acc_dtype) @ batch.to(acc_dtype)
+            num_grad_sigma_1 = (weights * P * dist2).sum(dim=1, keepdim=True)
+            num_grad_sigma_2 = (weights * dist2).sum(dim=1, keepdim=True)
+
+            term1 = num_grad_x
+            v_dot_x_hat = (grad_output_flat * x_denoised_flat).sum(dim=1, keepdim=True)
+            term2 = x_denoised_flat * v_dot_x_hat
+
+            grad_x = (term1 - term2) / sigma.pow(2)
+            grad_x = grad_x.view(x.shape)
+
+            term_sigma_1 = num_grad_sigma_1
+            term_sigma_2 = num_grad_sigma_2
+
+            grad_sigma = (term_sigma_1 - v_dot_x_hat * term_sigma_2) / sigma.pow(3)
+
+            return grad_x, grad_sigma, None, None, None, None
+
+        pb = tqdm(dataloader, desc="MMSE Backward", disable=not verbose)
+        for batch in pb:
+            if isinstance(batch, (list, tuple)):
+                batch = batch[0]
+            batch = batch.to(device=device, dtype=dtype, non_blocking=True)
+            Bd = batch.size(0)
+            batch = batch.view(Bd, -1)
+
+            dist2 = torch.cdist(x_flat, batch).pow(2).to(acc_dtype, non_blocking=True)
+            logw = -dist2 / (two_sigma_squared + 1e-12)
+
+            weights = torch.exp(logw - shift)
+
+            P = grad_output_flat @ batch.t()
+
+            num_grad_x += (weights * P).to(acc_dtype) @ batch.to(acc_dtype)
+            num_grad_sigma_1 += (weights * P * dist2).sum(dim=1, keepdim=True)
+            num_grad_sigma_2 += (weights * dist2).sum(dim=1, keepdim=True)
+
+        term1 = num_grad_x / denominator
+        v_dot_x_hat = (grad_output_flat * x_denoised_flat).sum(dim=1, keepdim=True)
+        term2 = x_denoised_flat * v_dot_x_hat
+
+        grad_x = (term1 - term2) / sigma.pow(2)
+        grad_x = grad_x.view(x.shape)
+
+        term_sigma_1 = num_grad_sigma_1 / denominator
+        term_sigma_2 = num_grad_sigma_2 / denominator
+
+        grad_sigma = (term_sigma_1 - v_dot_x_hat * term_sigma_2) / sigma.pow(3)
+
+        return grad_x, grad_sigma, None, None, None, None

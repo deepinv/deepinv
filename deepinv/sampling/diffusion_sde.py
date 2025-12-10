@@ -9,7 +9,6 @@ from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
-from copy import deepcopy
 from deepinv.sampling.utils import trapz_torch
 
 
@@ -150,7 +149,6 @@ class BaseSDE(nn.Module):
         return self.sample(x_init, seed, get_trajectory, *args, **kwargs)
 
 
-
 class DiffusionSDE(BaseSDE):
     r"""
     Define the Reverse-time Diffusion Stochastic Differential Equation.
@@ -199,7 +197,7 @@ class DiffusionSDE(BaseSDE):
         if not isinstance(alpha, Callable):
             alpha_value = alpha
 
-            def alpha(t: Tensor | float) -> scalar:
+            def alpha(t: Tensor | float) -> float:
                 return alpha_value
 
         def backward_drift(x, t, *args, **kwargs):
@@ -223,7 +221,9 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
+        self.denoiser = (
+            denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
+        )
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
@@ -286,12 +286,12 @@ class EDMDiffusionSDE(DiffusionSDE):
         d x_t = \frac{s'(t)}{s(t)} x_t dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
 
     The scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers must satisfy :math:`s(0) = 1`, :math:`\sigma(0) = 0` and :math:`\lim_{t \to \infty} \sigma(t) = +\infty`.
-    
-    
+
+
     Common choices include the variance-preserving formulation :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}` and the variance-exploding formulation :math:`s(t) = 1`.
-    
+
     For choosing variance-preserving formulation, set `variance_preserving=True` and do not provide `scale_t` and `scale_prime_t`.
-    
+
     For choosing variance-exploding formulation, set `variance_exploding=True` and do not provide `scale_t` and `scale_prime_t`.
 
     .. note::
@@ -337,7 +337,9 @@ class EDMDiffusionSDE(DiffusionSDE):
     ):
         self.T = T
         self.sigma_t = sigma_t
-        assert not (variance_preserving and variance_exploding), ("Cannot set both variance_preserving and variance_exploding to True.")
+        assert not (
+            variance_preserving and variance_exploding
+        ), "Cannot set both variance_preserving and variance_exploding to True."
 
         if scale_t is None:
             if variance_preserving:
@@ -433,7 +435,11 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
-        init = torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype) * self.sigma_t(self.T) * self.scale_t(self.T)
+        init = (
+            torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
+            * self.sigma_t(self.T)
+            * self.scale_t(self.T)
+        )
         return init
 
 
@@ -462,7 +468,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
     For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
-    
+
     For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
 
     .. note::
@@ -646,7 +652,7 @@ class FlowMatching(EDMDiffusionSDE):
             *args,
             *kwargs,
         )
-    
+
     def velocity(self, x, t, *args, **kwargs):
         return self.drift(x, t, *args, **kwargs)
 

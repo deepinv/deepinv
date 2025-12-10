@@ -75,11 +75,15 @@ class ScoreModelWrapper(Denoiser):
 
         self.to(device)
 
-    def _handle_time_step(self, t: Tensor | float, dtype: torch.dtype = torch.float32) -> Tensor:
+    def _handle_time_step(
+        self, t: Tensor | float, dtype: torch.dtype = torch.float32
+    ) -> Tensor:
         t = torch.as_tensor(t, device=self.device, dtype=dtype)
         return t
 
-    def t_from_sigma(self, sigma: torch.Tensor | float, dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    def t_from_sigma(
+        self, sigma: torch.Tensor | float, dtype: torch.dtype = torch.float32
+    ) -> torch.Tensor:
 
         sigma = torch.as_tensor(sigma, device=self.device, dtype=dtype)
 
@@ -99,8 +103,8 @@ class ScoreModelWrapper(Denoiser):
                 return torch.argmin(diffs, dim=1).to(dtype)
         else:
             # 3) Fallback: numeric inversion for continuous schedules (binary search).
-            t_min = torch.tensor(0.0, device=self.device, dtype = dtype)
-            t_max = torch.tensor(self.T, device=self.device, dtype = dtype)
+            t_min = torch.tensor(0.0, device=self.device, dtype=dtype)
+            t_max = torch.tensor(self.T, device=self.device, dtype=dtype)
             t_low = t_min.expand_as(sigma).clone()
             t_high = t_max.expand_as(sigma).clone()
             for _ in range(32):
@@ -111,7 +115,6 @@ class ScoreModelWrapper(Denoiser):
                 t_high = torch.where(go_right, t_high, t_mid)
             t_est = 0.5 * (t_low + t_high)
             return t_est.to(dtype)
-            
 
     @staticmethod
     def stable_division(a, b, epsilon: float = 1e-7):
@@ -210,7 +213,7 @@ class ScoreModelWrapper(Denoiser):
         )
 
         sigma = sigma * 2  # since image is in [-1, 1] range in the model
-        timestep = self.t_from_sigma(sigma.squeeze(), dtype = dtype)
+        timestep = self.t_from_sigma(sigma.squeeze(), dtype=dtype)
         if isinstance(self.scale_schedule, torch.Tensor):
             scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
         else:
@@ -325,7 +328,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             device=device,
         )
 
-        
+
 class ComplexDenoiserWrapper(Denoiser):
     r"""
     Complex-valued wrapper for a real-valued denoiser :math:`\denoisername(\cdot, \sigma)`.
@@ -387,7 +390,8 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
-        >>> denoiser = DRUNet(pretrained="download")
+        >>> denoiser = DRUNet() # doctest: +ELLIPSIS
+        ...
         >>> complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
         >>> y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
         >>> sigma = 0.1
