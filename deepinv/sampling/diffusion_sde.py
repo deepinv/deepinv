@@ -416,13 +416,18 @@ class EDMDiffusionSDE(DiffusionSDE):
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
         x_in = x / scale
-        denoised = self.denoiser(
+        model_output = self.denoiser(
             x_in.to(torch.float32),
             sigma.to(torch.float32),
             *args,
             **kwargs,
         ).to(self.dtype)
-        denoised = scale * denoised
+        return self._score_from_model_output(x, model_output, sigma, scale)
+
+    def _score_from_model_output(
+        self, x: Tensor, model_output: Tensor, sigma: Tensor, scale: Tensor
+    ) -> Tensor:
+        denoised = scale * model_output
         score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
         return score
 
@@ -593,7 +598,7 @@ class FlowMatching(EDMDiffusionSDE):
 
 
     :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
-    :param Callable a_prime_t: time derivatime :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
+    :param Callable a_prime_t: time derivative :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
     :param Callable b_t: time-dependent parameter :math:`b(t)` of flow-matching.Default to `lambda t: t`.
     :param Callable b_prime_t: time derivative :math:`b'(t)` of :math:`b(t)`. Default to `lambda t: 1`.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
@@ -798,9 +803,9 @@ class PosteriorDiffusion(Reconstructor):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
     :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to `False`.
-    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising  and mapped back afterward.
-        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
-        set `False` only if the denoiser natively expects [-1, 1].
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
+        Set `True` for denoisers trained on `[0, 1]` data range (all denoisers in :class:`deepinv.models.Denoiser`).
+        Set `False` only if the denoiser natively expects `[-1, 1]` data range.
         This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
         Default: `True`.
 
@@ -956,14 +961,24 @@ class PosteriorDiffusion(Reconstructor):
         else:
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
-            score = (
-                self.sde.score(x, t, *args, **kwargs).to(self.dtype)
-                - self.data_fidelity.grad(
-                    (x / scale),
-                    y,
-                    physics=physics,
-                    sigma=sigma,
-                ).to(self.dtype)
-                / scale
-            )
+
+            if isinstance(self.sde, EDMDiffusionSDE):
+                # For EDM, we can compute the score from model output directly, avoid redundant computation
+                data_fid_grad, model_output = self.data_fidelity.grad(
+                    (x / scale), y, physics=physics, sigma=sigma, get_model_outputs=True
+                )
+                score = self.sde._score_from_model_output(
+                    x, model_output, sigma, scale
+                ) - data_fid_grad / scale.to(self.dtype)
+            else:
+                score = (
+                    self.sde.score(x, t, *args, **kwargs).to(self.dtype)
+                    - self.data_fidelity.grad(
+                        (x / scale),
+                        y,
+                        physics=physics,
+                        sigma=sigma,
+                    ).to(self.dtype)
+                    / scale
+                )
             return score

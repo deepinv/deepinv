@@ -3,7 +3,6 @@ from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
 from deepinv.physics import Physics
 from deepinv.models import Denoiser
-from deepinv.utils._typing import _handle_sigma
 
 
 class NoisyDataFidelity(DataFidelity):
@@ -144,7 +143,14 @@ class DPSDataFidelity(NoisyDataFidelity):
         raise NotImplementedError
 
     def grad(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
     ) -> torch.Tensor:
         r"""
         :param torch.Tensor x: Current iterate.
@@ -155,15 +161,39 @@ class DPSDataFidelity(NoisyDataFidelity):
         """
         with torch.enable_grad():
             x.requires_grad_(True)
-            l2_loss = self.forward(x, y, physics, sigma, *args, **kwargs)
+            out = self.forward(
+                x,
+                y,
+                physics,
+                sigma,
+                *args,
+                get_model_outputs=get_model_outputs,
+                **kwargs,
+            )
+            # In case we also want the denoised output
+            if get_model_outputs:
+                l2_loss = out[0]
+            else:
+                l2_loss = out
+
             grad_outputs = torch.ones_like(l2_loss)
         norm_grad = torch.autograd.grad(
             outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
         )[0]
-        return norm_grad
+        if get_model_outputs:
+            return norm_grad, out[1]
+        else:
+            return norm_grad
 
     def forward(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
     ) -> torch.Tensor:
         r"""
         Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
@@ -182,61 +212,10 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
-        return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
 
+        out = (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
 
-class ScoreADLDataFidelity(NoisyDataFidelity):
-    r"""
-    Score-based data fidelity term for diffusion algorithms.
-
-    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Robust Compressed Sensing MRI with Deep Generative Priors <https://arxiv.org/abs/2108.01368>`_.
-
-    .. math::
-            \begin{aligned}
-            \nabla_x \log p_t(y|x) &= \nabla_x \frac{1}{2} \| \forw{x} - y \|^2
-            \end{aligned}
-
-    where :math:`\sigma = \sigma(t)` is the noise level.
-
-    :param float weight: Weighting factor for the data fidelity term. Default to 100.
-    """
-
-    def __init__(self, weight=1.0, *args, **kwargs):
-        super().__init__()
-        self.weight = weight
-
-    def grad(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
-    ) -> torch.Tensor:
-        return self.precond(self.diff(x, y, physics), physics=physics) * self.weight
-
-
-class ScoreSDEDataFidelity(NoisyDataFidelity):
-    r"""
-    Score-based data fidelity term for diffusion algorithms.
-
-    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
-
-    .. math::
-            \begin{aligned}
-            \nabla_x \log p_t(y|x) &= \nabla_x \frac{1}{2} \| \forw{x} - y - \sigma w \|^2
-            \end{aligned}
-
-    where :math:`\sigma = \sigma(t)` is the noise level and :math:`w \sim \mathcal{N}(0, I)`.
-
-    :param float weight: Weighting factor for the data fidelity term. Default to 100.
-    """
-
-    def __init__(self, weight=1.0, *args, **kwargs):
-        super().__init__()
-        self.weight = weight
-
-    def grad(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
-    ) -> torch.Tensor:
-        sigma = _handle_sigma(sigma, x.size(0), x.ndim, x.device, x.dtype)
-        y = y + sigma * torch.randn_like(y)
-        return self.diff(x, y, physics) * self.weight
-
-    def precond(self, u, physics, *args, **kwargs):
-        return u
+        if get_model_outputs:
+            return out, x0_t
+        else:
+            return out
