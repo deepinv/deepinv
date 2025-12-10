@@ -1487,12 +1487,19 @@ def test_complex_wrapper(mode, device):
 @pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
 def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_isotropic):
 
+    torch.manual_seed(0)
     if model_name == "DRUNet":
         model = dinv.models.DRUNet(
             in_channels=n_channels,
             out_channels=n_channels,
             pretrained="download_2d",
             pretrained_2d_isotropic=pretrained_2d_isotropic,
+            dim="3d",
+        )
+        model_noinit = dinv.models.DRUNet(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
             dim="3d",
         )
     elif model_name == "DnCNN":
@@ -1503,6 +1510,12 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
             pretrained_2d_isotropic=pretrained_2d_isotropic,
             dim="3d",
         )
+        model_noinit = dinv.models.DnCNN(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
+            dim="3d",
+        )
     elif model_name == "DScCP":
         if n_channels != 3:
             pytest.skip("DScCP 3D pretrained model is only available for 3 channels.")
@@ -1511,15 +1524,43 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
             pretrained="download_2d",
             pretrained_2d_isotropic=pretrained_2d_isotropic,
         )
-
     model = model.eval().to(device)
 
+    # Test output tensor shape
     image_size = (n_channels, 32, 32, 32)
-
     x = torch.rand(image_size, device=device)[None]
-
-    y = model(x, 0.01)
-    # Check the output tensor shape
+    out = model(x, 0.01)
     assert (
-        y.shape == x.shape
-    ), f"Output shape {y.shape} does not match input shape {x.shape}"
+        out.shape == x.shape
+    ), f"Output shape {out.shape} does not match input shape {x.shape}"
+
+    # Check that the initialized model performs better than the non-initialized one
+    if model_name in ("DRUNet", "DnCNN") and n_channels == 1:
+        volume_data = (
+            dinv.utils.load_np_url(
+                "https://huggingface.co/datasets/deepinv/images/resolve/main/brainweb_t1_ICBM_1mm_subject_0.npy?download=true"
+            )
+            .flip(0)
+            .unsqueeze(0)
+            .unsqueeze(0)
+        )
+        x = volume_data / volume_data.max()
+
+        # crop to smaller size for faster testing: [181,217,181] -> [32,64,64]
+        x_crop = x[:,:,100-16:100+16,100-32:100+32,100-32:100+32].to(device)
+        sigma = 0.1 
+        y = x_crop + sigma * torch.randn_like(x_crop)
+        
+        psnr_fn = dinv.metric.PSNR()    
+        improvement = 10 if model_name == "DRUNet" else 8
+        
+        model = model.eval().to(device)
+        y_denoised = model(y, sigma=sigma)
+        
+        model_noinit = model_noinit.eval().to(device)
+        y_denoised_noinit = model_noinit(y, sigma=sigma)
+        
+        psnr_init = psnr_fn(y_denoised, x_crop).item()
+        psnr_noinit = psnr_fn(y_denoised_noinit, x_crop).item()
+        
+        assert psnr_init > psnr_noinit + improvement, f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
