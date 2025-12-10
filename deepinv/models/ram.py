@@ -39,12 +39,12 @@ class RAM(Reconstructor, Denoiser):
 
       >>> import deepinv as dinv
       >>> x = dinv.utils.load_example("butterfly.png")
-      >>> physics = dinv.physics.Downsampling(filter="bicubic")
+      >>> physics = dinv.physics.Downsampling(filter="bicubic", noise_model=dinv.physics.GaussianNoise(0.01))
       >>> y = physics(x)
       >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
       ...
       >>> x_hat = model(y, physics) # run model
-      >>> dinv.metric.PSNR()(x_hat, x) > 31.98
+      >>> dinv.metric.PSNR()(x_hat, x) > 29.75
       tensor([True])
 
     """
