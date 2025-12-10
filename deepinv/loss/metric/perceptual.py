@@ -293,9 +293,11 @@ class SharpnessIndex(Metric):
         self.lower_better = False
         self.periodic_component = periodic_component
         self.dequantize = dequantize
-        assert (
-            self.periodic_component or self.dequantize
-        ), "At least one of periodic_component or dequantize must be True."
+
+        if self.periodic_component or self.dequantize:
+            raise ValueError(
+                "At least one of periodic_component or dequantize must be True."
+            )
 
     def metric(self, x_net, *args, **kwargs):
         """

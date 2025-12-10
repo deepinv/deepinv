@@ -1,7 +1,3 @@
-r"""
-Code adapted from https://github.com/GuillermoCarbajal/J-MKPD with permission from the author.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,6 +13,9 @@ class KernelIdentificationNetwork(nn.Module):
     the parameters of :class:`deepinv.physics.SpaceVaryingBlur` forward model, i.e., blur kernels and corresponding spatial multipliers (weights).
 
     Current implementation supports blur kernels of size 33x33 (default) and 65x65, and 1 or 3 input channels.
+
+
+    Code adapted from https://github.com/GuillermoCarbajal/J-MKPD with permission from the author.
 
     Images are assumed to be in range [0, 1] before being passed to the network, and to be **non-gamma corrected** (i.e., linear RGB).
     If your blurry image has been gamma-corrected (e.g., standard sRGB images), consider applying an inverse gamma correction (e.g., raising to the power of 2.2)
