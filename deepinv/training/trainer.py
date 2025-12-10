@@ -544,6 +544,12 @@ class Trainer:
             )
 
         _ = self.load_model()
+
+        if train and self.epochs <= self.epoch_start:
+            warnings.warn(
+                f"No training will be done because epochs ({self.epochs}) <= loaded epoch_start ({self.epoch_start}) from checkpoint."
+            )
+
         # Cache whether model.forward accepts 'update_parameters' to avoid per-call inspect
         try:
             sig = inspect.signature(self.model.forward)
@@ -573,17 +579,25 @@ class Trainer:
                 ckpt_pretrained, map_location=self.device, weights_only=False
             )
             self.model.load_state_dict(checkpoint["state_dict"], strict=strict)
+            msg = "Model"
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
+                msg += ", optimizer"
             if "scheduler" in checkpoint and self.scheduler is not None:
                 self.scheduler.load_state_dict(checkpoint["scheduler"])
+                msg += ", scheduler"
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
+                msg += ", wandb_id"
             if "mlflow_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
                 self.mlflow_setup["run_id"] = checkpoint["mlflow_id"]
+                msg += ", mlflow_id"
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
+                msg += ", epoch_start"
+
+            print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
