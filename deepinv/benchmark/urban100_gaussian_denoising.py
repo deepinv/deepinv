@@ -18,8 +18,8 @@ class Benchmark:
         The noise standard deviation is set to 25/255 for images normalized between 0 and 1.
     """
 
+    @staticmethod
     def run(
-        self,
         model: dinv.models.Denoiser,
         *,
         device: torch.device | str = torch.device("cpu"),
