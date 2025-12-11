@@ -40,6 +40,7 @@ class Benchmark:
         )
 
         psnrs = []
+        model = model.to(device).eval()
         for k, x in enumerate(tqdm(dataloader)):
             x = x.to(device)
             y = physics(x, seed=k)
@@ -55,6 +56,6 @@ class Benchmark:
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 benchmark = Benchmark()
-model = dinv.models.DRUNet().to(device).eval()
+model = dinv.models.DRUNet()
 psnr_avg, psnr_std = benchmark.run(model, device=device)
 print(f"PSNR (dB): {psnr_avg:.2f} ± {psnr_std:.2f}")
