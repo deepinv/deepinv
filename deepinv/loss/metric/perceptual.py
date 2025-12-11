@@ -170,8 +170,8 @@ class BlurStrength(Metric):
             filt = self.uniform_filter1d(x, self.h_size, axis=ax)
 
             # Sobel derivatives
-            sharp = torch.abs(self.sobel_1d(x, axis=ax))
-            blur = torch.abs(self.sobel_1d(filt, axis=ax))
+            sharp = torch.abs(self.sobel1d(x, axis=ax))
+            blur = torch.abs(self.sobel1d(filt, axis=ax))
 
             # clamp/sharpness difference
             t = torch.clamp(sharp - blur, min=0)
@@ -294,7 +294,7 @@ class SharpnessIndex(Metric):
         self.periodic_component = periodic_component
         self.dequantize = dequantize
 
-        if self.periodic_component or self.dequantize:
+        if not self.periodic_component and not self.dequantize:
             raise ValueError(
                 "At least one of periodic_component or dequantize must be True."
             )
