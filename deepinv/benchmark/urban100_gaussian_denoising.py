@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 import numpy as np
 from tqdm.auto import tqdm
 from typing import Any
+import pandas as pd  # noqa: TID253
 
 
 class Benchmark:
@@ -54,12 +55,22 @@ class Benchmark:
 
             psnr = psnr_fn(x_hat, x).item()
             psnrs.append(psnr)
+            if k >= 1:
+                break
 
         return np.mean(psnrs), np.std(psnrs)
 
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 benchmark = Benchmark()
-model = dinv.models.DRUNet()
-psnr_avg, psnr_std = benchmark.run(model, device=device)
-print(f"PSNR (dB): {psnr_avg:.2f} ± {psnr_std:.2f}")
+models = [dinv.models.DRUNet(), dinv.models.Restormer()]
+
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+rows = []
+for model in models:
+    model_name = type(model).__name__
+    psnr_avg, psnr_std = benchmark.run(model, device=device)
+    rows.append({"model_name": model_name, "psnr_avg": psnr_avg, "psnr_std": psnr_std})
+
+df = pd.DataFrame(rows)
+print(df)
