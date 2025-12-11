@@ -48,6 +48,10 @@ class Benchmark:
             with torch.no_grad():
                 x_hat = model(y, physics.noise_model.sigma)
 
+            # Clip and quantize
+            x_hat = x_hat.mul(255.0).round().div(255.0).clamp(0.0, 1.0)
+            x = x.mul(255.0).round().div(255.0).clamp(0.0, 1.0)
+
             psnr = psnr_fn(x_hat, x).item()
             psnrs.append(psnr)
 
