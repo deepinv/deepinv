@@ -747,15 +747,16 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         :param None, torch.dtype dtype: data type for operations.
         :param str gather_strategy: strategy for gathering distributed results.
         """
-        LinearPhysics.__init__(self, A=lambda x: x, A_adjoint=lambda y: y, **kwargs)
         self.reduction_mode = reduction
         super().__init__(
-            ctx,
-            num_operators,
-            factory,
+            ctx=ctx,
+            num_operators=num_operators,
+            factory=factory,
             shared=shared,
             dtype=dtype,
             gather_strategy=gather_strategy,
+            A=lambda x, **kw: x,
+            A_adjoint=lambda y, **kw: y,
             **kwargs,
         )
 
@@ -879,43 +880,30 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
     def A_A_adjoint(
         self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
-    ) -> torch.Tensor:
+    ) -> Union[TensorList, list[torch.Tensor]]:
         r"""
         Compute global :math:`A A^T` operation with automatic reduction.
 
-        Computes the complete Gram operator by combining local contributions from all ranks.
-        For stacked operators, this computes :math:`\sum_i A_i A_i^T y_i`.
+        For stacked operators, this computes :math:`A(A^T y)` where :math:`A^T y = \sum_i A_i^T y_i`
+        and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.
+        
+        Note: Unlike other operations, the adjoint step ``A^T y`` is always computed globally (with full
+        reduction across ranks) even when ``reduce=False``. This is because computing the correct 
+        ``A_A_adjoint`` requires the full adjoint ``sum_i A_i^T y_i``. The ``reduce`` parameter only 
+        controls whether the final forward operation ``A(...)`` is gathered across ranks.
 
         :param TensorList y: full list of measurements from all operators.
-        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
+        :param bool reduce: whether to gather final results across ranks. If False, returns only local 
+            operators' contributions (but still uses the global adjoint).
         :param dict kwargs: optional parameters for the operation.
-        :return: complete :math:`A A^T` result (or local contribution if reduce=False).
+        :return: TensorList with entries :math:`A_i(A^T y)` for all operators (or local list if reduce=False).
         """
-        if isinstance(y, TensorList):
-            y_local = [y[i] for i in self.local_indexes]
-        elif len(y) == self.num_operators:
-            y_local = [y[i] for i in self.local_indexes]
-        elif len(y) == len(self.local_indexes):
-            y_local = y
-        else:
-            raise ValueError(
-                f"Input y has length {len(y)}, expected {self.num_operators} (global) or {len(self.local_indexes)} (local)."
-            )
-
-        if len(y_local) == 0:
-            # Return zeros with proper shape for empty local set
-            local = torch.zeros((), device=self.ctx.device, dtype=self.dtype)
-        else:
-            contribs = [
-                p.A_A_adjoint(y_i, **kwargs)
-                for p, y_i in zip(self.local_physics, y_local, strict=False)
-            ]
-            local = torch.stack(contribs, dim=0).sum(0)
-
-        if not reduce:
-            return local
-
-        return self._reduce_global(local)
+        # First compute A^T y globally (always with reduction to get the full adjoint)
+        # This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i
+        x_adjoint = self.A_adjoint(y, reduce=True, **kwargs)
+        
+        # Then compute A(A^T y) which returns a TensorList (or list if reduce=False)
+        return self.A(x_adjoint, reduce=reduce, **kwargs)
 
     # ---- global (compat) ----
     def _reduce_global(self, x_like: torch.Tensor, reduction="sum") -> torch.Tensor:
@@ -963,9 +951,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         This method provides two strategies:
 
         1. **Local approximation** (``local_only=True``, default): Each rank computes the pseudoinverse
-           of its local operators independently, then sums the results with a single reduction.
+           of its local operators independently, then averages the results with a single reduction.
            This is efficient (minimal communication) and provides an approximation.
-           For stacked operators, :math:`A^\dagger y \approx \sum_i A_i^\dagger y_i`.
+           For stacked operators, :math:`A^\dagger y \approx \frac{1}{n} \sum_i A_i^\dagger y_i`.
 
         2. **Global computation** (``local_only=False``): Uses the full least squares solver
            with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.

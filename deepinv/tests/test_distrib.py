@@ -820,10 +820,18 @@ def _test_adjoint_operations_worker(rank, world_size, args):
         x_ata = distributed_physics.A_adjoint_A(x)
         assert x_ata.shape == x.shape
 
-        # Test A_A_adjoint
+        # Test A_A_adjoint - should return TensorList like StackedLinearPhysics
         y_aat = distributed_physics.A_A_adjoint(y)
-        # A_A_adjoint may return a tensor (not TensorList) depending on operator
-        assert torch.is_tensor(y_aat)
+        assert isinstance(y_aat, TensorList), "A_A_adjoint should return TensorList"
+        assert len(y_aat) == len(physics_list), "TensorList should have one entry per operator"
+        
+        # Verify it matches StackedLinearPhysics behavior
+        stacked_physics = StackedLinearPhysics(physics_list)
+        y_aat_stacked = stacked_physics.A_A_adjoint(y)
+        assert isinstance(y_aat_stacked, TensorList), "StackedLinearPhysics should also return TensorList"
+        for i in range(len(physics_list)):
+            assert torch.allclose(y_aat[i], y_aat_stacked[i], atol=1e-5), f"Mismatch at operator {i}"
+        
         return "success"
 
 
@@ -1250,11 +1258,20 @@ def _test_reduce_false_physics_operations_worker(rank, world_size, args):
             # Local version
             result_local = distributed_physics.A_adjoint_A(x, reduce=False)
             assert isinstance(result_local, list) or torch.is_tensor(result_local)
+
+        elif operation == "A_A_adjoint":
+            y = distributed_physics.A(x)
+            # A_A_adjoint should return TensorList when reduce=True
+            result_global = distributed_physics.A_A_adjoint(y)
+            assert isinstance(result_global, TensorList)
+            # Local version returns list of tensors (one per local operator)
+            result_local = distributed_physics.A_A_adjoint(y, reduce=False)
+            assert isinstance(result_local, list)
     return "success"
 
 
 @pytest.mark.parametrize(
-    "operation", ["A", "forward", "A_adjoint", "A_vjp", "A_adjoint_A"]
+    "operation", ["A", "forward", "A_adjoint", "A_vjp", "A_adjoint_A", "A_A_adjoint"]
 )
 def test_reduce_false_physics_operations(device_config, operation):
     """Test all physics operations with reduce=False."""
