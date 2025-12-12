@@ -5,7 +5,6 @@ from pathlib import Path
 from warnings import warn
 import torch
 import torch.nn as nn
-from torch import Tensor
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
@@ -128,7 +127,7 @@ class RAM(Reconstructor, Denoiser):
         if device is not None:
             self.to(device)
 
-    def constant2map(self, value: float, x: Tensor) -> Tensor:
+    def constant2map(self, value: float, x: torch.Tensor) -> torch.Tensor:
         r"""
         Converts a constant value to a map of the same size as the input tensor x.
 
@@ -153,7 +152,9 @@ class RAM(Reconstructor, Denoiser):
             )
         return value_map
 
-    def base_conditioning(self, x: Tensor, sigma: float, gain: float) -> Tensor:
+    def base_conditioning(
+        self, x: torch.Tensor, sigma: float, gain: float
+    ) -> torch.Tensor:
         r"""
         Stacks the sigma and gain value as additional channel dimensions to the input tensor.
 
@@ -167,8 +168,8 @@ class RAM(Reconstructor, Denoiser):
         return torch.cat((x, noise_level_map, gain_map), 1)
 
     def realign_input(
-        self, x: Tensor, physics: Physics, y: Tensor, sigma: float
-    ) -> Tensor:
+        self, x: torch.Tensor, physics: Physics, y: torch.Tensor, sigma: float
+    ) -> torch.Tensor:
         r"""
         Realign the input x based on the measurements y and the physics model.
         Applies the proximity operator of the L2 norm with respect to the physics model.
@@ -199,11 +200,11 @@ class RAM(Reconstructor, Denoiser):
 
     def forward_unet(
         self,
-        x0: Tensor,
+        x0: torch.Tensor,
         sigma: float | Tensor = None,
         gain: float | Tensor = None,
         physics: Physics = None,
-        y: Tensor = None,
+        y: torch.Tensor = None,
     ):
         r"""
         Forward pass of the UNet model.
@@ -281,12 +282,12 @@ class RAM(Reconstructor, Denoiser):
 
     def forward(
         self,
-        y: Tensor,
+        y: torch.Tensor,
         physics: Physics = None,
         sigma: float | Tensor = None,
         gain: float | Tensor = None,
         img_size: Sequence[int] = None,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Reconstructs a signal estimate from measurements y
 
@@ -378,7 +379,7 @@ class RAM(Reconstructor, Denoiser):
         physics: Physics,
         sigma: float | Tensor,
         gain: float | Tensor,
-        rescale_val: Tensor,
+        rescale_val: torch.Tensor,
         device: str | torch.device = "cpu",
     ) -> tuple[Tensor, Tensor]:
         r"""
@@ -472,12 +473,12 @@ class BaseEncBlock(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         physics: Physics = None,
-        y: Tensor = None,
+        y: torch.Tensor = None,
         img_channels: int = None,
         scale: int = 0,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Forward pass of the encoding block.
 
@@ -495,13 +496,13 @@ class BaseEncBlock(nn.Module):
 
 
 def krylov_embeddings(
-    y: Tensor,
+    y: torch.Tensor,
     p: Physics,
     factor: int,
-    v: Tensor = None,
+    v: torch.Tensor = None,
     N: int = 4,
-    x_init: Tensor = None,
-) -> Tensor:
+    x_init: torch.Tensor = None,
+) -> torch.Tensor:
     r"""
     Efficient Krylov subspace embedding computation with parallel processing.
 
@@ -582,12 +583,12 @@ class MeasCondBlock(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
-        y: Tensor,
+        x: torch.Tensor,
+        y: torch.Tensor,
         physics: Physics,
         img_channels: int = None,
         scale: int = 1,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         physics.set_scale(scale)
         dec = self.decoding_conv(x, img_channels)
         factor = 2 ** (scale)
@@ -691,9 +692,9 @@ class ResBlock(nn.Module):
 
     def forward(
         self,
-        x: Tensor,
+        x: torch.Tensor,
         physics: Physics = None,
-        y: Tensor = None,
+        y: torch.Tensor = None,
         img_channels: int = None,
         scale: int = 0,
     ):
@@ -750,7 +751,7 @@ class InHead(torch.nn.Module):
             )
             setattr(self, f"conv{i}", conv)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_channels = x.size(1) - 1 if self.input_layer else x.size(1)
 
         # find index
@@ -789,7 +790,7 @@ class OutTail(torch.nn.Module):
             )
             setattr(self, f"conv{i}", conv)
 
-    def forward(self, x: Tensor, out_channels: int) -> Tensor:
+    def forward(self, x: torch.Tensor, out_channels: int) -> torch.Tensor:
         i = self.out_channels_list.index(out_channels)
         x = getattr(self, f"conv{i}")(x)
 
@@ -855,7 +856,7 @@ class Heads(torch.nn.Module):
                         ),
                     )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_channels = x.size(1)
         i = self.in_channels_list.index(in_channels)
 
@@ -934,7 +935,7 @@ class Tails(torch.nn.Module):
                         ),
                     )
 
-    def forward(self, x: Tensor, out_channels: int):
+    def forward(self, x: torch.Tensor, out_channels: int):
         i = self.out_channels_list.index(out_channels)
         x = getattr(self, f"tail{i}")(x)
         # find index
@@ -1008,7 +1009,7 @@ class HeadBlock(torch.nn.Module):
             )
             setattr(self, f"skipconv{i}", torch.nn.Conv2d(c_in, c, 1, bias=False))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         if self.skip_in and self.relu_in:
             x = self.nl_1(self.convin(x)) + self.zero_conv_skip(x)
