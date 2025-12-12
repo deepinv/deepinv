@@ -15,7 +15,7 @@ Some methods directly estimate the signal without explicitly estimating the para
 Calibration problems
 ~~~~~~~~~~~~~~~~~~~~
 If paired measurement and signal data is available at inference time, physics parameters can be estimated using optimization methods.
-See the example :class:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` for more details.
+See the example :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` for more details.
 
 Estimating physics parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +41,7 @@ The library provides the following parameter estimation models/algorithms:
      - `filters`, `multipliers`
      - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
 
-   * - :class:`ESPIRiT <deepinv.MultiCoilMRI>`
+   * - :class:`ESPIRiT <deepinv.physics.MultiCoilMRI>`
      - C=2; H,W>64
      - (non-learned)
      - :class:`MultiCoilMRI <deepinv.physics.MultiCoilMRI>`
