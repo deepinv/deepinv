@@ -8,8 +8,7 @@ Following the :ref:`notation of the library <parameter-dependent-operators>`, he
 Noise parameters associated to :math:`\noise{\cdot}` may also be unknown. In this section, we consider two classes of problems:
 
 - **Calibration problems**: Estimate the unknown parameters :math:`\theta` given paired signal and measurement data :math:`(x,y)`
-- **Blind inverse problems**: Jointly estimate the signal :math:`x` and :math:`\theta` parameters (and other noise parameters) from the measurements :math:`y`
-Some methods directly estimate the signal without explicitly estimating the parameters.
+- **Blind inverse problems**: Jointly estimate the signal :math:`x` and :math:`\theta` parameters (and other noise parameters) from the measurements :math:`y`. Some methods directly estimate the signal without explicitly estimating the parameters.
 
 
 Calibration problems
