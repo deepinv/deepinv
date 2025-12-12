@@ -38,6 +38,7 @@ class RAM(Reconstructor, Denoiser):
     :param Sequence in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
+
     |sep|
 
       >>> import deepinv as dinv
