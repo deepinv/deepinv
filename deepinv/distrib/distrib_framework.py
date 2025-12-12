@@ -886,14 +886,14 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         For stacked operators, this computes :math:`A(A^T y)` where :math:`A^T y = \sum_i A_i^T y_i`
         and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.
-        
+
         Note: Unlike other operations, the adjoint step ``A^T y`` is always computed globally (with full
-        reduction across ranks) even when ``reduce=False``. This is because computing the correct 
-        ``A_A_adjoint`` requires the full adjoint ``sum_i A_i^T y_i``. The ``reduce`` parameter only 
+        reduction across ranks) even when ``reduce=False``. This is because computing the correct
+        ``A_A_adjoint`` requires the full adjoint ``sum_i A_i^T y_i``. The ``reduce`` parameter only
         controls whether the final forward operation ``A(...)`` is gathered across ranks.
 
         :param TensorList y: full list of measurements from all operators.
-        :param bool reduce: whether to gather final results across ranks. If False, returns only local 
+        :param bool reduce: whether to gather final results across ranks. If False, returns only local
             operators' contributions (but still uses the global adjoint).
         :param dict kwargs: optional parameters for the operation.
         :return: TensorList with entries :math:`A_i(A^T y)` for all operators (or local list if reduce=False).
@@ -901,7 +901,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         # First compute A^T y globally (always with reduction to get the full adjoint)
         # This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i
         x_adjoint = self.A_adjoint(y, reduce=True, **kwargs)
-        
+
         # Then compute A(A^T y) which returns a TensorList (or list if reduce=False)
         return self.A(x_adjoint, reduce=reduce, **kwargs)
 
@@ -941,19 +941,18 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         max_iter: int | None = None,
         tol: float | None = None,
         verbose: bool = False,
+        *,
         local_only: bool = True,
         reduce: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         r"""
-        Computes the pseudoinverse (least squares solution) of the distributed operator.
-
-        This method provides two strategies:
+        Distributed pseudoinverse computation. This method provides two strategies:
 
         1. **Local approximation** (``local_only=True``, default): Each rank computes the pseudoinverse
            of its local operators independently, then averages the results with a single reduction.
-           This is efficient (minimal communication) and provides an approximation.
-           For stacked operators, :math:`A^\dagger y \approx \frac{1}{n} \sum_i A_i^\dagger y_i`.
+           This is efficient (minimal communication) but **provides only an approximation**.
+           In other words, for stacked operators this computes :math:`\frac{1}{n} \sum_i A_i^\dagger y_i`.
 
         2. **Global computation** (``local_only=False``): Uses the full least squares solver
            with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.

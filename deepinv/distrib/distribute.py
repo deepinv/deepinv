@@ -1,28 +1,61 @@
 r"""
-Distributed Framework Factory API
-=================================
+Distributed Framework API
+==========================
 
-This module provides simplified factory builders for the distributed framework,
-keeping users in control of their objects while removing repetitive boilerplate code.
+This module provides a simplified API for distributing DeepInverse objects across
+multiple devices and processes. The core function :func:`distribute` automatically
+wraps your objects (physics operators, denoisers, data fidelity terms) into their
+distributed counterparts, handling all the boilerplate for you.
 
-The factory API exposes configuration-driven builders that create distributed components:
+**Main Function:**
 
-**Main Components:**
+- :func:`distribute`: Universal distributor for DeepInverse objects
 
-- :class:`FactoryConfig`: Configuration for physics, measurements, and data fidelity
-- :class:`TilingConfig`: Configuration for spatial tiling strategies
-- :class:`DistributedBundle`: Container for all distributed objects
-- :func:`make_distrib_core`: Builder function that creates all distributed components
+**How It Works:**
+
+Simply pass your DeepInverse object and a :class:`DistributedContext` to the
+:func:`distribute` function. It automatically detects the object type and returns
+the appropriate distributed wrapper:
+
+- **Physics operators** → :class:`DistributedPhysics` or :class:`DistributedLinearPhysics`
+- **Denoisers/Priors** → :class:`DistributedProcessing` (with spatial tiling)
+- **Data fidelity terms** → :class:`DistributedDataFidelity`
 
 **Key Benefits:**
 
-- **Reduced Boilerplate**: No need to write factory functions manually
-- **Configuration-Driven**: Easy to modify, reuse, and share configurations
-- **Type Safety**: Configuration objects prevent common errors
-- **Single Builder**: All distributed objects created with one function call
+- **Automatic Type Detection**: The API figures out what you're distributing
+- **Production Ready**: Handles multi-GPU, multi-node setups automatically
 
-The returned objects are native DeepInverse distributed classes, so you retain
-full control and can inspect internals, swap components, and customize behavior.
+**Quick Example:**
+
+.. code-block:: python
+
+    from deepinv.physics import Blur
+    from deepinv.models import DnCNN
+    from deepinv.optim.data_fidelity import L2
+    from deepinv.distrib import DistributedContext, distribute
+
+    # Create distributed context (detects your environment automatically)
+    with DistributedContext() as ctx:
+        # Distribute physics operators
+        physics_list = [Blur(...), Inpainting(...), MRI(...)]
+        dphysics = distribute(physics_list, ctx)
+
+        # Distribute a denoiser with spatial tiling
+        denoiser = DnCNN()
+        ddenoiser = distribute(denoiser, ctx, patch_size=256, receptive_field_size=64)
+
+        # Distribute data fidelity
+        data_fidelity = L2()
+        dfidelity = distribute(data_fidelity, ctx)
+
+        # Use them naturally
+        x = torch.randn(1, 3, 1024, 1024)
+        y = dphysics(x)  # Distributed forward pass
+        x_denoised = ddenoiser(x)  # Distributed denoising with tiling
+
+The returned objects work seamlessly with DeepInverse's optimization algorithms and
+provide both local operations and automatic global reduction when needed.
 """
 
 from __future__ import annotations
@@ -48,7 +81,7 @@ from deepinv.distrib.distrib_framework import (
 from deepinv.distrib.distribution_strategies.strategies import DistributedSignalStrategy
 
 
-def distribute_physics(
+def _distribute_physics(
     physics: Union[
         StackedPhysics,
         List[Physics],
@@ -132,7 +165,7 @@ def distribute_physics(
         )
 
 
-def distribute_processor(
+def _distribute_processor(
     processor: Union[Prior, Denoiser],
     ctx: DistributedContext,
     *,
@@ -194,7 +227,7 @@ def distribute_processor(
     )
 
 
-def distribute_data_fidelity(
+def _distribute_data_fidelity(
     data_fidelity: Union[
         DataFidelity,
         StackedPhysicsDataFidelity,
@@ -386,7 +419,7 @@ def distribute(
             raise ValueError(f"Cannot auto-detect type for object: {type(object)}")
 
     if type_object in ["physics", "linear_physics"]:
-        return distribute_physics(
+        return _distribute_physics(
             object,
             ctx,
             dtype=dtype,
@@ -396,7 +429,7 @@ def distribute(
             **kwargs,
         )
     elif type_object == "denoiser":
-        return distribute_processor(
+        return _distribute_processor(
             object,
             ctx,
             dtype=dtype,
@@ -409,7 +442,7 @@ def distribute(
             **kwargs,
         )
     elif type_object == "data_fidelity":
-        return distribute_data_fidelity(
+        return _distribute_data_fidelity(
             object,
             ctx,
             num_operators=num_operators,

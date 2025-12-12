@@ -823,15 +823,21 @@ def _test_adjoint_operations_worker(rank, world_size, args):
         # Test A_A_adjoint - should return TensorList like StackedLinearPhysics
         y_aat = distributed_physics.A_A_adjoint(y)
         assert isinstance(y_aat, TensorList), "A_A_adjoint should return TensorList"
-        assert len(y_aat) == len(physics_list), "TensorList should have one entry per operator"
-        
+        assert len(y_aat) == len(
+            physics_list
+        ), "TensorList should have one entry per operator"
+
         # Verify it matches StackedLinearPhysics behavior
         stacked_physics = StackedLinearPhysics(physics_list)
         y_aat_stacked = stacked_physics.A_A_adjoint(y)
-        assert isinstance(y_aat_stacked, TensorList), "StackedLinearPhysics should also return TensorList"
+        assert isinstance(
+            y_aat_stacked, TensorList
+        ), "StackedLinearPhysics should also return TensorList"
         for i in range(len(physics_list)):
-            assert torch.allclose(y_aat[i], y_aat_stacked[i], atol=1e-5), f"Mismatch at operator {i}"
-        
+            assert torch.allclose(
+                y_aat[i], y_aat_stacked[i], atol=1e-5
+            ), f"Mismatch at operator {i}"
+
         return "success"
 
 
