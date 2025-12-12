@@ -102,7 +102,7 @@ class Trainer:
 
     |sep|
 
-    :Evaluation:
+    :Evaluation: 
 
     .. note::
 
