@@ -133,3 +133,7 @@ Click on the model name to learn more about the type of model and use `pretraine
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.
+   * - :class:`deepinv.models.KernelIdentificationNetwork`
+     - Kernel identification
+     - Weights from `Carbajal et al. <https://github.com/GuillermoCarbajal/J-MKPD>`_ trained on the task of identifying blur kernels from space-varying blurred images.
+       Pretrained weights from `deepinverse HuggingfaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
