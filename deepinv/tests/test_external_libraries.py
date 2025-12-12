@@ -38,6 +38,8 @@ class TestTomographyWithAstra:
         :param bool is_2d: Runs the test with 2D geometry, else 3D.
         :param str geometry_type: In 2D, expects ``parallel`` or ``fanbeam``. In 3D expects ``parallel`` or ``conebeam``.
         :param bool normalize: Initializes the operator with ``normalize=normalize``.
+        :param bool fbp: Whether or not to approximate the pseudo-inverse with filtered back-projection.
+        :param int channels: Number of input channels. The tomography operator is applied per channel.
         """
 
         pytest.importorskip(
