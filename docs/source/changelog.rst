@@ -24,6 +24,7 @@ Changed
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
 - Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
+- Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
