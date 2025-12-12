@@ -13,7 +13,8 @@ New Features
 - New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 - Added `testmon <https://www.testmon.org/>`_ and conditional run of sphinx-gallery examples to CI to speed up tests (:gh:`966` by `Julian Tachella`_)
-
+- New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
+  
 Changed
 ^^^^^^^
 - Faster :class:`deepinv.models.RAM` implementation by avoiding certain redundant computations (:gh:`946` by `Julian Tachella`_)
@@ -28,7 +29,7 @@ Fixed
 - Fixed :class:`deepinv.physics.Ptychography` `A_dagger` initialization bug (:gh:`946` by `Julian Tachella`_)
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 - `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
-- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- test_physics.test_tomography correctly implements the pseudo-inverse test (:gh:`930` by `Romain Vo`_)
 
 v0.3.6
 ------
