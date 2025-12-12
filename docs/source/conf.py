@@ -54,9 +54,7 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
 ]
-autodoc_type_aliases = {
-    "Tensor": "torch.Tensor",
-}
+
 extlinks = {
     "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
 }
