@@ -425,6 +425,7 @@ class LinearPhysics(Physics):
         tol=1e-4,
         solver="lsqr",
         implicit_backward_solver: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(
@@ -445,6 +446,32 @@ class LinearPhysics(Physics):
             warnings.warn(
                 "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
+            
+        self.device = device
+
+    @property
+    def device(self) -> torch.device | str:
+        r"""
+        Returns the device where the physics parameters/buffers are stored.
+
+        :return: device of the physics parameters.
+        """
+        return self._device_holder.device
+    
+    @device.setter
+    def device(self, device: torch.device | str):
+        r"""
+        Sets the device where the physics parameters are stored.
+
+        :param torch.device | str device: device to move the physics parameters to.
+        """
+        if not hasattr(self, '_device_holder'):
+            _device_holder = torch.tensor(0., device=device)
+            self.register_buffer('_device_holder', _device_holder)    
+        
+        # updates the device property by moving a dummy buffer
+        # and also moves all parameters/buffers to the target device, for consistency
+        self.to(device)
 
     def A_adjoint(self, y, **kwargs):
         r"""
