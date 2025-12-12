@@ -27,7 +27,7 @@ FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
 def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
-    if metric_name in ("LPIPS", "NIQE"):
+    if metric_name in ("LPIPS"):
         pytest.importorskip(
             "pyiqa",
             reason="This test requires pyiqa. It should be "
