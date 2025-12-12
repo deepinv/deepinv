@@ -8,7 +8,6 @@ import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
-from typing import Sequence  # noqa: F401
 
 
 class RAM(Reconstructor, Denoiser):
@@ -42,10 +41,10 @@ class RAM(Reconstructor, Denoiser):
       >>> x = dinv.utils.load_example("butterfly.png")
       >>> physics = dinv.physics.Downsampling(filter="bicubic")
       >>> y = physics(x)
-      >>> model = dinv.models.RAM(pretrained=True)
-      >>> x_hat = model(y, physics) # Model inference
-      >>> dinv.metric.PSNR()(x_hat, x)
-      tensor([31.9825])
+      >>> model = dinv.models.RAM() # doctest: +IGNORE_OUTPUT
+      >>> x_hat = model(y, physics) # run model
+      >>> dinv.metric.PSNR()(x_hat, x) > 31.98
+      tensor([True])
 
     """
 

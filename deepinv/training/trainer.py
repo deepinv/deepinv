@@ -150,7 +150,7 @@ class Trainer:
         using a self-supervised loss or when ground truth is unavailable. Default is ``False``.
         If `True`, requires `compute_eval_losses` to be `True`.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
+        This is useful for visualizing train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
 
 
@@ -255,6 +255,8 @@ class Trainer:
 
     :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
     :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
+    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True``.
+        It is advised to enable pinned memory in the dataloader when using this option for best performance.
 
     """
 
@@ -303,6 +305,9 @@ class Trainer:
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
+    non_blocking_transfers: bool = (
+        True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
+    )
 
     def __post_init__(self):
         if self.display_losses_eval is not None:
@@ -313,8 +318,10 @@ class Trainer:
                 stacklevel=2,
             )
             self.compute_eval_losses = self.display_losses_eval
+        # Cache flag for whether model.forward accepts 'update_parameters'
+        self._model_accepts_update_parameters = False
 
-    def setup_train(self, train=True, **kwargs):
+    def setup_train(self, train: bool = True, **kwargs):
         r"""
         Set up the training process.
 
@@ -323,10 +330,12 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if type(self.train_dataloader) is not list:
+        if not isinstance(self.train_dataloader, (list, tuple)):
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
+        if self.eval_dataloader is not None and not isinstance(
+            self.eval_dataloader, (list, tuple)
+        ):
             self.eval_dataloader = [self.eval_dataloader]
 
         for loader in self.train_dataloader + (
@@ -334,6 +343,18 @@ class Trainer:
         ):
             if loader is not None and isinstance(loader, torch.utils.data.DataLoader):
                 check_dataset(loader.dataset)
+                # Suggest enabling pinned memory to make non-blocking H2D copies effective on CUDA
+                if (
+                    self.non_blocking_transfers
+                    and torch.cuda.is_available()
+                    and hasattr(loader, "pin_memory")
+                    and not loader.pin_memory
+                ):
+                    warnings.warn(
+                        "non_blocking_transfers=True but DataLoader.pin_memory=False; set pin_memory=True to overlap host-device copies with compute.",
+                        stacklevel=2,
+                    )
+                    # See: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html#conclusion
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -473,12 +494,11 @@ class Trainer:
             print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
-        if type(self.physics) is not list:
+        if not isinstance(self.physics, (list, tuple)):
             self.physics = [self.physics]
 
-        if (
-            self.physics_generator is not None
-            and type(self.physics_generator) is not list
+        if self.physics_generator is not None and not isinstance(
+            self.physics_generator, (list, tuple)
         ):
             self.physics_generator = [self.physics_generator]
 
@@ -524,6 +544,14 @@ class Trainer:
             )
 
         _ = self.load_model()
+        # Cache whether model.forward accepts 'update_parameters' to avoid per-call inspect
+        try:
+            sig = inspect.signature(self.model.forward)
+            self._model_accepts_update_parameters = (
+                "update_parameters" in sig.parameters
+            )
+        except (ValueError, TypeError, AttributeError):
+            self._model_accepts_update_parameters = False
 
     def load_model(
         self, ckpt_pretrained: str | Path = None, strict: bool = True
@@ -600,23 +628,26 @@ class Trainer:
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-        out = None
-
+        grad_norm = None
         if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            # Total norm as a single vector over all parameters
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.grad_clip
+            )
 
         if self.check_grad:
-            # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.model.parameters()
-                if param.grad is not None
-            ]
-            norm_grads = torch.cat(grads).norm()
-            out = norm_grads.item()
-            self.check_grad_val.update(norm_grads.item())
+            if grad_norm is not None:
+                grad_norm = grad_norm.pow(2).sum().sqrt().item()
+            else:
+                grads = [
+                    param.grad.detach().flatten()
+                    for param in self.model.parameters()
+                    if param.grad is not None
+                ]
+                grad_norm = torch.cat(grads).norm().item()
+            self.check_grad_val.update(grad_norm)
 
-        return out
+        return grad_norm
 
     def get_samples_online(self, iterators, g):
         r"""
@@ -648,7 +679,7 @@ class Trainer:
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
-        x = x.to(self.device)
+        x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
@@ -711,14 +742,18 @@ class Trainer:
         if torch.isnan(x).all() and x.ndim <= 1:
             x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
-            x = x.to(self.device)
+            x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
-        y = y.to(self.device)
+        y = y.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if params is not None:
             params = {
-                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                k: (
+                    p.to(self.device, non_blocking=self.non_blocking_transfers)
+                    if isinstance(p, torch.Tensor)
+                    else p
+                )
                 for k, p in params.items()
             }
             physics.update(**params)
@@ -758,31 +793,29 @@ class Trainer:
         :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.
         :returns: The network reconstruction.
         """
-        y = y.to(self.device)
 
-        kwargs = {}
-
-        # check if the forward has 'update_parameters' method, and if so, update the parameters
-        if "update_parameters" in inspect.signature(self.model.forward).parameters:
+        # check if the forward has 'update_parameters' method (cached), and if so, update the parameters
+        if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
 
         if train:
             self.model.train()
+            return self.model(y, physics, **kwargs)
         else:
             self.model.eval()
-
-        if not train:
             with torch.no_grad():
                 if self.plot_convergence_metrics:
                     x_net, self.conv_metrics = self.model(
-                        y, physics, x_gt=x, compute_metrics=True, **kwargs
+                        y,
+                        physics,
+                        x_gt=x,
+                        compute_metrics=True,
+                        **kwargs,
                     )
                 else:
                     x_net = self.model(y, physics, **kwargs)
-        else:
-            x_net = self.model(y, physics, **kwargs)
 
-        return x_net
+            return x_net
 
     def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
         r"""
@@ -802,7 +835,8 @@ class Trainer:
         logs = {}
 
         if train and step:
-            self.optimizer.zero_grad()
+            # set_to_none=True can slightly reduce overhead vs. zeroing memory
+            self.optimizer.zero_grad(set_to_none=True)
 
         if train or self.compute_eval_losses:
             # Evaluate reconstruction network
@@ -976,9 +1010,9 @@ class Trainer:
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.zero_grad()  # Clear stored gradients
+            self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
-        # random permulation of the dataloaders
+        # random permutation of the dataloaders
         G_perm = np.random.permutation(self.G)
         loss = 0
 
@@ -1055,7 +1089,12 @@ class Trainer:
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
-        Plot and optinally save the reconstructions.
+        Plot ground truths, measurements and reconstructions and at test time, optionally save them.
+
+        .. note::
+
+            Images can be saved to disk at test time by providing a value for the parameter ``save_folder_im``
+            when calling the method :func:`deepinv.Trainer.test`. Note that in that case, every test sample is saved and not only the first ones.
 
         :param int epoch: Current epoch.
         :param deepinv.physics.Physics physics: Current physics operator.
@@ -1108,15 +1147,14 @@ class Trainer:
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
-            # save images
-            for k, img in enumerate(imgs):
+            for k, img in enumerate(imgs):  # ground truths, reconstructions, etc.
+                img_name = f"{self.save_folder_im}/{titles[k]}/"
+                Path(img_name).mkdir(parents=True, exist_ok=True)
                 for i in range(img.size(0)):
-                    img_name = f"{self.save_folder_im}/{titles[k]}/"
-                    # make dir
-                    Path(img_name).mkdir(parents=True, exist_ok=True)
-                    save_image(img, img_name + f"{self.img_counter + i}.png")
+                    entry = img[i].unsqueeze(0)
+                    save_image(entry, img_name + f"{self.img_counter + i}.png")
 
-                self.img_counter += len(imgs[0])
+            self.img_counter += imgs[0].size(0)
 
         if self.conv_metrics is not None:
             plot_curves(
@@ -1341,9 +1379,9 @@ class Trainer:
 
                 if self.log_train_batch or last_batch:
                     # store losses history
-                    for l in self.losses:
+                    for idx, l in enumerate(self.losses):
                         self.loss_history[l.__class__.__name__].append(
-                            self.logs_losses_train[self.losses.index(l)].avg
+                            self.logs_losses_train[idx].avg
                         )
 
                 perform_eval = self.eval_dataloader and (
@@ -1396,21 +1434,21 @@ class Trainer:
 
                     # store losses history
                     if self.compute_eval_losses:
-                        for l in self.losses:
+                        for idx, l in enumerate(self.losses):
                             self.eval_loss_history[l.__class__.__name__].append(
-                                self.logs_losses_eval[self.losses.index(l)].avg
+                                self.logs_losses_eval[idx].avg
                             )
 
                     if self.compute_train_metrics:
-                        for m in self.metrics:
+                        for midx, m in enumerate(self.metrics):
                             self.train_metrics_history[m.__class__.__name__].append(
-                                self.logs_metrics_train[self.metrics.index(m)].avg
+                                self.logs_metrics_train[midx].avg
                             )
 
                     # store metrics history
-                    for m in self.metrics:
+                    for midx, m in enumerate(self.metrics):
                         self.eval_metrics_history[m.__class__.__name__].append(
-                            self.logs_metrics_eval[self.metrics.index(m)].avg
+                            self.logs_metrics_eval[midx].avg
                         )
 
                     self.save_best_model(epoch, train_ite)
@@ -1458,9 +1496,13 @@ class Trainer:
         r"""
         Test the model, compute metrics and plot images.
 
+        .. note::
+
+            It is possible to save the reconstructed images along with the ground truths and measurements by specifying a value for the parameter ``save_path``. Note that in this case, every test sample is saved and not only the first ones.
+
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
             for how we expect data to be provided.
-        :param str save_path: Directory in which to save the plotted images.
+        :param str save_path: Path to the directory where to save the plotted images if desired (optional).
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
@@ -1490,7 +1532,7 @@ class Trainer:
 
         self.reset_metrics()
 
-        if not isinstance(test_dataloader, list):
+        if not isinstance(test_dataloader, (list, tuple)):
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
