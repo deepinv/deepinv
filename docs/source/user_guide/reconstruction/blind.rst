@@ -16,7 +16,7 @@ Calibration problems
 If paired measurement and signal data is available at inference time, physics parameters can be estimated using optimization methods.
 See the example :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` for more details.
 
-Estimating physics parameters
+Physics parameters estimation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If only measurement data is available :math:`\theta` at inference time, we can estimate the parameters from the observed data,
 and then use any non-blind reconstructor to recover the image.
@@ -36,7 +36,7 @@ The library provides the following parameter estimation models/algorithms:
    * - :class:`KernelIdentificationNetwork <deepinv.models.KernelIdentificationNetwork>`
      - C=3; H,W>8
      - RGB
-     - :class:`deepinv.physics.SpaceVaryingBlur`
+     - :class:`SpaceVaryingBlur <deepinv.physics.SpaceVaryingBlur>`
      - `filters`, `multipliers`
      - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
 
