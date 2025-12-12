@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.poisson2sparse &#8212; deepinv 0.3.6 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=9112d68a" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=8da8c241"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/poisson2sparse';</script>
+    <link rel="canonical" href="https://deepinv.github.io/deepinv/_modules/deepinv/models/poisson2sparse.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">🎉 We are part of the <a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.</div>
+</aside>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.3.6 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.3.6 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.poisson2sparse</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.poisson2sparse</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.init</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">init</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">trange</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.compat</span><span class="w"> </span><span class="kn">import</span> <span class="n">zip_strict</span>
+
+
+<div class="viewcode-block" id="ConvLista">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.ConvLista.html#deepinv.models.ConvLista">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConvLista</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convolutional LISTA network.</span>
+
+<span class="sd">    The architecture was introduced by :footcite:t:`simon2019rethinking`, and it is well suited as a backbone for Poisson2Sparse (see :class:`deepinv.models.Poisson2Sparse`).</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The decoder expects images with a dynamic range normalized between zero and one.</span>
+
+<span class="sd">    :param int in_channels: Number of channels in the input image.</span>
+<span class="sd">    :param int out_channels: Number of channels in the output image.</span>
+<span class="sd">    :param int kernel_size: Size of the convolutional kernels (default: 3).</span>
+<span class="sd">    :param int num_filters: Number of filters in the convolutional layers (default: 512).</span>
+<span class="sd">    :param int stride: Stride of the convolutional layers (default: 2).</span>
+<span class="sd">    :param int num_iter: Number of iterations of the LISTA algorithm (default: 10).</span>
+<span class="sd">    :param float threshold: Initial value for the learned soft-thresholding (default: 1e-2).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">num_filters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">num_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">conv_A</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">num_filters</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conv_B</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span>
+            <span class="n">num_filters</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conv_C</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span>
+            <span class="n">num_filters</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize the convolutional layers as the spectral normalization of</span>
+        <span class="c1"># convolutions with kernel entries sampled iid from the standard</span>
+        <span class="c1"># Gaussian distribution.</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">conv</span> <span class="ow">in</span> <span class="p">[</span><span class="n">conv_A</span><span class="p">,</span> <span class="n">conv_B</span><span class="p">,</span> <span class="n">conv_C</span><span class="p">]:</span>
+                <span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">conv</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+                <span class="n">sqnorm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conv2d_spectral_sqnorm</span><span class="p">(</span>
+                    <span class="n">conv</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">image_size</span><span class="o">=</span><span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span> <span class="n">num_iters</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span>
+                <span class="p">)</span>
+                <span class="n">conv</span><span class="o">.</span><span class="n">weight</span> <span class="o">/=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sqnorm</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_A</span> <span class="o">=</span> <span class="n">conv_A</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_B</span> <span class="o">=</span> <span class="n">conv_B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_C</span> <span class="o">=</span> <span class="n">conv_C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">soft_threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SoftThreshold2d</span><span class="p">(</span>
+            <span class="n">num_filters</span><span class="p">,</span> <span class="n">init_threshold</span><span class="o">=</span><span class="n">threshold</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">kernel_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="n">num_iter</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># We apply the algorithm to every possible shift of the input image</span>
+        <span class="c1"># depending on the stride in order to have a result that does not</span>
+        <span class="c1"># depend on the alignment of the input image. If the stride is 1, y is</span>
+        <span class="c1"># not modified.</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shifts_augmentation</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="p">)</span>
+
+        <span class="c1"># NOTE: \Gamma is initialized as \Gamma_0 = 0 and for efficiency we start at</span>
+        <span class="c1"># \Gamma_1 = S_\tau(BY) by applying \Gamma_{k+1} = S_\tau(\Gamma_k + A(Y - B\Gamma_k))</span>
+        <span class="c1"># and only compute T - 1 iterations instead of starting at \Gamma_0 and doing T iterations.</span>
+        <span class="c1"># For more details, see Section 4.2 in https://doi.org/10.48550/arXiv.1909.05742</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">soft_threshold</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_A</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># Eq. (15) in https://doi.org/10.48550/arXiv.1909.05742</span>
+            <span class="c1"># \Gamma_{k+1} = S_\tau(\Gamma_k + A(Y - B\Gamma_k))</span>
+            <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">soft_threshold</span><span class="p">(</span><span class="n">gamma</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_A</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_B</span><span class="p">(</span><span class="n">gamma</span><span class="p">)))</span>
+        <span class="c1"># \hat X = C\Gamma_T</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_C</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+
+        <span class="c1"># Deal with the shifted copies</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">bool</span><span class="p">())</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stride</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="c1"># Average over all the shifts</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Post-processing</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_shifts_augmentation</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">stride</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">left_pad</span><span class="p">,</span> <span class="n">right_pad</span><span class="p">,</span> <span class="n">top_pad</span><span class="p">,</span> <span class="n">bot_pad</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">stride</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">stride</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">-</span> <span class="n">kernel_size</span><span class="p">)</span> <span class="o">%</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">stride</span> <span class="o">-</span> <span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">-</span> <span class="n">kernel_size</span><span class="p">)</span> <span class="o">%</span> <span class="n">stride</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">stride</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">stride</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">-</span> <span class="n">kernel_size</span><span class="p">)</span> <span class="o">%</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">stride</span> <span class="o">-</span> <span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">-</span> <span class="n">kernel_size</span><span class="p">)</span> <span class="o">%</span> <span class="n">stride</span><span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">augmented_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">stride</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">top_pad</span> <span class="o">+</span> <span class="n">bot_pad</span><span class="p">,</span>
+                    <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">left_pad</span> <span class="o">+</span> <span class="n">right_pad</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">augmented_y</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">num</span><span class="p">,</span> <span class="p">(</span><span class="n">augmented_y_part</span><span class="p">,</span> <span class="n">mask_part</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="n">zip_strict</span><span class="p">(</span><span class="n">augmented_y</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+            <span class="p">):</span>
+                <span class="n">row_shift</span> <span class="o">=</span> <span class="n">num</span> <span class="o">//</span> <span class="n">stride</span>
+                <span class="n">col_shift</span> <span class="o">=</span> <span class="n">num</span> <span class="o">%</span> <span class="n">stride</span>
+                <span class="n">augmented_y_part</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span>
+                    <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">y</span><span class="p">,</span>
+                        <span class="n">pad</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">left_pad</span> <span class="o">-</span> <span class="n">col_shift</span><span class="p">,</span>
+                            <span class="n">right_pad</span> <span class="o">+</span> <span class="n">col_shift</span><span class="p">,</span>
+                            <span class="n">top_pad</span> <span class="o">-</span> <span class="n">row_shift</span><span class="p">,</span>
+                            <span class="n">bot_pad</span> <span class="o">+</span> <span class="n">row_shift</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">mask_part</span><span class="p">[</span>
+                    <span class="o">...</span><span class="p">,</span>
+                    <span class="n">top_pad</span> <span class="o">-</span> <span class="n">row_shift</span> <span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">top_pad</span> <span class="o">-</span> <span class="n">row_shift</span><span class="p">,</span>
+                    <span class="n">left_pad</span> <span class="o">-</span> <span class="n">col_shift</span> <span class="p">:</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">left_pad</span> <span class="o">-</span> <span class="n">col_shift</span><span class="p">,</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">augmented_y</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Stride must be a positive integer.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">mask</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_conv2d_spectral_sqnorm</span><span class="p">(</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">image_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">num_iters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the squared spectral norm of a 2d convolutional layer</span>
+
+<span class="sd">        :param torch.Tensor weight: Weights of the convolutional layer</span>
+<span class="sd">        :param tuple[int, int] image_size: The image size used for inputs</span>
+<span class="sd">        :param int num_iters: The number of iterations to run the power method</span>
+<span class="sd">        :param int stride: The stride of the convolutional layer</span>
+<span class="sd">        :return: The squared spectral norm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">needles_shape</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(((</span><span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">stride</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(((</span><span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">stride</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">needles_shape</span><span class="p">)</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_iters</span><span class="p">):</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">vector_norm</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">c</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv_transpose2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">vector_norm</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">_SoftThreshold2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Learnable 2d channel-wise soft-thresholding layer</span>
+
+<span class="sd">        :param int num_features: Number of channels in the input tensor</span>
+<span class="sd">        :param float init_threshold: Initial value for the learned thresholds (default: 1e-2)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">init_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">num_features</span><span class="p">,),</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">init_threshold</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="c1"># Channel-wise soft-thresholding with learned thresholds</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_soft_threshold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
+
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_soft_threshold</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Soft-thresholding operation</span>
+
+<span class="sd">            :param torch.Tensor x: Input tensor</span>
+<span class="sd">            :param float | torch.Tensor threshold: Threshold value (constant or per entry). If a tensor, it must be broadcastable to the shape of ``x``.</span>
+<span class="sd">            :return: (:class:`torch.Tensor`) Soft-thresholded tensor</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">-</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">sign</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pad_fn_even</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_decorate</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="n">x_pad</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">H</span> <span class="o">%</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">H</span> <span class="o">%</span> <span class="mi">2</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">x_hat</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_pad</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">x_hat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">H</span><span class="p">,</span> <span class="p">:</span><span class="n">W</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">return</span> <span class="n">_decorate</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Poisson2Sparse">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.Poisson2Sparse.html#deepinv.models.Poisson2Sparse">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Poisson2Sparse</span><span class="p">(</span><span class="n">Denoiser</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Poisson2Sparse model for Poisson denoising.</span>
+
+<span class="sd">    This method, introduced by :footcite:t:`ta2022poisson2sparse`, reconstructs an image corrupted by Poisson noise by learning a sparse non-linear dictionary parametrized by a neural network using a combination of Neighbor2Neighbor :footcite:t:`huang2021neighbor2neighbor`, of the negative log Poisson likelihood, of the :math:`\ell^1` pixel distance and of a sparsity-inducing :math:`\ell^1` regularization function on the weights.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This method does not use knowledge of the physics model and assumes a Poisson degradation model internally. Therefore, the physics object can be omitted when calling the model and specifying it will have no effect.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The denoiser expects images with a dynamic range normalized between zero and one.</span>
+
+<span class="sd">    :param torch.nn.Module, None backbone: Neural network used as a non-linear dictionary. If ``None``, a default :class:`deepinv.models.ConvLista` model is used.</span>
+<span class="sd">    :param float lr: Learning rate of the AdamW optimizer (default: 1e-4).</span>
+<span class="sd">    :param float weight_n2n: Weight of the Neighbor2Neighbor loss term (default: 2.0).</span>
+<span class="sd">    :param float weight_l1_regularization: Weight of the sparsity-inducing :math:`\ell^1` regularization on the weights (default: 1e-5).</span>
+<span class="sd">    :param int num_iter: Number of optimization iterations (default: 200).</span>
+<span class="sd">    :param bool verbose: If ``True``, print progress (default: ``False``).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">backbone</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">weight_n2n</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">weight_l1_regularization</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">num_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">backbone</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">backbone</span> <span class="o">=</span> <span class="n">ConvLista</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span> <span class="o">=</span> <span class="n">backbone</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">lr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_n2n</span> <span class="o">=</span> <span class="n">weight_n2n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_l1_regularization</span> <span class="o">=</span> <span class="n">weight_l1_regularization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="n">num_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loss_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Poisson2SparseLoss</span><span class="p">(</span>
+            <span class="n">weight_n2n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_n2n</span><span class="p">,</span>
+            <span class="n">weight_l1_regularization</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_l1_regularization</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@_pad_fn_even</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">backbone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">backbone</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">)</span>
+
+        <span class="n">x_hat_avg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">trange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">):</span>
+            <span class="n">loss</span><span class="p">,</span> <span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_fn</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">backbone</span><span class="p">)</span>
+
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">x_hat_avg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">x_hat_avg</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">exp_weight</span> <span class="o">=</span> <span class="mf">0.98</span>
+                    <span class="n">x_hat_avg</span> <span class="o">=</span> <span class="n">x_hat_avg</span> <span class="o">*</span> <span class="n">exp_weight</span> <span class="o">+</span> <span class="n">x_hat</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">exp_weight</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_hat_avg</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">_Poisson2SparseLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">weight_n2n</span><span class="p">,</span> <span class="n">weight_l1_regularization</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pll_loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">PoissonNLLLoss</span><span class="p">(</span><span class="n">log_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">full</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight_n2n</span> <span class="o">=</span> <span class="n">weight_n2n</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight_l1_regularization</span> <span class="o">=</span> <span class="n">weight_l1_regularization</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neighbor2Neighbor</span> <span class="k">as</span> <span class="n">N2N</span>
+
+            <span class="c1"># Stop gradients</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">x_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+            <span class="n">x_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+            <span class="n">mask1</span><span class="p">,</span> <span class="n">mask2</span> <span class="o">=</span> <span class="n">N2N</span><span class="o">.</span><span class="n">generate_mask_pair</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="n">y1</span> <span class="o">=</span> <span class="n">N2N</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mask1</span><span class="p">)</span>
+            <span class="n">y2</span> <span class="o">=</span> <span class="n">N2N</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mask2</span><span class="p">)</span>
+
+            <span class="n">x_hat1</span> <span class="o">=</span> <span class="n">N2N</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">mask1</span><span class="p">)</span>
+            <span class="n">x_hat2</span> <span class="o">=</span> <span class="n">N2N</span><span class="o">.</span><span class="n">generate_subimages</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">mask2</span><span class="p">)</span>
+
+            <span class="n">y2_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y1</span><span class="p">)</span>
+            <span class="n">y2_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">y2_hat</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+            <span class="c1"># $\mathcal L_{\text{Poisson}}$</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pll_loss_fn</span><span class="p">(</span><span class="n">y2_hat</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+
+            <span class="c1"># $\mathcal L_{\mathrm{L1}}$</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">l1_loss</span><span class="p">(</span><span class="n">y2_hat</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+
+            <span class="c1"># $\mathcal L_{\mathrm{N}}$</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_n2n</span> <span class="o">*</span> <span class="p">(((</span><span class="n">y2_hat</span> <span class="o">-</span> <span class="n">y2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">x_hat1</span> <span class="o">-</span> <span class="n">x_hat2</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+            <span class="c1"># Sparsity-inducing $\ell^1$ weight-regularization</span>
+            <span class="n">l1_regularization</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                <span class="n">l1_regularization</span> <span class="o">+=</span> <span class="n">param</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">l1_regularization</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_l1_regularization</span> <span class="o">*</span> <span class="n">l1_regularization</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">l1_regularization</span>
+
+            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">x_hat</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

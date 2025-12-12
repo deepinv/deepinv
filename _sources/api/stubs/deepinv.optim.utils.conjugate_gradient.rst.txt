@@ -1,0 +1,9 @@
+﻿conjugate\_gradient
+===================
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: conjugate_gradient
+
+.. minigallery:: deepinv.optim.utils.conjugate_gradient
+    :add-heading: Examples using ``conjugate_gradient``:
