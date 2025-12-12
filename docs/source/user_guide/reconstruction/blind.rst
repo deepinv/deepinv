@@ -47,3 +47,4 @@ The library provides the following parameter estimation models/algorithms:
      - :class:`MultiCoilMRI <deepinv.physics.MultiCoilMRI>`
      - `coil_maps`
      - :ref:`MRI coil map estimation <sphx_glr_auto_examples_physics_demo_mri_tour.py>`.
+
