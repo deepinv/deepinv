@@ -243,7 +243,7 @@ class BlurStrength(Metric):
 
 class SharpnessIndex(Metric):
     r"""
-    No-reference sharpness index metric for images.
+    No-reference sharpness index metric for 2D images.
 
     Measures how sharp an image is, defined as
 
@@ -261,6 +261,10 @@ class SharpnessIndex(Metric):
     We use the fast implementation presented by :cite:t:`leclaire2015sharpness`.
 
     Adapted from MATLAB implementation in https://helios2.mi.parisdescartes.fr/~moisan/sharpness/.
+
+
+    Default mode computing the periodic component and dequantizing should be used, unless you want to work on very
+    specific images that are naturally periodic or not quantized (see :cite:t:`leclaire2015sharpness`).
 
     :param bool periodic_component: if `True` (default), compute the periodic component of the image before computing the metric.
     :param bool dequantize: if `True` (default), perform image dequantization by (1/2, 1/2) translation in Fourier domain before computing the metric.
@@ -306,6 +310,11 @@ class SharpnessIndex(Metric):
         :param x_net: (B, C, H, W) input tensors with C=1 or 3 channels.
         :return: (B,) tensor of sharpness index values for each image in the batch
         """
+        if len(x_net.shape) != 4:
+            raise ValueError(
+                "Sharpness index metric only supports 2D images of size (B, C, H, W)."
+            )
+
         B, C, H, W = x_net.shape
 
         # preprocessing modes
