@@ -501,7 +501,7 @@ Troubleshooting
 
 - This is normal for tiling strategies due to boundary blending
 - Differences are typically very small
-- The distributed implementation of ``A_dagger``and ``compute_norm``in ``LinearDistributedPhysics`` uses approximations that may lead to differences compared to the non-distributed versions.
+- The distributed implementation of ``A_dagger``and ``compute_norm``in ``LinearDistributedPhysics`` uses approximations that lead to differences compared to the non-distributed versions.
 
 
 See Also
