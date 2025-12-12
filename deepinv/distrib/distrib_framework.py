@@ -520,9 +520,18 @@ class DistributedPhysics(Physics):
     r"""
     Holds only local physics operators. Exposes fast local and compatible global APIs.
 
-    This class distributes physics operators across multiple processes, where each process
-    owns a subset of the operators. It provides both efficient local operations and
-    compatibility methods that gather results globally.
+    This class distributes a *collection* of physics operators across multiple processes,
+    where each process owns a subset of the operators.
+
+    It is intended to parallelize models naturally expressed as a stack/list of operators
+    (e.g., :class:`~deepinv.physics.forward.StackedPhysics` or an explicit Python list of
+    :class:`~deepinv.physics.forward.Physics` objects) and is **not** meant to split a
+    single monolithic physics operator across ranks.
+
+    If your forward model is a single operator that can be decomposed into multiple
+    sub-operators, it is up to you to perform that decomposition (e.g., build a
+    ``StackedPhysics``/list of operators) and then pass that collection to
+    :class:`DistributedPhysics` via the ``factory``.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators.
@@ -705,6 +714,15 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
     This class extends DistributedPhysics for linear operators. It provides distributed
     operations that automatically handle communication and reductions.
+
+    This class is intended to distribute a *collection* of linear operators (e.g.,
+    :class:`~deepinv.physics.forward.StackedLinearPhysics` or an explicit Python list of
+    :class:`~deepinv.physics.forward.LinearPhysics` objects) across ranks. It is **not** a
+    mechanism to shard a single linear operator internally.
+
+    If you have one linear physics operator that can naturally be split into multiple
+    operators, you must do that split yourself (build a stacked/list representation) and
+    provide those operators through the ``factory``.
 
     All linear operations (``A_adjoint``, ``A_vjp``, etc.) support a ``reduce`` parameter.
     - If ``reduce=True`` (default): The method computes the global result by performing a single all-reduce
