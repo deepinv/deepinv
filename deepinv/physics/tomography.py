@@ -212,11 +212,13 @@ class Tomography(LinearPhysics):
         :param torch.Tensor x: input of shape [B,C,H,W]
         :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
         """
-        assert x.shape[1:] == (
-            self.channels,
+        if not x.shape[-2:] == (
             self.img_width,
-            self.img_width,
-        ), f"Input shape {x.shape} does not match the expected shape {(x.shape[0], self.channels, self.img_width, self.img_width)}"
+            self.img_width
+        ):
+            raise ValueError(
+                f"Input image size {x.shape[-2:]} does not match the operator image size {(self.img_width, self.img_width)}."
+            )
 
         if self.fan_beam or self.adjoint_via_backprop:
             output = self.radon(x)
@@ -291,9 +293,6 @@ class Tomography(LinearPhysics):
         :param torch.Tensor y: measurements of shape [B,C,A,N]
         :return: scaled back-projection of shape [B,C,H,W]
         """
-        assert (
-            y.shape[1] == self.channels
-        ), f"The input channels {y.shape[1]} do not match the operator channels {self.channels}."
         if self.fan_beam or self.adjoint_via_backprop:
             # lazy implementation for the adjoint
             # NOTE: the adjoint is defined the first time this function is called.
