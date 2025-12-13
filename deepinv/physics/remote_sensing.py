@@ -1,4 +1,4 @@
-from deepinv.physics.noise import GaussianNoise
+from deepinv.physics.noise import ZeroNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
@@ -70,14 +70,10 @@ class Pansharpen(StackedLinearPhysics):
         eps=1e-6,
         **kwargs,
     ):
-        if noise_color is None:
-            noise_color = GaussianNoise(sigma=0.0)
-        if noise_gray is None:
-            noise_gray = GaussianNoise(sigma=0.0)
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
-        noise_color = noise_color if noise_color is not None else lambda x: x
-        noise_gray = noise_gray if noise_gray is not None else lambda x: x
+        noise_color = noise_color if noise_color is not None else ZeroNoise()
+        noise_gray = noise_gray if noise_gray is not None else ZeroNoise()
         self.use_brovey = use_brovey
         self.normalize = normalize
         self.eps = eps

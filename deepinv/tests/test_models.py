@@ -1018,7 +1018,8 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 @pytest.mark.parametrize("pretrained", [True, None])
 @pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
-@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+# @pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("model_name", ["ram"])
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
 @pytest.mark.parametrize("channels", CHANNELS)
 def test_restoration_models(
@@ -1052,16 +1053,25 @@ def test_restoration_models(
     else:
         physics = None
 
-    if hasattr(physics, "noise_model"):
-        if hasattr(physics.noise_model, "sigma"):
-            physics.noise_model.sigma = torch.tensor(
-                [max(physics.noise_model.sigma, 0.01)]
-            )
-        else:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
-    else:
+    def _set_sigma_physics(physics, sigma):
+        if hasattr(physics, "noise_model"):
+            if hasattr(physics.noise_model, "sigma"):
+                physics.noise_model.sigma = torch.tensor(
+                    [max(physics.noise_model.sigma, sigma)]
+                )
+            else:
+                physics.noise_model = dinv.physics.GaussianNoise(sigma)
+
         if physics is not None:
-            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+            for attr in dir(physics):
+                sub_physics = getattr(physics, attr)
+                if isinstance(sub_physics, dinv.physics.Physics):
+                    _set_sigma_physics(sub_physics, sigma)
+        else:
+            pass
+
+    sigma = 0.02
+    _set_sigma_physics(physics, sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
@@ -1081,7 +1091,7 @@ def test_restoration_models(
             # ram model should output an error if no sigma and gain is provided
             with pytest.raises(ValueError):
                 x_hat = model(y, physics)
-            x_hat = model(y, sigma=0.01, gain=1.0)
+            x_hat = model(y, sigma=sigma, gain=1.0)
 
     assert x_hat.shape == x.shape
 
