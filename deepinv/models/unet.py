@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Mapping, Any, Sequence
+import re
 import warnings
 import torch
 import torch.nn as nn
@@ -65,17 +66,21 @@ class UNet(Denoiser):
                 "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
             )
 
+        if (scales is not None and channels_per_scale is not None) and (
+            len(channels_per_scale) != scales
+        ):
+            raise RuntimeError(
+                f"Both scales and channels_per_scale was passed, but scales ({scales}) does not match the length of channels_per_scale ({len(channels_per_scale)})"
+            )
+
         if scales is None:
             if channels_per_scale is not None:
                 scales = len(channels_per_scale)
             else:
                 scales = 4  # legacy default
 
-        if scales not in (2, 3, 4, 5):  # pragma: no cover
-            raise ValueError("`scales` must be one of {2, 3, 4, 5}.")
-
         if channels_per_scale is None:
-            channels_per_scale = [64, 128, 256, 512, 1024]
+            channels_per_scale = [64 * (2**k) for k in range(scales)]
 
         if len(channels_per_scale) < scales:  # pragma: no cover
             raise ValueError(
@@ -93,7 +98,6 @@ class UNet(Denoiser):
 
         self.residual = residual
         self.cat = cat
-        self.depth = scales
         self.compact = scales  # backward compatibility, old attribute name
 
         biasfree = batch_norm == "biasfree"
@@ -104,43 +108,21 @@ class UNet(Denoiser):
 
         cps = channels_per_scale  # shorthand
 
-        self.Conv1 = b.conv_block(ch_in=in_channels, ch_out=cps[0])
-        self.Conv2 = b.conv_block(ch_in=cps[0], ch_out=cps[1])
-        self.Conv3 = (
-            b.conv_block(ch_in=cps[1], ch_out=cps[2]) if self.depth > 2 else None
-        )
-        self.Conv4 = (
-            b.conv_block(ch_in=cps[2], ch_out=cps[3]) if self.depth > 3 else None
-        )
-        self.Conv5 = (
-            b.conv_block(ch_in=cps[3], ch_out=cps[4]) if self.depth > 4 else None
-        )
+        self.enc_blocks = nn.ModuleList()
 
-        self.Up5 = b.up_conv(ch_in=cps[4], ch_out=cps[3]) if self.depth > 4 else None
-        self.Up_conv5 = (
-            b.conv_block(ch_in=cps[3] * 2, ch_out=cps[3])
-            if (self.depth > 4 and self.cat)
-            else None
-        )
+        for i in range(scales):
+            ch_in = in_channels if i == 0 else cps[i - 1]
+            ch_out = cps[i]
+            self.enc_blocks.append(b.conv_block(ch_in=ch_in, ch_out=ch_out))
 
-        self.Up4 = b.up_conv(ch_in=cps[3], ch_out=cps[2]) if self.depth > 3 else None
-        self.Up_conv4 = (
-            b.conv_block(ch_in=cps[2] * 2, ch_out=cps[2])
-            if (self.depth > 3 and self.cat)
-            else None
-        )
-
-        self.Up3 = b.up_conv(ch_in=cps[2], ch_out=cps[1]) if self.depth > 2 else None
-        self.Up_conv3 = (
-            b.conv_block(ch_in=cps[1] * 2, ch_out=cps[1])
-            if (self.depth > 2 and self.cat)
-            else None
-        )
-
-        self.Up2 = b.up_conv(ch_in=cps[1], ch_out=cps[0])
-        self.Up_conv2 = (
-            b.conv_block(ch_in=cps[0] * 2, ch_out=cps[0]) if self.cat else None
-        )
+        self.up_blocks = nn.ModuleList()
+        self.dec_blocks = nn.ModuleList()
+        for i in range(scales - 1):
+            ch_in = cps[-1 - i]
+            ch_out = cps[-2 - i]
+            self.up_blocks.append(b.up_conv(ch_in=ch_in, ch_out=ch_out))
+            if self.cat:
+                self.dec_blocks.append(b.conv_block(ch_in=ch_out * 2, ch_out=ch_out))
 
         self.Conv_1x1 = conv(
             in_channels=cps[0],
@@ -162,44 +144,26 @@ class UNet(Denoiser):
         :param float sigma: noise level (not used).
         """
 
-        factor = 2 ** (self.depth - 1)
+        factor = 2 ** (len(self.up_blocks))
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward(x)
         else:
             return test_pad(self._forward, x, modulo=factor)
 
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
-
         network_input = x
 
-        enc_blocks = [self.Conv1, self.Conv2, self.Conv3, self.Conv4, self.Conv5]
         enc_feats = []
-
-        for i, block in enumerate(enc_blocks):
-            if block is None:
-                break
-
-            if i == 0:
-                x = block(x)
-            else:
-                x = block(self.Maxpool(x))
-
+        for i, block in enumerate(self.enc_blocks):
+            x = block(x) if i == 0 else block(self.Maxpool(x))
             enc_feats.append(x)
 
-        n_levels = len(enc_feats)
-
-        up_blocks = [self.Up2, self.Up3, self.Up4, self.Up5]
-        dec_blocks = [self.Up_conv2, self.Up_conv3, self.Up_conv4, self.Up_conv5]
-
-        for level in range(n_levels - 1):
-            id_decoder = (n_levels - 2) - level
-
-            x = up_blocks[id_decoder](x)
-
+        for i in range(len(self.up_blocks)):
+            x = self.up_blocks[i](x)
             if self.cat:
-                skip = enc_feats[-2 - level]
+                skip = enc_feats[-2 - i]
                 x = torch.cat((skip, x), dim=1)
-                x = dec_blocks[id_decoder](x)
+                x = self.dec_blocks[i](x)
 
         x = self.Conv_1x1(x)
 
@@ -225,18 +189,31 @@ class UNet(Denoiser):
     def load_state_dict(
         self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False
     ) -> _IncompatibleKeys:
-        if not self.cat:
-            # Filter out legacy Up_conv* params from old checkpoints
-            state_dict = {
-                k: v
-                for k, v in state_dict.items()
-                if not any(
-                    k.startswith(prefix)
-                    for prefix in ("Up_conv2", "Up_conv3", "Up_conv4", "Up_conv5")
-                )
-            }
+        # Backwards compatibility: translate legacy checkpoints that used individual attributes into current ModuleList scheme.
+        modern_state_dict = {}
+        for k, v in state_dict.items():
+            m = re.match(r"^Conv(\d+)\.(.*)$", k)
+            if m:
+                idx = int(m.group(1)) - 1
+                modern_state_dict[f"enc_blocks.{idx}.{m.group(2)}"] = v
+                continue
 
-        return super().load_state_dict(state_dict, strict=strict, assign=assign)
+            m = re.match(r"^Up(\d+)\.(.*)$", k)
+            if m:
+                idx = int(m.group(1)) - 2
+                modern_state_dict[f"up_blocks.{idx}.{m.group(2)}"] = v
+                continue
+
+            m = re.match(r"^Up_conv(\d+)\.(.*)$", k)
+            if m:
+                if self.cat:
+                    idx = int(m.group(1)) - 2
+                    modern_state_dict[f"dec_blocks.{idx}.{m.group(2)}"] = v
+                continue
+
+            modern_state_dict[k] = v
+
+        return super().load_state_dict(modern_state_dict, strict=strict, assign=assign)
 
 
 class UNetConvBlockBuilder:
@@ -348,7 +325,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         if self.use_bias:
             mu = y.mean(dim=1)
         sigma2 = y.var(dim=1)
-        if self.training is not True:
+        if not self.training:
             if self.use_bias:
                 y = y - self.running_mean.view(-1, 1)
             y = y / (self.running_var.view(-1, 1) ** 0.5 + self.eps)
