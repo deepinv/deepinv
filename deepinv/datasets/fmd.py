@@ -157,7 +157,7 @@ class FMD(ImageDataset):
 
         ### DOWNLOAD -------------------------------------------------------------------
 
-        if download:
+        if download and self._is_dataset_missing_at(self.root):  # pragma: no cover
             if not os.path.isdir(self.root):
                 os.makedirs(self.root)
 
@@ -244,3 +244,40 @@ class FMD(ImageDataset):
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
         return clean_img, noisy_img
+
+    @staticmethod
+    def _is_dataset_missing_at(path: str) -> bool:
+        r"""
+        Verify if the dataset is missing at the given location.
+
+        If the location points to an inexistent filesystem entry or to an empty
+        directory, we conclude that the dataset is missing there. If it points
+        to a non-empty directory, we conclude that the dataset is available
+        there. It is not expected that neither of these conditions is met and
+        an exception is raised in that third case.
+
+        .. note::
+
+            If the location points to an existing filesystem entry that is not a directory, a `NotADirectoryError` exception is raised.
+
+        .. warning::
+
+            The heuristic uesd to determine if the dataset is missing is basic and prone to false negatives.
+
+        :param str path: Path of the given location.
+        :return: ``True`` if the dataset is missing at the given location, ``False`` otherwise.
+        """
+
+        try:
+            with os.scandir(path) as it:
+                try:
+                    _ = next(it)
+                    missing = False
+                except StopIteration:
+                    missing = True
+        except NotADirectoryError as e:
+            raise e
+        except FileNotFoundError:
+            missing = True
+
+        return missing
