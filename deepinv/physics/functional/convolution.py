@@ -16,7 +16,7 @@ def _warn_once_padding(pad_value: list[int], padding: str, category=UserWarning)
         f"You're using padding = '{padding}' with a {unit_kernel} kernel. This is equivalent to no padding. "
         f"Consider using padding = 'valid' instead."
     )
-    if message not in _warned_messages:
+    if message not in _warned_messages and padding.lower() != "valid":
         warnings.warn(message, category, stacklevel=2)
         _warned_messages.add(message)
 

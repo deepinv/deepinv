@@ -73,7 +73,7 @@ New Features
 - Add manual physics to reduced resolution loss (:gh:`808` by `Andrew Wang`_)
 - Multi-coil MRI coil-map estimation acceleration via CuPy (:gh:`781` by `Andrew Wang`_)
 - Add SpatialUnwrapping forward model and ItohFidelity data fidelity (:gh:`723` by `Brayan Monroy`_)
-- [Backward non-compatible] Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_)
+- [Breaking] Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.
 
 Changed
 ^^^^^^^
