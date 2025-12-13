@@ -151,8 +151,6 @@ class UNet(Denoiser):
             padding=0,
         )
 
-        self._forward = self._forward_unet  # avoid breaking changes
-
         if device is not None:
             self.to(device)
 
@@ -166,11 +164,11 @@ class UNet(Denoiser):
 
         factor = 2 ** (self.depth - 1)
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
-            return self._forward_unet(x)
+            return self._forward(x)
         else:
-            return test_pad(self._forward_unet, x, modulo=factor)
+            return test_pad(self._forward, x, modulo=factor)
 
-    def _forward_unet(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward(self, x: torch.Tensor) -> torch.Tensor:
 
         network_input = x
 
@@ -213,16 +211,16 @@ class UNet(Denoiser):
 
     def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
         # These are kept to avoid breaking changes
-        return self._forward_unet(x)
+        return self._forward(x)
 
     def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
-        return self._forward_unet(x)
+        return self._forward(x)
 
     def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
-        return self._forward_unet(x)
+        return self._forward(x)
 
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
-        return self._forward_unet(x)
+        return self._forward(x)
 
     def load_state_dict(
         self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False
@@ -365,6 +363,6 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         if self.affine:
             y = self.weight.view(-1, 1) * y
             if self.use_bias:
-                y += self.use_bias.view(-1, 1)
+                y += self.bias.view(-1, 1)
 
         return y.view(return_shape).transpose(0, 1)
