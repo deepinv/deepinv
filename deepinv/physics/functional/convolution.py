@@ -17,7 +17,7 @@ def _warn_once_padding(pad_value: list[int], padding: str, category=UserWarning)
         f"Consider using padding = 'valid' instead."
     )
     if message not in _warned_messages:
-        warnings.warn(message, category)
+        warnings.warn(message, category, stacklevel=2)
         _warned_messages.add(message)
 
 
@@ -61,7 +61,7 @@ def conv2d(
 
     .. note::
 
-        Contrarily to Pytorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution when ``correlation=False``.
+        Contrarily to PyTorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution by default unless ``correlation=True``.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.
