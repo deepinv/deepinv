@@ -61,7 +61,7 @@ def conv2d(
 
     .. note::
 
-        Contrarily to PyTorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution by default unless ``correlation=True``.
+        Contrary to PyTorch's :func:`torch.nn.functional.conv2d`, which performs a cross-correlation, this function performs a convolution by default unless ``correlation=True``.
 
         This function gives the same result as :func:`deepinv.physics.functional.conv2d_fft`. However, for small kernels, this function is faster.
         For large kernels, :func:`deepinv.physics.functional.conv2d_fft` is usually faster but requires more memory.
@@ -343,7 +343,7 @@ def conv3d(
 
     .. note::
 
-        Contrarily to Pytorch's :func:`torch.nn.functional.conv3d`, which performs a cross-correlation, this function performs a convolution when ``correlation=False``.
+        Contrary to Pytorch's :func:`torch.nn.functional.conv3d`, which performs a cross-correlation, this function performs a convolution by default unless ``correlation=True``.
 
     """
     assert x.dim() == filter.dim() == 5, "Input and filter must be 5D tensors"
