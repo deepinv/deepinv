@@ -212,10 +212,7 @@ class Tomography(LinearPhysics):
         :param torch.Tensor x: input of shape [B,C,H,W]
         :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
         """
-        if not x.shape[-2:] == (
-            self.img_width,
-            self.img_width
-        ):
+        if not x.shape[-2:] == (self.img_width, self.img_width):
             raise ValueError(
                 f"Input image size {x.shape[-2:]} does not match the operator image size {(self.img_width, self.img_width)}."
             )
