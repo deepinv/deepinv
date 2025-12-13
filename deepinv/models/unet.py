@@ -37,10 +37,9 @@ class UNet(Denoiser):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d` (or 3d variant, when building a 3D network),
-        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` (not yet implemented for 3D) from :footcite:t:`mohan2020robust`.
-    :param int scales: Number of downsampling steps stages (network depth). Must be one of ``{2, 3, 4, 5}``.
-        The number of trainable parameters increases with the scale.
+    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use batch normalization,
+        if ``batch_norm="biasfree"``, use the biasfree batchnorm from :footcite:t:`mohan2020robust`.
+    :param int scales: Number of downsampling stages.
     :param Sequence[int] channels_per_scale: Number of feature maps at each encoder stage (from shallow to deep). If None, defaults to ``[64, 128, 256, 512, 1024]``.
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
@@ -64,7 +63,7 @@ class UNet(Denoiser):
         self.name = "unet"
 
         if residual and in_channels != out_channels:  # pragma: no cover
-            raise warnings.warn(
+            warnings.warn(
                 "residual is True, but in_channels != out_channels: Falling back to non residual denoiser."
             )
 
@@ -106,7 +105,7 @@ class UNet(Denoiser):
         if biasfree and dim == 3:  # pragma: no cover
             raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
-        b = _Builder(
+        b = _Blocks(
             dim=dim,
             circular_padding=circular_padding,
             biasfree_norm=biasfree,
@@ -194,38 +193,65 @@ class UNet(Denoiser):
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward(x)
 
-    def load_state_dict(
-        self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False
-    ) -> _IncompatibleKeys:
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
         # Backwards compatibility: translate legacy checkpoints that used individual attributes into current ModuleList scheme.
-        modern_state_dict = {}
-        for k, v in state_dict.items():
-            m = re.match(r"^Conv(\d+)\.(.*)$", k)
+        to_add = {}
+        to_del = []
+        for k, v in list(state_dict.items()):
+            if not k.startswith(prefix):
+                continue
+            local_k = k[len(prefix) :]
+
+            m = re.match(r"^Conv(\d+)\.(.*)$", local_k)
             if m:
                 idx = int(m.group(1)) - 1
-                modern_state_dict[f"enc_blocks.{idx}.{m.group(2)}"] = v
+                to_add[prefix + f"enc_blocks.{idx}.{m.group(2)}"] = v
+                to_del.append(k)
                 continue
 
-            m = re.match(r"^Up(\d+)\.(.*)$", k)
+            m = re.match(r"^Up(\d+)\.(.*)$", local_k)
             if m:
                 idx = int(m.group(1)) - 2
-                modern_state_dict[f"up_blocks.{idx}.{m.group(2)}"] = v
+                to_add[prefix + f"up_blocks.{idx}.{m.group(2)}"] = v
+                to_del.append(k)
                 continue
 
-            m = re.match(r"^Up_conv(\d+)\.(.*)$", k)
+            m = re.match(r"^Up_conv(\d+)\.(.*)$", local_k)
             if m:
-                if self.cat:
+                if getattr(self, "cat", False):
                     idx = int(m.group(1)) - 2
-                    modern_state_dict[f"dec_blocks.{idx}.{m.group(2)}"] = v
+                    to_add[prefix + f"dec_blocks.{idx}.{m.group(2)}"] = v
+                    to_del.append(k)
+                else:
+                    # if cat=False and legacy key exists, you may want to drop it
+                    to_del.append(k)
                 continue
+        state_dict.update(to_add)
+        for k in to_del:
+            state_dict.pop(k, None)
 
-            modern_state_dict[k] = v
-
-        return super().load_state_dict(modern_state_dict, strict=strict, assign=assign)
+        return super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
 
 
 @dataclass(frozen=True)
-class _Builder:
+class _Blocks:
     dim: int
     circular_padding: bool
     biasfree_norm: bool
