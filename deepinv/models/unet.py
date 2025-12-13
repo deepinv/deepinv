@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Mapping, Any, Sequence, Optional
+from typing import Mapping, Any, Sequence
 import warnings
 import torch
 import torch.nn as nn
@@ -52,8 +52,8 @@ class UNet(Denoiser):
         cat: bool = True,
         bias: bool = True,
         batch_norm: bool | str = True,
-        scales: Optional[int] = None,
-        channels_per_scale: Optional[Sequence[int]] = None,
+        scales: int | None = None,
+        channels_per_scale: Sequence[int] | None = None,
         device: torch.device | str = "cpu",
         dim: str | int = 2,
     ):
