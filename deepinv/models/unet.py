@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Mapping, Any, Sequence
+from typing import Mapping, Any, Sequence, Optional
 import warnings
 import torch
 import torch.nn as nn
@@ -52,9 +52,9 @@ class UNet(Denoiser):
         cat: bool = True,
         bias: bool = True,
         batch_norm: bool | str = True,
-        scales: int = None,
-        channels_per_scale: Sequence[int] = None,
-        device: torch.device | str = None,
+        scales: Optional[int] = None,
+        channels_per_scale: Optional[Sequence[int]] = None,
+        device: torch.device | str = "cpu",
         dim: str | int = 2,
     ):
         super(UNet, self).__init__()
@@ -83,8 +83,6 @@ class UNet(Denoiser):
                 f"(got len={len(channels_per_scale)}, scales={scales})."
             )
 
-        cps = channels_per_scale
-
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
@@ -103,6 +101,8 @@ class UNet(Denoiser):
             raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
         b = UNetConvBlockBuilder(dim, circular_padding, biasfree, bias, batch_norm)
+
+        cps = channels_per_scale  # shorthand
 
         self.Conv1 = b.conv_block(ch_in=in_channels, ch_out=cps[0])
         self.Conv2 = b.conv_block(ch_in=cps[0], ch_out=cps[1])
@@ -154,7 +154,7 @@ class UNet(Denoiser):
         if device is not None:
             self.to(device)
 
-    def forward(self, x: torch.Tensor, sigma=None, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, sigma: Any = None, **kwargs) -> torch.Tensor:
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
@@ -255,7 +255,7 @@ class UNetConvBlockBuilder:
 
         self.dim = dim
 
-    def make_norm(self, ch_out):
+    def make_norm(self, ch_out: int) -> nn.Module:
         if not self.norm:
             return None
         return (
@@ -264,7 +264,7 @@ class UNetConvBlockBuilder:
             else batchnorm_nd(self.dim)(ch_out)
         )
 
-    def conv_block(self, ch_in, ch_out):
+    def conv_block(self, ch_in: int, ch_out: int) -> nn.Module:
         conv = conv_nd(self.dim)
         layers = []
 
@@ -300,7 +300,7 @@ class UNetConvBlockBuilder:
         layers.append(nn.ReLU(inplace=True))
         return nn.Sequential(*layers)
 
-    def up_conv(self, ch_in, ch_out):
+    def up_conv(self, ch_in: int, ch_out: int) -> nn.Module:
         conv = conv_nd(self.dim)
         layers = []
 
@@ -329,13 +329,18 @@ class BFBatchNorm2d(nn.BatchNorm2d):
     """
 
     def __init__(
-        self, num_features, eps=1e-5, momentum=0.1, use_bias=False, affine=True
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        use_bias: bool = False,
+        affine: bool = True,
     ):
         super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
         self.use_bias = use_bias
         self.affine = affine
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         self._check_input_dim(x)
         y = x.transpose(0, 1)
         return_shape = y.shape
