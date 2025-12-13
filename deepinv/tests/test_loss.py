@@ -19,6 +19,7 @@ LOSSES = [
     "mcei",
     "mcei-scale",
     "mcei-homography",
+    "es",
     "r2r",
     "vortex",
     "ensure",
@@ -119,6 +120,33 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         )
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Homography(device=device)))
+    elif loss_name == "es":
+        # A random transformation from the group D4
+        split_generator = dinv.physics.generator.GaussianMaskGenerator(
+            img_size=imsize,
+            acceleration=2,
+            center_fraction=0.0,
+            rng=torch.Generator(device).manual_seed(0),
+            device=device,
+        )
+        mask_generator = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            (1, *imsize), split_generator, device=device
+        )
+        train_transform = dinv.transform.Rotate(
+            n_trans=1, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+
+        loss.append(
+            dinv.loss.ESLoss(
+                mask_generator=mask_generator,
+                noise_model=dinv.physics.ZeroNoise(),
+                alpha=0.2,
+                weight=1.0,
+                eval_n_samples=10,
+                train_transform=train_transform,
+                eval_transform=None,  # use same as train
+            )
+        )
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
