@@ -55,6 +55,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
        | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
        | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
+       | :class:`Zernike <deepinv.physics.generator.Zernike>` 
 
    * - Magnetic Resonance Imaging (MRI)
      -

@@ -7,6 +7,7 @@ In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion
 
 """
 
+# %%
 import torch
 
 import deepinv as dinv
@@ -213,10 +214,14 @@ plot(
 )
 
 # %%
+# We provide a helper property to get the list of Zernike polynomials used in the decomposition:
+zernike_polynomials = diffraction_generator.zernike_polynomials
+print("Zernike polynomials used:\n", "\n ".join(zernike_polynomials))
+
 # It is also possible to directly specify the Zernike decomposition.
 # For instance, if the pupil is null, the PSF is the Airy pattern
 n_zernike = len(
-    diffraction_generator.list_param
+    zernike_polynomials
 )  # number of Zernike coefficients in the decomposition
 filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike, device=device))
 plot(
@@ -225,17 +230,27 @@ plot(
 )
 
 # %%
-# Finally, notice that you can activate the aberrations you want in the ANSI
+# Finally, notice that you can activate the aberrations you want in the ANSI/Noll
 # nomenclature https://en.wikipedia.org/wiki/Zernike_polynomials#OSA/ANSI_standard_indices
 diffraction_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), fc=1 / 8, list_param=["Z5", "Z6"], device=device, dtype=dtype
+    (psf_size, psf_size),
+    fc=1 / 8,
+    zernike_index=(
+        5,
+        6,
+    ),  # or equivalently zernike_index = ((2, 2), (3, -3)) for (n,m) indices
+    index_convention="ansi",
+    device=device,
+    dtype=dtype,
 )
 filters = diffraction_generator.step(batch_size=3)
 plot(
     [f for f in filters["filter"] ** 0.5],
     suptitle="PSF obtained with astigmatism only",
 )
-
+print(
+    "Zernike polynomials used:\n", "\n ".join(diffraction_generator.zernike_polynomials)
+)
 # %%
 # Generator Mixture
 # ~~~~~~~~~~~~~~~~~
@@ -271,8 +286,8 @@ from deepinv.physics.generator import (
 )
 from deepinv.physics.blur import SpaceVaryingBlur
 
-img_size = (128, 128)
-n_eigenpsf = 3
+img_size = (256, 256)
+n_eigenpsf = 7
 spacing = (32, 32)
 padding = "valid"
 batch_size = 1
@@ -280,7 +295,7 @@ delta = 16
 
 # Now, scattered random psfs are synthesized and interpolated spatially
 pc_generator = ProductConvolutionBlurGenerator(
-    psf_generator=motion_generator,
+    psf_generator=MotionBlurGenerator((17, 17), device=device, dtype=dtype),
     img_size=img_size,
     n_eigen_psf=n_eigenpsf,
     spacing=spacing,
@@ -293,4 +308,20 @@ physics = SpaceVaryingBlur(**params_pc, device=device)
 
 dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=delta, device=device)
 psf_grid = physics(dirac_comb)
-plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip")
+plot(
+    psf_grid,
+    titles="Space varying impulse responses",
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
+
+image = dinv.utils.load_example(
+    "celeba_example.jpg", img_size=img_size, resize_mode="resize", device=device
+)
+blurry_image = physics(image)
+plot(
+    [image, blurry_image],
+    titles=["Original image", "Blurry image"],
+    rescale_mode="clip",
+    figsize=(5, 5),
+)
