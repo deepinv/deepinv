@@ -232,7 +232,6 @@ class UNet(Denoiser):
                     to_add[prefix + f"dec_blocks.{idx}.{m.group(2)}"] = v
                     to_del.append(k)
                 else:
-                    # if cat=False and legacy key exists, you may want to drop it
                     to_del.append(k)
                 continue
         state_dict.update(to_add)
