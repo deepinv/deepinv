@@ -1,7 +1,9 @@
 from __future__ import annotations
 from typing import Mapping, Any, Sequence
-import re
-import warnings
+from dataclasses import dataclass
+import re, warnings
+
+
 import torch
 import torch.nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
@@ -104,7 +106,13 @@ class UNet(Denoiser):
         if biasfree and dim == 3:  # pragma: no cover
             raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
-        b = UNetConvBlockBuilder(dim, circular_padding, biasfree, bias, batch_norm)
+        b = _Builder(
+            dim=dim,
+            circular_padding=circular_padding,
+            biasfree_norm=biasfree,
+            use_bias=bias,
+            norm=batch_norm,
+        )
 
         cps = channels_per_scale  # shorthand
 
@@ -216,21 +224,17 @@ class UNet(Denoiser):
         return super().load_state_dict(modern_state_dict, strict=strict, assign=assign)
 
 
-class UNetConvBlockBuilder:
-    def __init__(
-        self,
-        dim: int,
-        circular_padding: bool,
-        biasfree: bool,
-        bias: bool,
-        norm: bool,
-    ):
-        self.padding_mode = "circular" if circular_padding else "zeros"
-        self.biasfree_norm = biasfree
-        self.use_bias = bias
-        self.norm = norm
+@dataclass(frozen=True)
+class _Builder:
+    dim: int
+    circular_padding: bool
+    biasfree_norm: bool
+    use_bias: bool
+    norm: bool
 
-        self.dim = dim
+    @property
+    def padding_mode(self) -> str:
+        return "circular" if self.circular_padding else "zeros"
 
     def make_norm(self, ch_out: int) -> nn.Module:
         if not self.norm:
