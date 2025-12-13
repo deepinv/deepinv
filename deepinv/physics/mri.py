@@ -82,11 +82,10 @@ class MRI(MRIMixin, DecomposablePhysics):
         mask: Tensor | None = None,
         img_size: tuple | None = (320, 320),
         three_d: bool = False,
-        device="cpu",
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.device = device
         self.three_d = three_d
         self.img_size = img_size
 
@@ -94,7 +93,7 @@ class MRI(MRIMixin, DecomposablePhysics):
             mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
-        self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.register_buffer("mask", self.check_mask(mask))
         self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
@@ -155,16 +154,12 @@ class MRI(MRIMixin, DecomposablePhysics):
                 self.check_mask(
                     mask=mask,
                     three_d=getattr(self, "three_d", False),
-                    device=self.device,
                 )
                 if check_mask
                 else mask
             )
 
-            self.register_buffer("mask", mask)
-        if kwargs:
-            super().update_parameters(**kwargs)
-
+        super().update_parameters(mask=mask, **kwargs)
 
 class MultiCoilMRI(MRIMixin, LinearPhysics):
     r"""
@@ -229,26 +224,27 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         coil_maps: Tensor | int | None = None,
         img_size: tuple | None = (320, 320),
         three_d: bool = False,
-        device=torch.device("cpu"),
+        device: torch.device | str = torch.device("cpu"),
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.img_size = img_size
-        self.device = device
         self.three_d = three_d
 
         if mask is None:
-            mask = torch.ones(*img_size)
+            mask = torch.ones(*img_size, device=device)
 
         if coil_maps is None:
             coil_maps = torch.ones(
                 (self.img_size[-2:] if not self.three_d else self.img_size[-3:]),
                 dtype=torch.complex64,
+                device=device
             )
         elif isinstance(coil_maps, int):
-            coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
+            coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps).to(device)
 
-        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        self.register_buffer("mask", self.check_mask(mask, three_d=self.three_d, device=device))
+        self.register_buffer("coil_maps", self.check_coil_maps(coil_maps, three_d=self.three_d))
         self.to(device)
 
     def A(
@@ -346,6 +342,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         mask: Tensor = None,
         coil_maps: Tensor = None,
         check_mask: bool = True,
+        check_coil_maps: bool = True,
         **kwargs,
     ):
         """Update MRI subsampling mask and coil sensitivity maps.
@@ -353,28 +350,40 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI mask
         :param torch.nn.parameter.Parameter, torch.Tensor coil_maps: MRI coil sensitivity maps
         :param bool check_mask: check mask dimensions before updating
+        :param bool check_coil_maps: check coil maps dimensions before updating
         """
         if mask is not None:
             mask = (
-                self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
+                self.check_mask(mask=mask, three_d=self.three_d)
                 if check_mask
                 else mask
             )
-            self.register_buffer("mask", mask)
 
         if coil_maps is not None:
-            while len(coil_maps.shape) < (
-                4 if not self.three_d else 5
-            ):  # to B,N,H,W or B,N,D,H,W
-                coil_maps = coil_maps.unsqueeze(0)
+            coil_maps = (
+                self.check_coil_maps(coil_maps, three_d=self.three_d)
+                if check_coil_maps
+                else coil_maps
+            )
 
-            if not coil_maps.is_complex():
-                raise ValueError("coil_maps should be of torch complex dtype.")
+        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
-            self.register_buffer("coil_maps", coil_maps.to(self.device))
+    @staticmethod
+    def check_coil_maps(coil_maps: Tensor, three_d: bool) -> Tensor:
+        """Check coil maps dimensions.
 
-        if kwargs:
-            super().update_parameters(**kwargs)
+        :param torch.Tensor coil_maps: coil sensitivity maps
+        :return torch.Tensor: checked coil sensitivity maps
+        """
+        while len(coil_maps.shape) < (
+            4 if not three_d else 5
+        ):  # to B,N,H,W or B,N,D,H,W
+            coil_maps = coil_maps.unsqueeze(0)
+
+        if not coil_maps.is_complex():
+            raise ValueError("coil_maps should be of torch complex dtype.")
+
+        return coil_maps
 
     def simulate_birdcage_csm(self, n_coils: int) -> Tensor:
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
@@ -564,7 +573,7 @@ class DynamicMRI(MRI, TimeMixin):
         while mask is not None and len(mask.shape) < 5:  # to B,C,T,H,W
             mask = mask.unsqueeze(0)
 
-        return super().check_mask(mask=mask, device=self.device, three_d=self.three_d)
+        return super().check_mask(mask=mask, three_d=self.three_d)
 
     def noise(self, x, **kwargs):
         r"""
@@ -575,7 +584,7 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: torch.Tensor | None = None) -> MRI:
+    def to_static(self, mask: torch.Tensor | None = None, device: str | torch.device = "cpu") -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
@@ -584,7 +593,7 @@ class DynamicMRI(MRI, TimeMixin):
         return MRI(
             mask=torch.clip(self.mask.sum(2), 0.0, 1.0) if mask is None else mask,
             img_size=self.img_size,
-            device=self.device,
+            device=device,
         )
 
 
@@ -654,6 +663,6 @@ class SequentialMRI(DynamicMRI):
             return super().A_adjoint(y, mask, **kwargs)
         else:
             mask = mask if mask is not None else self.mask
-            return self.to_static().A_adjoint(
+            return self.to_static(device=y.device).A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )

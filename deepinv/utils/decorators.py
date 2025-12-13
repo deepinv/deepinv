@@ -2,6 +2,30 @@ import warnings
 import functools
 
 
+def _deprecated_argument(*arg_names):
+    """
+    Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
+    
+    :param arg_names: names of the deprecated arguments
+    """
+    
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for old_arg in arg_names:
+                if old_arg in kwargs:
+                    warnings.warn(
+                        f"Argument '{old_arg}' is deprecated and will be removed in a future version. ",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                    kwargs.pop(old_arg)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator  
+
 def _deprecated_alias(**aliases):
     """
     Decorator to support deprecated argument names in a class or a function.
