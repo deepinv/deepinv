@@ -212,7 +212,7 @@ class UNet(Denoiser):
 
             m = re.match(r"^Up(\d+)\.(.*)$", local_k)
             if m:
-                idx = int(m.group(1)) - 2
+                idx = list(range(len(self.up_blocks)))[-int(m.group(1)) + 1]
                 to_add[prefix + f"up_blocks.{idx}.{m.group(2)}"] = v
                 to_del.append(k)
                 continue
@@ -220,12 +220,11 @@ class UNet(Denoiser):
             m = re.match(r"^Up_conv(\d+)\.(.*)$", local_k)
             if m:
                 if getattr(self, "cat", False):
-                    idx = int(m.group(1)) - 2
+                    idx = list(range(len(self.up_blocks)))[-int(m.group(1)) + 1]
                     to_add[prefix + f"dec_blocks.{idx}.{m.group(2)}"] = v
                     to_del.append(k)
                 else:
                     to_del.append(k)
-                continue
         state_dict.update(to_add)
         for k in to_del:
             state_dict.pop(k, None)
