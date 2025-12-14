@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Sequence
 from dataclasses import dataclass
-import re, warnings
+import warnings
 
 import torch
 import torch.nn as nn
