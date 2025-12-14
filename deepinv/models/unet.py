@@ -14,31 +14,28 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    This network is a fully convolutional denoiser based on the U-Net architecture. The depth of the network is
-    controlled by ``scales``, which sets the number of encoder downsampling stages (and corresponding decoder
-    upsampling stages). The width of each stage is controlled by ``channels_per_scale``, which gives the number of
-    feature maps from shallow to deep.
+    This network is a fully convolutional denoiser based on the U-Net architecture. The number of stages in the network is
+    controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``, which gives the number of
+    feature maps at each stage, from shallow to deeper stages.
 
-    If ``scales`` is not given, it is inferred from ``channels_per_scale`` (its length). If both are omitted, defaults to
-    configuration with ``scales=4`` and ``channels_per_scale=[64, 128, 256, 512, 1024]``. When
-    ``scales`` is specified explicitly together with ``channels_per_scale``, only the first ``scales`` entries
-    of ``channels_per_scale`` are used; its length must be at least ``scales``. The number of trainable parameters
-    increases with both ``scales`` and the values in ``channels_per_scale``.
+    If ``scales`` is not given, it is inferred from ``channels_per_scale``. If both are omitted, defaults to
+    ``channels_per_scale=[64, 128, 256, 512]``. When both are specified, ``scales`` must match the length of ``channels_per_scale``.
+    The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
 
     .. warning::
-        When using the bias-free batch norm ``BFBatchNorm2d`` via ``batch_norm="biasfree"``, NaNs may be encountered
+        When using the bias-free batch norm via ``batch_norm="biasfree"``, NaNs may be encountered
         during training, causing the whole training procedure to fail.
 
     :param int in_channels: input image channels
     :param int out_channels: output image channels
-    :param bool residual: use a skip-connection between output and output.
+    :param bool residual: use a skip-connection between input and output.
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
-    :param bool bias: use learnable biases.
+    :param bool bias: use learnable biases in conv and norm layers.
     :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use batch normalization,
-        if ``batch_norm="biasfree"``, use the biasfree batchnorm from :footcite:t:`mohan2020robust`.
-    :param int scales: Number of downsampling stages.
-    :param Sequence[int] channels_per_scale: Number of feature maps at each encoder stage (from shallow to deep). If None, defaults to ``[64, 128, 256, 512, 1024]``.
+        if ``batch_norm="biasfree"``, use the bias-free batchnorm from :footcite:t:`mohan2020robust`.
+    :param int scales: Number of stages.
+    :param Sequence[int] channels_per_scale: Number of feature maps at each stage (from shallow to deep).
     :param torch.device, str device: Device to put the model on.
     :param str, int dim: Whether to build 2D or 3D network (if str, can be "2", "2d", "3D", etc.)
     """
@@ -94,8 +91,6 @@ class UNet(Denoiser):
         self.compact = scales  # backward compatibility, old attribute name
 
         biasfree = batch_norm == "biasfree"
-        if biasfree and dim == 3:  # pragma: no cover
-            raise NotImplementedError("Bias-free batchnorm is not implemented for 3D")
 
         b = _Blocks(
             dim=dim,
@@ -107,23 +102,20 @@ class UNet(Denoiser):
 
         cps = channels_per_scale  # shorthand
 
-        self.enc_blocks = nn.ModuleList()
-
         for i in range(scales):
             ch_in = in_channels if i == 0 else cps[i - 1]
             ch_out = cps[i]
             setattr(self, f"Conv{i+1}", b.conv_block(ch_in=ch_in, ch_out=ch_out))
 
-        self.up_blocks = nn.ModuleList()
-        self.dec_blocks = nn.ModuleList()
         for i in range(scales - 1):
-            ch_in = cps[i + 1]
-            ch_out = cps[i]
-            setattr(self, f"Up{i + 2}", b.up_conv(ch_in=ch_in, ch_out=ch_out))
-            if self.cat:
-                setattr(
-                    self, f"Up_conv{i+2}", b.conv_block(ch_in=ch_out * 2, ch_out=ch_out)
-                )
+            ch_in = cps[-i - 1]
+            ch_out = cps[-i - 2]
+            setattr(self, f"Up{scales - i}", b.up_conv(ch_in=ch_in, ch_out=ch_out))
+            setattr(
+                self,
+                f"Up_conv{scales - i}",
+                b.conv_block(ch_in=ch_out * 2, ch_out=ch_out),
+            )
 
         self.Conv_1x1 = conv(
             in_channels=cps[0],
@@ -149,7 +141,7 @@ class UNet(Denoiser):
         :param float sigma: noise level (not used).
         """
 
-        factor = 2 ** (len(self.up_blocks))
+        factor = 2 ** (len(self._upc_names))
         if x.size(2) % factor == 0 and x.size(3) % factor == 0:
             return self._forward(x)
         else:
@@ -180,16 +172,19 @@ class UNet(Denoiser):
         )
 
     def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
-        # These are kept to avoid breaking changes
+        warnings.warn("forward_standard is deprecated, please use unet._forward")
         return self._forward(x)
 
     def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
+        warnings.warn("forward_compact4 is deprecated, please use unet._forward")
         return self._forward(x)
 
     def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
+        warnings.warn("forward_compact3 is deprecated, please use unet._forward")
         return self._forward(x)
 
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
+        warnings.warn("forward_compact2 is deprecated, please use unet._forward")
         return self._forward(x)
 
 
@@ -209,7 +204,7 @@ class _Blocks:
         if not self.norm:
             return None
         return (
-            BFBatchNorm2d(ch_out, use_bias=self.use_bias)
+            bfbatchnorm_nd(self.dim)(ch_out, use_bias=self.use_bias)
             if self.biasfree_norm
             else batchnorm_nd(self.dim)(ch_out)
         )
@@ -273,7 +268,44 @@ class _Blocks:
         return nn.Sequential(*layers)
 
 
-class BFBatchNorm2d(nn.BatchNorm2d):
+class _BFBNCore:
+    def _bf_forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = x.transpose(0, 1)
+        return_shape = y.shape
+        y = y.contiguous().view(x.size(1), -1)
+
+        if self.use_bias:
+            mu = y.mean(dim=1)
+        sigma2 = y.var(dim=1)
+
+        if not self.training:
+            if self.use_bias:
+                y = y - self.running_mean.view(-1, 1)
+            y = y / (self.running_var.view(-1, 1).sqrt() + self.eps)
+        else:
+            if self.track_running_stats:
+                with torch.no_grad():
+                    if self.use_bias:
+                        self.running_mean.mul_(1 - self.momentum).add_(
+                            self.momentum * mu
+                        )
+                    self.running_var.mul_(1 - self.momentum).add_(
+                        self.momentum * sigma2
+                    )
+
+            if self.use_bias:
+                y = y - mu.view(-1, 1)
+            y = y / (sigma2.view(-1, 1).sqrt() + self.eps)
+
+        if self.affine:
+            y = self.weight.view(-1, 1) * y
+            if self.use_bias:
+                y = y + self.bias.view(-1, 1)
+
+        return y.view(return_shape).transpose(0, 1)
+
+
+class BFBatchNorm2d(_BFBNCore, nn.BatchNorm2d):
     r"""
     From :footcite:t:`mohan2020robust`.
     """
@@ -286,38 +318,36 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         use_bias: bool = False,
         affine: bool = True,
     ):
-        super(BFBatchNorm2d, self).__init__(num_features, eps, momentum)
+        super().__init__(num_features, eps=eps, momentum=momentum, affine=affine)
         self.use_bias = use_bias
         self.affine = affine
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         self._check_input_dim(x)
-        y = x.transpose(0, 1)
-        return_shape = y.shape
-        y = y.contiguous().view(x.size(1), -1)
-        if self.use_bias:
-            mu = y.mean(dim=1)
-        sigma2 = y.var(dim=1)
-        if not self.training:
-            if self.use_bias:
-                y = y - self.running_mean.view(-1, 1)
-            y = y / (self.running_var.view(-1, 1) ** 0.5 + self.eps)
-        else:
-            if self.track_running_stats is True:
-                with torch.no_grad():
-                    if self.use_bias:
-                        self.running_mean = (
-                            1 - self.momentum
-                        ) * self.running_mean + self.momentum * mu
-                    self.running_var = (
-                        1 - self.momentum
-                    ) * self.running_var + self.momentum * sigma2
-            if self.use_bias:
-                y = y - mu.view(-1, 1)
-            y = y / (sigma2.view(-1, 1) ** 0.5 + self.eps)
-        if self.affine:
-            y = self.weight.view(-1, 1) * y
-            if self.use_bias:
-                y += self.bias.view(-1, 1)
+        return self._bf_forward(x)
 
-        return y.view(return_shape).transpose(0, 1)
+
+class BFBatchNorm3d(_BFBNCore, nn.BatchNorm3d):
+    r"""
+    From :footcite:t:`mohan2020robust`.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        eps: float = 1e-5,
+        momentum: float = 0.1,
+        use_bias: bool = False,
+        affine: bool = True,
+    ):
+        super().__init__(num_features, eps=eps, momentum=momentum, affine=affine)
+        self.use_bias = use_bias
+        self.affine = affine
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        self._check_input_dim(x)
+        return self._bf_forward(x)
+
+
+def bfbatchnorm_nd(dim: int) -> nn.Module:
+    return {2: BFBatchNorm2d, 3: BFBatchNorm3d}[dim]
