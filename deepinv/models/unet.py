@@ -82,12 +82,6 @@ class UNet(Denoiser):
         if channels_per_scale is None:
             channels_per_scale = [64 * (2**k) for k in range(scales)]
 
-        if len(channels_per_scale) < scales:  # pragma: no cover
-            raise ValueError(
-                f"`channels_per_scale` must have length at least `scales` "
-                f"(got len={len(channels_per_scale)}, scales={scales})."
-            )
-
         dim = fix_dim(dim)
 
         conv = conv_nd(dim)
