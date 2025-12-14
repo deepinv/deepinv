@@ -15,12 +15,14 @@ class UNet(Denoiser):
     U-Net convolutional denoiser.
 
     This network is a fully convolutional denoiser based on the U-Net architecture. The number of stages in the network is
-    controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``, which gives the number of
-    feature maps at each stage, from shallow to deeper stages.
+    controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``,
+    which gives the number of feature maps at each stage, from shallow to deeper stages.
+    The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
 
     If ``scales`` is not given, it is inferred from ``channels_per_scale``. If both are omitted, defaults to
-    ``channels_per_scale=[64, 128, 256, 512]``. When both are specified, ``scales`` must match the length of ``channels_per_scale``.
-    The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
+    ``channels_per_scale=[64, 128, 256, 512]``. If only ``scales`` is specified, ``channels_per_scale=[64 * (2**k) for k in range(scales)]``.
+    When both are specified, ``scales`` must match the length of ``channels_per_scale``.
+
 
     .. warning::
         When using the bias-free batch norm via ``batch_norm="biasfree"``, NaNs may be encountered
@@ -32,7 +34,7 @@ class UNet(Denoiser):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases in conv and norm layers.
-    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use batch normalization,
+    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use batchnormalization,
         if ``batch_norm="biasfree"``, use the bias-free batchnorm from :footcite:t:`mohan2020robust`.
     :param int scales: Number of stages.
     :param Sequence[int] channels_per_scale: Number of feature maps at each stage (from shallow to deep).
