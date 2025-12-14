@@ -112,16 +112,18 @@ class UNet(Denoiser):
         for i in range(scales):
             ch_in = in_channels if i == 0 else cps[i - 1]
             ch_out = cps[i]
-            self.enc_blocks.append(b.conv_block(ch_in=ch_in, ch_out=ch_out))
+            setattr(self, f"Conv{i+1}", b.conv_block(ch_in=ch_in, ch_out=ch_out))
 
         self.up_blocks = nn.ModuleList()
         self.dec_blocks = nn.ModuleList()
         for i in range(scales - 1):
-            ch_in = cps[-1 - i]
-            ch_out = cps[-2 - i]
-            self.up_blocks.append(b.up_conv(ch_in=ch_in, ch_out=ch_out))
+            ch_in = cps[i + 1]
+            ch_out = cps[i]
+            setattr(self, f"Up{i + 2}", b.up_conv(ch_in=ch_in, ch_out=ch_out))
             if self.cat:
-                self.dec_blocks.append(b.conv_block(ch_in=ch_out * 2, ch_out=ch_out))
+                setattr(
+                    self, f"Up_conv{i+2}", b.conv_block(ch_in=ch_out * 2, ch_out=ch_out)
+                )
 
         self.Conv_1x1 = conv(
             in_channels=cps[0],
@@ -131,6 +133,10 @@ class UNet(Denoiser):
             stride=1,
             padding=0,
         )
+
+        self._enc_names = tuple(f"Conv{i+1}" for i in range(scales))
+        self._up_names = tuple(f"Up{i+2}" for i in range(scales - 1))[::-1]
+        self._upc_names = tuple(f"Up_conv{i + 2}" for i in range(scales - 1))[::-1]
 
         if device is not None:
             self.to(device)
@@ -153,16 +159,17 @@ class UNet(Denoiser):
         network_input = x
 
         enc_feats = []
-        for i, block in enumerate(self.enc_blocks):
+        for i, name in enumerate(self._enc_names):
+            block = getattr(self, name)
             x = block(x) if i == 0 else block(self.Maxpool(x))
             enc_feats.append(x)
 
-        for i in range(len(self.up_blocks)):
-            x = self.up_blocks[i](x)
+        for i, (up_name, upc_name) in enumerate(zip(self._up_names, self._upc_names)):
+            x = getattr(self, up_name)(x)
             if self.cat:
                 skip = enc_feats[-2 - i]
                 x = torch.cat((skip, x), dim=1)
-                x = self.dec_blocks[i](x)
+                x = getattr(self, upc_name)(x)
 
         x = self.Conv_1x1(x)
 
@@ -184,60 +191,6 @@ class UNet(Denoiser):
 
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward(x)
-
-    def _load_from_state_dict(
-        self,
-        state_dict,
-        prefix,
-        local_metadata,
-        strict,
-        missing_keys,
-        unexpected_keys,
-        error_msgs,
-    ):
-        # Backwards compatibility: translate legacy checkpoints that used individual attributes into current ModuleList scheme.
-        to_add = {}
-        to_del = []
-        for k, v in list(state_dict.items()):
-            if not k.startswith(prefix):
-                continue
-            local_k = k[len(prefix) :]
-
-            m = re.match(r"^Conv(\d+)\.(.*)$", local_k)
-            if m:
-                idx = int(m.group(1)) - 1
-                to_add[prefix + f"enc_blocks.{idx}.{m.group(2)}"] = v
-                to_del.append(k)
-                continue
-
-            m = re.match(r"^Up(\d+)\.(.*)$", local_k)
-            if m:
-                idx = list(range(len(self.up_blocks)))[-int(m.group(1)) + 1]
-                to_add[prefix + f"up_blocks.{idx}.{m.group(2)}"] = v
-                to_del.append(k)
-                continue
-
-            m = re.match(r"^Up_conv(\d+)\.(.*)$", local_k)
-            if m:
-                if getattr(self, "cat", False):
-                    idx = list(range(len(self.up_blocks)))[-int(m.group(1)) + 1]
-                    to_add[prefix + f"dec_blocks.{idx}.{m.group(2)}"] = v
-                    to_del.append(k)
-                else:
-                    to_del.append(k)
-        state_dict.update(to_add)
-        for k in to_del:
-            state_dict.pop(k, None)
-
-        return super()._load_from_state_dict(
-            state_dict,
-            prefix,
-            local_metadata,
-            strict,
-            missing_keys,
-            unexpected_keys,
-            error_msgs,
-        )
 
 
 @dataclass(frozen=True)
