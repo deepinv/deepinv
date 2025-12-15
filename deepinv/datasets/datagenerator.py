@@ -66,25 +66,100 @@ def _register_deprecated_attr(
 
 class HDF5Dataset(ImageDataset):
     r"""
-    DeepInverse HDF5 dataset with signal/measurement pairs ``(x, y)``.
+    DeepInverse HDF5 dataset
 
-    If there is no training ground truth (i.e. ``x_train``) in the dataset file,
-    the dataset returns the measurement again as the signal.
-
-    Optionally also return physics generator params as a dict per sample ``(x, y, params)``, if one was used during data generation.
+    DeepInverse features its own file format for imaging datasets designed as a
+    subset of the `HDF5 file format <https://www.hdfgroup.org/solutions/hdf5/>`_.
+    A dataset in this format is typically obtained from a base dataset of ground-truth
+    images and measured through a forward operator using the function :func:`deepinv.datasets.generate_dataset`.
+    This class features the code to load them in memory.
 
     .. note::
 
-        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
+        Every dtype supported by ``h5py`` is permitted and complex numbers are stored using complex dtypes by convention.
 
-    :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
-    :param bool train: Set to ``True`` for training and ``False`` for testing. If ``split`` argument used, then ``train`` is ignored.
-    :param str split: overrides ``train`` argument if not None. Custom dataset split e.g. "train", "test" or "val", which selects the split name used when generating the dataset.
-    :param Transform, Callable transform: A deepinv or torchvision transform to apply to the data.
-    :param bool load_physics_generator_params: load physics generator params from dataset if they exist
-        (e.g. if dataset created with :func:`deepinv.datasets.generate_dataset`)
-    :param torch.dtype, str dtype: cast all real-valued data to this dtype.
-    :param torch.dtype, str complex_dtype: cast all complex-valued data to this dtype.
+    |sep|
+
+    :Basics:
+
+    The file containing the dataset is opened in the constructor and remains
+    opened until the method :meth:`close` is called.
+
+    :param str path: Path to the HDF5 file containing the dataset.
+
+    |sep|
+
+    :Splits:
+
+    The dataset is structured in splits that are either freely named or
+    understood specifically as training and testing splits. By convention,
+    the training split is named ``train`` and the testing split ``test``.
+    In both cases, the parameter ``split`` can be used to select one of
+    the splits available in the dataset. For the specific case of training
+    and testing splits, they can be loaded in using the boolean parameter
+    ``train``. If ``train=True``, the training split is loaded, otherwise
+    the testing split is loaded.
+
+    .. warning::
+
+        If both ``split`` and ``train`` are provided, then ``split`` takes
+        precedence and ``train`` is ignored. We recommend that you only
+        specify one of the two parameters to avoid errors.
+
+    .. note::
+
+        A single instance of the class holds a single split of the dataset. If
+        you wish to load multiple splits, you must instantiate the class once
+        per split. See for instance :ref:`sphx_glr_auto_examples_models_demo_training.py`.
+
+    :param str split: The name of the split to load, for instance ``"train"``, ``"test"`` or `"val"``. It can be left unspecified if ``train`` is used instead.
+    :param bool train: If ``split`` is left unspecified, uses ``"train"`` as the split name if set to ``True`` and ``"test"`` otherwise. Note that if ``split`` is specified, this parameter is ignored with a warning.
+
+    |sep|
+
+    :Entries:
+
+    HDF5 datasets adhere to our `conventions for datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_.
+    In particular, their entries are either pairs of ground truth images and measuements ``(x, y)`` or triplets with additional
+    physics parameters ``(x, y, params)``. It is possible that the datast does not contain ground truth data and in this case
+    the ground truth is replaced by a scalar NaN tensor.
+
+    Physics parameters represent additional information about the measurement
+    process. For instance the mask for inpainting or the blur kernel for
+    deblurring. HDF5 datasets can contain the physics parameters used to
+    generate each set of measurements and in that case, they are returned with
+    each entry as a dictionary as long as the parameter
+    ``load_physics_generator_params`` is set to ``True``. Note that if the
+    parameter is set and the dataset does not contain any physics parameter, an
+    empty dictionary is returned nonetheless.
+
+    .. note::
+
+        HDF5 datasets always contain measurements even though our conventions permit datasets
+        with only ground truths (with or without physics parameters).
+
+    :param bool load_physics_generator_params: Return the physics parameters
+    with each entry. If no physics parameter is featured in the dataset, an
+    empty dictionary is returned nonetheless. (See above for more details.)
+
+    |sep|
+
+    :Pre-processing:
+
+    The data loaded in from the disk is not necessarily returned as is. The
+    pre-processing pipeline contains two steps. First, the real and complex
+    numbers are cast to user-provided dtypes using the parameters ``dtype``
+    and ``complex_dtype``. Then, an optional transform provided by the user
+    through the parameter ``transform`` is applied to the ground truth
+    image.
+
+    .. note::
+
+        The user-provided transformation is only applied to the ground truth
+        image. It does not affect the measurements or the physics parameters.
+
+    :param torch.dtype, str dtype: The dtype for real-valued numbers (see above for more details).
+    :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers (see above for more details).
     """
 
     def __init__(
