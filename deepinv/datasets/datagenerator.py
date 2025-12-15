@@ -74,10 +74,6 @@ class HDF5Dataset(ImageDataset):
     images and measured through a forward operator using the function :func:`deepinv.datasets.generate_dataset`.
     This class features the code to load them in memory.
 
-    .. note::
-
-        Every dtype supported by ``h5py`` is permitted and complex numbers are stored using complex dtypes by convention.
-
     |sep|
 
     :Basics:
@@ -165,6 +161,7 @@ class HDF5Dataset(ImageDataset):
     :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
     :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
     :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
+
     """
 
     def __init__(
