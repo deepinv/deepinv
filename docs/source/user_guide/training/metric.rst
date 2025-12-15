@@ -83,6 +83,9 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.PSNR`
      - :math:`\text{PSNR}(\hat{x},x) = 10 \cdot \log_{10} \left( \frac{\text{MAX}^2}{\text{MSE}(\hat{x},x)} \right)`, where :math:`\text{MAX}` is the maximum possible pixel value of the image
 
+   * - :class:`deepinv.loss.metric.SNR`
+     - :math:`\mathrm{SNR} = 10 \log_{10} \left( \frac{\| x_i \|_2^2}{\|x_i - \hat{x}_i\|_2^2} \right)`
+
    * - :class:`deepinv.loss.metric.SSIM`
      - :math:`\text{SSIM}(\hat{x},x) = \frac{(2 \mu_x \mu_{\hat{x}} + C_1)(2 \sigma_{x\hat{x}} + C_2)}{(\mu_x^2 + \mu_{\hat{x}}^2 + C_1)(\sigma_x^2 + \sigma_{\hat{x}}^2 + C_2)}`, where :math:`\mu` and :math:`\sigma` are mean and variance
 
@@ -123,3 +126,9 @@ We implement no-reference perceptual metrics, they only require the reconstructe
 
    * - :class:`deepinv.loss.metric.QNR`
      - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.
+
+   * - :class:`deepinv.loss.metric.BlurStrength`
+     - Calculates the blurriness of an image based on the spread of edges. Can be used to measure motion blur or out-of-focus blur.
+
+   * - :class:`deepinv.loss.metric.SharpnessIndex`
+     - Calculates the sharpness of an image, can be used to asses image quality.
