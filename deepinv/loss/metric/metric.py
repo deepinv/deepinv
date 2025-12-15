@@ -251,10 +251,10 @@ class Metric(Module):
         x_net = self.normalizer(x_net)
         x = self.normalizer(x) if x is not None else None
 
-        try:
-            m = self.metric(x_net, x, *args, **kwargs)
-        except TypeError:
+        if x_net is None:
             return torch.tensor([torch.nan])
+        else:
+            m = self.metric(x_net, x, *args, **kwargs)
 
         m = self.reducer(m)
 

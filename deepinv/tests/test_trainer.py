@@ -611,6 +611,9 @@ def test_dataloader_formats(
         img_size=imsize, split_ratio=0.9, rng=rng, device=device
     )
 
+    # full reference if ground truth available, otherwise no reference metric
+    metrics = dinv.metric.PSNR() if ground_truth else dinv.metric.BlurStrength()
+
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
@@ -618,7 +621,7 @@ def test_dataloader_formats(
         epochs=1,
         physics=physics,
         physics_generator=generator2,
-        metrics=dinv.metric.PSNR(),
+        metrics=metrics,
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,

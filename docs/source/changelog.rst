@@ -13,8 +13,11 @@ New Features
 - New ``vmin`` and ``vmax`` arguments in :func:`deepinv.utils.plot` to set custom clipping bounds when using ``rescale_mode='clip'`` (:gh:`967` by `Thibaut Modrzyk`_)
 - Added :func:`deepinv.utils.dirac_comb` and :func:`deepinv.utils.dirac_comb_like` (:gh:`946` by `Julian Tachella`_)
 - Added `testmon <https://www.testmon.org/>`_ and conditional run of sphinx-gallery examples to CI to speed up tests (:gh:`966` by `Julian Tachella`_)
+- Add :class:`kernel estimation network <deepinv.models.KernelIdentificationNetwork>` for blind deconvolution (:gh:`971` by `Julian Tachella`_)
+- Add blind inverse problems section to reconstruction user guide (:gh:`971` by `Julian Tachella`_)
+- Add :class:`deepinv.loss.metric.BlurStrength` and :class:`deepinv.loss.metric.SharpnessIndex` no-reference metrics for blind deblurring (:gh:`971` by `Julian Tachella`_)
 - New option to initialize 3D networks (DRUNet, DnCNN, DScCP) from pretrained 2D weights (:gh:`958` by `Romain Vo`_)
-  
+
 Changed
 ^^^^^^^
 - Faster :class:`deepinv.models.RAM` implementation by avoiding certain redundant computations (:gh:`946` by `Julian Tachella`_)
@@ -22,6 +25,7 @@ Changed
 - Add support for Poisson2Sparse (:gh:`677` by `Jérémy Scanvic`_)
 - (Breaking) `Tomography` physics uses the true adjoint by default. `Tomography` and `TomographyWithAstra` implement the pseudo-inverse as the solution of a least-squares problem, with the option to use `fbp`. (:gh:`930` by `Romain Vo`_)
 - Add a check in `deepinv.datasets.FMD` to avoid unnecessary downloads (:gh:`962` by `Jérémy Scanvic`_)
+- Trainer checkpoint loading verbose (:gh:`982` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

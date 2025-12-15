@@ -1482,6 +1482,33 @@ def test_complex_wrapper(mode, device):
     assert psnr_fn(output, x_complex) > psnr_fn(y, x_complex) + 1.0
 
 
+@pytest.mark.parametrize("channels", [1, 3])
+@pytest.mark.parametrize("filters", [5, 6])
+@pytest.mark.parametrize("blur_kernel_size", [33, 65])
+def test_kernel_identification(channels, filters, blur_kernel_size, device):
+    model = dinv.models.KernelIdentificationNetwork(
+        filters=filters,
+        blur_kernel_size=blur_kernel_size,
+        pretrained=None,
+    ).to(device)
+
+    pix = 60
+    b = 2
+    y = torch.randn(b, channels, pix, pix, device=device)
+
+    with torch.no_grad():
+        params = model(y)
+
+    assert params["filters"].shape == (
+        b,
+        1,
+        filters,
+        blur_kernel_size,
+        blur_kernel_size,
+    )
+    assert params["multipliers"].shape == (b, 1, filters, pix, pix)
+
+
 @pytest.mark.parametrize("model_name", ["DRUNet", "DnCNN", "DScCP"])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
