@@ -11,7 +11,7 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.utils.tensorlist import TensorList
 
-from .distribution_strategies.strategies import DistributedSignalStrategy
+from deepinv.distributed.strategies import DistributedSignalStrategy
 
 Index = tuple[Union[slice, int], ...]
 
@@ -725,10 +725,11 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     provide those operators through the ``factory``.
 
     All linear operations (``A_adjoint``, ``A_vjp``, etc.) support a ``reduce`` parameter.
+
     - If ``reduce=True`` (default): The method computes the global result by performing a single all-reduce
-      across all ranks.
+        across all ranks.
     - If ``reduce=False``: The method computes only the local contribution from operators owned by this rank,
-      without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
+        without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
@@ -1212,7 +1213,7 @@ class DistributedProcessing:
 
         # Create or set the strategy
         if isinstance(self.strategy, str):
-            from .distribution_strategies.strategies import create_strategy
+            from .strategies import create_strategy
 
             strategy_kwargs = self.strategy_kwargs or {}
             # Assume standard layout (B, C, D1, D2, ...) -> n_dimension = len - 2

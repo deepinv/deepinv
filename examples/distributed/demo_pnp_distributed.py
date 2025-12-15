@@ -27,7 +27,7 @@ operators and denoisers across multiple processes.
 
 1. Create stacked physics operators and measurements with reproducible noise
 2. Initialize distributed context
-3. Distribute physics with dinv.distrib.distribute()
+3. Distribute physics with dinv.distributed.distribute()
 4. Distribute denoiser with tiling configuration
 5. Create PnP prior and L2 data fidelity
 6. Run PnP iterations using data_fidelity.grad() for gradient computation
@@ -47,7 +47,7 @@ from deepinv.utils.plotting import plot
 from deepinv.models import DRUNet
 
 # Import the distributed framework
-from deepinv.distrib import DistributedContext, distribute
+from deepinv.distributed import DistributedContext, distribute
 
 
 # %%

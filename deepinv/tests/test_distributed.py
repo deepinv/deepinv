@@ -33,13 +33,13 @@ from deepinv.models.drunet import DRUNet
 from deepinv.optim import L2, L1
 from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 
-from deepinv.distrib.distrib_framework import (
+from deepinv.distributed.distrib_framework import (
     DistributedContext,
     DistributedLinearPhysics,
     DistributedProcessing,
     DistributedDataFidelity,
 )
-from deepinv.distrib.distribute import distribute
+from deepinv.distributed.distribute import distribute
 
 
 # =============================================================================

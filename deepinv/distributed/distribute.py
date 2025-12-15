@@ -70,7 +70,7 @@ from deepinv.optim.data_fidelity import DataFidelity, StackedPhysicsDataFidelity
 from deepinv.optim.prior import Prior
 from deepinv.models.base import Denoiser
 
-from deepinv.distrib.distrib_framework import (
+from deepinv.distributed.distrib_framework import (
     DistributedContext,
     DistributedPhysics,
     DistributedLinearPhysics,
@@ -78,7 +78,7 @@ from deepinv.distrib.distrib_framework import (
     DistributedDataFidelity,
 )
 
-from deepinv.distrib.distribution_strategies.strategies import DistributedSignalStrategy
+from deepinv.distributed.strategies import DistributedSignalStrategy
 
 
 def _distribute_physics(

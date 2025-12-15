@@ -27,7 +27,7 @@ using image tiling for large-scale image processing.
 2. Add noise to create a noisy observation
 3. Initialize distributed context
 4. Configure tiling parameters
-5. Distribute denoiser with dinv.distrib.distribute()
+5. Distribute denoiser with dinv.distributed.distribute()
 6. Apply distributed denoising
 7. Visualize results and compute metrics
 """
@@ -41,7 +41,7 @@ from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 
 # Import distributed framework
-from deepinv.distrib import DistributedContext, distribute
+from deepinv.distributed import DistributedContext, distribute
 
 
 # %%

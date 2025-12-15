@@ -8,8 +8,8 @@ The distributed computing framework enables efficient parallel processing across
 
 The framework provides an API centered around two key functions:
 
-1. :class:`~deepinv.distrib.DistributedContext` - manages distributed execution  
-2. :func:`~deepinv.distrib.distribute` - converts regular objects to distributed versions
+1. :class:`~deepinv.distributed.DistributedContext` - manages distributed execution  
+2. :func:`~deepinv.distributed.distribute` - converts regular objects to distributed versions
 
 .. note::
 
@@ -145,15 +145,15 @@ Key Classes
 
    * - Class
      - Description
-   * - :class:`~deepinv.distrib.DistributedContext`
+   * - :class:`~deepinv.distributed.DistributedContext`
      - Manages distributed execution, process groups, and devices
-   * - :class:`~deepinv.distrib.DistributedPhysics`
+   * - :class:`~deepinv.distributed.DistributedPhysics`
      - Distributes physics operators across processes (auto-created by ``distribute()``)
-   * - :class:`~deepinv.distrib.DistributedLinearPhysics`
+   * - :class:`~deepinv.distributed.DistributedLinearPhysics`
      - Extends DistributedPhysics for linear operators with adjoint operations
-   * - :class:`~deepinv.distrib.DistributedProcessing`
+   * - :class:`~deepinv.distributed.DistributedProcessing`
      - Distributes denoisers/priors using spatial tiling (auto-created by ``distribute()``)
-   * - :class:`~deepinv.distrib.DistributedDataFidelity`
+   * - :class:`~deepinv.distributed.DistributedDataFidelity`
      - Distributes data fidelity fn and grad (if needed, auto-created by ``distribute()``)
 
 
@@ -435,11 +435,11 @@ Custom Tiling Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can implement custom tiling strategies by subclassing
-:class:`~deepinv.distrib.distribution_strategies.strategies.DistributedSignalStrategy`:
+:class:`~deepinv.distributed.strategies.DistributedSignalStrategy`:
 
 .. code-block:: python
 
-    from deepinv.distrib.distribution_strategies.strategies import DistributedSignalStrategy
+    from deepinv.distributed.strategies import DistributedSignalStrategy
     
     class MyCustomStrategy(DistributedSignalStrategy):
         def get_local_patches(self, X, local_indices):
@@ -507,12 +507,12 @@ Troubleshooting
 See Also
 --------
 
-- **API Reference**: :doc:`/api/deepinv.distrib`
+- **API Reference**: :doc:`/api/deepinv.distributed`
 - **Examples**: 
-  
-  - :ref:`sphx_glr_auto_examples_distrib_demo_physics_distributed.py`
-  - :ref:`sphx_glr_auto_examples_distrib_demo_denoiser_distributed.py`
-  - :ref:`sphx_glr_auto_examples_distrib_demo_pnp_distributed.py`
+
+  - :ref:`sphx_glr_auto_examples_distributed_demo_physics_distributed.py`
+  - :ref:`sphx_glr_auto_examples_distributed_demo_denoiser_distributed.py`
+  - :ref:`sphx_glr_auto_examples_distributed_demo_pnp_distributed.py`
 
 - **Related**: 
   

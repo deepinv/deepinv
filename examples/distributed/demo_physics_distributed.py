@@ -28,7 +28,7 @@ for parallel computation of forward and adjoint operations.
 1. Create multiple physics operators with different blur kernels
 2. Stack them using dinv.physics.stack()
 3. Initialize distributed context
-4. Distribute physics with dinv.distrib.distribute()
+4. Distribute physics with dinv.distributed.distribute()
 5. Apply forward, adjoint, and composition operations
 6. Visualize results
 """
@@ -42,7 +42,7 @@ from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 
 # Import distributed framework
-from deepinv.distrib import DistributedContext, distribute
+from deepinv.distributed import DistributedContext, distribute
 
 
 # %%

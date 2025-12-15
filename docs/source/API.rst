@@ -6,7 +6,7 @@ API
    :maxdepth: 1
 
    api/deepinv.datasets
-   api/deepinv.distrib
+   api/deepinv.distributed
    api/deepinv.loss
    api/deepinv.models
    api/deepinv.metric

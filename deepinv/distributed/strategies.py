@@ -12,7 +12,7 @@ from typing import Optional, Sequence
 
 import torch
 
-from .utils import (
+from deepinv.distributed.utils import (
     tiling_splitting_strategy,
     tiling_reduce_fn,
 )
