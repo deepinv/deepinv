@@ -100,6 +100,10 @@ class HDF5Dataset(ImageDataset):
     ``train``. If ``train=True``, the training split is loaded, otherwise
     the testing split is loaded.
 
+    By default, if neither ``split`` nor ``train`` is provided, it attempts to
+    load the training split. We don't recommend relying on this behaviour which
+    is likely to change in future versions of the library.
+
     .. warning::
 
         If both ``split`` and ``train`` are provided, then ``split`` takes
@@ -205,7 +209,14 @@ class HDF5Dataset(ImageDataset):
                 )
             split_name = split
         else:
-            split_name = "train" if train is None or train else "test"
+            if train is None:
+                warn(
+                    "Neither 'split' nor 'train' parameters are provided. Defaulting to loading the 'train' split. This behaviour is likely to change in future versions of the library.",
+                    UserWarning,
+                    stacklevel=1,
+                )
+                train = True
+            split_name = "train" if train else "test"
         split_suffix = f"_{split_name}"
 
         # We make sure that the split contains as many xs as ys and params.
