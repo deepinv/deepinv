@@ -112,7 +112,7 @@ class HDF5Dataset(ImageDataset):
         you wish to load multiple splits, you must instantiate the class once
         per split. See for instance :ref:`sphx_glr_auto_examples_models_demo_training.py`.
 
-    :param str split: The name of the split to load, for instance ``"train"``, ``"test"`` or `"val"``. It can be left unspecified if ``train`` is used instead.
+    :param str, None split: The name of the split to load, for instance ``"train"``, ``"test"`` or `"val"``. It can be left unspecified if ``train`` is used instead.
     :param bool train: If ``split`` is left unspecified, uses ``"train"`` as the split name if set to ``True`` and ``"test"`` otherwise. Note that if ``split`` is specified, this parameter is ignored with a warning.
 
     |sep|
@@ -140,7 +140,7 @@ class HDF5Dataset(ImageDataset):
 
     :param bool load_physics_generator_params: Return the physics parameters
     with each entry. If no physics parameter is featured in the dataset, an
-    empty dictionary is returned nonetheless. (See above for more details.)
+    empty dictionary is returned nonetheless.
 
     |sep|
 
@@ -158,16 +158,17 @@ class HDF5Dataset(ImageDataset):
         The user-provided transformation is only applied to the ground truth
         image. It does not affect the measurements or the physics parameters.
 
-    :param torch.dtype, str dtype: The dtype for real-valued numbers (see above for more details).
-    :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers (see above for more details).
+    :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
+    :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
+    :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
     """
 
     def __init__(
         self,
         path: str,
         train: bool = True,
-        split: str = None,
-        transform: Transform | Callable = None,
+        split: str | None = None,
+        transform: Transform | Callable | None = None,
         load_physics_generator_params: bool = False,
         dtype: torch.dtype | str = torch.float,
         complex_dtype: torch.dtype | str = torch.cfloat,
