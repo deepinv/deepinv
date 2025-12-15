@@ -8,7 +8,7 @@ distributed signal processing, including splitting, batching, and reduction oper
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence
+from typing import Sequence
 
 import torch
 
@@ -81,7 +81,7 @@ class DistributedSignalStrategy(ABC):
         pass
 
     def apply_batching(
-        self, patches: list[torch.Tensor], max_batch_size: Optional[int] = None
+        self, patches: list[torch.Tensor], max_batch_size: int | None = None
     ) -> list[torch.Tensor]:
         r"""
         Group patches into batches for efficient processing.
@@ -197,7 +197,7 @@ class BasicStrategy(DistributedSignalStrategy):
         self,
         signal_shape: Sequence[int],
         tiling_dims: int | tuple[int, ...] = 2,
-        num_splits: Optional[tuple[int, ...]] = None,
+        num_splits: tuple[int, ...] | None = None,
         **kwargs,
     ):
         r"""
@@ -315,10 +315,10 @@ class SmartTilingStrategy(DistributedSignalStrategy):
     def __init__(
         self,
         signal_shape: Sequence[int],
-        tiling_dims: Optional[int | tuple[int, ...]] = None,
+        tiling_dims: int | tuple[int, ...] | None = None,
         patch_size: int | tuple[int, ...] = 256,
         receptive_field_size: int | tuple[int, ...] = 32,
-        stride: Optional[int | tuple[int, ...]] = None,
+        stride: int | tuple[int, ...] | None = None,
         pad_mode: str = "reflect",
         **kwargs,
     ):

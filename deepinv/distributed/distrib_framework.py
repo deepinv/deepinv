@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import copy
-from typing import Callable, Optional, Union, Sequence
+from typing import Callable, Sequence
 
 import torch
 import torch.distributed as dist
@@ -13,7 +13,7 @@ from deepinv.utils.tensorlist import TensorList
 
 from deepinv.distributed.strategies import DistributedSignalStrategy
 
-Index = tuple[Union[slice, int], ...]
+Index = tuple[slice | int, ...]
 
 
 # =========================
@@ -38,11 +38,11 @@ class DistributedContext:
 
     def __init__(
         self,
-        backend: Optional[str] = None,
+        backend: str | None = None,
         cleanup: bool = True,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         deterministic: bool = False,
-        device_mode: Optional[str] = None,
+        device_mode: str | None = None,
     ):
         r"""
         Initialize the distributed context manager.
@@ -549,10 +549,10 @@ class DistributedPhysics(Physics):
         self,
         ctx: DistributedContext,
         num_operators: int,
-        factory: Callable[[int, torch.device, Optional[dict]], Physics],
+        factory: Callable[[int, torch.device, dict | None], Physics],
         *,
-        shared: Optional[dict] = None,
-        dtype: Optional[torch.dtype] = None,
+        shared: dict | None = None,
+        dtype: torch.dtype | None = None,
         gather_strategy: str = "concatenated",
         **kwargs,
     ):
@@ -600,19 +600,19 @@ class DistributedPhysics(Physics):
     # -------- Factorized map-reduce logic --------
     def _map_reduce(
         self,
-        x: Union[torch.Tensor, list[torch.Tensor]],
+        x: torch.Tensor | list[torch.Tensor],
         local_op: Callable,
         reduce: bool = True,
         sum_results: bool = False,
         **kwargs,
-    ) -> Union[TensorList, list[torch.Tensor], torch.Tensor]:
+    ) -> TensorList | list[torch.Tensor] | torch.Tensor:
         """
         Map-reduce pattern for distributed operations.
 
         Maps local_op over local physics operators, then gathers results using
         the configured gather strategy.
 
-        :param Union[torch.Tensor, list[torch.Tensor]] x: input tensor(s). If a list,
+        :param torch.Tensor | list[torch.Tensor] x: input tensor(s). If a list,
             should match the number of local operators (per-operator inputs).
         :param Callable local_op: operation to apply, e.g., lambda p, x: p.A(x)
         :param bool reduce: whether to gather results across ranks.
@@ -675,7 +675,7 @@ class DistributedPhysics(Physics):
 
     def A(
         self, x: torch.Tensor, reduce: bool = True, **kwargs
-    ) -> Union[TensorList, list[torch.Tensor]]:
+    ) -> TensorList | list[torch.Tensor]:
         r"""
         Apply forward operator to all distributed physics operators with automatic gathering.
 
@@ -734,7 +734,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
     :param Callable factory: factory function that creates linear physics operators.
-        Should have signature ``factory(index: int, device: torch.device, shared: Optional[dict]) -> LinearPhysics``.
+        Should have signature ``factory(index: int, device: torch.device, shared: dict | None) -> LinearPhysics``.
     :param None, dict shared: shared data dictionary passed to factory function for all operators.
     :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` (stack operators)
         or ``'mean'`` (average operators). Default is ``'sum'``.
@@ -749,9 +749,9 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         num_operators: int,
         factory,
         *,
-        shared: Optional[dict] = None,
+        shared: dict | None = None,
         reduction: str = "sum",
-        dtype: Optional[torch.dtype] = None,
+        dtype: torch.dtype | None = None,
         gather_strategy: str = "concatenated",
         **kwargs,
     ):
@@ -784,7 +784,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
                 raise ValueError("factory must return LinearPhysics instances.")
 
     def A_adjoint(
-        self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
+        self, y: TensorList | list[torch.Tensor], reduce: bool = True, **kwargs
     ) -> torch.Tensor:
         r"""
         Compute global adjoint operation with automatic reduction.
@@ -829,7 +829,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     def A_vjp(
         self,
         x: torch.Tensor,
-        v: Union[TensorList, list[torch.Tensor]],
+        v: TensorList | list[torch.Tensor],
         reduce: bool = True,
         **kwargs,
     ) -> torch.Tensor:
@@ -898,8 +898,8 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         return self._reduce_global(local)
 
     def A_A_adjoint(
-        self, y: Union[TensorList, list[torch.Tensor]], reduce: bool = True, **kwargs
-    ) -> Union[TensorList, list[torch.Tensor]]:
+        self, y: TensorList | list[torch.Tensor], reduce: bool = True, **kwargs
+    ) -> TensorList | list[torch.Tensor]:
         r"""
         Compute global :math:`A A^T` operation with automatic reduction.
 
@@ -955,7 +955,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
     def A_dagger(
         self,
-        y: Union[TensorList, list[torch.Tensor]],
+        y: TensorList | list[torch.Tensor],
         solver: str = "CG",
         max_iter: int | None = None,
         tol: float | None = None,
@@ -1132,7 +1132,7 @@ class DistributedProcessing:
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
         Should accept a batched tensor of shape ``(N, C, ...)`` and return a tensor of the same shape.
         Examples: denoiser, neural network, prior gradient function, etc.
-    :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy for patch extraction
+    :param str | DistributedSignalStrategy strategy: signal processing strategy for patch extraction
         and reduction. Either a strategy name (``'basic'``, ``'smart_tiling'``) or a custom strategy instance.
         Default is ``'smart_tiling'`` which handles overlapping patches with smooth blending.
     :param None, dict strategy_kwargs: additional keyword arguments passed to the strategy constructor
@@ -1147,9 +1147,9 @@ class DistributedProcessing:
         ctx: DistributedContext,
         processor: Callable[[torch.Tensor], torch.Tensor],
         *,
-        strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
-        strategy_kwargs: Optional[dict] = None,
-        max_batch_size: Optional[int] = None,
+        strategy: str | DistributedSignalStrategy | None = None,
+        strategy_kwargs: dict | None = None,
+        max_batch_size: int | None = None,
         **kwargs,
     ):
         r"""
@@ -1159,7 +1159,7 @@ class DistributedProcessing:
         :param Callable[[torch.Tensor], torch.Tensor] processor: processing function that takes a batched
             tensor ``(N, C, ...)`` and returns a processed tensor of the same shape. Examples include
             denoisers, neural networks, prior gradient functions, etc.
-        :param Union[str, DistributedSignalStrategy] strategy: signal processing strategy. Either a strategy
+        :param str | DistributedSignalStrategy strategy: signal processing strategy. Either a strategy
             name (``'basic'``, ``'smart_tiling'``) or a custom :class:`DistributedSignalStrategy` instance.
             Default is ``'smart_tiling'``.
         :param None, dict strategy_kwargs: additional keyword arguments for the strategy constructor when
@@ -1340,10 +1340,10 @@ class DistributedDataFidelity:
     3. Perform a single reduction across ranks
 
     :param DistributedContext ctx: distributed context manager.
-    :param Union[DataFidelity, Callable] data_fidelity: either a DataFidelity instance
+    :param DataFidelity | Callable data_fidelity: either a DataFidelity instance
         or a factory function that creates DataFidelity instances for each operator.
         The factory should have signature
-        ``factory(index: int, device: torch.device, shared: Optional[dict]) -> DataFidelity``.
+        ``factory(index: int, device: torch.device, shared: dict | None) -> DataFidelity``.
     :param None, int num_operators: number of operators (required if data_fidelity is a factory).
     :param None, dict shared: shared data dictionary passed to factory function for all operators.
     :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
@@ -1371,20 +1371,20 @@ class DistributedDataFidelity:
     def __init__(
         self,
         ctx: DistributedContext,
-        data_fidelity: Union[
-            DataFidelity, Callable[[int, torch.device, Optional[dict]], DataFidelity]
-        ],
-        num_operators: Optional[int] = None,
+        data_fidelity: (
+            DataFidelity | Callable[[int, torch.device, dict | None], DataFidelity]
+        ),
+        num_operators: int | None = None,
         *,
-        shared: Optional[dict] = None,
+        shared: dict | None = None,
         reduction: str = "sum",
     ):
         r"""
         Initialize distributed data fidelity.
 
         :param DistributedContext ctx: distributed context manager.
-        :param Union[DataFidelity, Callable] data_fidelity: data fidelity term or factory.
-        :param Optional[int] num_operators: number of operators (required if data_fidelity is a factory).
+        :param DataFidelity | Callable data_fidelity: data fidelity term or factory.
+        :param int | None num_operators: number of operators (required if data_fidelity is a factory).
         :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``.
         """
         self.ctx = ctx

@@ -60,7 +60,7 @@ provide both local operations and automatic global reduction when needed.
 
 from __future__ import annotations
 
-from typing import Callable, Optional, List, Union
+from typing import Callable
 
 import torch
 
@@ -82,19 +82,19 @@ from deepinv.distributed.strategies import DistributedSignalStrategy
 
 
 def _distribute_physics(
-    physics: Union[
-        StackedPhysics,
-        List[Physics],
-        Callable[[int, torch.device, Optional[dict]], Physics],
-    ],
+    physics: (
+        StackedPhysics
+        | list[Physics]
+        | Callable[[int, torch.device, dict | None], Physics]
+    ),
     ctx: DistributedContext,
     *,
-    num_operators: Optional[int] = None,
-    type_object: Optional[str] = "physics",
-    dtype: Optional[torch.dtype] = torch.float32,
+    num_operators: int | None = None,
+    type_object: str | None = "physics",
+    dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
     **kwargs,
-) -> Union[DistributedPhysics, DistributedLinearPhysics]:
+) -> DistributedPhysics | DistributedLinearPhysics:
     r"""
     Distribute a Physics object across multiple devices.
 
@@ -129,7 +129,7 @@ def _distribute_physics(
         physics_list_extracted = physics.physics_list
         num_operators = len(physics_list_extracted)
 
-        def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
+        def physics_factory(idx: int, device: torch.device, shared: dict | None):
             return physics_list_extracted[idx].to(device)
 
     elif callable(physics):
@@ -142,7 +142,7 @@ def _distribute_physics(
         physics_list_extracted = physics
         num_operators = len(physics_list_extracted)
 
-        def physics_factory(idx: int, device: torch.device, shared: Optional[dict]):
+        def physics_factory(idx: int, device: torch.device, shared: dict | None):
             return physics_list_extracted[idx].to(device)
 
     if type_object == "linear_physics":
@@ -166,25 +166,25 @@ def _distribute_physics(
 
 
 def _distribute_processor(
-    processor: Union[Prior, Denoiser],
+    processor: Prior | Denoiser,
     ctx: DistributedContext,
     *,
-    dtype: Optional[torch.dtype] = torch.float32,
-    tiling_strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
+    dtype: torch.dtype | None = torch.float32,
+    tiling_strategy: torch.dtype | None = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
-    tiling_dims: Optional[int | tuple[int, ...]] = None,
-    max_batch_size: Optional[int] = None,
+    tiling_dims: int | tuple[int, ...] | None = None,
+    max_batch_size: int | None = None,
     gather_strategy: str = "concatenated",
     **kwargs,
 ) -> DistributedProcessing:
     r"""
     Distribute a DeepInverse prior or denoiser across multiple devices.
 
-    :param Union[Prior, Denoiser] processor: DeepInverse prior or denoiser to distribute
+    :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute
     :param DistributedContext ctx: distributed context manager
     :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
-    :param Optional[Union[str, DistributedSignalStrategy]] tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
+    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
     :param int patch_size: size of patches for tiling strategies. Default is 256.
     :param int receptive_field_size: receptive field size for overlap in tiling strategies. Default is 64.
     :param bool overlap: whether patches should overlap. Default is False.
@@ -228,14 +228,14 @@ def _distribute_processor(
 
 
 def _distribute_data_fidelity(
-    data_fidelity: Union[
-        DataFidelity,
-        StackedPhysicsDataFidelity,
-        List[DataFidelity],
-        Callable[[int, torch.device, Optional[dict]], DataFidelity],
-    ],
+    data_fidelity: (
+        DataFidelity
+        | StackedPhysicsDataFidelity
+        | list[DataFidelity]
+        | Callable[[int, torch.device, dict | None], DataFidelity]
+    ),
     ctx: DistributedContext,
-    num_operators: Optional[int] = None,
+    num_operators: int | None = None,
     **kwargs,
 ) -> DistributedDataFidelity:
     r"""
@@ -273,9 +273,7 @@ def _distribute_data_fidelity(
         data_fidelity_list_extracted = data_fidelity.data_fidelity_list
         num_operators = len(data_fidelity_list_extracted)
 
-        def data_fidelity_factory(
-            idx: int, device: torch.device, shared: Optional[dict]
-        ):
+        def data_fidelity_factory(idx: int, device: torch.device, shared: dict | None):
             return data_fidelity_list_extracted[idx].to(device)
 
     elif callable(data_fidelity):
@@ -288,9 +286,7 @@ def _distribute_data_fidelity(
         data_fidelity_list_extracted = data_fidelity
         num_operators = len(data_fidelity_list_extracted)
 
-        def data_fidelity_factory(
-            idx: int, device: torch.device, shared: Optional[dict]
-        ):
+        def data_fidelity_factory(idx: int, device: torch.device, shared: dict | None):
             return data_fidelity_list_extracted[idx].to(device)
 
     return DistributedDataFidelity(
@@ -302,53 +298,53 @@ def _distribute_data_fidelity(
 
 
 def distribute(
-    object: Union[
-        StackedPhysics,
-        List[Physics],
-        Callable[[int, torch.device, Optional[dict]], Physics],
-        Denoiser,
-        Callable[[int, torch.device, Optional[dict]], Denoiser],
-        DataFidelity,
-        List[DataFidelity],
-        StackedPhysicsDataFidelity,
-        Callable[[int, torch.device, Optional[dict]], DataFidelity],
-    ],
+    object: (
+        StackedPhysics
+        | list[Physics]
+        | Callable[[int, torch.device, dict | None], Physics]
+        | Denoiser
+        | Callable[[int, torch.device, dict | None], Denoiser]
+        | DataFidelity
+        | list[DataFidelity]
+        | StackedPhysicsDataFidelity
+        | Callable[[int, torch.device, dict | None], DataFidelity]
+    ),
     ctx: DistributedContext,
     *,
-    num_operators: Optional[int] = None,
-    type_object: Optional[str] = "auto",
-    dtype: Optional[torch.dtype] = torch.float32,
+    num_operators: int | None = None,
+    type_object: str | None = "auto",
+    dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
-    tiling_strategy: Optional[Union[str, DistributedSignalStrategy]] = None,
-    tiling_dims: Optional[int | tuple[int, ...]] = None,
+    tiling_strategy: str | DistributedSignalStrategy | None = None,
+    tiling_dims: int | tuple[int, ...] | None = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
-    max_batch_size: Optional[int] = None,
+    max_batch_size: int | None = None,
     **kwargs,
-) -> Union[
-    DistributedPhysics,
-    DistributedLinearPhysics,
-    DistributedProcessing,
-    DistributedDataFidelity,
-]:
+) -> (
+    DistributedPhysics
+    | DistributedLinearPhysics
+    | DistributedProcessing
+    | DistributedDataFidelity
+):
     r"""
     Distribute a DeepInverse object across multiple devices.
 
     This function takes a DeepInverse object (Physics, DataFidelity, or Prior)
     and distributes it using the provided DistributedContext.
 
-    :param Union[Physics, DataFidelity, Denoiser] object: DeepInverse object to distribute
+    :param StackedPhysics | list[Physics] | Callable[[int, torch.device, dict | None], Physics] | Denoiser | Callable[[int, torch.device, dict | None], Denoiser] | DataFidelity | list[DataFidelity] | StackedPhysicsDataFidelity | Callable[[int, torch.device, dict | None], DataFidelity] object: DeepInverse object to distribute
     :param DistributedContext ctx: distributed context manager
     :param None, int num_operators: number of physics operators when using a factory for physics, otherwise inferred.
-    :param Optional[str] type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
-    :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
+    :param str | None type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
+    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
         - `'naive'`: Simple object serialization (best for small tensors)
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
         - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
         Default is `'concatenated'`.
-    :param Optional[Union[str, DistributedSignalStrategy]] tiling_strategy: strategy for tiling the signal (for Denoiser/Prior). Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
-    :param Optional[int | tuple[int, ...]] tiling_dims: dimensions to tile over (for Denoiser/Prior).
+    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser/Prior). Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
+    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser/Prior).
         If ``None`` (default), tiles the last N-2 dimensions (spatial dimensions).
         If an int ``N``, tiles the last ``N`` dimensions.
         If a tuple, specifies exact dimensions to tile.

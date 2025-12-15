@@ -198,7 +198,7 @@ with DistributedContext(seed=42) as ctx:
 
     if ctx.rank == 0:
         print(f"   Output shape: {adjoint_result.shape}")
-        print(f"   Output norm: {torch.norm(adjoint_result).item():.4f}")
+        print(f"   Output norm: {torch.linalg.norm(adjoint_result).item():.4f}")
 
         # Compare with non-distributed result
         print(f"\nComparing with non-distributed adjoint operation...")
@@ -226,7 +226,7 @@ with DistributedContext(seed=42) as ctx:
 
     if ctx.rank == 0:
         print(f"   Output shape: {ata_result.shape}")
-        print(f"   Output norm: {torch.norm(ata_result).item():.4f}")
+        print(f"   Output norm: {torch.linalg.norm(ata_result).item():.4f}")
 
         # Compare with non-distributed result
         print(f"\nComparing with non-distributed A^T A operation...")

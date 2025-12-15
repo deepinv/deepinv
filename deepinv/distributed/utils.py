@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence, Optional
+from typing import Sequence
 import itertools
 import torch
 
@@ -38,8 +38,8 @@ def tiling_splitting_strategy(
     *,
     patch_size: int | tuple[int, ...],
     receptive_field_size: int | tuple[int, ...] = 0,
-    stride: Optional[int | tuple[int, ...]] = None,
-    tiling_dims: Optional[int | tuple[int, ...]] = None,
+    stride: int | tuple[int, ...] | None = None,
+    tiling_dims: int | tuple[int, ...] | None = None,
     pad_mode: str = "reflect",
 ) -> tuple[list[Index], dict]:
     r"""

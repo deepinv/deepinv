@@ -24,9 +24,9 @@ import socket
 import torch.multiprocessing as mp
 from typing import Callable, Any
 
-from deepinv.physics import Blur, GaussianNoise, LinearPhysics
+from deepinv.physics import Blur, GaussianNoise
 from deepinv.physics.blur import gaussian_blur
-from deepinv.physics.forward import StackedPhysics, StackedLinearPhysics
+from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Denoiser
 from deepinv.models.drunet import DRUNet
