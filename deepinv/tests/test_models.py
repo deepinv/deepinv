@@ -37,6 +37,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_hard",
     "waveletdict_topk",
     "dsccp",
+    "bilateral",
 ]
 
 REST_MODEL_LIST = [
@@ -141,6 +142,8 @@ def choose_denoiser(name, imsize):
         )
     elif name == "dsccp":
         out = dinv.models.DScCP()
+    elif name == "bilateral":
+        out = dinv.models.BilateralFilter()
     else:
         raise Exception("Unknown denoiser")
 
