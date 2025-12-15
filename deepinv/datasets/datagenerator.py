@@ -166,7 +166,7 @@ class HDF5Dataset(ImageDataset):
     def __init__(
         self,
         path: str,
-        train: bool = True,
+        train: bool | None = None,
         split: str | None = None,
         transform: Transform | Callable | None = None,
         load_physics_generator_params: bool = False,
@@ -196,7 +196,16 @@ class HDF5Dataset(ImageDataset):
 
         # Register members in the HDF5 file as ground truths, parts of stacked
         # measurements or regular measurements and forward operator parameters
-        split_name = split if split is not None else ("train" if train else "test")
+        if split is not None:
+            if train is not None:
+                warn(
+                    "The parameters 'split' and 'train' are both provided. The parameter 'split' takes precedence and 'train' is ignored.",
+                    UserWarning,
+                    stacklevel=1,
+                )
+            split_name = split
+        else:
+            split_name = "train" if train is None or train else "test"
         split_suffix = f"_{split_name}"
 
         # We make sure that the split contains as many xs as ys and params.
