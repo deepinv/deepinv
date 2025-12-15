@@ -94,8 +94,8 @@ class HDF5Dataset(ImageDataset):
         split: str = None,
         transform: Transform | Callable = None,
         load_physics_generator_params: bool = False,
-        dtype: torch.dtype = torch.float,
-        complex_dtype: torch.dtype = torch.cfloat,
+        dtype: torch.dtype | str = torch.float,
+        complex_dtype: torch.dtype | str = torch.cfloat,
     ):
         import h5py
 
