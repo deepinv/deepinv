@@ -458,6 +458,10 @@ class LinearPhysics(Physics):
 
         :return: device of the physics parameters.
         """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version."
+        )
+        
         return self._device_holder.device
     
 
