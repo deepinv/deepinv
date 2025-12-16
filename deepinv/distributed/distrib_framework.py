@@ -265,7 +265,7 @@ class DistributedContext:
         if not self.is_dist:
             # Single process: just build the list
             out: list = [None] * num_operators
-            for idx, result in zip(local_indices, local_results, strict=False):
+            for idx, result in zip(local_indices, local_results):
                 out[idx] = result
             return TensorList(out)
 
@@ -278,7 +278,7 @@ class DistributedContext:
             )
 
         # Pair indices with tensors
-        pairs = list(zip(local_indices, local_results, strict=False))
+        pairs = list(zip(local_indices, local_results))
 
         # Gather all pairs from all ranks
         gathered = [None] * self.world_size
@@ -316,14 +316,14 @@ class DistributedContext:
         if not self.is_dist:
             # Single process: just build the list
             out: list = [None] * num_operators
-            for idx, result in zip(local_indices, local_results, strict=False):
+            for idx, result in zip(local_indices, local_results):
                 out[idx] = result
             return TensorList(out)
 
         # Step 1: Share metadata (indices, shapes, dtypes)
         local_metadata = [
             (idx, tuple(result.shape), result.dtype, result.numel())
-            for idx, result in zip(local_indices, local_results, strict=False)
+            for idx, result in zip(local_indices, local_results)
         ]
 
         gathered_metadata = [None] * self.world_size
@@ -469,14 +469,14 @@ class DistributedContext:
         if not self.is_dist:
             # Single process: just build the list
             out: list = [None] * num_operators
-            for idx, result in zip(local_indices, local_results, strict=False):
+            for idx, result in zip(local_indices, local_results):
                 out[idx] = result
             return TensorList(out)
 
         # Step 1: Share metadata (indices, shapes, dtypes)
         local_metadata = [
             (idx, tuple(result.shape), result.dtype)
-            for idx, result in zip(local_indices, local_results, strict=False)
+            for idx, result in zip(local_indices, local_results)
         ]
 
         gathered_metadata = [None] * self.world_size
@@ -627,8 +627,7 @@ class DistributedPhysics(Physics):
                     f"got {len(x)}, expected {len(self.local_physics)}"
                 )
             local_results = [
-                local_op(p, x_i, **kwargs)
-                for p, x_i in zip(self.local_physics, x, strict=False)
+                local_op(p, x_i, **kwargs) for p, x_i in zip(self.local_physics, x)
             ]
         else:
             # Single input shared by all operators (e.g., for A(x))
@@ -642,7 +641,7 @@ class DistributedPhysics(Physics):
         if not self.ctx.is_dist:
             # Single process: just build the list
             out: list = [None] * self.num_operators
-            for idx, result in zip(self.local_indexes, local_results, strict=False):
+            for idx, result in zip(self.local_indexes, local_results):
                 out[idx] = result
 
             if sum_results:
@@ -861,8 +860,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             local = torch.zeros_like(x)
         else:
             contribs = [
-                p.A_vjp(x, v_i, **kwargs)
-                for p, v_i in zip(self.local_physics, v_local, strict=False)
+                p.A_vjp(x, v_i, **kwargs) for p, v_i in zip(self.local_physics, v_local)
             ]
             local = torch.stack(contribs, dim=0).sum(0)
 
@@ -1009,7 +1007,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
             else:
                 contribs = [
                     p.A_dagger(y_i, **kwargs)
-                    for p, y_i in zip(self.local_physics, y_local, strict=False)
+                    for p, y_i in zip(self.local_physics, y_local)
                 ]
                 local = torch.stack(contribs, dim=0).sum(0)
 
@@ -1303,7 +1301,7 @@ class DistributedProcessing:
                 f"and local indices ({len(self.local_indices)})"
             )
 
-        processed_pairs = list(zip(self.local_indices, processed_patches, strict=False))
+        processed_pairs = list(zip(self.local_indices, processed_patches))
 
         # 6. Initialize output tensor and apply reduction strategy
         out_local = torch.zeros(
@@ -1465,7 +1463,7 @@ class DistributedDataFidelity:
         else:
             contribs = [
                 self._get_fidelity(i).d.fn(Ax_i, y_i, *args, **kwargs)
-                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
+                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local))
             ]
             result_local = torch.stack(contribs, dim=0).sum(0)
 
@@ -1522,7 +1520,7 @@ class DistributedDataFidelity:
             # Compute gradients w.r.t. Ax
             grad_d_local = [
                 self._get_fidelity(i).d.grad(Ax_i, y_i, *args, **kwargs)
-                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local, strict=False))
+                for i, (Ax_i, y_i) in enumerate(zip(Ax_local, y_local))
             ]
             # Apply A_vjp locally (this is A^T @ grad_d)
             grad_local = physics.A_vjp(x, grad_d_local, reduce=False, **kwargs)

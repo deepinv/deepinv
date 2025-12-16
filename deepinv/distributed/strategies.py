@@ -264,9 +264,7 @@ class BasicStrategy(DistributedSignalStrategy):
         for positions in itertools.product(*[range(len(r)) for r in ranges]):
             # Create slice tuple
             slices = [slice(None)] * len(self.signal_shape)
-            for i, (dim, pos) in enumerate(
-                zip(self.tiling_dims, positions, strict=False)
-            ):
+            for i, (dim, pos) in enumerate(zip(self.tiling_dims, positions)):
                 start, end = ranges[i][pos]
                 slices[dim] = slice(start, end)
 
