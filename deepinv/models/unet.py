@@ -34,8 +34,8 @@ class UNet(Denoiser):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases in conv and norm layers.
-    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use batchnormalization,
-        if ``batch_norm="biasfree"``, use the bias-free batchnorm from :footcite:t:`mohan2020robust`.
+    :param bool, str batch_norm: if False, disable normalization entirely, if ``True``, use batch normalization,
+        if ``batch_norm="biasfree"``, use the bias-free batch norm from :footcite:t:`mohan2020robust`.
     :param int scales: Number of stages.
     :param Sequence[int] channels_per_scale: Number of feature maps at each stage (from shallow to deep).
     :param torch.device, str device: Device to put the model on.
@@ -66,7 +66,7 @@ class UNet(Denoiser):
 
         if (scales is not None and channels_per_scale is not None) and (
             len(channels_per_scale) != scales
-        ):
+        ):  # pragma: no cover
             raise RuntimeError(
                 f"Both scales and channels_per_scale was passed, but scales ({scales}) does not match the length of channels_per_scale ({len(channels_per_scale)})"
             )
@@ -76,6 +76,9 @@ class UNet(Denoiser):
                 scales = len(channels_per_scale)
             else:
                 scales = 4  # legacy default
+
+        if scales < 2:  # pragma: no cover
+            raise ValueError(f"UNet requires at least 2 scales. Got {scales} scales")
 
         if channels_per_scale is None:
             channels_per_scale = [64 * (2**k) for k in range(scales)]
@@ -87,17 +90,13 @@ class UNet(Denoiser):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-
         self.residual = residual
         self.cat = cat
-        self.compact = scales  # backward compatibility, old attribute name
-
-        biasfree = batch_norm == "biasfree"
 
         b = _Blocks(
             dim=dim,
             circular_padding=circular_padding,
-            biasfree_norm=biasfree,
+            biasfree_norm=batch_norm == "biasfree",
             use_bias=bias,
             norm=batch_norm,
         )
@@ -134,6 +133,11 @@ class UNet(Denoiser):
 
         if device is not None:
             self.to(device)
+
+    @property
+    def compact(self):
+        warnings.warn("UNet.compact is deprecated and read-only.")
+        return len(self._enc_names)
 
     def forward(self, x: torch.Tensor, sigma: Any = None, **kwargs) -> torch.Tensor:
         r"""
@@ -270,44 +274,42 @@ class _Blocks:
         return nn.Sequential(*layers)
 
 
-class _BFBNCore:
-    def _bf_forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = x.transpose(0, 1)
-        return_shape = y.shape
-        y = y.contiguous().view(x.size(1), -1)
+def _bf_forward(
+    bn: nn.BatchNorm2d | nn.BatchNorm3d, x: torch.Tensor, use_bias: bool
+) -> torch.Tensor:
+    bn._check_input_dim(x)
+    y = x.transpose(0, 1)
+    return_shape = y.shape
+    y = y.contiguous().view(x.size(1), -1)
 
-        if self.use_bias:
-            mu = y.mean(dim=1)
-        sigma2 = y.var(dim=1)
+    if use_bias:
+        mu = y.mean(dim=1)
+    sigma2 = y.var(dim=1)
 
-        if not self.training:
-            if self.use_bias:
-                y = y - self.running_mean.view(-1, 1)
-            y = y / (self.running_var.view(-1, 1).sqrt() + self.eps)
-        else:
-            if self.track_running_stats:
-                with torch.no_grad():
-                    if self.use_bias:
-                        self.running_mean.mul_(1 - self.momentum).add_(
-                            self.momentum * mu
-                        )
-                    self.running_var.mul_(1 - self.momentum).add_(
-                        self.momentum * sigma2
-                    )
+    if not bn.training:
+        if use_bias:
+            y = y - bn.running_mean.view(-1, 1)
+        y = y / (bn.running_var.view(-1, 1).sqrt() + bn.eps)
+    else:
+        if bn.track_running_stats:
+            with torch.no_grad():
+                if use_bias:
+                    bn.running_mean.mul_(1 - bn.momentum).add_(bn.momentum * mu)
+                bn.running_var.mul_(1 - bn.momentum).add_(bn.momentum * sigma2)
 
-            if self.use_bias:
-                y = y - mu.view(-1, 1)
-            y = y / (sigma2.view(-1, 1).sqrt() + self.eps)
+        if use_bias:
+            y = y - mu.view(-1, 1)
+        y = y / (sigma2.view(-1, 1).sqrt() + bn.eps)
 
-        if self.affine:
-            y = self.weight.view(-1, 1) * y
-            if self.use_bias:
-                y = y + self.bias.view(-1, 1)
+    if bn.affine:
+        y = bn.weight.view(-1, 1) * y
+        if use_bias:
+            y = y + bn.bias.view(-1, 1)
 
-        return y.view(return_shape).transpose(0, 1)
+    return y.view(return_shape).transpose(0, 1)
 
 
-class BFBatchNorm2d(_BFBNCore, nn.BatchNorm2d):
+class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From :footcite:t:`mohan2020robust`.
     """
@@ -322,14 +324,12 @@ class BFBatchNorm2d(_BFBNCore, nn.BatchNorm2d):
     ):
         super().__init__(num_features, eps=eps, momentum=momentum, affine=affine)
         self.use_bias = use_bias
-        self.affine = affine
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        self._check_input_dim(x)
-        return self._bf_forward(x)
+        return _bf_forward(self, x, self.use_bias)
 
 
-class BFBatchNorm3d(_BFBNCore, nn.BatchNorm3d):
+class BFBatchNorm3d(nn.BatchNorm3d):
     r"""
     From :footcite:t:`mohan2020robust`.
     """
@@ -344,11 +344,9 @@ class BFBatchNorm3d(_BFBNCore, nn.BatchNorm3d):
     ):
         super().__init__(num_features, eps=eps, momentum=momentum, affine=affine)
         self.use_bias = use_bias
-        self.affine = affine
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        self._check_input_dim(x)
-        return self._bf_forward(x)
+        return _bf_forward(self, x, self.use_bias)
 
 
 def bfbatchnorm_nd(dim: int) -> nn.Module:
