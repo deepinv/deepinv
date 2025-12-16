@@ -289,7 +289,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
         norm = 1.4
-        params = [] # no filter in aliased case
+        params = []  # no filter in aliased case
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_size=img_size, device=device, rng=rng
@@ -1649,7 +1649,7 @@ def test_operators_differentiability(name, device):
 
     if name == "radio":
         dtype = torch.cfloat
-        
+
     if "composition" in name:
         pytest.skip("Skip composition operators for differentiability test.")
 
@@ -1815,7 +1815,9 @@ def test_physics_state_dict(name, device):
                 tensor_attrs[full_name] = attr
             elif isinstance(attr, torch.nn.ModuleList):
                 for i, submodule in enumerate(attr):
-                    tensor_attrs.update(get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}"))
+                    tensor_attrs.update(
+                        get_all_tensor_attrs(submodule, prefix=f"{full_name}.{i}")
+                    )
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
                 tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))

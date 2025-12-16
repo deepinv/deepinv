@@ -202,7 +202,7 @@ class Tomography(LinearPhysics):
             )
             self.register_buffer("operator_norm", operator_norm)
             self.normalize = True
-            
+
         self.to(device)
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
@@ -553,7 +553,7 @@ class TomographyWithAstra(LinearPhysics):
                 squared=False,
             )
             self.normalize = True
-            
+
         self.to(device)
 
     @property

@@ -307,7 +307,11 @@ class Radon(nn.Module):
         return out
 
     def _create_grids(
-        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str | torch.device = "cpu"
+        self,
+        angles: torch.Tensor,
+        grid_size: int,
+        circle: bool,
+        device: str | torch.device = "cpu",
     ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
@@ -385,11 +389,7 @@ class IRadon(nn.Module):
         else:
             self.register_buffer("all_grids", all_grids, persistent=False)
 
-        self.filter = (
-            RampFilter(dtype=self.dtype)
-            if use_filter
-            else lambda x: x
-        )
+        self.filter = RampFilter(dtype=self.dtype) if use_filter else lambda x: x
 
     def forward(self, x: torch.Tensor, filtering: bool = True) -> torch.Tensor:
         r"""
@@ -461,7 +461,11 @@ class IRadon(nn.Module):
         return T
 
     def _create_grids(
-        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str | torch.device = "cpu"
+        self,
+        angles: torch.Tensor,
+        grid_size: int,
+        circle: bool,
+        device: str | torch.device = "cpu",
     ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())

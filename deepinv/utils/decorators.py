@@ -5,10 +5,10 @@ import functools
 def _deprecated_argument(*arg_names):
     """
     Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
-    
+
     :param arg_names: names of the deprecated arguments
     """
-    
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -24,7 +24,8 @@ def _deprecated_argument(*arg_names):
 
         return wrapper
 
-    return decorator  
+    return decorator
+
 
 def _deprecated_alias(**aliases):
     """

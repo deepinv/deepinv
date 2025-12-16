@@ -97,7 +97,7 @@ class Downsampling(LinearPhysics):
             self.Fh2 = None
 
         self.to(device)
-        
+
     @staticmethod
     def get_filter_parameters(
         img_size: tuple[int, ...] | None = None,
@@ -114,19 +114,23 @@ class Downsampling(LinearPhysics):
         :param int, float, torch.Tensor factor: Downsampling factor to be applied to the input image.
         :param torch.device, str device: Device where the filter tensor will be created.
         """
-        
+
         parameters = {}
-        
+
         if factor is not None:
             factor = Downsampling.check_factor(factor=factor)
             parameters["factor"] = factor
         else:
             parameters["factor"] = None
-        
+
         if filter is not None:
-            assert factor is not None, "factor must be provided when filter is not None."
-            assert img_size is not None, "img_size must be provided when filter is not None."
-            
+            assert (
+                factor is not None
+            ), "factor must be provided when filter is not None."
+            assert (
+                img_size is not None
+            ), "img_size must be provided when filter is not None."
+
             if isinstance(filter, list):
                 # Batched filter strings
                 if len(set(filter)) == 1 and isinstance(filter[0], str):
@@ -139,19 +143,15 @@ class Downsampling(LinearPhysics):
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(device)
             elif filter == "gaussian":
-                filter = gaussian_blur(
-                    sigma=(factor, factor), device=device
-                )
+                filter = gaussian_blur(sigma=(factor, factor), device=device)
             elif filter == "bilinear":
                 filter = bilinear_filter(factor, device=device)
             elif filter == "bicubic":
                 filter = bicubic_filter(factor, device=device)
             elif filter == "sinc":
-                filter = sinc_filter(
-                    factor, length=4 * factor, device=device
-                )
+                filter = sinc_filter(factor, length=4 * factor, device=device)
 
-            # `Fh` is initialized on `filter.device`    
+            # `Fh` is initialized on `filter.device`
             Fh = filter_fft_2d(filter, img_size, real_fft=False)
             Fhc = torch.conj(Fh)
             Fh2 = Fhc * Fh
@@ -161,13 +161,13 @@ class Downsampling(LinearPhysics):
             parameters["Fhc"] = Fhc
             parameters["Fh2"] = Fh2
         else:
-            parameters["filter"] = None    
+            parameters["filter"] = None
             parameters["Fh"] = None
             parameters["Fhc"] = None
             parameters["Fh2"] = None
-        
+
         return parameters
-        
+
     def A(
         self,
         x: Tensor,
@@ -189,7 +189,7 @@ class Downsampling(LinearPhysics):
 
         """
         self.imsize_dynamic = x.shape[-3:]
-        
+
         self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
         if self.filter is not None:
@@ -333,7 +333,7 @@ class Downsampling(LinearPhysics):
         )
         if factor is not None:
             self.factor = filter_parameters.pop("factor")
-        
+
         super().update_parameters(**filter_parameters, **kwargs)
 
 
@@ -442,7 +442,13 @@ class Blur(LinearPhysics):
 
     """
 
-    def __init__(self, filter: torch.Tensor | None = None, padding : str = "valid", device: str | torch.device = "cpu", **kwargs):
+    def __init__(
+        self,
+        filter: torch.Tensor | None = None,
+        padding: str = "valid",
+        device: str | torch.device = "cpu",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.padding = padding
         assert (
@@ -463,9 +469,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(
-            filter=filter, **kwargs
-        )
+        self.update_parameters(filter=filter, **kwargs)
 
         if x.dim() == 4:
             return conv2d(x, filter=self.filter, padding=self.padding)
@@ -481,9 +485,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(
-            filter=filter, **kwargs
-        )
+        self.update_parameters(filter=filter, **kwargs)
 
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
@@ -546,7 +548,7 @@ class BlurFFT(DecomposablePhysics):
         assert (
             isinstance(filter, Tensor) or filter is None
         ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
-        
+
         filter_parameters = self.get_filter_parameters(
             img_size=img_size, filter=filter, device=device
         )
@@ -600,9 +602,9 @@ class BlurFFT(DecomposablePhysics):
         :param torch.Tensor filter: Filter to be applied to the input image.
         :param torch.device, str device: Device where the filter tensor will be created.
         """
-        
+
         parameters = {}
-        
+
         if filter is not None and isinstance(filter, Tensor):
             filter = filter.to(device)
             if img_size[0] > filter.shape[1]:
@@ -618,13 +620,15 @@ class BlurFFT(DecomposablePhysics):
                 "mask": mask,
             }
         else:
-            parameters["filter"] = None    
+            parameters["filter"] = None
             parameters["angle"] = None
             parameters["mask"] = None
 
         return parameters
 
-    def update_parameters(self, filter: Tensor | None = None, device: torch.device | str = "cpu", **kwargs):
+    def update_parameters(
+        self, filter: Tensor | None = None, device: torch.device | str = "cpu", **kwargs
+    ):
         r"""
         Updates the current filter.
 
@@ -635,7 +639,7 @@ class BlurFFT(DecomposablePhysics):
             img_size=self.img_size, filter=filter, device=device
         )
 
-        # In BlurFFT.A, `update_parameters` is called two times: 
+        # In BlurFFT.A, `update_parameters` is called two times:
         # 1. first from BlurFFT.A with filter=filter
         # 2. second from DecomposablePhysics.A with mask=None (which goes in kwargs here and compete with filter_parameters['mask']).
         # We call update_parameters two times to avoid this issue.
@@ -697,20 +701,20 @@ class SpaceVaryingBlur(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        
+
         if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters.to(device))
         else:
             self.filters = None
-            
+
         if multipliers is not None and isinstance(filters, Tensor):
             self.register_buffer("multipliers", multipliers.to(device))
         else:
             self.multipliers = None
-            
+
         if padding is not None:
             self.padding = padding
-        
+
         self.to(device)
 
     def A(
@@ -775,8 +779,8 @@ class SpaceVaryingBlur(LinearPhysics):
         """
         if padding is not None:
             self.padding = padding
-            
-        super().update_parameters(filters=filters, multipliers=multipliers,**kwargs)
+
+        super().update_parameters(filters=filters, multipliers=multipliers, **kwargs)
 
 
 def gaussian_blur(

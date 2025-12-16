@@ -112,12 +112,10 @@ class MRIMixin:
 
     Base class that provides helper functions for FFT and mask checking.
     """
-    
+
     @staticmethod
     @_deprecated_argument("device")
-    def check_mask(
-        mask: Tensor = None, three_d: bool = False
-    ) -> None:
+    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
@@ -135,7 +133,7 @@ class MRIMixin:
 
             if mask.shape[1] == 1:  # make complex if real
                 mask = torch.cat([mask, mask], dim=1)
-                
+
         return mask
 
     @staticmethod

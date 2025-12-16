@@ -445,8 +445,8 @@ class LinearPhysics(Physics):
             warnings.warn(
                 "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
-            
-        device_holder = torch.tensor(0., device=device)
+
+        device_holder = torch.tensor(0.0, device=device)
         self.register_buffer("_device_holder", device_holder, persistent=False)
         # pushes all parameters/buffers to the specified device, including `noise_model`
         self.to(device)
@@ -461,9 +461,8 @@ class LinearPhysics(Physics):
         warnings.warn(
             "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version."
         )
-        
+
         return self._device_holder.device
-    
 
     def A_adjoint(self, y, **kwargs):
         r"""

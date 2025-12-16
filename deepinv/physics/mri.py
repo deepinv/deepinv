@@ -161,6 +161,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
         super().update_parameters(mask=mask, **kwargs)
 
+
 class MultiCoilMRI(MRIMixin, LinearPhysics):
     r"""
     Multi-coil 2D or 3D MRI operator.
@@ -238,13 +239,15 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             coil_maps = torch.ones(
                 (self.img_size[-2:] if not self.three_d else self.img_size[-3:]),
                 dtype=torch.complex64,
-                device=device
+                device=device,
             )
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps).to(device)
 
         self.register_buffer("mask", self.check_mask(mask, three_d=self.three_d))
-        self.register_buffer("coil_maps", self.check_coil_maps(coil_maps, three_d=self.three_d))
+        self.register_buffer(
+            "coil_maps", self.check_coil_maps(coil_maps, three_d=self.three_d)
+        )
         self.to(device)
 
     def A(
@@ -354,9 +357,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         """
         if mask is not None:
             mask = (
-                self.check_mask(mask=mask, three_d=self.three_d)
-                if check_mask
-                else mask
+                self.check_mask(mask=mask, three_d=self.three_d) if check_mask else mask
             )
 
         if coil_maps is not None:
@@ -584,7 +585,9 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: torch.Tensor | None = None, device: str | torch.device = "cpu") -> MRI:
+    def to_static(
+        self, mask: torch.Tensor | None = None, device: str | torch.device = "cpu"
+    ) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
