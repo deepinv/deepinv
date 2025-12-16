@@ -72,9 +72,8 @@ def deg2rad(x: int | float | torch.Tensor) -> torch.Tensor:
 
 
 class AbstractFilter(nn.Module):
-    def __init__(self, device="cpu", dtype=torch.float):
+    def __init__(self, dtype: torch.dtype = torch.float32):
         super().__init__()
-        self.device = device
         self.dtype = dtype
 
     def forward(self, x: torch.Tensor, dim: int = -2) -> torch.Tensor:
@@ -98,7 +97,7 @@ class AbstractFilter(nn.Module):
         )
         pad_width = projection_size_padded - input_size
 
-        f = self._get_fourier_filter(projection_size_padded).to(x.device)
+        f = self._get_fourier_filter(projection_size_padded, device=x.device)
         fourier_filter = self.create_filter(f)
         if dim == 2 or dim == -2:
             fourier_filter = fourier_filter.unsqueeze(-1)
@@ -149,12 +148,12 @@ class AbstractFilter(nn.Module):
         elif dim == 3 or dim == -1:
             return result[:, :, :, :input_size]
 
-    def _get_fourier_filter(self, size):
+    def _get_fourier_filter(self, size, device: str | torch.device = "cpu"):
         n = torch.cat(
             [torch.arange(1, size / 2 + 1, 2), torch.arange(size / 2 - 1, 0, -2)]
         )
 
-        f = torch.zeros(size, dtype=self.dtype, device=self.device)
+        f = torch.zeros(size, dtype=self.dtype, device=device)
         f[0] = 0.25
         f[1::2] = -1 / (torch.pi * n) ** 2
 
@@ -216,7 +215,7 @@ class Radon(nn.Module):
     ):
         super().__init__()
         self.circle = circle
-        theta = theta if theta is not None else torch.arange(180).to(self.device)
+        theta = theta if theta is not None else torch.arange(180).to(device)
         self.register_buffer("theta", theta, persistent=False)
         self.dtype = dtype
         self.parallel_computation = parallel_computation
@@ -239,7 +238,7 @@ class Radon(nn.Module):
             if not "detector_spacing" in self.fan_parameters.keys():
                 self.fan_parameters["detector_spacing"] = 0.077
 
-        all_grids = self._create_grids(self.theta, in_size, circle).to(device)
+        all_grids = self._create_grids(self.theta, in_size, circle, device=device)
         if self.parallel_computation:
             self.register_buffer(
                 "all_grids",
@@ -308,7 +307,7 @@ class Radon(nn.Module):
         return out
 
     def _create_grids(
-        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str = "cpu"
+        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str | torch.device = "cpu"
     ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
@@ -365,19 +364,18 @@ class IRadon(nn.Module):
     ):
         super().__init__()
         self.circle = circle
-        self.device = device
-        theta = theta if theta is not None else torch.arange(180).to(self.device)
+        theta = theta if theta is not None else torch.arange(180).to(device)
         self.register_buffer("theta", theta, persistent=False)
         self.out_size = out_size
         self.in_size = in_size
         self.parallel_computation = parallel_computation
         self.dtype = dtype
 
-        ygrid, xgrid = self._create_yxgrid(in_size, circle)
+        ygrid, xgrid = self._create_yxgrid(in_size, circle, device=device)
         self.register_buffer("xgrid", xgrid, persistent=False)
         self.register_buffer("ygrid", ygrid, persistent=False)
 
-        all_grids = self._create_grids(self.theta, in_size, circle).to(self.device)
+        all_grids = self._create_grids(self.theta, in_size, circle, device=device)
         if self.parallel_computation:
             self.register_buffer(
                 "all_grids",
@@ -388,7 +386,7 @@ class IRadon(nn.Module):
             self.register_buffer("all_grids", all_grids, persistent=False)
 
         self.filter = (
-            RampFilter(dtype=self.dtype, device=self.device)
+            RampFilter(dtype=self.dtype)
             if use_filter
             else lambda x: x
         )
@@ -414,7 +412,7 @@ class IRadon(nn.Module):
                 ch_size,
                 it_size,
                 it_size,
-                device=self.device,
+                device=x.device,
                 dtype=self.dtype,
             )
             for i_theta in range(len(self.theta)):
@@ -450,11 +448,11 @@ class IRadon(nn.Module):
         return reco
 
     def _create_yxgrid(
-        self, in_size: int, circle: bool
+        self, in_size: int, circle: bool, device: str | torch.device = "cpu"
     ) -> tuple[torch.Tensor, torch.Tensor]:
         if not circle:
             in_size = int((SQRT2 * in_size).ceil())
-        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype, device=self.device)
+        unitrange = torch.linspace(-1, 1, in_size, dtype=self.dtype, device=device)
         ygrid, xgrid = torch.meshgrid(unitrange, unitrange, indexing="ij")
         return ygrid, xgrid
 
@@ -463,14 +461,14 @@ class IRadon(nn.Module):
         return T
 
     def _create_grids(
-        self, angles: torch.Tensor, grid_size: int, circle: bool
+        self, angles: torch.Tensor, grid_size: int, circle: bool, device: str | torch.device = "cpu"
     ) -> torch.Tensor:
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
         for i_theta in range(len(angles)):
             X = (
-                torch.ones(grid_size, dtype=self.dtype, device=self.device)
+                torch.ones(grid_size, dtype=self.dtype, device=device)
                 .view(-1, 1)
                 .repeat(1, grid_size)
                 * i_theta
