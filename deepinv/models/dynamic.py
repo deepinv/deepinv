@@ -87,6 +87,6 @@ class TimeAveragingNet(
         """
         return self.backbone_net(
             self.average(y, getattr(physics, "mask", None)),
-            getattr(physics, "to_static", lambda: physics)(),
+            getattr(physics, "to_static", lambda: physics)(device=y.device),
             **kwargs,
         )

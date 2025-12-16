@@ -243,7 +243,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps).to(device)
 
-        self.register_buffer("mask", self.check_mask(mask, three_d=self.three_d, device=device))
+        self.register_buffer("mask", self.check_mask(mask, three_d=self.three_d))
         self.register_buffer("coil_maps", self.check_coil_maps(coil_maps, three_d=self.three_d))
         self.to(device)
 
