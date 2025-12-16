@@ -1351,7 +1351,7 @@ class DistributedDataFidelity:
 
     :Example:
 
-        >>> from deepinv.distrib import DistributedContext, distribute
+        >>> from deepinv.distributed import DistributedContext, distribute
         >>> from deepinv.optim import L2
         >>> # Create distributed physics and data fidelity
         >>> with DistributedContext(device_mode="cpu") as ctx:

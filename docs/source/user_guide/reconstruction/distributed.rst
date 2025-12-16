@@ -32,7 +32,7 @@ Here's a minimal example that shows the complete workflow:
     from deepinv.physics import Blur, stack
     from deepinv.physics.blur import gaussian_blur
     from deepinv.models import DRUNet
-    from deepinv.distrib import DistributedContext, distribute
+    from deepinv.distributed import DistributedContext, distribute
     
     # Step 1: Create distributed context
     with DistributedContext() as ctx:
@@ -104,7 +104,7 @@ Simple Two-Step Pattern
 
 .. code-block:: python
 
-    from deepinv.distrib import DistributedContext
+    from deepinv.distributed import DistributedContext
     
     with DistributedContext() as ctx:
         # All distributed operations go here
@@ -168,7 +168,7 @@ Basic Usage
 .. code-block:: python
 
     from deepinv.physics import Blur, stack
-    from deepinv.distrib import DistributedContext, distribute
+    from deepinv.distributed import DistributedContext, distribute
     
     with DistributedContext() as ctx:
         # Create multiple operators
@@ -238,7 +238,7 @@ Basic Usage
 .. code-block:: python
 
     from deepinv.models import DRUNet
-    from deepinv.distrib import DistributedContext, distribute
+    from deepinv.distributed import DistributedContext, distribute
     
     with DistributedContext() as ctx:
         # Load your denoiser
@@ -307,7 +307,7 @@ Here's a complete example of distributed PnP reconstruction:
     from deepinv.physics.blur import gaussian_blur
     from deepinv.models import DRUNet
     from deepinv.optim.data_fidelity import L2
-    from deepinv.distrib import DistributedContext, distribute
+    from deepinv.distributed import DistributedContext, distribute
     
     with DistributedContext(seed=42) as ctx:
         

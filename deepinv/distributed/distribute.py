@@ -33,7 +33,7 @@ the appropriate distributed wrapper:
     from deepinv.physics import Blur
     from deepinv.models import DnCNN
     from deepinv.optim.data_fidelity import L2
-    from deepinv.distrib import DistributedContext, distribute
+    from deepinv.distributed import DistributedContext, distribute
 
     # Create distributed context (detects your environment automatically)
     with DistributedContext() as ctx:
