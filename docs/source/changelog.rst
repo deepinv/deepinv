@@ -14,6 +14,7 @@ Changed
 
 Fixed
 ^^^^^
+- Deprecate `self.device` in :class:`deepinv.physics.LinearPhysics` and remove it from internal logic. Define it as a property until removed. (:gh:`989` by `Romain Vo`_)
 
 
 v0.3.7
