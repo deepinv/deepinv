@@ -8,11 +8,11 @@ class BilateralFilter(Denoiser):
     r"""
     Bilateral filter.
 
-    The bilateral filter as it was introduced in :footcite:t:`tomasi1998bilateral`.
+    The bilateral filter as it was introduced in :footcite:t:`tomasi1998bilateral`
     where each output pixel is a normalized weighted average of neighboring pixels in a spatial window.
     The weights factor into a spatial kernel and a range kernel:
 
-        \hat{x}_i = (1 / W_i) * \sum_{j \in Ω(i)} k_d(i - j) k_r(x_i - x_j) x_j
+        \hat{x}_i = (1 / W_i) * \sum_{j \in \omega(i)} k_d(i - j) k_r(x_i - x_j) x_j
 
     with Gaussian spatial kernel k_d and Gaussian range kernel k_r.
     The spatial standard deviation $\sigma_d$ controls how fast the kernel
@@ -36,7 +36,7 @@ class BilateralFilter(Denoiser):
         x: Tensor,
         sigma_d: float | Tensor = 1,
         sigma_r: float | Tensor = 1,
-        window_size: int | Tensor = 5,
+        window_size: int = 5,
         **kwargs,
     ) -> Tensor:
         r"""
@@ -126,7 +126,9 @@ class BilateralFilter(Denoiser):
 
         # Normalize weights over the window
         weights_sum = weights.sum(dim=(-1, -2), keepdim=True)  # (B, C, H, W, 1, 1)
-        weights_sum = torch.clamp(weights_sum, min=1e-12)
+        weights_sum = torch.clamp(
+            weights_sum, min=1e-12 if not dtype == torch.float16 else 1e-4
+        )
         weights_norm = weights / weights_sum
 
         # Weighted average
