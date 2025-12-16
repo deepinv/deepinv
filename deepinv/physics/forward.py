@@ -259,12 +259,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and hasattr(self, key)
                     and isinstance(value, torch.Tensor)
                 ):
-                    if hasattr(value, "device"):
-                        assert getattr(self, key).device == value.device, (
-                            f"Expected device {getattr(self, key).device} "
-                            f"but got {value.device} for parameter {key}"
-                        )
-                    self.register_buffer(key, value)
+
+                    # Move `value` to the buffer's device before updating
+                    # regardless of where the `value` tensor is located.
+                    # Also performs type casting if necessary.
+                    setattr(self, key, value.to(getattr(self, key)))
 
     # NOTE: Physics instances can hold instances of torch.Generator as
     # (possibly nested) attributes and they cannot be copied using deepcopy
@@ -447,7 +446,10 @@ class LinearPhysics(Physics):
                 "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
             
-        self.device = device
+        device_holder = torch.tensor(0., device=device)
+        self.register_buffer("_device_holder", device_holder, persistent=False)
+        # pushes all parameters/buffers to the specified device, including `noise_model`
+        self.to(device)
 
     @property
     def device(self) -> torch.device | str:
@@ -458,20 +460,6 @@ class LinearPhysics(Physics):
         """
         return self._device_holder.device
     
-    @device.setter
-    def device(self, device: torch.device | str):
-        r"""
-        Sets the device where the physics parameters are stored.
-
-        :param torch.device | str device: device to move the physics parameters to.
-        """
-        if not hasattr(self, '_device_holder'):
-            _device_holder = torch.tensor(0., device=device)
-            self.register_buffer('_device_holder', _device_holder)    
-        
-        # updates the device property by moving a dummy buffer
-        # and also moves all parameters/buffers to the target device, for consistency
-        self.to(device)
 
     def A_adjoint(self, y, **kwargs):
         r"""
