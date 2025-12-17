@@ -5,7 +5,7 @@ import deepinv.loss.metric as metric
 from deepinv.utils import load_example
 import math
 
-METRICS = [
+FULL_REFERENCE_METRICS = [
     "MAE",
     "MSE",
     "MSE1",
@@ -16,17 +16,22 @@ METRICS = [
     "SSIM",
     "LpNorm",
     "L1L2",
-    "QNR",
     "LPIPS",
-    "NIQE",
     "ERGAS",
     "SAM",
     "HaarPSI",
 ]
+NO_REFERENCE_METRICS = [
+    "BlurStrength",
+    "SharpnessIndex",
+    "SharpnessIndex1",
+    "SharpnessIndex2",
+    "NIQE",
+]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
-def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
+def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
     if metric_name in ("LPIPS", "NIQE"):
         pytest.importorskip(
             "pyiqa",
@@ -58,10 +63,6 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.L1L2(**kwargs)
     elif metric_name == "LPIPS":
         return metric.LPIPS(**kwargs, device=device)
-    elif metric_name == "NIQE":
-        return metric.NIQE(**kwargs, device=device)
-    elif metric_name == "QNR":
-        return metric.QNR()
     elif metric_name == "ERGAS":
         return metric.ERGAS(factor=4, **kwargs)
     elif metric_name == "SAM":
@@ -71,6 +72,29 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.HaarPSI(norm_inputs="clip", **kwargs)
     else:
         raise ValueError("Incorrect metric name.")
+
+
+def choose_no_reference_metric(metric_name, device, **kwargs) -> metric.Metric:
+    if metric_name in ("NIQE",):
+        pytest.importorskip(
+            "pyiqa",
+            reason="This test requires pyiqa. It should be "
+            "installed with `pip install pyiqa`",
+        )
+    if metric_name == "NIQE":
+        return metric.NIQE(**kwargs, device=device)
+    elif metric_name == "QNR":
+        return metric.QNR()
+    elif metric_name == "BlurStrength":
+        return metric.BlurStrength(**kwargs)
+    elif metric_name == "SharpnessIndex":
+        return metric.SharpnessIndex(**kwargs)
+    elif metric_name == "SharpnessIndex1":
+        return metric.SharpnessIndex(dequantize=False, **kwargs)
+    elif metric_name == "SharpnessIndex2":
+        return metric.SharpnessIndex(periodic_component=False, **kwargs)
+    else:
+        raise ValueError("Incorrect no-reference metric name.")
 
 
 @pytest.fixture
@@ -83,13 +107,13 @@ def test_image(device):
     )
 
 
-@pytest.mark.parametrize("metric_name", METRICS)
+@pytest.mark.parametrize("metric_name", FULL_REFERENCE_METRICS)
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("max_pixel", [1, None])
 @pytest.mark.parametrize("min_pixel", [0, None])
-def test_metrics(
+def test_full_reference_metrics(
     metric_name,
     train_loss,
     norm_inputs,
@@ -111,16 +135,9 @@ def test_metrics(
     elif max_pixel is None or min_pixel is None:
         pytest.skip("max_pixel or min_pixel set to None requires SSIM or PSNR.")
 
-    m = choose_metric(metric_name, device, **metric_kwargs)
+    m = choose_full_reference_metric(metric_name, device, **metric_kwargs)
 
     x = test_image.clone()
-
-    if metric_name == "QNR":
-        x_hat = x
-        physics = dinv.physics.Pansharpen((3, 128, 128), device=device)
-        y = physics(x)
-        assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
-        return
 
     x = x[:, :channels]
 
@@ -147,7 +164,7 @@ def test_metrics(
     # Test no reduce works
     B = 5
     x_hat = torch.cat([x_hat] * B)
-    m = choose_metric(
+    m = choose_full_reference_metric(
         metric_name,
         device,
         complex_abs=channels == 2,
@@ -156,6 +173,79 @@ def test_metrics(
         reduction="none",
     )
     assert len(m(x_hat, x_hat)) == B
+
+
+@pytest.mark.parametrize("metric_name", NO_REFERENCE_METRICS)
+@pytest.mark.parametrize("train_loss", [True, False])
+@pytest.mark.parametrize("norm_inputs", [None])
+@pytest.mark.parametrize("channels", [1, 2, 3])
+def test_no_reference_metrics(
+    metric_name,
+    train_loss,
+    norm_inputs,
+    rng,
+    device,
+    channels,
+    test_image,
+):
+    metric_kwargs = {
+        "complex_abs": channels == 2,
+        "train_loss": train_loss,
+        "norm_inputs": norm_inputs,
+        "reduction": "mean",
+    }
+
+    m = choose_no_reference_metric(metric_name, device, **metric_kwargs)
+
+    x = test_image.clone()
+
+    if metric_name == "QNR":
+        x_hat = x
+        physics = dinv.physics.Pansharpen((3, 128, 128), device=device)
+        y = physics(x)
+        assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
+        return
+
+    x = x[:, :channels]
+
+    # test noise
+    x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
+    if metric_name not in ("BlurStrength"):  # BlurStrength not robust to noise
+        if not m.lower_better and not train_loss:
+            assert m(x_hat).item() < m(x).item()
+        else:
+            assert m(x_hat).item() > m(x).item()
+
+    # test blur
+    x_hat = dinv.physics.BlurFFT(
+        filter=dinv.physics.blur.gaussian_blur(3), img_size=x.shape[1:], device=device
+    )(x)
+    if not m.lower_better and not train_loss:
+        assert m(x_hat).item() < m(x).item()
+    else:
+        assert m(x_hat).item() > m(x).item()
+
+    # Test various args and kwargs which could be passed to metrics
+    assert m(x_hat, None, model=None, some_other_kwarg=None) != 0
+    assert m(x_net=x_hat, some_other_kwarg=None) != 0
+
+    # Test summing metrics
+    dummy_metric = metric.Metric(metric=lambda *a, **kw: 1)
+    m2 = m + dummy_metric
+    assert m2(x_hat) == m(x_hat) + 1
+
+    # Test no reduce works
+    B = 5
+    x_hat = torch.cat([x_hat] * B)
+    m = choose_no_reference_metric(
+        metric_name,
+        device,
+        complex_abs=channels == 2,
+        train_loss=train_loss,
+        norm_inputs=norm_inputs,
+        reduction="none",
+    )
+    assert len(m(x_hat)) == B
 
 
 @pytest.mark.parametrize("functional_name", FUNCTIONALS)

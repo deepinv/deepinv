@@ -88,6 +88,7 @@ Generators
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
    deepinv.physics.generator.ConfocalBlurGenerator3D
+   deepinv.physics.generator.Zernike
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator

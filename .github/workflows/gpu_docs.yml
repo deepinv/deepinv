@@ -99,6 +99,20 @@ jobs:
         run: |
           uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
 
+      - name: Notebook generation
+        run: |
+          set -euo pipefail
+          echo "Converting Python examples to notebooks in _build/auto_examples/_notebooks..."
+          mkdir -p _build/auto_examples/_notebooks
+          find examples -type f -name '*.py' | while read -r f; do
+            rel="${f#examples/}"
+            out_dir="_build/auto_examples/_notebooks/$(dirname "$rel")"
+            mkdir -p "$out_dir"
+            base="$(basename "$rel" .py)"
+            out_path="$out_dir/$base.ipynb"
+            uv run .github/scripts/convert_to_notebook.py --input "$f" --output "$out_path"
+          done
+
       - name: Upload Documentation Artifact
         id: upload-artifact
         uses: actions/upload-artifact@v4

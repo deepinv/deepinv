@@ -44,7 +44,7 @@ class ArtifactRemoval(Reconstructor):
         mode: str = "adjoint",
         pinv: bool = False,
         ckpt_path: str = None,
-        device: torch.device = None,
+        device: torch.device | str = None,
     ):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
