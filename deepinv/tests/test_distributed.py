@@ -119,10 +119,15 @@ def device_config(request):
                 "skip_reason": "Less than 2 GPUs available",
             }
         else:
+            skip_reason = (
+                "NCCL backend not supported on Windows for multi-GPU tests"
+                if platform.system() == "Windows"
+                else None
+            )
             return {
                 "device_mode": "gpu",
                 "world_size": min(2, gpu_count),
-                "skip_reason": None,
+                "skip_reason": skip_reason,
             }
 
 
