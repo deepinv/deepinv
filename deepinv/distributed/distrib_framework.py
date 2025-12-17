@@ -22,19 +22,20 @@ Index = tuple[slice | int, ...]
 # =========================
 class DistributedContext:
     r"""
-    Context manager for distributed runs.
+    Context manager for distributed computing.
 
     Handles:
-      - Init/destroy process group (if RANK/WORLD_SIZE envs exist)
-      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo
-      - Device selection based on LOCAL_RANK and visible GPUs
-      - Sharding helpers and tiny comm helpers
+      - Initialization/destruction of the process group (if `RANK` / `WORLD_SIZE` environment variables exist)
+      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo. 
+      - Device selection based on `LOCAL_RANK` and visible GPUs
+      - Sharding helpers and tiny communication helpers
 
-    :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
-    :param bool cleanup: whether to clean up the process group on exit.
-    :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
-    :param bool deterministic: whether to use deterministic cuDNN operations.
-    :param None, str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic.
+    :param str backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
+    :param bool cleanup: whether to clean up the process group on exit. Default is `True`.
+    :param int seed: random seed for reproducible results. If provided, each rank gets `seed + rank`. Default is `None`.
+    :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.
+    :param str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
+    
     """
 
     def __init__(
@@ -47,12 +48,6 @@ class DistributedContext:
     ):
         r"""
         Initialize the distributed context manager.
-
-        :param str backend: backend to use for distributed communication. If `None`, automatically selects NCCL for GPU or Gloo for CPU.
-        :param bool cleanup: whether to clean up the process group on exit.
-        :param None, int seed: random seed for reproducible results. If provided, each rank gets seed + rank.
-        :param bool deterministic: whether to use deterministic cuDNN operations.
-        :param None, str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic.
         """
         self.backend = backend
         self.cleanup = cleanup
