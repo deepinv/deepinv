@@ -8,15 +8,15 @@ The distributed computing framework enables efficient parallel processing across
 
 The framework provides an API centered around two key functions:
 
-1. :class:`~deepinv.distributed.DistributedContext` - manages distributed execution  
-2. :func:`~deepinv.distributed.distribute` - converts regular objects to distributed versions
+1. :class:`deepinv.distributed.DistributedContext` - manages distributed execution
+2. :func:`deepinv.distributed.distribute` - converts regular objects to distributed versions
 
 .. note::
 
     The distributed framework is particularly useful when:
     
     - **Multiple physics operators** with individual measurements need to be processed in parallel
-    - **Large images** are too large to fit in a single device's memory  
+    - **Large images** are too large to fit in a single device's memory
     - **Denoising priors** need to be applied to large images using spatial tiling
     - You want to **accelerate reconstruction** by leveraging multiple devices
 
@@ -145,16 +145,16 @@ Key Classes
 
    * - Class
      - Description
-   * - :class:`~deepinv.distributed.DistributedContext`
+   * - :class:`deepinv.distributed.DistributedContext`
      - Manages distributed execution, process groups, and devices
-   * - :class:`~deepinv.distributed.DistributedPhysics`
+   * - :class:`deepinv.distributed.DistributedPhysics`
      - Distributes physics operators across processes (auto-created by ``distribute()``)
-   * - :class:`~deepinv.distributed.DistributedLinearPhysics`
+   * - :class:`deepinv.distributed.DistributedLinearPhysics`
      - Extends DistributedPhysics for linear operators with adjoint operations
-   * - :class:`~deepinv.distributed.DistributedProcessing`
+   * - :class:`deepinv.distributed.DistributedProcessing`
      - Distributes denoisers/priors using spatial tiling (auto-created by ``distribute()``)
-   * - :class:`~deepinv.distributed.DistributedDataFidelity`
-     - Distributes data fidelity fn and grad (if needed, auto-created by ``distribute()``)
+   * - :class:`deepinv.distributed.DistributedDataFidelity`
+     - Distributes data fidelity `fn` and `grad`` (if needed, auto-created by ``distribute()``)
 
 
 Distributed Physics
@@ -435,7 +435,7 @@ Custom Tiling Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can implement custom tiling strategies by subclassing
-:class:`~deepinv.distributed.strategies.DistributedSignalStrategy`:
+:class:`deepinv.distributed.strategies.DistributedSignalStrategy`:
 
 .. code-block:: python
 

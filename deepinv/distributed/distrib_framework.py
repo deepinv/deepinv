@@ -546,8 +546,8 @@ class DistributedPhysics(Physics):
     where each process owns a subset of the operators.
 
     It is intended to parallelize models naturally expressed as a stack/list of operators
-    (e.g., :class:`~deepinv.physics.forward.StackedPhysics` or an explicit Python list of
-    :class:`~deepinv.physics.forward.Physics` objects) and is **not** meant to split a
+    (e.g., :class:`deepinv.physics.forward.StackedPhysics` or an explicit Python list of
+    :class:`deepinv.physics.forward.Physics` objects) and is **not** meant to split a
     single monolithic physics operator across ranks.
 
     If your forward model is a single operator that can be decomposed into multiple
@@ -737,8 +737,8 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     operations that automatically handle communication and reductions.
 
     This class is intended to distribute a *collection* of linear operators (e.g.,
-    :class:`~deepinv.physics.forward.StackedLinearPhysics` or an explicit Python list of
-    :class:`~deepinv.physics.forward.LinearPhysics` objects) across ranks. It is **not** a
+    :class:`deepinv.physics.forward.StackedLinearPhysics` or an explicit Python list of
+    :class:`deepinv.physics.forward.LinearPhysics` objects) across ranks. It is **not** a
     mechanism to shard a single linear operator internally.
 
     If you have one linear physics operator that can naturally be split into multiple

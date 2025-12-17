@@ -4,8 +4,8 @@ deepinv.distributed
 This module provides a distributed computing framework for large-scale inverse problems.
 It enables parallel processing across multiple GPUs through a two-function API:
 
-1. :class:`~deepinv.distributed.DistributedContext` - manages distributed execution
-2. :func:`~deepinv.distributed.distribute` - converts objects to distributed versions
+1. :class:`deepinv.distributed.DistributedContext` - manages distributed execution
+2. :func:`deepinv.distributed.distribute` - converts objects to distributed versions
 
 .. note::
    The distributed framework is designed for:
@@ -38,7 +38,7 @@ These are the main components most users need:
 Core Classes
 ------------
 
-These classes are created automatically by :func:`~deepinv.distributed.distribute`.
+These classes are created automatically by :func:`deepinv.distributed.distribute`.
 You typically don't need to instantiate them directly.
 
 .. autosummary::
