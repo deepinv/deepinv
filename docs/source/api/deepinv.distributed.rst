@@ -1,19 +1,38 @@
 deepinv.distributed
 ===================
 
-This module provides a distributed computing framework for large-scale inverse problems.
-It enables parallel processing across multiple GPUs through a two-function API:
+This module provides a simplified API for distributing DeepInverse objects across
+multiple devices and processes. The core function :func:`~deepinv.distributed.distribute` automatically
+wraps your objects (stacked physics, denoisers, data fidelity) into their
+distributed counterparts, handling all the boilerplate for you.
 
-1. :class:`deepinv.distributed.DistributedContext` - manages distributed execution
-2. :func:`deepinv.distributed.distribute` - converts objects to distributed versions
+**Main Components:**
 
-.. note::
-   The distributed framework is designed for:
-   
+   - :func:`~deepinv.distributed.distribute`: Universal distributor for DeepInverse objects
+   - :class:`~deepinv.distributed.DistributedContext`: Manages distributed execution environment
+
+Simply pass your DeepInverse object and a :class:`~deepinv.distributed.DistributedContext` to the
+:func:`~deepinv.distributed.distribute` function. It automatically detects the object type and returns
+the appropriate distributed wrapper:
+
+   - **Stacked Physics or list of Physics** → :class:`~deepinv.distributed.DistributedPhysics` or :class:`~deepinv.distributed.DistributedLinearPhysics`
+   - **Denoisers** → :class:`~deepinv.distributed.DistributedProcessing` (with spatial tiling)
+   - **Data fidelity** → :class:`~deepinv.distributed.DistributedDataFidelity`
+
+**Key Benefits:**
+
+   - **Automatic Type Detection**: The API figures out what you're distributing
+   - **Production Ready**: Handles multi-GPU, multi-node setups automatically
+   - **Seamless Integration**: Works naturally with DeepInverse optimization algorithms
+
+The returned objects work seamlessly with DeepInverse's optimization algorithms and
+provide both local operations and automatic global reduction when needed.
+
+**The distributed framework is designed for:**
+
    - **Multi-operator problems**: Parallel processing of multiple physics operators
    - **Large images**: Spatial tiling for images or volumes too large for single-device memory
    - **Acceleration**: Leveraging multiple devices for faster reconstruction
-
 
 Main API
 --------
@@ -55,7 +74,7 @@ You typically don't need to instantiate them directly.
 Distribution Strategies
 -----------------------
 
-Advanced: Custom tiling strategies for spatial distribution of denoisers/priors.
+Advanced: Custom tiling strategies for spatial distribution of denoisers.
 
 .. autosummary::
    :toctree: stubs
