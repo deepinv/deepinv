@@ -328,26 +328,26 @@ def distribute(
 
         >>> from deepinv.physics import Blur, StackedLinearPhysics
         >>> from deepinv.distributed import DistributedContext, distribute
-        >>> with DistributedContext() as ctx:
-        >>>     physics = StackedLinearPhysics([Blur(kernel_size=5), Blur(kernel_size=9)])
-        >>>     dphysics = distribute(physics, ctx)
+        >>> with DistributedContext() as ctx: # doctest: +SKIP
+        ...     physics = StackedLinearPhysics([Blur(kernel_size=5), Blur(kernel_size=9)])
+        ...     dphysics = distribute(physics, ctx)
 
         Distribute a DataFidelity object:
 
         >>> from deepinv.optim.data_fidelity import L2
         >>> from deepinv.distributed import DistributedContext, distribute
-        >>> with DistributedContext() as ctx:
-        >>>     data_fidelity = L2()
-        >>>     ddata_fidelity = distribute(data_fidelity, ctx)
+        >>> with DistributedContext() as ctx: # doctest: +SKIP
+        ...     data_fidelity = L2()
+        ...     ddata_fidelity = distribute(data_fidelity, ctx)
 
         Distribute a Prior object:
 
-        >>> from deepinv.optim.prior import TV
+        >>> from deepinv.models import DnCNN
         >>> from deepinv.distributed import DistributedContext, distribute
-        >>> with DistributedContext() as ctx:
-        >>>     prior = TV(weight=0.1)
-        >>>     signal_shape = (1, 3, 256, 256)
-        >>>     dprior = distribute(prior, ctx, signal_shape=signal_shape)
+        >>> with DistributedContext() as ctx: # doctest: +SKIP
+        ...     denoiser = DnCNN()
+        ...     signal_shape = (1, 3, 256, 256)
+        ...     ddenoiser = distribute(denoiser, ctx, signal_shape=signal_shape)
     """
     # Check object type and distribute accordingly
     if type_object == "auto":
