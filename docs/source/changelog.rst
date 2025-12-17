@@ -57,6 +57,9 @@ New Features
 - Add support for complex dtypes in :class:`deepinv.models.WaveletDenoiser`, :class:`deepinv.models.WaveletDictDenoiser` and :class:`deepinv.optim.WaveletPrior` (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Better diffraction blur generator with higher Zernike orders, rotation and apodization (:gh:`826` by `Minh Hai Nguyen`_)
+- Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
+- Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
 
 Changed
@@ -76,6 +79,7 @@ Fixed
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 - Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix formula error in Zernike polynomials, extend to higher order (:gh:`826` by `Minh Hai Nguyen`_)
 - Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
