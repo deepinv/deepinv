@@ -44,7 +44,7 @@ class Decolorize(DecomposablePhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         if srf is None or srf == "rec601":
             srf = torch.tensor([0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851])
         elif srf in ("average", "flat"):

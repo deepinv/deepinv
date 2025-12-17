@@ -85,7 +85,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.three_d = three_d
         self.img_size = img_size
 
@@ -228,7 +228,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         device: torch.device | str = torch.device("cpu"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.img_size = img_size
         self.three_d = three_d
 

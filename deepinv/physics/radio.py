@@ -49,9 +49,10 @@ class RadioInterferometry(LinearPhysics):
     ):
         import torchkbnufft as tkbn
 
+        super(RadioInterferometry, self).__init__(device=device, **kwargs)
+
         if dataWeight is None:
             dataWeight = torch.tensor([1.0], device=device)
-        super(RadioInterferometry, self).__init__(**kwargs)
 
         self.k_oversampling = k_oversampling
         self.interp_points = interp_points

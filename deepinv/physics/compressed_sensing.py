@@ -110,7 +110,7 @@ class CompressedSensing(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.name = f"CS_m{m}"
         self.img_size = img_size
         self.fast = fast

@@ -75,7 +75,7 @@ class Downsampling(LinearPhysics):
                 stacklevel=2,
             )
             filter = None
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
         self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
@@ -449,7 +449,7 @@ class Blur(LinearPhysics):
         device: str | torch.device = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.padding = padding
         assert (
             isinstance(filter, Tensor) or filter is None
@@ -700,7 +700,7 @@ class SpaceVaryingBlur(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters.to(device))

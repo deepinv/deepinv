@@ -131,7 +131,7 @@ class Tomography(LinearPhysics):
         dtype: torch.dtype = torch.float,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(angles, int):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
@@ -483,7 +483,7 @@ class TomographyWithAstra(LinearPhysics):
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
 
         if isinstance(geometry_parameters, MappingProxyType):
             geometry_parameters = geometry_parameters.copy()

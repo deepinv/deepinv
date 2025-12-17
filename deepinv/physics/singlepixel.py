@@ -381,7 +381,7 @@ class SinglePixelCamera(DecomposablePhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(device=device, **kwargs)
         self.name = f"spcamera_m{m}"
         self.img_size = img_size
         self.fast = fast
