@@ -36,7 +36,7 @@ from deepinv.optim.data_fidelity import StackedPhysicsDataFidelity
 
 from deepinv.distributed.distrib_framework import (
     DistributedContext,
-    DistributedLinearPhysics,
+    DistributedStackedLinearPhysics,
     DistributedProcessing,
     DistributedDataFidelity,
 )
@@ -793,7 +793,7 @@ def test_distribute_auto_type_detection():
         # Physics list
         physics_list = create_test_physics_list(ctx.device, 3)
         dist_phys = distribute(physics_list, ctx=ctx, type_object="auto")
-        assert isinstance(dist_phys, DistributedLinearPhysics)
+        assert isinstance(dist_phys, DistributedStackedLinearPhysics)
 
         # Denoiser
         denoiser = SimpleDenoiser()

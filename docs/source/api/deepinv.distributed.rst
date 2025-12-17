@@ -46,8 +46,8 @@ You typically don't need to instantiate them directly.
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.distributed.DistributedPhysics
-   deepinv.distributed.DistributedLinearPhysics
+   deepinv.distributed.DistributedStackedPhysics
+   deepinv.distributed.DistributedStackedLinearPhysics
    deepinv.distributed.DistributedProcessing
    deepinv.distributed.DistributedDataFidelity
 

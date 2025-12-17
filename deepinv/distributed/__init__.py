@@ -1,7 +1,7 @@
 from deepinv.distributed.distrib_framework import (
     DistributedContext,
-    DistributedPhysics,
-    DistributedLinearPhysics,
+    DistributedStackedPhysics,
+    DistributedStackedLinearPhysics,
     DistributedProcessing,
     DistributedDataFidelity,
 )
@@ -9,8 +9,8 @@ from deepinv.distributed.distribute import distribute
 
 __all__ = [
     "DistributedContext",
-    "DistributedPhysics",
-    "DistributedLinearPhysics",
+    "DistributedStackedPhysics",
+    "DistributedStackedLinearPhysics",
     "DistributedProcessing",
     "DistributedDataFidelity",
     "distribute",

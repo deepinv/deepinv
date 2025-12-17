@@ -147,10 +147,10 @@ Key Classes
      - Description
    * - :class:`deepinv.distributed.DistributedContext`
      - Manages distributed execution, process groups, and devices
-   * - :class:`deepinv.distributed.DistributedPhysics`
+   * - :class:`deepinv.distributed.DistributedStackedPhysics`
      - Distributes physics operators across processes (auto-created by ``distribute()``)
-   * - :class:`deepinv.distributed.DistributedLinearPhysics`
-     - Extends DistributedPhysics for linear operators with adjoint operations
+   * - :class:`deepinv.distributed.DistributedStackedLinearPhysics`
+     - Extends DistributedStackedPhysics for linear operators with adjoint operations
    * - :class:`deepinv.distributed.DistributedProcessing`
      - Distributes denoisers/priors using spatial tiling (auto-created by ``distribute()``)
    * - :class:`deepinv.distributed.DistributedDataFidelity`
@@ -457,7 +457,7 @@ You can implement custom tiling strategies by subclassing
     # Use it
     dist_denoiser = distribute(
         denoiser, ctx,
-        tiling_strategy=MyCustomStrategy(signal_shape),
+        tiling_strategy=MyCustomStrategy(img_size),
     )
 
 

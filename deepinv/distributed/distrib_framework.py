@@ -524,7 +524,7 @@ class DistributedContext:
 # =========================
 # Distributed Physics
 # =========================
-class DistributedPhysics(Physics):
+class DistributedStackedPhysics(Physics):
     r"""
     Holds only local physics operators. Exposes fast local and compatible global APIs.
 
@@ -541,7 +541,7 @@ class DistributedPhysics(Physics):
     If your forward model is a single operator that can be decomposed into multiple
     sub-operators, it is up to you to perform that decomposition (e.g., build a
     :class:`deepinv.physics.StackedPhysics`) and then pass that collection to
-    :class:`DistributedPhysics` via the ``factory``.
+    :class:`DistributedStackedPhysics` via the ``factory``.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators.
@@ -708,11 +708,11 @@ class DistributedPhysics(Physics):
         )
 
 
-class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
+class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
     r"""
     Distributed linear physics operators.
 
-    This class extends :class:`DistributedPhysics` for linear operators. It provides distributed
+    This class extends :class:`DistributedStackedPhysics` for linear operators. It provides distributed
     operations that automatically handle communication and reductions.
 
     .. note::
@@ -1187,7 +1187,7 @@ class DistributedProcessing:
 
     def _init_shape_and_strategy(
         self,
-        signal_shape: Sequence[int],
+        img_size: Sequence[int],
     ):
         r"""
         Initialize or update the signal shape and processing strategy.
@@ -1196,10 +1196,10 @@ class DistributedProcessing:
         tiling strategy based on the input signal dimensions. It creates the strategy,
         determines the number of patches, and assigns patches to ranks.
 
-        :param Sequence[int] signal_shape: shape of the input signal tensor (e.g., ``(B, C, H, W)``).
+        :param Sequence[int] img_size: shape of the input signal tensor (e.g., ``(B, C, H, W)``).
         """
 
-        self.signal_shape = torch.Size(signal_shape)
+        self.img_size = torch.Size(img_size)
 
         # Create or set the strategy
         if isinstance(self.strategy, str):
@@ -1207,9 +1207,9 @@ class DistributedProcessing:
 
             strategy_kwargs = self.strategy_kwargs or {}
             # Assume standard layout (B, C, D1, D2, ...) -> n_dimension = len - 2
-            n_dimension = len(signal_shape) - 2
+            n_dimension = len(img_size) - 2
             self._strategy = create_strategy(
-                self.strategy, signal_shape, n_dimension=n_dimension, **strategy_kwargs
+                self.strategy, img_size, n_dimension=n_dimension, **strategy_kwargs
             )
         else:
             self._strategy = self.strategy
@@ -1261,7 +1261,7 @@ class DistributedProcessing:
         # Handle empty case early
         if not self.local_indices:
             out_local = torch.zeros(
-                self.signal_shape, device=self.ctx.device, dtype=x.dtype
+                self.img_size, device=self.ctx.device, dtype=x.dtype
             )
             if self.ctx.is_dist and reduce:
                 self.ctx.all_reduce_(out_local, op="sum")
@@ -1297,9 +1297,7 @@ class DistributedProcessing:
         processed_pairs = list(zip(self.local_indices, processed_patches))
 
         # 6. Initialize output tensor and apply reduction strategy
-        out_local = torch.zeros(
-            self.signal_shape, device=self.ctx.device, dtype=x.dtype
-        )
+        out_local = torch.zeros(self.img_size, device=self.ctx.device, dtype=x.dtype)
         self._strategy.reduce_patches(out_local, processed_pairs)
 
         # 7. All-reduce to combine results from all ranks
@@ -1317,7 +1315,7 @@ class DistributedDataFidelity:
     Distributed data fidelity term for use with distributed physics operators.
 
     This class wraps a standard DataFidelity object and makes it compatible with
-    DistributedLinearPhysics by implementing efficient distributed computation patterns.
+    DistributedStackedLinearPhysics by implementing efficient distributed computation patterns.
     It computes data fidelity terms and gradients using local operations followed by
     a single reduction, avoiding redundant communication.
 
@@ -1389,17 +1387,17 @@ class DistributedDataFidelity:
             return self.single_fidelity
         return self.local_data_fidelities[i]
 
-    def _check_is_distributed_physics(self, physics: DistributedLinearPhysics):
-        if not isinstance(physics, DistributedLinearPhysics):
+    def _check_is_distributed_physics(self, physics: DistributedStackedLinearPhysics):
+        if not isinstance(physics, DistributedStackedLinearPhysics):
             raise ValueError(
-                "physics must be a DistributedLinearPhysics instance to be used with DistributedDataFidelity."
+                "physics must be a DistributedStackedLinearPhysics instance to be used with DistributedDataFidelity."
             )
 
     def fn(
         self,
         x: torch.Tensor,
         y: list[torch.Tensor],
-        physics: DistributedLinearPhysics,
+        physics: DistributedStackedLinearPhysics,
         reduce: bool = True,
         *args,
         **kwargs,
@@ -1422,7 +1420,7 @@ class DistributedDataFidelity:
 
         :param torch.Tensor x: input signal at which to evaluate the data fidelity.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
-        :param DistributedLinearPhysics physics: distributed physics operator.
+        :param DistributedStackedLinearPhysics physics: distributed physics operator.
         :param dict kwargs: additional arguments passed to the distance function.
         :return: scalar data fidelity value.
         """
@@ -1455,7 +1453,7 @@ class DistributedDataFidelity:
         self,
         x: torch.Tensor,
         y: list[torch.Tensor],
-        physics: DistributedLinearPhysics,
+        physics: DistributedStackedLinearPhysics,
         reduce: bool = True,
         *args,
         **kwargs,
@@ -1479,7 +1477,7 @@ class DistributedDataFidelity:
 
         :param torch.Tensor x: input signal at which to compute the gradient.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
-        :param DistributedLinearPhysics physics: distributed physics operator.
+        :param DistributedStackedLinearPhysics physics: distributed physics operator.
         :param dict kwargs: additional arguments passed to the distance function gradient.
         :return: gradient with same shape as x.
         """

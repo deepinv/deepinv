@@ -16,7 +16,7 @@ def tiling_reduce_fn(
     r"""
     Default reduction function for tiling strategy (N-dimensional).
 
-    This function fills the out_local tensor with the processed patches from local_pairs,
+    This function fills the `out_local` tensor with the processed patches from `local_pairs`,
     using the metadata to determine where each patch should be placed in the output tensor.
 
     :param torch.Tensor out_local: the output tensor to fill (should be initialized to zeros).
@@ -34,7 +34,7 @@ def tiling_reduce_fn(
 
 
 def tiling_splitting_strategy(
-    signal_shape: Sequence[int],
+    img_size: Sequence[int],
     *,
     patch_size: int | tuple[int, ...],
     receptive_field_size: int | tuple[int, ...] = 0,
@@ -46,21 +46,24 @@ def tiling_splitting_strategy(
     Generalized uniform-batching tiler with global padding for N dimensions.
 
     Produces:
-      • global_slices: list of slices into the *padded* tensor,
-      • crop_slices:   slices relative to the *padded window* that grab only the inner patch
-                       portion (removing halo),
-      • target_slices: slices into the *original-shape* output where that patch should be placed,
-      • global_padding: padding tuple for F.pad to be applied to the whole image before slicing.
+        - global_slices: list of slices into the *padded* tensor,
+        - crop_slices: slices relative to the *padded window* that grab only the inner patch portion (removing halo),
+        - target_slices: slices into the *original-shape* output where that patch should be placed,
+        - global_padding: padding tuple for F.pad to be applied to the whole image before slicing.
 
-    :param Sequence[int] signal_shape: shape of the input signal tensor.
+    :param Sequence[int] img_size: shape of the input signal tensor.
     :param int | tuple[int, ...] patch_size: size of each patch (inner size).
     :param int | tuple[int, ...] receptive_field_size: padding radius around each patch for receptive field (halo).
-    :param int | tuple[int, ...] | None stride: stride between patches. If None, uses patch_size.
-    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile. If None, defaults to last N dimensions where N is len(patch_size) if tuple, else 2.
+    :param int | tuple[int, ...] | None stride: stride between patches. If `None`, uses patch_size.
+    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
+        -   If `None`, defaults to last N dimensions where N is `len(patch_size)` if `patch_size` is `tuple`, else `2`.
+        -   If `int`, tiles only that dimension.
+        -   If `tuple[int]`, tiles the specified dimensions.
+
     :param str pad_mode: padding mode.
     :return: tuple of (global_slices, metadata).
     """
-    shape = list(signal_shape)
+    shape = list(img_size)
     ndim = len(shape)
 
     # Determine dimensions to tile
@@ -73,6 +76,8 @@ def tiling_splitting_strategy(
             tiling_dims = (-2, -1)
     elif isinstance(tiling_dims, int):
         tiling_dims = (tiling_dims,)
+    elif not isinstance(tiling_dims, tuple):
+        raise ValueError("tiling_dims must be None, int, or tuple of ints.")
 
     num_tiled_dims = len(tiling_dims)
 
@@ -185,7 +190,7 @@ def tiling_splitting_strategy(
         target_slices.append(tuple(t_sl))
 
     metadata: dict = {
-        "signal_shape": torch.Size(signal_shape),
+        "img_size": torch.Size(img_size),
         "tiling_dims": tiling_dims,
         "crop_slices": crop_slices,
         "target_slices": target_slices,

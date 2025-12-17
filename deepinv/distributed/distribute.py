@@ -17,7 +17,7 @@ Simply pass your DeepInverse object and a :class:`DistributedContext` to the
 :func:`distribute` function. It automatically detects the object type and returns
 the appropriate distributed wrapper:
 
-- **Physics operators** → :class:`DistributedPhysics` or :class:`DistributedLinearPhysics`
+- **Physics operators** → :class:`DistributedStackedPhysics` or :class:`DistributedStackedLinearPhysics`
 - **Denoisers/Priors** → :class:`DistributedProcessing` (with spatial tiling)
 - **Data fidelity terms** → :class:`DistributedDataFidelity`
 
@@ -72,8 +72,8 @@ from deepinv.models.base import Denoiser
 
 from deepinv.distributed.distrib_framework import (
     DistributedContext,
-    DistributedPhysics,
-    DistributedLinearPhysics,
+    DistributedStackedPhysics,
+    DistributedStackedLinearPhysics,
     DistributedProcessing,
     DistributedDataFidelity,
 )
@@ -94,7 +94,7 @@ def _distribute_physics(
     dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
     **kwargs,
-) -> DistributedPhysics | DistributedLinearPhysics:
+) -> DistributedStackedPhysics | DistributedStackedLinearPhysics:
     r"""
     Distribute a Physics object across multiple devices.
 
@@ -108,7 +108,7 @@ def _distribute_physics(
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
         - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
         Default is `'concatenated'`.
-    :param kwargs: additional keyword arguments for DistributedPhysics
+    :param kwargs: additional keyword arguments for DistributedStackedPhysics
 
     :returns: Distributed version of the input Physics object
     """
@@ -135,7 +135,7 @@ def _distribute_physics(
             return physics_list_extracted[idx].to(device)
 
     if type_object == "linear_physics":
-        return DistributedLinearPhysics(
+        return DistributedStackedLinearPhysics(
             ctx,
             num_operators=num_operators,
             factory=physics_factory,
@@ -144,7 +144,7 @@ def _distribute_physics(
             **kwargs,
         )
     else:
-        return DistributedPhysics(
+        return DistributedStackedPhysics(
             ctx,
             num_operators=num_operators,
             factory=physics_factory,
@@ -282,40 +282,54 @@ def distribute(
     max_batch_size: int | None = None,
     **kwargs,
 ) -> (
-    DistributedPhysics
-    | DistributedLinearPhysics
+    DistributedStackedPhysics
+    | DistributedStackedLinearPhysics
     | DistributedProcessing
     | DistributedDataFidelity
 ):
     r"""
     Distribute a DeepInverse object across multiple devices.
 
-    This function takes a DeepInverse object (Physics, DataFidelity, or Prior)
-    and distributes it using the provided DistributedContext.
+    This function takes a DeepInverse object and distributes it using the provided DistributedContext.
 
-    :param StackedPhysics | list[Physics] | Callable[[int, torch.device, dict | None], Physics] | Denoiser | Callable[[int, torch.device, dict | None], Denoiser] | DataFidelity | list[DataFidelity] | StackedPhysicsDataFidelity | Callable[[int, torch.device, dict | None], DataFidelity] object: DeepInverse object to distribute
-    :param DistributedContext ctx: distributed context manager
-    :param None, int num_operators: number of physics operators when using a factory for physics, otherwise inferred.
-    :param str | None type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
-    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
-    :param str gather_strategy: strategy for gathering distributed results. Options are:
-        - `'naive'`: Simple object serialization (best for small tensors)
-        - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
-        - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
+    The list of supported DeepInverse objects includes:
+
+        - Physics operators: a list of :class:`deepinv.physics.Physics`, :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.StackedLinearPhysics`.
+        - Data fidelity terms: a list of :class:`deepinv.optim.DataFidelity` or :class:`deepinv.optim.StackedPhysicsDataFidelity`.
+        - Priors/Denoisers: :class:`deepinv.models.Denoiser` or :class:`deepinv.optim.Prior` objects.
+
+    :param object: DeepInverse object to distribute. The supported types are listed above.
+    :param ctx: distributed context manager
+    :param num_operators: number of physics operators when using a factory for physics, otherwise inferred.
+    :param type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
+    :param dtype: data type for distributed object. Default is `torch.float32`.
+    :param gather_strategy: strategy for gathering distributed results.
+
+        Options are:
+            - `'naive'`: Simple object serialization (best for small tensors)
+            - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
+            - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
+
         Default is `'concatenated'`.
-    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser/Prior). Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
-    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser/Prior).
-        If ``None`` (default), tiles the last N-2 dimensions (spatial dimensions).
-        If an int ``N``, tiles the last ``N`` dimensions.
-        If a tuple, specifies exact dimensions to tile.
+
+    :param tiling_strategy: strategy for tiling the signal (for Denoiser/Prior).
+        Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
+    :param tiling_dims: dimensions to tile over (for Denoiser/Prior).
+
+        Can be one of the following:
+            - If ``None`` (default), tiles the last N-2 dimensions (spatial dimensions).
+            - If an int ``N``, tiles the last ``N`` dimensions.
+            - If a tuple, specifies exact dimensions to tile.
+
         Examples:
-        - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles H and W.
-        - For ``(B, C, D, H, W)`` volume: ``tiling_dims=3`` tiles D, H, W.
-    :param int | tuple[int, ...] patch_size: size of patches for tiling strategies (for Denoiser/Prior).
-        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is 256.
-    :param int | tuple[int, ...] receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser/Prior).
-        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is 64.
-    :param None, int max_batch_size: maximum number of patches to process in a single batch (for Denoiser/Prior). If `None`, all patches are batched together. Set to 1 for sequential processing.
+            - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles H and W.
+            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=3`` tiles D, H, W.
+
+    :param patch_size: size of patches for tiling strategies (for Denoiser/Prior).
+        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `256`.
+    :param receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser/Prior).
+        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `64`.
+    :param max_batch_size: maximum number of patches to process in a single batch (for Denoiser/Prior). If `None`, all patches are batched together. Set to `1` for sequential processing.
     :param kwargs: additional keyword arguments for specific distributed classes
 
     :returns: Distributed version of the input object
@@ -346,8 +360,8 @@ def distribute(
         >>> from deepinv.distributed import DistributedContext, distribute
         >>> with DistributedContext() as ctx: # doctest: +SKIP
         ...     denoiser = DnCNN()
-        ...     signal_shape = (1, 3, 256, 256)
-        ...     ddenoiser = distribute(denoiser, ctx, signal_shape=signal_shape)
+        ...     img_size = (1, 3, 256, 256)
+        ...     ddenoiser = distribute(denoiser, ctx, img_size=img_size)
     """
     # Check object type and distribute accordingly
     if type_object == "auto":

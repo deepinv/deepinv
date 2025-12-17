@@ -25,27 +25,25 @@ class DistributedSignalStrategy(ABC):
     Abstract base class for distributed signal processing strategies.
 
     A strategy defines how to:
-    1. Split a signal into patches for distributed processing
-    2. Batch patches for efficient processing
-    3. Reduce processed patches back into a complete signal
+        1. Split a signal into patches for distributed processing
+        2. Batch patches for efficient processing
+        3. Reduce processed patches back into a complete signal
 
     This allows users to implement custom distributed processing strategies
     for different types of data and use cases.
 
-    :param Sequence[int] signal_shape: shape of the complete signal tensor (e.g., [B, C, H, W]).
+    :param Sequence[int] img_size: shape of the complete signal tensor (e.g., `[B, C, H, W]`).
     """
 
-    def __init__(self, signal_shape: Sequence[int], **kwargs):
+    def __init__(self, img_size: Sequence[int], **kwargs):
         r"""
         Initialize the strategy.
-
-        :param Sequence[int] signal_shape: shape of the complete signal tensor (e.g., [B, C, H, W]).
         """
-        self.signal_shape = torch.Size(signal_shape)
+        self.img_size = torch.Size(img_size)
 
     @abstractmethod
     def get_local_patches(
-        self, X: torch.Tensor, local_indices: list[int]
+        self, x: torch.Tensor, local_indices: list[int]
     ) -> list[tuple[int, torch.Tensor]]:
         r"""
         Extract and prepare local patches for processing.
@@ -63,7 +61,7 @@ class DistributedSignalStrategy(ABC):
         r"""
         Reduce processed patches into the output tensor.
 
-        This operates in-place on out_tensor, placing each processed patch
+        This operates in-place on `out_tensor`, placing each processed patch
         in its correct location within the complete signal.
 
         :param torch.Tensor out_tensor: output tensor to fill (should be initialized to zeros).
@@ -91,7 +89,7 @@ class DistributedSignalStrategy(ABC):
         as the input.
 
         :param list[torch.Tensor] patches: list of prepared patches.
-        :param None, int max_batch_size: maximum number of patches per batch. If `None`, all patches are batched together. If 1, each patch is processed individually.
+        :param int | None max_batch_size: maximum number of patches per batch. If `None`, all patches are batched together. If `1`, each patch is processed individually.
         :return: batched patches ready for processing. When processed results are concatenated, they should preserve the original patch order.
         """
         if not patches:
@@ -184,30 +182,26 @@ class BasicStrategy(DistributedSignalStrategy):
     Basic distributed strategy with naive splitting along specified dimensions.
 
     This strategy:
-    - Splits the signal into blocks along specified dimensions
-    - Processes patches individually (no batching)
-    - Uses simple tensor assignment for reduction
+        - Splits the signal into blocks along specified dimensions
+        - Processes patches individually (no batching)
+        - Uses simple tensor assignment for reduction
 
-    :param Sequence[int] signal_shape: shape of the complete signal tensor.
-    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If int, splits the last N dimensions (default: 2 for last two dimensions).
+    :param Sequence[int] img_size: shape of the complete signal tensor.
+    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If `int`, splits the last `N` dimensions (default: `2` for last two dimensions).
     :param None, tuple[int, ...] num_splits: number of splits along each dimension. If `None`, automatically computed.
     """
 
     def __init__(
         self,
-        signal_shape: Sequence[int],
+        img_size: Sequence[int],
         tiling_dims: int | tuple[int, ...] = 2,
         num_splits: tuple[int, ...] | None = None,
         **kwargs,
     ):
         r"""
         Initialize basic strategy.
-
-        :param Sequence[int] signal_shape: shape of the complete signal tensor.
-        :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If int, splits the last N dimensions (default: 2 for last two dimensions).
-        :param None, tuple[int, ...] num_splits: number of splits along each dimension. If `None`, automatically computed.
         """
-        super().__init__(signal_shape)
+        super().__init__(img_size)
 
         # Normalize tiling_dims to tuple
         if isinstance(tiling_dims, int):
@@ -224,13 +218,12 @@ class BasicStrategy(DistributedSignalStrategy):
             # Default: split into roughly square patches
             total_size = 1
             for dim in self.tiling_dims:
-                total_size *= signal_shape[dim]
+                total_size *= img_size[dim]
             target_patch_size = max(
                 64, int(total_size ** (1 / len(self.tiling_dims)) / 2)
             )
             num_splits = tuple(
-                max(1, signal_shape[dim] // target_patch_size)
-                for dim in self.tiling_dims
+                max(1, img_size[dim] // target_patch_size) for dim in self.tiling_dims
             )
 
         self.num_splits_per_dim = num_splits
@@ -244,7 +237,7 @@ class BasicStrategy(DistributedSignalStrategy):
         # Generate all combinations of splits
         ranges = []
         for i, dim in enumerate(self.tiling_dims):
-            size = self.signal_shape[dim]
+            size = self.img_size[dim]
             n_splits = self.num_splits_per_dim[i]
             split_size = size // n_splits
             remainder = size % n_splits
@@ -263,7 +256,7 @@ class BasicStrategy(DistributedSignalStrategy):
 
         for positions in itertools.product(*[range(len(r)) for r in ranges]):
             # Create slice tuple
-            slices = [slice(None)] * len(self.signal_shape)
+            slices = [slice(None)] * len(self.img_size)
             for i, (dim, pos) in enumerate(zip(self.tiling_dims, positions)):
                 start, end = ranges[i][pos]
                 slices[dim] = slice(start, end)
@@ -272,12 +265,12 @@ class BasicStrategy(DistributedSignalStrategy):
             self._patch_positions.append(positions)
 
     def get_local_patches(
-        self, X: torch.Tensor, local_indices: list[int]
+        self, x: torch.Tensor, local_indices: list[int]
     ) -> list[tuple[int, torch.Tensor]]:
         r"""Extract local patches without any special processing."""
         patches = []
         for idx in local_indices:
-            patch = X[self._patch_slices[idx]].clone()
+            patch = x[self._patch_slices[idx]].clone()
             patches.append((idx, patch))
         return patches
 
@@ -298,21 +291,21 @@ class SmartTilingStrategy(DistributedSignalStrategy):
     Smart tiling strategy with padding for N-dimensional data.
 
     This strategy:
-    - Creates uniform patches with receptive field padding
-    - Batches patches for efficient processing
-    - Uses optimized tensor operations for reduction
+        - Creates uniform patches with receptive field padding
+        - Batches patches for efficient processing
+        - Uses optimized tensor operations for reduction
 
-    :param Sequence[int] signal_shape: shape of the complete signal tensor.
+    :param Sequence[int] img_size: shape of the complete signal tensor.
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
     :param int | tuple[int, ...] patch_size: size of each patch, supports non-cuboid patch size.
     :param int | tuple[int, ...] receptive_field_size: padding radius around each patch, supports non-cuboid receptive field size.
-    :param int | tuple[int, ...] | None stride: stride between patches (default: patch_size for non-overlapping).
+    :param int | tuple[int, ...] | None stride: stride between patches. Default to the same value as `patch_size` for non-overlapping patches.
     :param str pad_mode: padding mode for edge patches.
     """
 
     def __init__(
         self,
-        signal_shape: Sequence[int],
+        img_size: Sequence[int],
         tiling_dims: int | tuple[int, ...] | None = None,
         patch_size: int | tuple[int, ...] = 256,
         receptive_field_size: int | tuple[int, ...] = 32,
@@ -320,7 +313,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         pad_mode: str = "reflect",
         **kwargs,
     ):
-        super().__init__(signal_shape)
+        super().__init__(img_size)
         self.patch_size = patch_size
         self.receptive_field_size = receptive_field_size
         self.stride = stride
@@ -359,7 +352,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         rf_sizes = to_tuple(self.receptive_field_size)
 
         # Check dimensions
-        shape = self.signal_shape
+        shape = self.img_size
 
         # We might need to adjust patch sizes if they are too big
         new_p_sizes = list(p_sizes)
@@ -403,7 +396,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             )
 
         self._global_slices, self._metadata = tiling_splitting_strategy(
-            self.signal_shape,
+            self.img_size,
             patch_size=self.patch_size,
             receptive_field_size=self.receptive_field_size,
             stride=self.stride,
@@ -412,7 +405,7 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         )
 
     def get_local_patches(
-        self, X: torch.Tensor, local_indices: list[int]
+        self, x: torch.Tensor, local_indices: list[int]
     ) -> list[tuple[int, torch.Tensor]]:
         r"""Extract and pad local patches."""
 
@@ -430,17 +423,17 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             trimmed_pads = tuple(pads)
 
             try:
-                X_pad = torch.nn.functional.pad(X, trimmed_pads, mode=pad_mode)
+                x_pad = torch.nn.functional.pad(x, trimmed_pads, mode=pad_mode)
             except Exception:
                 # Fallback to constant padding if reflect fails
-                X_pad = torch.nn.functional.pad(X, pad_specs, mode="constant", value=0)
+                x_pad = torch.nn.functional.pad(x, pad_specs, mode="constant", value=0)
         else:
-            X_pad = X
+            x_pad = x
 
         patches = []
         for idx in local_indices:
             slc = self._global_slices[idx]
-            patch = X_pad[slc]
+            patch = x_pad[slc]
             patches.append((idx, patch))
         return patches
 
@@ -456,14 +449,14 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
 
 def create_strategy(
-    strategy_name: str, signal_shape: Sequence[int], n_dimension: int, **kwargs
+    strategy_name: str, img_size: Sequence[int], n_dimension: int, **kwargs
 ) -> DistributedSignalStrategy:
     r"""
     Create a distributed signal strategy by name.
 
     :param str strategy_name: name of the strategy (`'basic'`, `'smart_tiling'`).
-    :param Sequence[int] signal_shape: shape of the signal tensor.
-    :param int n_dimension: number of dimensions of the signal (e.g., 2 for images, 3 for volumes).
+    :param Sequence[int] img_size: shape of the signal tensor.
+    :param int n_dimension: number of dimensions of the signal (e.g., `2` for images, `3` for volumes).
     :return: the created strategy instance.
     """
     # Handle tiling_dims priority: kwargs > n_dimension
@@ -475,8 +468,8 @@ def create_strategy(
             kwargs.pop("tiling_dims")
 
     if strategy_name == "basic":
-        return BasicStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
+        return BasicStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
     elif strategy_name == "smart_tiling":
-        return SmartTilingStrategy(signal_shape, tiling_dims=tiling_dims, **kwargs)
+        return SmartTilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
