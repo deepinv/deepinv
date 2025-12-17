@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import copy
-import platform
 from typing import Callable, Sequence
 
 import torch
@@ -113,11 +112,6 @@ class DistributedContext:
                     else:
                         backend = "gloo"
 
-            # Windows can hit Gloo initialization failures like:
-            # This typically happens when Gloo selects a transport unsupported by
-            # the Windows build (or the env var is set to an invalid/empty value).
-            if backend == "gloo":
-                self._configure_gloo_environment()
             dist.init_process_group(backend=backend)
             self.initialized_here = True
 
@@ -194,21 +188,6 @@ class DistributedContext:
         if self.deterministic:
             torch.backends.cudnn.benchmark = False
             torch.backends.cudnn.deterministic = True
-
-    def _configure_gloo_environment(self) -> None:
-        """
-        Stable Gloo initialization for Windows
-        """
-        # PyTorch's Gloo transport options are typically "tcp" or "uv".
-        # Some Windows wheels do not support all transports; forcing TCP avoids
-        # failures like `makeDeviceForHostname(): unsupported gloo device`.
-        if platform.system() == "Windows":
-            os.environ.setdefault("GLOO_DEVICE_TRANSPORT", "tcp")
-
-            # Ensure loopback for local multi-process tests when users pass
-            # `localhost` (some setups resolve it unexpectedly).
-            if os.environ.get("MASTER_ADDR", "").lower() == "localhost":
-                os.environ["MASTER_ADDR"] = "127.0.0.1"
 
     # ----------------------
     # Sharding

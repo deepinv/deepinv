@@ -21,6 +21,8 @@ import pytest
 import torch
 import time
 import socket
+import platform
+import subprocess
 import torch.multiprocessing as mp
 from typing import Callable, Any
 
@@ -133,6 +135,9 @@ def _worker(rank, world_size, test_func, test_args, result_queue, dist_config):
     os.environ["MASTER_ADDR"] = dist_config["master_addr"]
     os.environ["MASTER_PORT"] = dist_config["master_port"]
 
+    if "gloo_socket_ifname" in dist_config:
+        os.environ["GLOO_SOCKET_IFNAME"] = dist_config["gloo_socket_ifname"]
+
     # For GPU mode, set the right device for each rank
     if dist_config["device_mode"] == "gpu":
         torch.cuda.set_device(rank)
@@ -215,6 +220,31 @@ def run_distributed_test(
         "master_port": str(_get_free_port()),
         "device_mode": device_mode,
     }
+
+    # Windows Gloo fix: find the interface alias for 127.0.0.1
+    if platform.system() == "Windows" and device_mode == "cpu":
+        os.environ.setdefault("GLOO_DEVICE_TRANSPORT", "tcp")
+        try:
+            cmd = [
+                "powershell",
+                "-Command",
+                "Get-NetIPAddress -IPAddress 127.0.0.1 | Select-Object -ExpandProperty InterfaceAlias",
+            ]
+            startupinfo = None
+            if hasattr(subprocess, "STARTUPINFO"):
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+            result = subprocess.check_output(
+                cmd, text=True, startupinfo=startupinfo
+            ).strip()
+
+            if result:
+                ifname = result.splitlines()[0].strip()
+                if ifname:
+                    dist_config["gloo_socket_ifname"] = ifname
+        except Exception:
+            pass
 
     # Keep thread pools small for spawn safety
     os.environ.setdefault("OMP_NUM_THREADS", "1")
