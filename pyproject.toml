@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
     "numpy",
     "matplotlib",
