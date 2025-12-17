@@ -15,7 +15,7 @@ Simply pass your DeepInverse object and a :class:`~deepinv.distributed.Distribut
 :func:`~deepinv.distributed.distribute` function. It automatically detects the object type and returns
 the appropriate distributed wrapper:
 
-   - **Stacked Physics or list of Physics** → :class:`~deepinv.distributed.DistributedPhysics` or :class:`~deepinv.distributed.DistributedLinearPhysics`
+   - **Stacked Physics or list of Physics** → :class:`~deepinv.distributed.DistributedStackedPhysics` or :class:`~deepinv.distributed.DistributedStackedLinearPhysics`
    - **Denoisers** → :class:`~deepinv.distributed.DistributedProcessing` (with spatial tiling)
    - **Data fidelity** → :class:`~deepinv.distributed.DistributedDataFidelity`
 
