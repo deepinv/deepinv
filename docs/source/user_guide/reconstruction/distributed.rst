@@ -3,7 +3,7 @@
 Distributed Computing
 =====================
 
-For large-scale inverse problems, single-device memory and compute limitations can become a bottleneck.
+For large-scale inverse problems, the memory and compute of a single device might not be enough.
 The distributed computing framework enables efficient parallel processing across multiple GPUs by distributing physics operators and computations across multiple processes.
 
 The framework provides an API centered around two key functions:
@@ -20,6 +20,12 @@ The framework provides an API centered around two key functions:
     - **Denoising priors** need to be applied to large images using spatial tiling
     - You want to **accelerate reconstruction** by leveraging multiple devices
 
+
+.. warning::
+
+    This module is in beta and may undergo significant changes in future releases.
+    Some features are experimental and only supported for specific use cases.
+    Please report any issues you encounter on our `GitHub repository <https://github.com/deepinv/deepinv>`_.
 
 Quick Start
 -----------
@@ -64,8 +70,7 @@ Here's a minimal example that shows the complete workflow:
         # Use it like regular denoiser
         denoised = distributed_denoiser(noisy_image)
 
-**That's the entire API!** The ``distribute()`` function handles all the complexity of distributed computing.
-
+**That's the entire API!** The :func:`deepinv.distributed.distribute()` function handles all the complexity of distributed computing.
 
 When to Use Distributed Computing
 ----------------------------------
@@ -130,7 +135,7 @@ The context:
     # Disitribute data fidelity (if needed)
     distributed_data_fidelity = distribute(data_fidelity, ctx)
 
-The ``distribute()`` function:
+The :func:`deepinv.distributed.distribute()` function:
 
 - **Auto-detects** the object type (physics, denoiser, prior, data fidelity)
 - Creates the appropriate distributed version
