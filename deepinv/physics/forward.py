@@ -817,7 +817,7 @@ class ComposedPhysics(Physics):
 
     where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
+    :param list[deepinv.physics.Physics] physics: list of physics to compose.
     """
 
     def __init__(self, *physics: Physics, device=None, **kwargs):
@@ -889,7 +889,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
+    :param list[deepinv.physics.Physics] physics: list of physics operators to compose.
     """
 
     def __init__(self, *physics: Physics, **kwargs):
