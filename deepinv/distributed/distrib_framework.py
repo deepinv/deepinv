@@ -26,7 +26,7 @@ class DistributedContext:
 
     Handles:
       - Initialization/destruction of the process group (if `RANK` / `WORLD_SIZE` environment variables exist)
-      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo. 
+      - Backend choice: NCCL when one-GPU-per-process per node, else Gloo.
       - Device selection based on `LOCAL_RANK` and visible GPUs
       - Sharding helpers and tiny communication helpers
 
@@ -35,7 +35,7 @@ class DistributedContext:
     :param int seed: random seed for reproducible results. If provided, each rank gets `seed + rank`. Default is `None`.
     :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.
     :param str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
-    
+
     """
 
     def __init__(
@@ -230,27 +230,38 @@ class DistributedContext:
     # ----------------------
     # Collectives
     # ----------------------
-    def all_reduce_(self, t: torch.Tensor, op: str = "sum") -> torch.Tensor:
+    def all_reduce_(self, tensor: torch.Tensor, op: str = "sum") -> torch.Tensor:
         r"""
-        In-place all_reduce (returns `t`). Uses SUM for both cases; divides for mean.
-        Works on both Gloo and NCCL for all dtypes that backend supports.
+        In-place reduction across all processes (returns `tensor`).
+        Supports `'sum'` and `'mean'` operations.
 
-        :param torch.Tensor t: tensor to reduce.
-        :param str op: reduction operation (`'sum'` or `'mean'`).
+
+        :param torch.Tensor tensor: tensor input and output of the reduction. The function operates in-place.
+        :param str op: reduction operation (`'sum'` or `'mean'`). Default is `'sum'`.
         :return: the reduced tensor.
         """
         if self.is_dist:
-            dist.all_reduce(t, op=dist.ReduceOp.SUM)
-            if op == "mean":
-                t /= float(self.world_size)
-        return t
+            dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+            if op.lower() == "mean":
+                tensor /= float(self.world_size)
+        return tensor
 
-    def broadcast_(self, t: torch.Tensor, src: int = 0) -> torch.Tensor:
+    def broadcast_(self, tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
+        r"""
+        Broadcast tensor from source rank to all other ranks (in-place).
+
+        :param torch.Tensor tensor: tensor to broadcast (modified in-place).
+        :param int src: source rank to broadcast from. Default is `0`.
+        """
+
         if self.is_dist:
-            dist.broadcast(t, src=src)
-        return t
+            dist.broadcast(tensor, src=src)
+        return tensor
 
     def barrier(self):
+        r"""
+        Synchronize all processes.
+        """
         if self.is_dist:
             dist.barrier()
 
@@ -263,15 +274,16 @@ class DistributedContext:
         local_results: list[torch.Tensor],
         num_operators: int,
     ) -> TensorList:
-        """
+        r"""
         Naive gather strategy using object serialization.
 
-        Best for: Small tensors where serialization overhead is negligible.
+        Best for small tensors where serialization overhead is negligible.
+        This function calls :func:`torch.distributed.all_gather_object` (high overhead, simple) under the hood.
 
-        Communication pattern: 1 all_gather_object call (high overhead, simple)
+        .. note::
 
-        Note: This strategy uses all_gather_object which is only supported by the Gloo backend.
-        For NCCL (GPU) environments, use 'concatenated' or 'broadcast' strategies instead.
+            This strategy only supports the Gloo backend.
+            For NCCL (GPU) environments, use `gather_tensorlist_concatenated` or `gather_tensorlist_broadcast` instead.
 
         :param list[int] local_indices: indices owned by this rank
         :param list[torch.Tensor] local_results: local tensor results
@@ -322,8 +334,8 @@ class DistributedContext:
         Best for: Medium to large tensors where minimizing communication calls matters.
 
         Communication pattern:
-        - 1 all_gather_object for metadata (lightweight)
-        - 1 all_gather for concatenated tensor data (efficient)
+            - 1 call to :func:`torch.distributed.all_gather_object` for metadata (lightweight)
+            - 1 call to :func:`torch.distributed.all_gather` for concatenated tensor data (efficient)
 
         :param list[int] local_indices: indices owned by this rank
         :param list[torch.Tensor] local_results: local tensor results
@@ -472,9 +484,9 @@ class DistributedContext:
         with communication (each operator can be broadcast as soon as it's ready).
 
         Use cases:
-        - Different physics operators produce vastly different measurement sizes
-        - Streaming/pipelined execution where operators complete at different times
-        - Very large tensors where memory for concatenation is prohibitive
+            - Different physics operators produce vastly different measurement sizes
+            - Streaming/pipelined execution where operators complete at different times
+            - Very large tensors where memory for concatenation is prohibitive
 
         Communication pattern: num_operators broadcasts (can be overlapped with computation)
 
@@ -540,14 +552,16 @@ class DistributedPhysics(Physics):
     This class distributes a *collection* of physics operators across multiple processes,
     where each process owns a subset of the operators.
 
-    It is intended to parallelize models naturally expressed as a stack/list of operators
-    (e.g., :class:`deepinv.physics.forward.StackedPhysics` or an explicit Python list of
-    :class:`deepinv.physics.forward.Physics` objects) and is **not** meant to split a
-    single monolithic physics operator across ranks.
+    .. note::
+
+        It is intended to parallelize models naturally expressed as a stack/list of operators
+        (e.g., :class:`deepinv.physics.StackedPhysics` or an explicit Python list of
+        :class:`deepinv.physics.Physics` objects) and is **not** meant to split a
+        single monolithic physics operator across ranks.
 
     If your forward model is a single operator that can be decomposed into multiple
     sub-operators, it is up to you to perform that decomposition (e.g., build a
-    ``StackedPhysics``/list of operators) and then pass that collection to
+    :class:`deepinv.physics.StackedPhysics`) and then pass that collection to
     :class:`DistributedPhysics` via the ``factory``.
 
     :param DistributedContext ctx: distributed context manager.
@@ -559,6 +573,7 @@ class DistributedPhysics(Physics):
         - `'naive'`: Simple object serialization (best for small tensors)
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
         - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
+
         Default is `'concatenated'`.
     """
 
@@ -575,17 +590,6 @@ class DistributedPhysics(Physics):
     ):
         r"""
         Initialize distributed physics operators.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param int num_operators: total number of physics operators.
-        :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
-        :param None, dict shared: shared data dictionary passed to factory function.
-        :param None, torch.dtype dtype: data type for operations.
-        :param str gather_strategy: strategy for gathering distributed results. Options are:
-            - `'naive'`: Simple object serialization (best for small tensors)
-            - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
-            - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
-            Default is `'concatenated'`.
         """
         super().__init__(**kwargs)
         self.ctx = ctx
@@ -594,7 +598,7 @@ class DistributedPhysics(Physics):
         self.local_indexes: list[int] = ctx.local_indices(num_operators)
 
         # Validate and set gather strategy
-        valid_strategies = {"naive", "concatenated", "broadcast"}
+        valid_strategies = ("naive", "concatenated", "broadcast")
         if gather_strategy not in valid_strategies:
             raise ValueError(
                 f"gather_strategy must be one of {valid_strategies}, got '{gather_strategy}'"
@@ -699,9 +703,9 @@ class DistributedPhysics(Physics):
         results from all ranks using the configured gather strategy.
 
         :param torch.Tensor x: input signal.
-        :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
+        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements.
         :param dict kwargs: optional parameters for the forward operator.
-        :return: complete list of measurements from all operators (or local list if reduce=False).
+        :return: complete list of measurements from all operators (or local list if `reduce=False`).
         """
         return self._map_reduce(
             x, lambda p, x, **kw: p.A(x, **kw), reduce=reduce, **kwargs
@@ -709,13 +713,14 @@ class DistributedPhysics(Physics):
 
     def forward(self, x, reduce: bool = True, **kwargs):
         r"""
-        Apply full forward model with sensor and noise models.
+        Apply full forward model with sensor and noise models to the input signal and gather results.
 
-        Applies the complete forward model (sensor + noise + physics) to the input signal,
-        gathering results from all distributed operators.
+        .. math::
+
+            y = N(A(x))
 
         :param torch.Tensor x: input signal.
-        :param bool reduce: whether to gather results across ranks. If False, returns local measurements.
+        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements.
         :param dict kwargs: optional parameters for the forward model.
         :return: complete list of noisy measurements from all operators.
         """
@@ -728,35 +733,35 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     r"""
     Distributed linear physics operators.
 
-    This class extends DistributedPhysics for linear operators. It provides distributed
+    This class extends :class:`DistributedPhysics` for linear operators. It provides distributed
     operations that automatically handle communication and reductions.
 
-    This class is intended to distribute a *collection* of linear operators (e.g.,
-    :class:`deepinv.physics.forward.StackedLinearPhysics` or an explicit Python list of
-    :class:`deepinv.physics.forward.LinearPhysics` objects) across ranks. It is **not** a
-    mechanism to shard a single linear operator internally.
+    .. note::
+
+        This class is intended to distribute a *collection* of linear operators (e.g.,
+        :class:`deepinv.physics.StackedLinearPhysics` or an explicit Python list of
+        :class:`deepinv.physics.LinearPhysics` objects) across ranks. It is **not** a
+        mechanism to shard a single linear operator internally.
 
     If you have one linear physics operator that can naturally be split into multiple
     operators, you must do that split yourself (build a stacked/list representation) and
-    provide those operators through the ``factory``.
+    provide those operators through the `factory`.
 
-    All linear operations (``A_adjoint``, ``A_vjp``, etc.) support a ``reduce`` parameter.
+    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce` parameter:
 
-    - If ``reduce=True`` (default): The method computes the global result by performing a single all-reduce
-        across all ranks.
-    - If ``reduce=False``: The method computes only the local contribution from operators owned by this rank,
-        without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
+        - If `reduce=True` (default): The method computes the global result by performing a single all-reduce across all ranks.
+        - If `reduce=False`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms.
 
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators to distribute.
     :param Callable factory: factory function that creates linear physics operators.
-        Should have signature ``factory(index: int, device: torch.device, shared: dict | None) -> LinearPhysics``.
+        Should have signature `factory(index: int, device: torch.device, shared: dict | None) -> LinearPhysics`.
     :param None, dict shared: shared data dictionary passed to factory function for all operators.
-    :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` (stack operators)
-        or ``'mean'`` (average operators). Default is ``'sum'``.
+    :param str reduction: reduction mode for distributed operations. Options are `'sum'` (stack operators)
+        or `'mean'` (average operators). Default is `'sum'`.
     :param None, torch.dtype dtype: data type for operations.
     :param str gather_strategy: strategy for gathering distributed results in forward operations.
-        Options are ``'naive'``, ``'concatenated'``, or ``'broadcast'``. Default is ``'concatenated'``.
+        Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.
     """
 
     def __init__(
@@ -773,14 +778,6 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
     ):
         r"""
         Initialize distributed linear physics operators.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param int num_operators: total number of physics operators.
-        :param Callable factory: factory function that creates linear physics operators.
-        :param None, dict shared: shared data dictionary passed to factory function.
-        :param str reduction: reduction mode for distributed operations. Options are `'sum'` and `'mean'`.
-        :param None, torch.dtype dtype: data type for operations.
-        :param str gather_strategy: strategy for gathering distributed results.
         """
         self.reduction_mode = reduction
         super().__init__(
@@ -807,7 +804,7 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         Extracts local measurements, computes local adjoint contributions, and reduces
         across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the
-        stacked operator :math:`A = [A_1; A_2; \ldots; A_n]`.
+        stacked operator :math:`A = [A_1, A_2, \ldots, A_n]` and :math:`A_i` are the individual linear operators.
 
         :param TensorList y: full list of measurements from all operators.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
@@ -918,19 +915,21 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         r"""
         Compute global :math:`A A^T` operation with automatic reduction.
 
-        For stacked operators, this computes :math:`A(A^T y)` where :math:`A^T y = \sum_i A_i^T y_i`
+        For stacked operators, this computes :math:`A A^T y` where :math:`A^T y = \sum_i A_i^T y_i`
         and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.
 
-        Note: Unlike other operations, the adjoint step ``A^T y`` is always computed globally (with full
-        reduction across ranks) even when ``reduce=False``. This is because computing the correct
-        ``A_A_adjoint`` requires the full adjoint ``sum_i A_i^T y_i``. The ``reduce`` parameter only
-        controls whether the final forward operation ``A(...)`` is gathered across ranks.
+        .. note::
+
+            Unlike other operations, the adjoint step `A^T y` is always computed globally (with full
+            reduction across ranks) even when `reduce=False`. This is because computing the correct
+            `A_A_adjoint` requires the full adjoint `sum_i A_i^T y_i`. The `reduce` parameter only
+            controls whether the final forward operation `A(...)` is gathered across ranks.
 
         :param TensorList y: full list of measurements from all operators.
-        :param bool reduce: whether to gather final results across ranks. If False, returns only local
+        :param bool reduce: whether to gather final results across ranks. If `False`, returns only local
             operators' contributions (but still uses the global adjoint).
         :param dict kwargs: optional parameters for the operation.
-        :return: TensorList with entries :math:`A_i(A^T y)` for all operators (or local list if reduce=False).
+        :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `reduce=False`).
         """
         # First compute A^T y globally (always with reduction to get the full adjoint)
         # This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i
@@ -948,12 +947,14 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         results by summing contributions from all ranks. Optionally normalizes by the
         number of operators if mean reduction is requested.
 
-        Note: This method is primarily used by operations like A_adjoint_A where
-        the result is already a proper tensor from all ranks. For A_adjoint, we use
-        the _map_reduce pattern which handles empty local sets more robustly.
+        .. note::
+
+            This method is primarily used by operations like `A_adjoint_A` where
+            the result is already a proper tensor from all ranks. For `A_adjoint`, we use
+            the `_map_reduce` pattern which handles empty local sets more robustly.
 
         :param torch.Tensor x_like: local tensor to reduce.
-        :param str reduction: reduction mode, either ``'sum'`` or ``'mean'``.
+        :param str reduction: reduction mode, either `'sum'` or `'mean'`.
         :return: globally reduced tensor.
         """
         if not torch.is_tensor(x_like):
@@ -983,28 +984,32 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
         r"""
         Distributed pseudoinverse computation. This method provides two strategies:
 
-        1. **Local approximation** (``local_only=True``, default): Each rank computes the pseudoinverse
-           of its local operators independently, then averages the results with a single reduction.
-           This is efficient (minimal communication) but **provides only an approximation**.
-           In other words, for stacked operators this computes :math:`\frac{1}{n} \sum_i A_i^\dagger y_i`.
+            1. **Local approximation** (`local_only=True`, default): Each rank computes the pseudoinverse
+            of its local operators independently, then averages the results with a single reduction.
+            This is efficient (minimal communication) but **provides only an approximation**.
+            In other words, for stacked operators this computes
 
-        2. **Global computation** (``local_only=False``): Uses the full least squares solver
-           with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
-           This computes the exact pseudoinverse but requires communication at every iteration.
+            .. math::
+
+                A^\dagger y = \frac{1}{n} \sum_i A_i^\dagger y_i
+
+            2. **Global computation** (`local_only=False`): Uses the full least squares solver
+            with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
+            This computes the exact pseudoinverse but requires communication at every iteration.
 
         :param TensorList y: measurements to invert.
-        :param str solver: least squares solver to use (only for ``local_only=False``).
-            Choose between ``'CG'``, ``'lsqr'``, ``'BiCGStab'`` and ``'minres'``.
+        :param str solver: least squares solver to use (only for `local_only=False`).
+            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`.
         :param None, int max_iter: maximum number of iterations for least squares solver.
         :param None, float tol: relative tolerance for least squares solver.
         :param bool verbose: print information (only on rank 0).
-        :param bool local_only: If ``True`` (default), compute local daggers and sum-reduce (efficient).
-            If ``False``, compute exact global pseudoinverse with full communication (expensive).
+        :param bool local_only: If `True` (default), compute local daggers and sum-reduce (efficient).
+            If `False`, compute exact global pseudoinverse with full communication (expensive).
         :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator.
 
-        :return: pseudoinverse solution. If ``local_only=True``, returns approximation.
-            If ``local_only=False``, returns exact least squares solution.
+        :return: pseudoinverse solution. If `local_only=True`, returns approximation.
+            If `local_only=False`, returns exact least squares solution.
         """
         if local_only:
             # Efficient local computation with single sum reduction
@@ -1061,28 +1066,28 @@ class DistributedLinearPhysics(DistributedPhysics, LinearPhysics):
 
         This method provides two strategies:
 
-        1. **Local approximation** (``local_only=True``, default): Each rank computes the norm
-           of its local operators independently, then a single max-reduction provides an upper bound.
-           This is efficient (minimal communication) and valid for conservative estimates.
-           For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have
-           :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as
-           a conservative upper bound.
+            1. **Local approximation** (`local_only=True`, default): Each rank computes the norm
+            of its local operators independently, then a single max-reduction provides an upper bound.
+            This is efficient (minimal communication) and valid for conservative estimates.
+            For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have
+            :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as
+            a conservative upper bound.
 
-        2. **Global computation** (``local_only=False``): Uses the full distributed :meth:`A_adjoint_A`
-           with communication at every power iteration. This computes the exact norm but is
-           communication-intensive.
+            2. **Global computation** (`local_only=False`): Uses the full distributed :meth:`A_adjoint_A`
+            with communication at every power iteration. This computes the exact norm but is
+            communication-intensive.
 
         :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate
         :param int max_iter: maximum number of iterations for power method
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information (only on rank 0)
-        :param bool local_only: If ``True`` (default), compute local norms and max-reduce (efficient).
-            If ``False``, compute exact global norm with full communication (expensive).
+        :param bool local_only: If `True` (default), compute local norms and max-reduce (efficient).
+            If `False`, compute exact global norm with full communication (expensive).
         :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
         :param dict kwargs: optional parameters for the forward operator
 
-        :return: squared spectral norm. If ``local_only=True``, returns upper bound.
-            If ``local_only=False``, returns exact value.
+        :return: Squared spectral norm. If `local_only=True`, returns upper bound.
+            If `local_only=False`, returns exact value.
         """
 
         if local_only:
@@ -1130,18 +1135,22 @@ class DistributedProcessing:
     Distributed signal processing using pluggable tiling and reduction strategies.
 
     This class enables distributed processing of large signals (images, volumes, etc.) by:
-    1. Splitting the signal into patches using a chosen strategy
-    2. Distributing patches across multiple processes/GPUs
-    3. Processing each patch independently using a provided processor function
-    4. Combining processed patches back into the full signal with proper overlap handling
+
+        1. Splitting the signal into patches using a chosen strategy
+        2. Distributing patches across multiple processes/GPUs
+        3. Processing each patch independently using a provided processor function
+        4. Combining processed patches back into the full signal with proper overlap handling
 
     The processor can be any callable that operates on tensors (e.g., denoisers, priors,
     neural networks, etc.). The class handles all distributed coordination automatically.
 
+    |sep|
+
     **Example use cases:**
-    - Distributed denoising of large images/volumes
-    - Applying neural network priors across multiple GPUs
-    - Processing signals too large to fit on a single device
+
+        - Distributed denoising of large images/volumes
+        - Applying neural network priors across multiple GPUs
+        - Processing signals too large to fit on a single device
 
     :param DistributedContext ctx: distributed context manager.
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
@@ -1169,19 +1178,6 @@ class DistributedProcessing:
     ):
         r"""
         Initialize distributed signal processor.
-
-        :param DistributedContext ctx: distributed context manager.
-        :param Callable[[torch.Tensor], torch.Tensor] processor: processing function that takes a batched
-            tensor ``(N, C, ...)`` and returns a processed tensor of the same shape. Examples include
-            denoisers, neural networks, prior gradient functions, etc.
-        :param str | DistributedSignalStrategy strategy: signal processing strategy. Either a strategy
-            name (``'basic'``, ``'smart_tiling'``) or a custom :class:`DistributedSignalStrategy` instance.
-            Default is ``'smart_tiling'``.
-        :param None, dict strategy_kwargs: additional keyword arguments for the strategy constructor when
-            using string strategy names (e.g., ``patch_size``, ``overlap``, ``blend_mode``).
-        :param None, int max_batch_size: maximum number of patches to process in a single batch. If ``None``,
-            all local patches are batched together for maximum throughput. Set to ``1`` for sequential
-            processing (lowest memory usage). Intermediate values balance throughput and memory.
         """
         self.ctx = ctx
         self.processor = processor
@@ -1269,12 +1265,13 @@ class DistributedProcessing:
         Apply processor using the distributed strategy (internal method).
 
         This method orchestrates the complete distributed processing pipeline:
-        1. Extracts local patches from the input signal using the strategy
-        2. Applies batching as defined by the strategy and max_batch_size
-        3. Applies the processor function to each batch of patches
-        4. Unpacks batched results back to individual patches
-        5. Reduces patches back to the output signal using the strategy's blending
-        6. All-reduces the final result across ranks to combine overlapping regions
+
+            1. Extracts local patches from the input signal using the strategy
+            2. Applies batching as defined by the strategy and max_batch_size
+            3. Applies the processor function to each batch of patches
+            4. Unpacks batched results back to individual patches
+            5. Reduces patches back to the output signal using the strategy's blending
+            6. All-reduces the final result across ranks to combine overlapping regions
 
         :param torch.Tensor x: input signal to process.
         :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
@@ -1346,13 +1343,15 @@ class DistributedDataFidelity:
     a single reduction, avoiding redundant communication.
 
     The key operations are:
-    - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`
-    - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`
+
+        - ``fn(x, y, physics)``: Computes the data fidelity :math:`\sum_i d(A_i(x), y_i)`
+        - ``grad(x, y, physics)``: Computes the gradient :math:`\sum_i A_i^T \nabla d(A_i(x), y_i)`
 
     Both operations use an efficient pattern:
-    1. Compute local forward operations (A_local)
-    2. Apply distance function and compute gradients locally
-    3. Perform a single reduction across ranks
+
+        1. Compute local forward operations (A_local)
+        2. Apply distance function and compute gradients locally
+        3. Perform a single reduction across ranks
 
     :param DistributedContext ctx: distributed context manager.
     :param DataFidelity | Callable data_fidelity: either a DataFidelity instance
@@ -1455,9 +1454,10 @@ class DistributedDataFidelity:
             f(x) = \sum_i d(A_i(x), y_i)
 
         This is computed efficiently by:
-        1. Each rank computes :math:`A_i(x)` for its local operators
-        2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`
-        3. Results are reduced across all ranks
+
+            1. Each rank computes :math:`A_i(x)` for its local operators
+            2. Each rank computes :math:`\sum_{i \in \text{local}} d(A_i(x), y_i)`
+            3. Results are reduced across all ranks
 
         :param torch.Tensor x: input signal at which to evaluate the data fidelity.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
@@ -1510,10 +1510,11 @@ class DistributedDataFidelity:
             \nabla_x f(x) = \sum_i A_i^T \nabla d(A_i(x), y_i)
 
         This is computed efficiently by:
-        1. Each rank computes :math:`A_i(x)` for its local operators
-        2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
-        3. Each rank computes :math:`\sum_{i \in \text{local}} A_i^T \nabla d(A_i(x), y_i)` using A_vjp_local
-        4. Results are reduced across all ranks
+
+            1. Each rank computes :math:`A_i(x)` for its local operators
+            2. Each rank computes :math:`\nabla d(A_i(x), y_i)` for its local operators
+            3. Each rank computes :math:`\sum_{i \in \text{local}} A_i^T \nabla d(A_i(x), y_i)` using A_vjp_local
+            4. Results are reduced across all ranks
 
         :param torch.Tensor x: input signal at which to compute the gradient.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
