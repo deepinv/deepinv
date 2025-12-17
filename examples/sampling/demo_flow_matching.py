@@ -1,10 +1,41 @@
 r"""
-Flow-Matching and closed-form MMSE denoiser
-==============================================
+Flow-Matching for posterior sampling and unconditional generation
+==================================================================
 
-This demo shows you how to use Flow-Matching to perform unconditional image generation or posterior sampling.
-In particular, in this demo, we will show how to perform generation using the closed-form MMSE denoiser which is calculated from a given dataset of clean images.
-This is equivalent to flow-matching with closed-form velocity, analyzed for example in :footcite:`bertrand2025closed`.
+This demo shows you how to use a pretrained denoiser to perform unconditional image generation and posterior sampling using Flow Matching (FM).
+
+Flow matching consists in learning a continuous transportation between a reference distribution :math:`p_0` which is easy to sample from (e.g., a Gaussian distribution) and the data distribution :math:`p_1`.
+Sampling is done by solving the following ordinary differential equation (ODE) defined by a time-dependent velocity field :math:`v_\theta(x,t)` :
+
+.. math::
+    \frac{dx_t}{dt} = v_\theta(x_t,t), \quad x_0 \sim p_0 \quad t \in [0,1]
+
+The velocity field :math:`v_\theta(x,t)` has been trained to approximate the conditional expectation:
+
+.. math::
+    v_\theta(x_t,t) \approx \mathbb{E}_{x_0 \sim p_0, x_1 \sim p_1}\Big[ \frac{d}{dt} x_t | x_t = a_t x_0 + b_t x_1 \Big]
+
+where :math:`a_t` and :math:`b_t` are interpolation coefficients such that :math:`x_t` inteprolates between :math:`x_0` and :math:`x_1`.
+When the reference distribution :math:`p_0` is the standard Gaussian, the velocity field can be expressed as a function of a Gaussian denoiser :math:`D(x, \sigma)` as follows:
+
+.. math::
+    v_\theta(x_t,t) = - \frac{\dot{b}_t}{b_t} x_t + \frac{1}{2}\frac{a_t \dot{b}_t - \dot{a}_t b_t}{a_t b_t} \left(D\left(\frac{x_t}{a_t}, \frac{b_t}{a_t} \right) - x_t\right)
+
+The most common choice of time schedulers is the linear schedule :math:`a_t = 1 - t` and :math:`b_t = t`.
+
+In this demo, we will show how to :
+
+    *  Perform unconditional generation using not a trained denoiser but the closed-form MMSE denoiser
+
+    .. math::
+        D(x, \sigma) = \mathbb{E}_{x_0 \sim p_{data}, \epsilon \sim \mathcal{N}(0, I)} \Big[ x_0 | x = x_0 + \sigma \epsilon \Big]
+
+    Given a dataset of clean images, it can be computed by evaluating the distance between the input image and all the points of the dataset (see :class:`deepinv.models.MMSE`).
+
+    *  Perform posterior sampling using Flow-Matching combined with a DPS data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details)
+
+    *  Explore different choices of time schedulers :math:`a_t` and :math:`b_t`.
+
 """
 
 # %%
@@ -16,16 +47,19 @@ from deepinv.sampling import (
     EulerSolver,
     FlowMatching,
 )
+import numpy as np
 from torchvision import datasets, transforms
-from deepinv.models import MMSE
+from deepinv.models import MMSE, NCSNpp
+import os
+import shutil
+from pathlib import Path
 
-# %% Define the MMSE denoiser
-# ----------------------------------------------------------------
+# %% Define the closed-form MMSE denoiser
+# -----------------------------
 #
-# The closed-form MMSE denoser is calculated by computing the distance between the input image and all the points of the dataset.
-# This can be quite long to compute for large images and large datasets.
-# In this toy example, we use the training set of MNIST.
-
+# We start by working with the closed-form MMSE denoser.  It is calculated by computing the distance between the input image and all the points of the dataset.
+# This can be quite long to compute for large images and large datasets.  In this toy example, we use the validation set of MNIST.
+# When using this closed-form MMSE denoiser, the sampling is guaranteed to output an image of the dataset.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_workers = 0 if device.type == "cpu" else 8
@@ -35,7 +69,7 @@ figsize = 2.5
 # We use the closed-form MMSE denoiser defined using as atoms the testset of MNIST.
 # The deepinv MMSE denoiser takes as input a dataloader.
 dataset = datasets.MNIST(
-    root=".", train=True, download=True, transform=transforms.ToTensor()
+    root=".", train=False, download=True, transform=transforms.ToTensor()
 )
 dataloader = torch.utils.data.DataLoader(
     dataset, batch_size=512, shuffle=False, num_workers=num_workers
@@ -47,10 +81,10 @@ denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
 
 # %% Define the Flow-Matching ODE and perform unconditional generation
 # ----------------------------------------------------------------
-# The FlowMatching module takes as input the denoiser and the ODE solver.
-#
+# The FlowMatching module :class:`FlowMatching` uses by default the following schedules: :math:`a_t=1-t`, :math:`b_t=t`.
+# The module FlowMatching module takes as input the denoiser and the ODE solver.
 
-num_steps = 100
+num_steps = 20
 
 rng = torch.Generator(device).manual_seed(42)
 timesteps = torch.linspace(0.99, 0.0, num_steps)
@@ -63,6 +97,7 @@ sample, trajectory = sde(
     get_trajectory=True,
 )
 
+
 dinv.utils.plot(
     sample,
     titles="Unconditional FM generation",
@@ -70,25 +105,62 @@ dinv.utils.plot(
     figsize=(figsize, figsize),
 )
 
-# dinv.utils.save_videos(
-#     trajectory.cpu(),
-#     time_dim=0,
-#     titles=["FM Trajectory"],
-#     save_fn="FM_trajectory.gif",
-#     figsize=(figsize, figsize),
-# )
+dinv.utils.save_videos(
+    trajectory.cpu(),
+    time_dim=0,
+    titles=["FM Trajectory"],
+    save_fn="FM_trajectory.gif",
+    figsize=(figsize, figsize),
+)
+
+# sphinx_gallery_start_ignore
+# cleanup
+
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.move("FM_trajectory.gif", final_dir / "FM_trajectory.gif")
+    shutil.move("FM_sample.png", final_dir / "FM_sample.png")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+# %%
+# We obtain the following unconditional sample, which belongs to the MNIST dataset.
+#
+# .. container:: image-row
+#
+#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#       :alt: example of unconditional sample
+#       :srcset: /auto_examples/images/FM_sample.png
+#       :class: custom-img
+#       :ignore_missing: true
+#
+#    .. image-sg-ignore:: /auto_examples/images/sde_trajectory.gif
+#       :alt: example of unconditional trajectory
+#       :srcset: /auto_examples/images/FM_trajectory.gif
+#       :class: custom-gif
+#       :ignore_missing: true
 
 
 # %% Perform posterior sampling
 # ----------------------------------------------------------------
 # Now, we can use the Flow-Matching model to perform posterior sampling.
-# When the data fidelity is given, together with the measurements and the physics, we can perform posterior sampling for inverse problems.
-# For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
-# We can use the :class:`deepinv.sampling.DPSDataFidelity` as the data fidelity term.
+# In order not to replicate training image data, we now use a pretrained deep denoiser, here the NCSNpp denoiser  :footcite:t:`song2020score`, with pretrained weights from :footcite:t:`karras2022elucidating`.
+# We consider the inpainting problem, where we have a masked image and we want to recover the original image.
+# We use DPS :class:`deepinv.sampling.DPSDataFidelity` as data fidelity term (see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more details).
+# Note that, again, due to the division by :math:`a_t` in the velocity field, initialization close to t=1 causes instability.
 
-x = tensors[0:1]
+x = dinv.utils.load_example(
+    "celeba_example.jpg",
+    img_size=64,
+    resize_mode="resize",
+).to(device)
+
 mask = torch.ones_like(x)
-mask[..., 10:20, 10:20] = 0.0
+mask[..., 20:50, 20:50] = 0.0
 physics = dinv.physics.Inpainting(
     img_size=x.shape[1:],
     mask=mask,
@@ -97,9 +169,15 @@ physics = dinv.physics.Inpainting(
 )
 y = physics(x)
 
-weight = 1e-2  # guidance strength
+weight = 3
+denoiser = NCSNpp(pretrained="download").to(device)
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
+num_steps = 100
+# Due to the division by :math:`a_t = 1-T` in the velocity field, initialization close to t=1 causes instability.
+timesteps = torch.linspace(0.85, 0.0, num_steps)
+solver = EulerSolver(timesteps=timesteps, rng=rng)
+sde = FlowMatching(denoiser=denoiser, solver=solver, device=device)
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -109,9 +187,10 @@ model = PosteriorDiffusion(
     device=device,
     verbose=True,
 )
-# To perform posterior sampling, we need to provide the measurements, the physics and the solver.
-# Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.
+
 seed_1 = 1
+
+
 x_hat, trajectory = model(
     y,
     physics,
@@ -128,13 +207,98 @@ dinv.utils.plot(
     figsize=(figsize * 3, figsize),
     save_fn="FM_posterior.png",
 )
-# We can also save the trajectory of the posterior sample
-# dinv.utils.save_videos(
-#     trajectory,
-#     time_dim=0,
-#     titles=["Posterior sample with FM"],
-#     save_fn="FM_posterior_trajectory.gif",
-#     figsize=(figsize, figsize),
-# )
 
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.move("FM_sample.png", final_dir / "FM_sample.png")
+except FileNotFoundError:
+    pass
+
+
+# sphinx_gallery_end_ignore
 # %%
+# We obtain the following conditional sample:
+#
+# .. container:: image-row
+#
+#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#       :alt: example of unconditional sample
+#       :srcset: /auto_examples/images/FM_posterior.png
+#       :class: custom-img
+#       :ignore_missing: true
+
+
+# %% Explore different time schedulers for Flow-Matching
+# ----------------------------------------------------------------
+# Finally, we show how to use different choices of time schedulers :math:`a_t` and :math:`b_t`.
+# Here, we use another typical choice of schedulers :math:`a_t = \cos(\frac{\pi}{2} t)` and :math:`b_t = \sin(\frac{\pi}{2} t)` which also satisfy the interpolation condition :math:`a_0 = 1`, :math:`b_0 = 0`, :math:`a_1 = 0`, :math:`b_1 = 1`.
+# Note that, again, due to the division by :math:`a_t` in the velocity field, initialization close to t=1 causes instability.
+
+a_t = lambda t: torch.cos(np.pi / 2 * t)
+a_prime_t = lambda t: -np.pi / 2 * torch.sin(np.pi / 2 * t)
+b_t = lambda t: torch.sin(np.pi / 2 * t)
+b_prime_t = lambda t: np.pi / 2 * torch.cos(np.pi / 2 * t)
+
+num_steps = 10
+timesteps = torch.linspace(0.85, 0.0, num_steps)
+solver = EulerSolver(timesteps=timesteps, rng=rng)
+sde = FlowMatching(denoiser=denoiser, solver=solver, device=device)
+
+sde = FlowMatching(
+    a_t=a_t,
+    a_prime_t=a_prime_t,
+    b_t=b_t,
+    b_prime_t=b_prime_t,
+    denoiser=denoiser,
+    solver=solver,
+    device=device,
+)
+
+model = PosteriorDiffusion(
+    data_fidelity=dps_fidelity,
+    sde=sde,
+    solver=solver,
+    dtype=dtype,
+    device=device,
+    verbose=True,
+)
+
+x_hat, trajectory = model(
+    y,
+    physics,
+    x_init=None,
+    seed=seed_1,
+    get_trajectory=True,
+)
+
+# Here, we plot the original image, the measurement and the posterior sample
+dinv.utils.plot(
+    [x, y, x_hat],
+    show=True,
+    titles=["Original", "Measurement", "Posterior sample"],
+    figsize=(figsize * 3, figsize),
+    save_fn="FM_posterior_new_at_bt.png",
+)
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.move("FM_posterior_new_at_bt.png", final_dir / "FM_posterior_new_at_bt.png")
+except FileNotFoundError:
+    pass
+
+
+# sphinx_gallery_end_ignore
+# %%
+# We obtain the following conditional sample:
+#
+# .. container:: image-row
+#
+#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#       :alt: example of unconditional sample
+#       :srcset: /auto_examples/images/FM_posterior_new_at_bt.png
+#       :class: custom-img
+#       :ignore_missing: true
