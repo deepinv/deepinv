@@ -119,7 +119,7 @@ class RadioInterferometry(LinearPhysics):
             self.adj_projection = lambda x: torch.real(x).to(torch.float)
         else:
             self.adj_projection = lambda x: x
-            
+
         self.to(device)
 
     def setWeight(self, w):

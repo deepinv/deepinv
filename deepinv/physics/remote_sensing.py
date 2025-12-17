@@ -94,7 +94,9 @@ class Pansharpen(StackedLinearPhysics):
             srf=srf, noise_model=noise_gray, channels=img_size[0], device=device
         )
 
-        super().__init__(physics_list=[downsampling, decolorize], device=device, **kwargs)
+        super().__init__(
+            physics_list=[downsampling, decolorize], device=device, **kwargs
+        )
 
         # Set convenience attributes
         self.downsampling = downsampling
