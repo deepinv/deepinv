@@ -459,7 +459,7 @@ class BlurFFT(DecomposablePhysics):
     :param tuple img_size: Input image size in the form `(C, H, W)`.
     :param torch.Tensor filter: torch.Tensor of size `(1, c, h, w)` containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
         :func:`deepinv.physics.blur.gaussian_blur`.
-    :param torch.device, str device: Device this physics lives on. If `filter` is updated, it will be cast to BlurFFT's device.
+    :param torch.device, str device: Device this physics lives on. If `filter` is modified via `physics.update_parameters()`, it will be automatically casted to BlurFFT's device.
     :param str, torch.dtype dtype: data type of the tensors. Default is ``torch.float32``.
 
     |sep|

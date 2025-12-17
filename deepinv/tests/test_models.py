@@ -1053,6 +1053,7 @@ def test_restoration_models(
     else:
         physics = None
 
+    # A helper function to set sigma in physics noise models
     def _set_sigma_physics(physics, sigma):
         if hasattr(physics, "noise_model"):
             if hasattr(physics.noise_model, "sigma"):
@@ -1063,6 +1064,7 @@ def test_restoration_models(
                 physics.noise_model = dinv.physics.GaussianNoise(sigma)
 
         if physics is not None:
+            # recursively set sigma for noise models in composite physics
             for attr in dir(physics):
                 sub_physics = getattr(physics, attr)
                 if isinstance(sub_physics, dinv.physics.Physics):

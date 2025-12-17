@@ -1255,16 +1255,23 @@ def test_noise_domain(device):
     "img_size", [(1, 64, 64), (3, 65, 65), (1, 64, 65), (3, 65, 64)]
 )
 @pytest.mark.parametrize("filter_size", [(1, 5, 5), (1, 6, 6), (1, 6, 5)])
-def test_blur(img_size, filter_size, device):
+@pytest.mark.parametrize("filter_type", ["random", "directional"])
+def test_blur(img_size, filter_size, filter_type, device):
     r"""
     Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
     x = torch.randn(*img_size, device=device).unsqueeze(0)
-    h = torch.ones(*filter_size, device=device).unsqueeze(0) / (
-        filter_size[1] * filter_size[2]
-    )
+    if filter_type == "random":
+        h = torch.rand(*filter_size, device=device).unsqueeze(0)
+    elif filter_type == "directional":
+        # create a directional filter
+        h = torch.zeros(*filter_size, device=device).unsqueeze(0)
+        diag_len = min(filter_size[-2], filter_size[-1])
+        idx = torch.arange(diag_len, device=device)
+        h[..., idx, idx] = 1.0
 
+    h = h / h.sum(dim=[-2, -1], keepdim=True)  # normalize filter
     physics_blur = dinv.physics.Blur(
         filter=h,
         device=device,
