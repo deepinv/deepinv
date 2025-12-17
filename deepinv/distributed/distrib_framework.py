@@ -1347,24 +1347,6 @@ class DistributedDataFidelity:
     :param None, dict shared: shared data dictionary passed to factory function for all operators.
     :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
         Default is ``'sum'``.
-
-    |sep|
-
-    :Example:
-
-        >>> from deepinv.distributed import DistributedContext, distribute
-        >>> from deepinv.optim import L2
-        >>> # Create distributed physics and data fidelity
-        >>> with DistributedContext(device_mode="cpu") as ctx:
-        ...     physics_list = [create_physics(i) for i in range(4)]
-        ...     dist_physics = distribute(physics_list, ctx=ctx)
-        ...     data_fidelity = L2()
-        ...     dist_fidelity = DistributedDataFidelity(ctx, data_fidelity)
-        ...     # Compute fidelity and gradient
-        ...     x = torch.randn(1, 1, 16, 16)
-        ...     y = dist_physics(x)
-        ...     fid = dist_fidelity.fn(x, y, dist_physics)
-        ...     grad = dist_fidelity.grad(x, y, dist_physics)
     """
 
     def __init__(

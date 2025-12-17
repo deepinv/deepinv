@@ -111,17 +111,6 @@ def _distribute_physics(
     :param kwargs: additional keyword arguments for DistributedPhysics
 
     :returns: Distributed version of the input Physics object
-
-    |sep|
-
-    :Examples:
-
-        Distribute a Physics object:
-
-        >>> from deepinv.physics import Blur
-        >>> physics = Blur(kernel_size=5)
-        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
-        >>> dphysics = distribute_physics(physics, ctx)
     """
     # Physics factory
     if isinstance(physics, (StackedPhysics, StackedLinearPhysics)):
@@ -193,24 +182,6 @@ def _distribute_processor(
     :param kwargs: additional keyword arguments for DistributedProcessing
 
     :returns: Distributed version of the input processor
-
-    |sep|
-
-    :Examples:
-
-        Distribute a Prior object:
-
-        >>> from deepinv.optim.prior import TV
-        >>> prior = TV(weight=0.1)
-        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
-        >>> dprior = distribute_processor(prior, ctx)
-
-        Distribute a Denoiser object:
-
-        >>> from deepinv.models import DnCNN
-        >>> denoiser = DnCNN(channels=3, num_layers=17)
-        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
-        >>> ddenoiser = distribute_processor(denoiser, ctx)
     """
 
     return DistributedProcessing(
@@ -247,17 +218,6 @@ def _distribute_data_fidelity(
     :param kwargs: additional keyword arguments for DistributedDataFidelity
 
     :returns: Distributed version of the input DataFidelity object
-
-    |sep|
-
-    :Examples:
-
-        Distribute a DataFidelity object:
-
-        >>> from deepinv.optim.data_fidelity import L2
-        >>> data_fidelity = L2()
-        >>> ctx = DistributedContext()
-        >>> ddata_fidelity = distribute_data_fidelity(data_fidelity, ctx)
     """
     # DataFidelity factory
 
@@ -366,23 +326,28 @@ def distribute(
 
         Distribute a Physics object:
 
-        >>> from deepinv.physics import Blur
-        >>> physics = Blur(kernel_size=5)
-        >>> ctx = DistributedContext(devices=["cuda:0", "cuda:1"])
-        >>> dphysics = distribute(physics, ctx)
+        >>> from deepinv.physics import Blur, StackedLinearPhysics
+        >>> from deepinv.distributed import DistributedContext, distribute
+        >>> with DistributedContext() as ctx:
+        >>>     physics = StackedLinearPhysics([Blur(kernel_size=5), Blur(kernel_size=9)])
+        >>>     dphysics = distribute(physics, ctx)
 
         Distribute a DataFidelity object:
 
         >>> from deepinv.optim.data_fidelity import L2
-        >>> data_fidelity = L2()
-        >>> ddata_fidelity = distribute(data_fidelity, ctx, physics=dphysics, measurements=dmeasurements)
+        >>> from deepinv.distributed import DistributedContext, distribute
+        >>> with DistributedContext() as ctx:
+        >>>     data_fidelity = L2()
+        >>>     ddata_fidelity = distribute(data_fidelity, ctx)
 
         Distribute a Prior object:
 
         >>> from deepinv.optim.prior import TV
-        >>> prior = TV(weight=0.1)
-        >>> signal_shape = (1, 3, 256, 256)
-        >>> dprior = distribute(prior, ctx, signal_shape=signal_shape)
+        >>> from deepinv.distributed import DistributedContext, distribute
+        >>> with DistributedContext() as ctx:
+        >>>     prior = TV(weight=0.1)
+        >>>     signal_shape = (1, 3, 256, 256)
+        >>>     dprior = distribute(prior, ctx, signal_shape=signal_shape)
     """
     # Check object type and distribute accordingly
     if type_object == "auto":
