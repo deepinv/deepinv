@@ -21,6 +21,7 @@ import pytest
 import torch
 import time
 import socket
+import platform
 import torch.multiprocessing as mp
 from typing import Callable, Any
 
@@ -85,10 +86,15 @@ def device_config(request):
             "skip_reason": None,
         }
     elif mode == "cpu_multi":
+        skip_reason = (
+            "Gloo backend not supported on Windows for multi-process tests"
+            if platform.system() == "Windows"
+            else None
+        )
         return {
             "device_mode": "cpu",
             "world_size": 2,
-            "skip_reason": None,
+            "skip_reason": skip_reason,
         }
     elif mode == "gpu_single":
         gpu_count = _get_gpu_count()
@@ -113,10 +119,15 @@ def device_config(request):
                 "skip_reason": "Less than 2 GPUs available",
             }
         else:
+            skip_reason = (
+                "NCCL backend not supported on Windows for multi-GPU tests"
+                if platform.system() == "Windows"
+                else None
+            )
             return {
                 "device_mode": "gpu",
                 "world_size": min(2, gpu_count),
-                "skip_reason": None,
+                "skip_reason": skip_reason,
             }
 
 

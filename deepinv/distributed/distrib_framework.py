@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import copy
-import platform
 from typing import Callable, Sequence
 
 import torch
@@ -108,11 +107,6 @@ class DistributedContext:
                     else:
                         backend = "gloo"
 
-            # Windows can hit Gloo initialization failures like:
-            # This typically happens when Gloo selects a transport unsupported by
-            # the Windows build (or the env var is set to an invalid/empty value).
-            if backend == "gloo":
-                self._configure_gloo_environment()
             dist.init_process_group(backend=backend)
             self.initialized_here = True
 
@@ -189,21 +183,6 @@ class DistributedContext:
         if self.deterministic:
             torch.backends.cudnn.benchmark = False
             torch.backends.cudnn.deterministic = True
-
-    def _configure_gloo_environment(self) -> None:
-        """
-        Stable Gloo initialization for Windows
-        """
-        # PyTorch's Gloo transport options are typically "tcp" or "uv".
-        # Some Windows wheels do not support all transports; forcing TCP avoids
-        # failures like `makeDeviceForHostname(): unsupported gloo device`.
-        if platform.system() == "Windows":
-            os.environ.setdefault("GLOO_DEVICE_TRANSPORT", "tcp")
-
-            # Ensure loopback for local multi-process tests when users pass
-            # `localhost` (some setups resolve it unexpectedly).
-            if os.environ.get("MASTER_ADDR", "").lower() == "localhost":
-                os.environ["MASTER_ADDR"] = "127.0.0.1"
 
     # ----------------------
     # Sharding
@@ -1362,24 +1341,6 @@ class DistributedDataFidelity:
     :param None, dict shared: shared data dictionary passed to factory function for all operators.
     :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
         Default is ``'sum'``.
-
-    |sep|
-
-    :Example:
-
-        >>> from deepinv.distributed import DistributedContext, distribute
-        >>> from deepinv.optim import L2
-        >>> # Create distributed physics and data fidelity
-        >>> with DistributedContext(device_mode="cpu") as ctx:
-        ...     physics_list = [create_physics(i) for i in range(4)]
-        ...     dist_physics = distribute(physics_list, ctx=ctx)
-        ...     data_fidelity = L2()
-        ...     dist_fidelity = DistributedDataFidelity(ctx, data_fidelity)
-        ...     # Compute fidelity and gradient
-        ...     x = torch.randn(1, 1, 16, 16)
-        ...     y = dist_physics(x)
-        ...     fid = dist_fidelity.fn(x, y, dist_physics)
-        ...     grad = dist_fidelity.grad(x, y, dist_physics)
     """
 
     def __init__(
