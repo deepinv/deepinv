@@ -85,14 +85,11 @@ class TimeAveragingNet(
         :param y: measurements
         :parameter physics: forward operator acting on dynamic inputs
         """
-
-        if hasattr(physics, "to_static"):
-            physics = physics.to_static(device=y.device)
-        else:
-            physics = physics  # assume already static
+    
+        static_physics = physics.to_static(device=y.device) if hasattr(physics, "to_static") else physics
 
         return self.backbone_net(
             self.average(y, getattr(physics, "mask", None)),
-            physics,
+            static_physics,
             **kwargs,
         )
