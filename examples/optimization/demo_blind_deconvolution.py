@@ -77,7 +77,7 @@ x_mlem, xs_mlem = richardson_lucy(
     keep_inter=True,
 )
 psnr = deepinv.loss.metric.PSNR()
-
+mae = deepinv.loss.metric.MAE()
 vmin = 0
 vmax = 1
 
@@ -234,6 +234,7 @@ def blind_richardson_lucy(
     keep_inter: bool = False,
     filter_epsilon: float = 1e-20,
     normalize_kernel: bool = True,
+    fft: bool = False,
 ):
     """
     Blind Richardson–Lucy (alternating MLEM) for deblurring.
@@ -314,6 +315,24 @@ def blind_richardson_lucy(
     # This matches your PyTorch implementation strategy.
     pad_k = (W // 2, W // 2, H // 2, H // 2)  # (left,right,top,bottom)
 
+    # Create a physics operator for kernel updates (reused across iterations)
+    # This operator will have its filter parameter updated with the flipped image
+    xL_initial = x.sum(dim=1, keepdim=True)
+    xL_T_initial = torch.flip(xL_initial, dims=[-2, -1])
+    if fft:
+        kernel_physics = deepinv.physics.BlurFFT(
+            img_size=(1, H, W),
+            filter=xL_T_initial,
+            padding=pad_mode,
+            device=x.device,
+        )
+    else:
+        kernel_physics = deepinv.physics.Blur(
+            filter=xL_T_initial,
+            padding=pad_mode,
+            device=x.device,
+        )
+
     for _ in tqdm(range(steps), desc="Blind RL", disable=not verbose):
 
         # -------------------------
@@ -326,14 +345,6 @@ def blind_richardson_lucy(
         xL_T = torch.flip(xL, dims=[-2, -1])  # (B,1,H,W)
 
         for _ in range(k_steps):
-            # Update physics with current kernel estimate
-            # (This is the deepinv way to pass new operator params.)
-            if hasattr(physics, "update"):
-                physics.update(filter=k)
-            else:
-                # Fallback if update is not available
-                setattr(physics, "filter", k)
-
             y_hat = physics.A(x).clamp_min(filter_epsilon)
 
             # ratio: y / (A_k x)
@@ -342,38 +353,35 @@ def blind_richardson_lucy(
 
             onesL = torch.ones_like(ratioL)
 
-            # We cannot directly do a per-sample kernel correlation in one conv2d call
-            # (batch kernels are not supported). We loop over batch for correctness.
-            k_new = []
-            for b in range(B):
-                rb = ratioL[b : b + 1]  # (1,1,H,W)
-                xbT = xL_T[b : b + 1]  # (1,1,H,W)
+            # Update the kernel update physics with the current flipped image
+            kernel_physics.update_parameters(filter=xL_T)
 
-                num_map = F.conv2d(F.pad(rb, pad_k, mode=pad_mode), xbT)
-                den_map = F.conv2d(F.pad(onesL[b : b + 1], pad_k, mode=pad_mode), xbT)
+            # Compute numerator: correlate ratio with flipped image
+            num = kernel_physics.A_adjoint(ratioL)  # (B, 1, H, W)
 
-                # center crop to (hk, wk)
-                cy, cx = num_map.shape[-2] // 2, num_map.shape[-1] // 2
-                num = num_map[
-                    :,
-                    :,
-                    cy - hk // 2 : cy + hk // 2 + 1,
-                    cx - wk // 2 : cx + wk // 2 + 1,
-                ]
-                den = den_map[
-                    :,
-                    :,
-                    cy - hk // 2 : cy + hk // 2 + 1,
-                    cx - wk // 2 : cx + wk // 2 + 1,
-                ].clamp_min(filter_epsilon)
+            # Compute denominator: correlate ones with flipped image
+            den = kernel_physics.A_adjoint(onesL).clamp_min(filter_epsilon)
 
-                kb = k[b : b + 1] * (num / den)
-                kb = kb.clamp_min(0.0)
-                if normalize_kernel:
-                    kb = _normalize_kernel(kb, eps=filter_epsilon)
-                k_new.append(kb)
+            # Center crop to kernel size
+            cy, cx = num.shape[-2] // 2, num.shape[-1] // 2
+            num = num[
+                :,
+                :,
+                cy - hk // 2 : cy + hk // 2 + 1,
+                cx - wk // 2 : cx + wk // 2 + 1,
+            ]
+            den = den[
+                :,
+                :,
+                cy - hk // 2 : cy + hk // 2 + 1,
+                cx - wk // 2 : cx + wk // 2 + 1,
+            ]
 
-            k = torch.cat(k_new, dim=0)
+            # Update kernel
+            k = k * (num / den)
+            k = k.clamp_min(0.0)
+            if normalize_kernel:
+                k = _normalize_kernel(k, eps=filter_epsilon)
 
         # -------------------------
         # (2) Image update (x|k)
@@ -395,7 +403,7 @@ def blind_richardson_lucy(
     return x, k
 
 
-img_size = 128
+img_size = 127
 x = load_example(
     "SheppLogan.png",
     img_size=img_size,
@@ -408,34 +416,45 @@ kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
 physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
 # Broken ?
 # physics = deepinv.physics.BlurFFT(
-#     img_size=(1, 128, 128), filter=kernel_true, padding="circular", device=device
+#     img_size=(1, img_size, img_size),
+#     filter=kernel_true,
+#     device=device,
 # )
 
 y = physics(x)
 
 # Initial guesses
-k0 = torch.ones((1, 1, 33, 33))
+k0 = torch.ones((1, 1, 13, 13))
 
-x_hat, k_hat = blind_richardson_lucy(
+max_iter = 1000
+x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
     k0=k0,
     physics=physics,
-    steps=200,
+    steps=max_iter,
     x_steps=1,
     k_steps=1,
     verbose=True,
-    keep_inter=False,
+    keep_inter=True,
+    fft=True,
 )
 
-# %%
 plot(
-    [x, y, x_hat],
-    titles=["Ground Truth", "Blurry image", "Blind Richardson-Lucy\nDeconvolution"],
+    [x, y, x_hat, kernel_true, k_hat],
+    titles=[
+        "Ground Truth",
+        "Blurry image",
+        "Blind Richardson-Lucy\nDeconvolution",
+        "True kernel",
+        "Estimated kernel",
+    ],
     subtitles=[
         "PSNR (dB)",
         f"{psnr(x, y).item():.2f}",
         f"{psnr(x, x_hat).item():.2f}",
+        "MAE",
+        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
     ],
     figsize=(12, 4),
     rescale_mode="clip",
@@ -443,10 +462,24 @@ plot(
     vmax=vmax,
 )
 
-plot(
-    [kernel_true, k_hat],
-    titles=["True kernel", "Estimated kernel"],
-    figsize=(6, 4),
+psnr_img = [psnr(x.cpu(), x_iter).item() for x_iter in xs]
+mae_kernel = [mae(kernel_true.cpu(), k_iter).item() for k_iter in ks]
+
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+plt.plot(
+    psnr_img,
 )
+plt.xlabel("Iteration")
+plt.ylabel("PSNR (dB)")
+plt.title("Blind Richardson-Lucy Deconvolution\nImage PSNR vs Iterations")
+plt.subplot(1, 2, 2)
+plt.plot(
+    mae_kernel,
+)
+plt.xlabel("Iteration")
+plt.ylabel("MAE")
+plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
+plt.show()
 
 # %%
