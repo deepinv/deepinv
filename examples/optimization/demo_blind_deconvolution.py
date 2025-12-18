@@ -221,6 +221,15 @@ def _get_padding_mode(physics, default: str = "circular") -> str:
     return getattr(physics, "padding", default)
 
 
+def _center_crop_hw(t: torch.Tensor, out_h: int, out_w: int) -> torch.Tensor:
+    H, W = t.shape[-2], t.shape[-1]
+    if out_h > H or out_w > W:
+        raise ValueError(f"Cannot crop ({out_h},{out_w}) from ({H},{W}).")
+    y0 = (H - out_h) // 2
+    x0 = (W - out_w) // 2
+    return t[..., y0 : y0 + out_h, x0 : x0 + out_w]
+
+
 @torch.no_grad()
 def blind_richardson_lucy(
     y: torch.Tensor,
@@ -234,7 +243,7 @@ def blind_richardson_lucy(
     keep_inter: bool = False,
     filter_epsilon: float = 1e-20,
     normalize_kernel: bool = True,
-    fft: bool = False,
+    fft: bool = True,
 ):
     """
     Blind Richardson–Lucy (alternating MLEM) for deblurring.
@@ -363,19 +372,8 @@ def blind_richardson_lucy(
             den = kernel_physics.A_adjoint(onesL).clamp_min(filter_epsilon)
 
             # Center crop to kernel size
-            cy, cx = num.shape[-2] // 2, num.shape[-1] // 2
-            num = num[
-                :,
-                :,
-                cy - hk // 2 : cy + hk // 2 + 1,
-                cx - wk // 2 : cx + wk // 2 + 1,
-            ]
-            den = den[
-                :,
-                :,
-                cy - hk // 2 : cy + hk // 2 + 1,
-                cx - wk // 2 : cx + wk // 2 + 1,
-            ]
+            num = _center_crop_hw(num, hk, wk)
+            den = _center_crop_hw(den, hk, wk)
 
             # Update kernel
             k = k * (num / den)
@@ -413,6 +411,10 @@ x = load_example(
 )
 # True physics (unknown kernel in blind setting)
 kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+# kernel_true = torch.nn.functional.pad(
+#     kernel_true,
+#     (0, 1, 0, 1),
+# )
 physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
 # Broken ?
 # physics = deepinv.physics.BlurFFT(
@@ -424,9 +426,9 @@ physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=de
 y = physics(x)
 
 # Initial guesses
-k0 = torch.ones((1, 1, 13, 13))
-
-max_iter = 1000
+k0 = torch.ones((1, 1, 14, 14))
+k0 = torch.ones((1, 1, 14, 14))
+max_iter = 5000
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
