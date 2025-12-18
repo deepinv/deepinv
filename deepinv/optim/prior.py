@@ -6,7 +6,6 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from deepinv.utils.decorators import _deprecated_class
 
 
 class Prior(Potential):
@@ -49,17 +48,19 @@ class ZeroPrior(Prior):
 
     def fn(self, x, *args, **kwargs):
         r"""
-        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the shape of the first dimension of :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
         return torch.zeros(x.shape[0], device=x.device)
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) zero tensor.
         """
         return torch.zeros_like(x)
 
@@ -67,7 +68,8 @@ class ZeroPrior(Prior):
         r"""
         Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
-        It returns the identity :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) proximity operator (identity function) at :math:`x`.
         """
         return x
 
