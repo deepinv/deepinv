@@ -1,6 +1,9 @@
 from __future__ import annotations
 import torch
+from torch import nn
 from deepinv.models import Denoiser
+from typing import Callable
+import numpy as np
 
 
 class ScoreModelWrapper(Denoiser):
@@ -9,21 +12,21 @@ class ScoreModelWrapper(Denoiser):
 
     Given a noisy sample :math:`x_t = s_t(x_0 + \sigma_t \varepsilon)`, where :math:`\varepsilon \sim \mathcal{N}(0, I)`,
     depending on the `prediction_type`, the input `score_model` is trained to predict, either:
-        * the noise :math:`\varepsilon` (`prediction_type = noise`)
-        * the denoised sample :math:`x_0` (`prediction_type = denoised`)
-        * the `v-prediction` :math:`s_t (\varepsilon - sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = v_prediction`)
-        * the velocity (or drift) of the corresponsing ODE/SDE :math:`s_t (\varepsilon - sigma_t * x_0)` as typically the case for flow-matchin models (`prediction_type = velocity`)
+        - the noise :math:`\varepsilon` (`prediction_type = noise`)
+        - the denoised sample :math:`x_0` (`prediction_type = denoised`)
+        - the `v-prediction` :math:`s_t (\varepsilon - sigma_t * x_0)` as proposed by :footcite:`salimans2022progressive` (`prediction_type = v_prediction`)
+        - the velocity (or drift) of the corresponding ODE/SDE :math:`s_t (\varepsilon - sigma_t * x_0)` as typically the case for flow-matching models (`prediction_type = velocity`)
 
     :param nn.Module | Callable score_model: score model to be wrapped.
     :param str prediction_type: type of prediction made by the score model.
     :param bool clip_output: whether to clip the output to the model range. Default is `True`.
-    :param Callable | torch.Tensor sigma_schedule: continuous function or tensor (of shape [N] with :math:`N` the number of time steps) defining the noise schedule :math:`\sigma_t`.
-    :param Callable | torch.Tensor scale_schedule: function or tensor (of shape [N] with :math:`N` the number of time steps) defining the scaling schedule :math:`s_t`.
+    :param Callable | torch.Tensor sigma_schedule: continuous function or tensor (of shape `[N]` with `N` the number of time steps) defining the noise schedule :math:`\sigma_t`.
+    :param Callable | torch.Tensor scale_schedule: function or tensor (of shape `[N]` with `N` the number of time steps) defining the scaling schedule :math:`s_t`.
     :param Callable sigma_inverse: analytic inverse of the `sigma_schedule`. If not provided, a numeric inversion is used.
     :param bool variance_preserving: whether the schedule is variance-preserving. If `True`, the `scale_schedule` is computed from the `sigma_schedule`.
-    :param bool variance_exploding: whether the schedule is variance-exploding. If `True`, the `scale_schedule` is set to 1.
+    :param bool variance_exploding: whether the schedule is variance-exploding. If `True`, the `scale_schedule` is set to `1`.
     :param float T: maximum time value for continuous schedules. Default is `1.0`.
-    :param str: device to load the model on. Default is 'cpu'.
+    :param str: device to load the model on. Default is `'cpu'`.
     """
 
     def __init__(
@@ -48,7 +51,7 @@ class ScoreModelWrapper(Denoiser):
             if variance_preserving:
                 if isinstance(sigma_schedule, Callable):
 
-                    def scale_t(t):
+                    def scale_schedule(t):
                         t = self._handle_time_step(t)
                         return (1 / (1 + self.sigma_t(t) ** 2)) ** 0.5
 
@@ -71,47 +74,96 @@ class ScoreModelWrapper(Denoiser):
 
         self.sigma_inverse = sigma_inverse
         self.T = T
-        self.device = device
-
         self.to(device)
 
-    def _handle_time_step(self, t: Tensor | float, dtype: torch.dtype = torch.float32) -> Tensor:
-        t = torch.as_tensor(t, device=self.device, dtype=dtype)
-        return t
+    def get_schedule_value(
+        self,
+        schedule: Callable | torch.Tensor,
+        t: torch.Tensor,
+        target_size: torch.Size = None,
+    ) -> torch.Tensor:
+        r"""
+        Get the value of a schedule (function or tensor) at given time steps.
+        :param Callable | torch.Tensor schedule: schedule function or tensor.
+        :param torch.Tensor t: time steps, of shape `[B]` or `[]`.
+        :param torch.Size target_size: target size to broadcast the output to. Default is `None`.
+        :returns: (:class:`torch.Tensor`) schedule values at time steps `t`, of shape that is broadcastable to `target_size` if `target_size` is provided.
+        """
 
-    def t_from_sigma(self, sigma: torch.Tensor | float, dtype: torch.dtype = torch.float32) -> torch.Tensor:
+        if isinstance(schedule, torch.Tensor):
+            val = schedule[t.long()]
+        else:
+            val = schedule(t)
 
-        sigma = torch.as_tensor(sigma, device=self.device, dtype=dtype)
+        if target_size is not None:
+            val = val.view(-1, *[1] * (len(target_size) - 1))
+        return val
+
+    def _pred_to_score(self, pred, x, sigma, scale):
+        pt = self.prediction_type
+        if pt == "epsilon":  # predicts white noise
+            score = -self.stable_division(pred, sigma)
+        elif (
+            pt == "v_prediction"
+        ):  # predicts s_t*(eps - sigma_t * x). See https://arxiv.org/pdf/2202.00512.
+            score = -self.stable_division(pred / scale + sigma * x, sigma)
+        elif pt == "sample":  # predicts the denoised image (Tweedie formula)
+            score = self.stable_division(x + (scale * sigma) ** 2 * pred, scale)
+        else:
+            raise ValueError(f"Unsupported prediction_type: {pt}")
+        return score
+
+    def _pred_to_x0(self, pred, x, sigma, scale):
+        pt = self.prediction_type
+        if pt == "epsilon":  # predics white noise
+            x0 = x / scale - sigma * pred
+        elif (
+            pt == "v_prediction"
+        ):  # predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.
+            x0 = scale * (x - sigma * pred)
+        elif pt == "sample":  # predics the denoised image
+            x0 = pred
+        else:
+            raise ValueError(f"Unsupported prediction_type: {pt}")
+        return x0
+
+    def time_from_sigma(self, sigma: torch.Tensor | float) -> torch.Tensor:
+        r"""
+        Computes the time step `t` corresponding to a given noise level `sigma`.
+
+        If an analytic inverse of the `sigma_schedule` is provided, it is used.
+        Otherwise, a numeric inversion is performed (nearest neighbor for discrete schedules, binary search for continuous schedules).
+
+        :param torch.Tensor | float sigma: noise level(s), either a scalar or a tensor of shape `[B]`.
+
+        """
+
+        sigma = torch.as_tensor(sigma)
 
         # 1) If user provided an analytic / predefined inverse, use it.
         if self.sigma_inverse is not None:
-            t = self.sigma_inverse(sigma)
-            return t.to(dtype)
+            return self.sigma_inverse(sigma)
 
         # 2) If we have a discrete table, use nearest index.
         if isinstance(self.sigma_schedule, torch.Tensor):
             sigmas = self.sigma_schedule  # [T]
-
+            sigma = sigma.to(device=sigmas.device, dtype=sigmas.dtype)
             if sigma.dim() == 0:
                 return torch.argmin((sigmas - sigma).abs())
             else:
                 diffs = (sigmas[None, :] - sigma[:, None]).abs()  # [B, T]
-                return torch.argmin(diffs, dim=1).to(dtype)
+                return torch.argmin(diffs, dim=1)
         else:
             # 3) Fallback: numeric inversion for continuous schedules (binary search).
-            t_min = torch.tensor(0.0, device=self.device, dtype = dtype)
-            t_max = torch.tensor(self.T, device=self.device, dtype = dtype)
-            t_low = t_min.expand_as(sigma).clone()
-            t_high = t_max.expand_as(sigma).clone()
+            t_low = torch.zeros_like(sigma)
+            t_high = torch.full_like(sigma, self.T)
             for _ in range(32):
-                t_mid = 0.5 * (t_low + t_high)
+                t_mid = (t_low + t_high) / 2
                 sigma_mid = self.sigma_schedule(t_mid)
                 go_right = sigma_mid < sigma
                 t_low = torch.where(go_right, t_mid, t_low)
                 t_high = torch.where(go_right, t_high, t_mid)
-            t_est = 0.5 * (t_low + t_high)
-            return t_est.to(dtype)
-            
+            return (t_low + t_high) / 2
 
     @staticmethod
     def stable_division(a, b, epsilon: float = 1e-7):
@@ -144,7 +196,9 @@ class ScoreModelWrapper(Denoiser):
         assert t is not None, "Please provide a time step t."
 
         # Handle time step
-        t = self._handle_time_step(t)
+        t = self._handle_sigma(
+            t, batch_size=x.size(), ndim=1, device=device, dtype=dtype
+        )
 
         # UNet forward
         pred = self.model(x, t, *args, return_dict=False, **kwargs)
@@ -152,27 +206,10 @@ class ScoreModelWrapper(Denoiser):
             pred = pred[0]
         pred = pred.to(dtype)
 
-        if isinstance(self.sigma_schedule, torch.Tensor):
-            sigma = self.sigma_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
-        else:
-            sigma = self.sigma_schedule(timestep).view(-1, *(1,) * (x.ndim - 1))
+        sigma = self.get_schedule_value(self.sigma_schedule, t, x.shape)
+        scale = self.get_schedule_value(self.scale_schedule, t, x.shape)
 
-        if isinstance(self.scale_schedule, torch.Tensor):
-            scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
-        else:
-            scale = self.scale_schedule(timestep).view(-1, *(1,) * (x.ndim - 1))
-
-        pt = self.prediction_type
-        if pt == "epsilon":  # predics white noise
-            score = -stable_division(pred, sigma)
-        elif (
-            pt == "v_prediction"
-        ):  # predics s_t*(eps - sigma_t * x). See https://arxiv.org/pdf/2202.00512.
-            score = -stable_division(pred / scale + sigma * x, sigma)
-        elif pt == "sample":  # predics the denoised image (Tweedie formula)
-            score = stable_division(x + (scale * sigma) ** 2 * pred, scale)
-
-        return score
+        return self._pred_to_score(pred, x, sigma, scale)
 
     def forward(
         self,
@@ -194,7 +231,6 @@ class ScoreModelWrapper(Denoiser):
 
         :returns: (:class:`torch.Tensor`) the denoised output.
         """
-
         device = x.device
         dtype = x.dtype
 
@@ -210,32 +246,19 @@ class ScoreModelWrapper(Denoiser):
         )
 
         sigma = sigma * 2  # since image is in [-1, 1] range in the model
-        timestep = self.t_from_sigma(sigma.squeeze(), dtype = dtype)
-        if isinstance(self.scale_schedule, torch.Tensor):
-            scale = self.scale_schedule[timestep].view(-1, *(1,) * (x.ndim - 1))
-        else:
-            scale = self.scale_schedule(timestep).view(-1, *(1,) * (x.ndim - 1))
+        timestep = self.time_from_sigma(sigma.squeeze())
+        scale = self.get_schedule_value(self.scale_schedule, timestep, x.shape)
 
         # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
         x = (x * 2 - 1) * scale
         # UNet forward
-        pred = self.model(x, timestep, *args, return_dict=False, **kwargs)
+        pred = self.model(x, timestep, *args, **kwargs)
         if isinstance(pred, (list, tuple)):
             pred = pred[0]  # take the first output if multiple outputs are returned
         pred = pred.to(dtype)
 
         # Convert model output to x0 depending on prediction type
-        pt = self.prediction_type
-        if pt == "epsilon":  # predics white noise
-            x0 = x / scale - sigma * pred
-        elif (
-            pt == "v_prediction"
-        ):  # predics s_t*eps - sigma_t * x. See https://arxiv.org/pdf/2202.00512.
-            x0 = scale * (x - sigma * pred)
-        elif pt == "sample":  # predics the denoised image
-            x0 = pred
-        else:
-            raise ValueError(f"Unsupported prediction_type: {pt}")
+        x0 = self._pred_to_x0(pred, x, sigma, scale)
 
         # Optional: clamp to model range [-1, 1]
         if self.clip_output:
@@ -325,7 +348,30 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             device=device,
         )
 
-        
+    def forward(
+        self,
+        x: torch.Tensor,
+        sigma: float | torch.Tensor = None,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Applies denoiser :math:`\denoiser{x}{\sigma}`.
+        The input `x` is expected to be in `[0, 1]` range (up to random noise) and the output is also in `[0, 1]` range.
+
+        :param torch.Tensor x: noisy input, of shape `[B, C, H, W]`.
+        :param torch.Tensor, float sigma: noise level. Can be a `float` or a :class:`torch.Tensor` of shape `[B]`.
+            If a single `float` is provided, the same noise level is used for all samples in the batch.
+            Otherwise, batch-wise noise levels are used.
+        :param args: additional positional arguments to be passed to the model.
+        :param kwarg: additional keyword arguments to be passed to the model. For example, a `prompt` for text-conditioned or `class_label` for class-conditioned models.
+
+        :returns: (:class:`torch.Tensor`) the denoised output.
+        """
+
+        return super().forward(x, sigma, *args, return_dict=False, **kwargs)
+
+
 class ComplexDenoiserWrapper(Denoiser):
     r"""
     Complex-valued wrapper for a real-valued denoiser :math:`\denoisername(\cdot, \sigma)`.
@@ -387,7 +433,7 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
-        >>> denoiser = DRUNet(pretrained="download")
+        >>> denoiser = DRUNet() # doctest: +IGNORE_OUTPUT
         >>> complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
         >>> y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
         >>> sigma = 0.1

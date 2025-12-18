@@ -54,9 +54,25 @@ jobs:
         run: |
           uv run python -c "import deepinv"
 
+      - name: Restore .testmondata # Restore testmon data from main to speed up tests
+        uses: actions/cache/restore@v3
+        id: restore-cache
+        with:
+          path: .testmondata
+          key: testmon-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            testmon-gpu-main-
+
       - name: Test with pytest
         run: |
-          uv run python -m pytest -n 2 --dist=loadgroup
+          uv run python -m pytest -n 2 --dist=loadgroup --testmon
+
+      - name: Save .testmondata
+        uses: actions/cache/save@v3
+        if: github.ref == 'refs/heads/main' # Only save cache on main branch
+        with:
+          path: .testmondata
+          key: testmon-gpu-main-${{ github.run_id }}
 
       - name: Post result to PR
         if: always() && inputs.pr_number != ''

@@ -8,8 +8,7 @@ from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
-from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
-from copy import deepcopy
+from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 from deepinv.sampling.utils import trapz_torch
 
 
@@ -150,7 +149,6 @@ class BaseSDE(nn.Module):
         return self.sample(x_init, seed, get_trajectory, *args, **kwargs)
 
 
-
 class DiffusionSDE(BaseSDE):
     r"""
     Define the Reverse-time Diffusion Stochastic Differential Equation.
@@ -199,7 +197,7 @@ class DiffusionSDE(BaseSDE):
         if not isinstance(alpha, Callable):
             alpha_value = alpha
 
-            def alpha(t: Tensor | float) -> scalar:
+            def alpha(t: Tensor | float) -> float:
                 return alpha_value
 
         def backward_drift(x, t, *args, **kwargs):
@@ -223,7 +221,9 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
+        self.denoiser = (
+            denoiser if not minus_one_one else _WrapperDenoiserMinusOneOne(denoiser)
+        )
         self.minus_one_one = minus_one_one
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
@@ -286,12 +286,12 @@ class EDMDiffusionSDE(DiffusionSDE):
         d x_t = \frac{s'(t)}{s(t)} x_t dt + s(t) \sqrt{2 \sigma(t) \sigma'(t)} d w_t
 
     The scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers must satisfy :math:`s(0) = 1`, :math:`\sigma(0) = 0` and :math:`\lim_{t \to \infty} \sigma(t) = +\infty`.
-    
-    
+
+
     Common choices include the variance-preserving formulation :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}` and the variance-exploding formulation :math:`s(t) = 1`.
-    
+
     For choosing variance-preserving formulation, set `variance_preserving=True` and do not provide `scale_t` and `scale_prime_t`.
-    
+
     For choosing variance-exploding formulation, set `variance_exploding=True` and do not provide `scale_t` and `scale_prime_t`.
 
     .. note::
@@ -337,7 +337,9 @@ class EDMDiffusionSDE(DiffusionSDE):
     ):
         self.T = T
         self.sigma_t = sigma_t
-        assert not (variance_preserving and variance_exploding), ("Cannot set both variance_preserving and variance_exploding to True.")
+        assert not (
+            variance_preserving and variance_exploding
+        ), "Cannot set both variance_preserving and variance_exploding to True."
 
         if scale_t is None:
             if variance_preserving:
@@ -414,13 +416,18 @@ class EDMDiffusionSDE(DiffusionSDE):
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
         x_in = x / scale
-        denoised = self.denoiser(
+        model_output = self.denoiser(
             x_in.to(torch.float32),
             sigma.to(torch.float32),
             *args,
             **kwargs,
         ).to(self.dtype)
-        denoised = scale * denoised
+        return self._score_from_model_output(x, model_output, sigma, scale)
+
+    def _score_from_model_output(
+        self, x: Tensor, model_output: Tensor, sigma: Tensor, scale: Tensor
+    ) -> Tensor:
+        denoised = scale * model_output
         score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
         return score
 
@@ -433,7 +440,11 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
-        init = torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype) * self.sigma_t(self.T) * self.scale_t(self.T)
+        init = (
+            torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
+            * self.sigma_t(self.T)
+            * self.scale_t(self.T)
+        )
         return init
 
 
@@ -462,7 +473,7 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
     For choosing variance-preserving formulation, set `variance_preserving=True` and `beta_t` and `xi_t` will be automatically set to be the same function.
-    
+
     For choosing variance-exploding formulation, set `variance_exploding=True` and `beta_t` will be automatically set to `0`.
 
     .. note::
@@ -587,7 +598,7 @@ class FlowMatching(EDMDiffusionSDE):
 
 
     :param Callable a_t: time-dependent parameter :math:`a(t)` of flow-matching. Default to `lambda t: 1-t`.
-    :param Callable a_prime_t: time derivatime :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
+    :param Callable a_prime_t: time derivative :math:`a'(t)` of :math:`a(t)`. Default to `lambda t: -1`.
     :param Callable b_t: time-dependent parameter :math:`b(t)` of flow-matching.Default to `lambda t: t`.
     :param Callable b_prime_t: time derivative :math:`b'(t)` of :math:`b(t)`. Default to `lambda t: 1`.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
@@ -646,6 +657,9 @@ class FlowMatching(EDMDiffusionSDE):
             *args,
             *kwargs,
         )
+
+    def velocity(self, x, t, *args, **kwargs):
+        return self.drift(x, t, *args, **kwargs)
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
@@ -789,9 +803,9 @@ class PosteriorDiffusion(Reconstructor):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
     :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to `False`.
-    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising  and mapped back afterward.
-        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
-        set `False` only if the denoiser natively expects [-1, 1].
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
+        Set `True` for denoisers trained on `[0, 1]` data range (all denoisers in :class:`deepinv.models.Denoiser`).
+        Set `False` only if the denoiser natively expects `[-1, 1]` data range.
         This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
         Default: `True`.
 
@@ -947,14 +961,26 @@ class PosteriorDiffusion(Reconstructor):
         else:
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
-            score = (
-                self.sde.score(x, t, *args, **kwargs).to(self.dtype)
-                - self.data_fidelity.grad(
-                    (x / scale),
-                    y,
-                    physics=physics,
-                    sigma=sigma,
-                ).to(self.dtype)
-                / scale
-            )
+
+            if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
+                self.data_fidelity, DPSDataFidelity
+            ):
+                # For EDM, we can compute the score from model output directly, avoid redundant computation
+                data_fid_grad, model_output = self.data_fidelity.grad(
+                    (x / scale), y, physics=physics, sigma=sigma, get_model_outputs=True
+                )
+                score = self.sde._score_from_model_output(
+                    x, model_output, sigma, scale
+                ) - data_fid_grad / scale.to(self.dtype)
+            else:
+                score = (
+                    self.sde.score(x, t, *args, **kwargs).to(self.dtype)
+                    - self.data_fidelity.grad(
+                        (x / scale),
+                        y,
+                        physics=physics,
+                        sigma=sigma,
+                    ).to(self.dtype)
+                    / scale
+                )
             return score
