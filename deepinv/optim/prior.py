@@ -6,7 +6,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-
+from deepinv.utils.decorators import _deprecated_class
 
 class Prior(Potential):
     r"""
@@ -37,27 +37,22 @@ class Prior(Potential):
         self.explicit_prior = False if self._fn is None else True
 
 
-class Zero(Prior):
+class ZeroPrior(Prior):
     r"""
     Zero prior :math:`\reg{x} = 0`.
     """
 
     def __init__(self):
         super().__init__()
-
-        def forward(x, *args, **kwargs):
-            return torch.tensor(0.0)
-
-        self._g = forward
         self.explicit_prior = True
 
     def fn(self, x, *args, **kwargs):
         r"""
         Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        It returns a tensor of zeros of the shape of the first dimension of :math:`x`.
         """
-        return torch.zeros_like(x)
+        return torch.zeros(x.shape[0], device=x.device)
 
     def grad(self, x, *args, **kwargs):
         r"""
@@ -74,6 +69,8 @@ class Zero(Prior):
         It returns the identity :math:`x`.
         """
         return x
+
+ZeroPrior = _deprecated_class(ZeroPrior)
 
 
 class PnP(Prior):
