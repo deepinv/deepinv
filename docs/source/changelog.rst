@@ -11,6 +11,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Deprecate historical attributes in HDF5Dataset (:gh:`764` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -45,6 +46,8 @@ Fixed
 - Reduce CI cache size by using `uv` caching (:gh:`943` by `Minh Hai Nguyen`_)
 - `generate_dataset` received a general refactor, now supports PIL image datasets and doesn't break when validation dataset returns `TensorList` (:gh:`948` by `Vicky De Ridder`_)
 - test_physics.test_tomography correctly implements the pseudo-inverse test (:gh: `930` by `Romain Vo`_)
+- Have test ground truths returned in HDF5Dataset when present (:gh:`764` by `Jérémy Scanvic`_)
+- Dispose of invalid physics parameters in HDF5Dataset loading (:gh:`764` by `Jérémy Scanvic`_)
 
 
 
