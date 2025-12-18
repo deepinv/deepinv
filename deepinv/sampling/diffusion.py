@@ -13,7 +13,7 @@ from deepinv.optim.data_fidelity import L2
 
 class DiffusionSampler(BaseSampling):
     r"""
-    Turns a diffusion method into a Monte Carlo sampler
+    Turns a diffusion method into a Monte Carlo sampler.
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
