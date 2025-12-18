@@ -11,9 +11,11 @@ import doctest
 from importlib.metadata import metadata as importlib_metadata
 from docutils import nodes
 from docutils.parsers.rst import Directive
+from docutils.parsers.rst import roles
 from sphinx.util import logging
 from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
+from sphinx.util.nodes import make_refnode
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
+sys.path.insert(0, os.path.abspath('./'))
 
 
 set_default_plot_fontsize(12)
@@ -53,6 +56,7 @@ extensions = [
     "sphinx_design",
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
+    "generate_benchmarks",
 ]
 
 extlinks = {
@@ -167,9 +171,29 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
         )
 
 
+
+from sphinx.ext.autodoc import cut_lines
+from sphinx.domains.python import PyXRefRole
+
+class ShortClassRole(PyXRefRole):
+    def process_link(self, env, refnode, has_explicit_title, title, target):
+        # target is the full path: deepinv.physics.Denoising
+        short_name = target.split('.')[-1]
+
+        # Display only the short class name
+        title = short_name
+
+        # Keep the full target for linking
+        return title, target
+
 def setup(app):
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
+    app.add_role_to_domain(
+        "py",
+        "sclass",
+        ShortClassRole()
+    )
     app.add_directive("image-sg-ignore", TolerantImageSg)
     app.connect("html-page-context", _noindex_viewcode)
 
@@ -399,7 +423,18 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
-html_css_files = ["custom.css"]
+html_js_files = [
+    # Load jQuery first
+    'https://code.jquery.com/jquery-3.7.1.min.js',
+    # Load DataTables second
+    'https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js',
+    # Load your script last
+    'main.js',
+]
+
+html_css_files = ["custom.css",
+    'https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css',
+]
 html_sidebars = {  # pages with no sidebar
     "changelog": [],
     "contributing": [],

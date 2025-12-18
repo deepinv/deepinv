@@ -12,3 +12,10 @@
 
 .. minigallery:: {{module}}.{{objname}}
     :add-heading: Examples using ``{{objname}}``:
+
+{% if objname in benchmark_mapping %}
+Find in benchmarks
+------------------
+
+- :ref:`{{ benchmark_mapping[objname] }}`
+{% endif %}
