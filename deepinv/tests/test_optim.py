@@ -608,7 +608,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
-
+        if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
+            max_iter = 4000
         if pnp_algo == "PDCP":
             stepsize_dual = 1.0
             x_init = physics.A_adjoint(y)

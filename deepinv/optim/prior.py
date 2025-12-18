@@ -72,9 +72,6 @@ class ZeroPrior(Prior):
         return x
 
 
-ZeroPrior = _deprecated_class(ZeroPrior)
-
-
 class PnP(Prior):
     r"""
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`.
