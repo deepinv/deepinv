@@ -426,9 +426,8 @@ physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=de
 y = physics(x)
 
 # Initial guesses
-k0 = torch.ones((1, 1, 14, 14))
-k0 = torch.ones((1, 1, 14, 14))
-max_iter = 5000
+k0 = torch.ones_like(kernel_true)
+max_iter = 500
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
@@ -440,6 +439,87 @@ x_hat, k_hat, xs, ks = blind_richardson_lucy(
     verbose=True,
     keep_inter=True,
     fft=True,
+    normalize_kernel=True,
+)
+
+plot(
+    [x, y, x_hat, kernel_true, k_hat],
+    titles=[
+        "Ground Truth",
+        "Blurry image",
+        "Blind Richardson-Lucy\nDeconvolution",
+        "True kernel",
+        "Estimated kernel",
+    ],
+    subtitles=[
+        "PSNR (dB)",
+        f"{psnr(x, y).item():.2f}",
+        f"{psnr(x, x_hat).item():.2f}",
+        "MAE",
+        f"{mae(kernel_true, k_hat.cpu()).item():.4f}",
+    ],
+    figsize=(12, 4),
+    rescale_mode="clip",
+    vmin=vmin,
+    vmax=vmax,
+)
+
+psnr_img = [psnr(x.cpu(), x_iter).item() for x_iter in xs]
+mae_kernel = [mae(kernel_true.cpu(), k_iter).item() for k_iter in ks]
+
+plt.figure(figsize=(14, 5))
+plt.subplot(1, 2, 1)
+plt.plot(
+    psnr_img,
+)
+plt.xlabel("Iteration")
+plt.ylabel("PSNR (dB)")
+plt.title("Blind Richardson-Lucy Deconvolution\nImage PSNR vs Iterations")
+plt.subplot(1, 2, 2)
+plt.plot(
+    mae_kernel,
+)
+plt.xlabel("Iteration")
+plt.ylabel("MAE")
+plt.title("Blind Richardson-Lucy Deconvolution\nKernel MAE vs Iterations")
+plt.show()
+
+# %%
+img_size = 127
+x = load_example(
+    "butterfly.png",
+    img_size=img_size,
+    grayscale=False,
+    device=device,
+    resize_mode="resize",
+)
+# True physics (unknown kernel in blind setting)
+kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
+physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
+# Broken ?
+# physics = deepinv.physics.BlurFFT(
+#     img_size=(1, img_size, img_size),
+#     filter=kernel_true,
+#     device=device,
+# )
+
+y = physics(x)
+
+# Initial guesses
+k0 = torch.ones_like(kernel_true)
+max_iter = 500
+x_hat, k_hat, xs, ks = blind_richardson_lucy(
+    y=y,
+    x0=y,
+    k0=k0,
+    physics=physics,
+    steps=max_iter,
+    x_steps=1,
+    k_steps=1,
+    verbose=True,
+    keep_inter=True,
+    fft=True,
+    normalize_kernel=True,
 )
 
 plot(
