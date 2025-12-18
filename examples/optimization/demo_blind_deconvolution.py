@@ -235,7 +235,6 @@ def blind_richardson_lucy(
     y: torch.Tensor,
     x0: torch.Tensor,
     k0: torch.Tensor,
-    physics: deepinv.physics.LinearPhysics,
     steps: int,
     x_steps: int = 1,
     k_steps: int = 1,
@@ -265,9 +264,6 @@ def blind_richardson_lucy(
     k0 : torch.Tensor
         Initial kernel, shape (B, 1, hk, wk) or (1, 1, hk, wk).
         (If you pass (1,1,hk,wk), it will be broadcast across batch.)
-    physics : deepinv.physics.LinearPhysics
-        Blur physics (e.g. Blur/BlurFFT) supporting update(filter=...),
-        and methods A(.) and A_adjoint(.).
     steps : int
         Number of outer alternations.
     x_steps : int
@@ -307,89 +303,81 @@ def blind_richardson_lucy(
         k = _normalize_kernel(k, eps=filter_epsilon)
     else:
         k = k.clamp_min(0.0)
-
     # Intermediate storage
     xs = [x.detach().cpu().clone()] if keep_inter else None
     ks = [k.detach().cpu().clone()] if keep_inter else None
 
-    # Padding mode for the kernel update convolutions
-    pad_mode = _get_padding_mode(physics, default="circular")
-
     # Precompute shapes
-    B, C, H, W = y.shape
-    hk, wk = k.shape[-2], k.shape[-1]
+    B_im, C_im, H_im, W_im = y.shape
+    B_k, C_k, H_k, W_k = k.shape
+    H_k, W_k = k.shape[-2], k.shape[-1]
 
-    # Pad sizes for "full" correlation then center-crop to hk x wk
-    # We use large padding so that conv2d returns a big map from which we crop the center patch.
-    # This matches your PyTorch implementation strategy.
-    pad_k = (W // 2, W // 2, H // 2, H // 2)  # (left,right,top,bottom)
-
-    # Create a physics operator for kernel updates (reused across iterations)
-    # This operator will have its filter parameter updated with the flipped image
-    xL_initial = x.sum(dim=1, keepdim=True)
-    xL_T_initial = torch.flip(xL_initial, dims=[-2, -1])
     if fft:
+        physics = deepinv.physics.BlurFFT(
+            img_size=(C_im, H_im, W_im),
+            filter=k,
+            device=x.device,
+        )
         kernel_physics = deepinv.physics.BlurFFT(
-            img_size=(1, H, W),
-            filter=xL_T_initial,
-            padding=pad_mode,
+            img_size=(C_im, H_im, W_im),
+            filter=x,
             device=x.device,
         )
+
     else:
-        kernel_physics = deepinv.physics.Blur(
-            filter=xL_T_initial,
-            padding=pad_mode,
+        physics = deepinv.physics.Blur(
+            filter=k,
+            padding="circular",
             device=x.device,
         )
 
-    for _ in tqdm(range(steps), desc="Blind RL", disable=not verbose):
+        kernel_physics = deepinv.physics.Blur(
+            filter=x,
+            padding="circular",
+            device=x.device,
+        )
 
-        # -------------------------
-        # (1) Kernel update (k|x)
-        # -------------------------
-        # Use luminance proxy so that one kernel explains all channels.
-        xL = x.sum(dim=1, keepdim=True)  # (B,1,H,W)
-
-        # flip for correlation
-        xL_T = torch.flip(xL, dims=[-2, -1])  # (B,1,H,W)
+    for step in tqdm(range(steps), desc="Blind RL", disable=not verbose):
+        # Kernel update
+        kernel_physics.update_parameters(filter=x)
 
         for _ in range(k_steps):
-            y_hat = physics.A(x).clamp_min(filter_epsilon)
+            ones = torch.ones_like(y)
 
-            # ratio: y / (A_k x)
-            ratio = (y / y_hat).clamp_min(0.0)
-            ratioL = ratio.mean(dim=1, keepdim=True)  # (B,1,H,W)
+            k_padded = torch.nn.functional.pad(
+                k,
+                (
+                    0,
+                    W_im - W_k,
+                    0,
+                    H_im - H_k,
+                ),
+            )
+            s_img = kernel_physics.A_adjoint(ones).clamp_min(filter_epsilon)
+            num = kernel_physics.A_adjoint(
+                y / kernel_physics.A(k_padded).clamp_min(filter_epsilon)
+            )
 
-            onesL = torch.ones_like(ratioL)
-
-            # Update the kernel update physics with the current flipped image
-            kernel_physics.update_parameters(filter=xL_T)
-
-            # Compute numerator: correlate ratio with flipped image
-            num = kernel_physics.A_adjoint(ratioL)  # (B, 1, H, W)
-
-            # Compute denominator: correlate ones with flipped image
-            den = kernel_physics.A_adjoint(onesL).clamp_min(filter_epsilon)
+            # For RGB images, we average the update ratio across channels
+            numL = num.mean(dim=1, keepdim=True)
 
             # Center crop to kernel size
-            num = _center_crop_hw(num, hk, wk)
-            den = _center_crop_hw(den, hk, wk)
+            num = _center_crop_hw(numL, H_k, W_k)
+            s_img = _center_crop_hw(s_img, H_k, W_k)
 
             # Update kernel
-            k = k * (num / den)
+            k = (k / s_img) * num
+            k = k.mean(dim=1, keepdim=True)
             k = k.clamp_min(0.0)
             if normalize_kernel:
                 k = _normalize_kernel(k, eps=filter_epsilon)
-
-        # -------------------------
-        # (2) Image update (x|k)
-        # -------------------------
+        plot(k)
+        # Image update
         physics.update_parameters(filter=k)
         s = physics.A_adjoint(torch.ones_like(y)).clamp_min(filter_epsilon)
 
         for _ in range(x_steps):
-            Ax = physics.A(x).clamp_min(filter_epsilon)
-            x = (x / s) * physics.A_adjoint(y / Ax)
+            x = (x / s) * physics.A_adjoint(y / physics.A(x).clamp_min(filter_epsilon))
             x = x.clamp_min(filter_epsilon)
 
         if keep_inter:
@@ -409,39 +397,37 @@ x = load_example(
     device=device,
     resize_mode="resize",
 )
+
 # True physics (unknown kernel in blind setting)
 kernel_true = deepinv.physics.blur.gaussian_blur(sigma=1.6)
 # kernel_true = torch.nn.functional.pad(
 #     kernel_true,
 #     (0, 1, 0, 1),
 # )
-physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
-# Broken ?
-# physics = deepinv.physics.BlurFFT(
-#     img_size=(1, img_size, img_size),
-#     filter=kernel_true,
-#     device=device,
-# )
+# physics = deepinv.physics.Blur(filter=kernel_true, padding="circular", device=device)
+physics = deepinv.physics.BlurFFT(
+    img_size=(1, img_size, img_size),
+    filter=kernel_true,
+    device=device,
+)
 
 y = physics(x)
 
 # Initial guesses
 k0 = torch.ones_like(kernel_true)
-max_iter = 500
+max_iter = 20
 x_hat, k_hat, xs, ks = blind_richardson_lucy(
     y=y,
     x0=y,
     k0=k0,
-    physics=physics,
     steps=max_iter,
     x_steps=1,
     k_steps=1,
     verbose=True,
     keep_inter=True,
-    fft=True,
+    fft=False,
     normalize_kernel=True,
 )
-
 plot(
     [x, y, x_hat, kernel_true, k_hat],
     titles=[
