@@ -226,6 +226,20 @@ can be done by multiplying the operators:
     >>> print(y.shape)
     torch.Size([1, 1, 4, 4])
 
+or by using :func:`deepinv.physics.compose`:
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> x = torch.rand((1, 1, 8, 8))
+    >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
+    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = dinv.physics.compose(physics1, physics2)
+    >>> y = physics(x)
+    >>> print(y.shape)
+    torch.Size([1, 1, 4, 4])
+
 .. _physics_wrappers:
 
 Physics Wrappers

@@ -18,6 +18,8 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.ComposedPhysics
+   deepinv.physics.ComposedLinearPhysics
    deepinv.physics.PhysicsMultiScaler
    deepinv.physics.LinearPhysicsMultiScaler
    deepinv.physics.PhysicsCropper
@@ -141,6 +143,7 @@ Noise distributions
 
     deepinv.physics.adjoint_function
     deepinv.physics.stack
+    deepinv.physics.compose
 
 
 Functional

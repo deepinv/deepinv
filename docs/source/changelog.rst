@@ -14,7 +14,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Add :class:`deepinv.physics.ComposedPhysics`, :class:`deepinv.physics.ComposedLinearPhysics` to online documentation (:gh:`1000` by `Romain Vo`_)
 
 v0.3.7
 ------
