@@ -820,7 +820,9 @@ class ComposedPhysics(Physics):
     :param Iterable[deepinv.physics.Physics] physics: variable number of physics to compose.
     """
 
-    def __init__(self, *physics: Iterable[Physics], device: str | torch.device = "cpu", **kwargs):
+    def __init__(
+        self, *physics: Iterable[Physics], device: str | torch.device = "cpu", **kwargs
+    ):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
