@@ -8,6 +8,7 @@ from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.utils.decorators import _deprecated_class
 
+
 class Prior(Potential):
     r"""
     Prior term :math:`\reg{x}`.
@@ -69,6 +70,7 @@ class ZeroPrior(Prior):
         It returns the identity :math:`x`.
         """
         return x
+
 
 ZeroPrior = _deprecated_class(ZeroPrior)
 
