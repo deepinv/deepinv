@@ -7,15 +7,17 @@ import subprocess
 # Global variable to store benchmark mappings
 benchmark_mapping = {}
 
+
 def generate_rst_from_parquet(parquet_path, output_dir, benchmark_name):
     df = pd.read_parquet(parquet_path)
-    dataset = df.attrs.get('dataset', 'Unknown')
-    physics = df.attrs.get('physics', 'Unknown')
-    noise = df.attrs.get('noise', 'Unknown')
+    dataset = df.attrs.get("dataset", "Unknown")
+    physics = df.attrs.get("physics", "Unknown")
+    noise = df.attrs.get("noise", "Unknown")
     os.makedirs(output_dir, exist_ok=True)
     rst_path = os.path.join(output_dir, f"{benchmark_name}.rst")
 
-    lines = [f"""
+    lines = [
+        f"""
 .. _{benchmark_name.replace('-', '_').replace(' ', '_')}:
 
 {benchmark_name.replace('-', ' ').replace('_', ' ')}
@@ -24,7 +26,8 @@ def generate_rst_from_parquet(parquet_path, output_dir, benchmark_name):
 Benchmark results for {benchmark_name.replace('-', ' ').replace('_', ' ')}.
 
 **Benchmark information**:
-"""]
+"""
+    ]
 
     df = pd.read_parquet(parquet_path)
 
@@ -61,7 +64,7 @@ Benchmark results for {benchmark_name.replace('-', ' ').replace('_', ' ')}.
         lines.append("   * - " + "\n     - ".join(row_cells))
 
     # Write rst
-    with open(rst_path, 'w') as f:
+    with open(rst_path, "w") as f:
         f.write("\n".join(lines))
 
     # Add mapping for dataset and physics
@@ -70,8 +73,9 @@ Benchmark results for {benchmark_name.replace('-', ' ').replace('_', ' ')}.
 
     return benchmark_name, dataset, physics, noise
 
+
 def generate_benchmarks_rst(benchmark_info, output_dir):
-    benchmarks_rst_path = os.path.join(output_dir, 'benchmarks.rst')
+    benchmarks_rst_path = os.path.join(output_dir, "benchmarks.rst")
     benchmarks_content = """Benchmarks
 =================
 
@@ -104,23 +108,29 @@ and then running:
     for name, _, _, _ in benchmark_info:
         benchmarks_content += f"   auto_benchmarks/{name}\n"
 
-    with open(benchmarks_rst_path, 'w') as f:
+    with open(benchmarks_rst_path, "w") as f:
         f.write(benchmarks_content)
+
 
 def on_builder_inited(app):
     # Define the root directory of the benchmarks repository
-    benchmarks_root = os.path.join(os.path.dirname(__file__), 'deepinv-benchmarks')
+    benchmarks_root = os.path.join(os.path.dirname(__file__), "deepinv-benchmarks")
 
     # Clone the repository if it doesn't exist
     if not os.path.exists(benchmarks_root):
         print("Cloning deepinv/benchmarks repository...")
         try:
             subprocess.run(
-                ["git", "clone", "https://github.com/deepinv/benchmarks", benchmarks_root],
+                [
+                    "git",
+                    "clone",
+                    "https://github.com/deepinv/benchmarks",
+                    benchmarks_root,
+                ],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
             )
             print("Repository cloned successfully.")
         except subprocess.CalledProcessError as e:
@@ -131,21 +141,25 @@ def on_builder_inited(app):
     parquet_files = []
     for root, dirs, files in os.walk(benchmarks_root):
         for file in files:
-            if file == 'results.parquet':
+            if file == "results.parquet":
                 parquet_files.append((root, os.path.join(root, file)))
 
     if not parquet_files:
-        raise FileNotFoundError("No results.parquet files found in the benchmarks repository.")
+        raise FileNotFoundError(
+            "No results.parquet files found in the benchmarks repository."
+        )
 
     # Define the output directory for RST files
     source_dir = os.path.dirname(__file__)
-    output_dir = os.path.join(source_dir, 'auto_benchmarks')
+    output_dir = os.path.join(source_dir, "auto_benchmarks")
 
     benchmark_info = []
     for folder, parquet_file in parquet_files:
         benchmark_name = os.path.basename(folder)
         try:
-            name, dataset, physics, noise = generate_rst_from_parquet(parquet_file, output_dir, benchmark_name)
+            name, dataset, physics, noise = generate_rst_from_parquet(
+                parquet_file, output_dir, benchmark_name
+            )
             benchmark_info.append((name, dataset, physics, noise))
         except Exception as e:
             print(f"Failed to process {parquet_file}: {str(e)}")
@@ -154,6 +168,6 @@ def on_builder_inited(app):
 
 
 def setup(app: Sphinx):
-    app.connect('builder-inited', on_builder_inited)
-    app.add_config_value('benchmark_mapping', {}, 'env')
-    return {'version': '1.0'}
+    app.connect("builder-inited", on_builder_inited)
+    app.add_config_value("benchmark_mapping", {}, "env")
+    return {"version": "1.0"}
