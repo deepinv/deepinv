@@ -564,6 +564,9 @@ def get_prior(prior_name, device="cpu"):
             prior = dinv.optim.prior.WaveletPrior(
                 wv=["db1", "db4", "db8"], level=3, device=device
             )
+    elif prior_name == "ZeroPrior":
+        prior = dinv.optim.prior.ZeroPrior()
+
     return prior
 
 
@@ -579,6 +582,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "TVPrior",
         "WaveletPrior",
         "WaveletDictPrior",
+        "ZeroPrior",
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
