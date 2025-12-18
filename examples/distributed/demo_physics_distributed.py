@@ -2,7 +2,7 @@
 Distributed Physics Operators
 ==============================
 
-This example demonstrates how to distribute physics operators across multiple processes
+This example demonstrates how to distribute multiple physics operators across multiple processes
 for parallel computation of forward and adjoint operations.
 
 **Usage:**

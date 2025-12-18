@@ -3,8 +3,8 @@ Distributed Plug-and-Play (PnP) Reconstruction
 ==============================================
 
 This example demonstrates how to use the distributed framework for PnP reconstruction
-using the simplified distribute() API. The framework automatically distributes physics
-operators and denoisers across multiple processes.
+using the distribute() API. The framework automatically distributes multiple physics
+operators and a denoiser across multiple processes.
 
 **Usage:**
 

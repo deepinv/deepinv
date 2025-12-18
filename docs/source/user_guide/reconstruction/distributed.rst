@@ -32,43 +32,75 @@ Quick Start
 
 Here's a minimal example that shows the complete workflow:
 
-.. code-block:: python
+.. testcode::
 
-    import torch
     from deepinv.physics import Blur, stack
     from deepinv.physics.blur import gaussian_blur
+    from deepinv.optim.data_fidelity import L2
     from deepinv.models import DRUNet
     from deepinv.distributed import DistributedContext, distribute
-    
+    from deepinv.utils.demo import load_example
+
+
     # Step 1: Create distributed context
     with DistributedContext() as ctx:
-        
-        # Step 2: Create and stack your physics operators  
+
+        # Step 2: Create and stack your physics operators
         physics_list = [
-            Blur(filter=gaussian_blur(sigma=1.0), padding="circular"),
-            Blur(filter=gaussian_blur(sigma=2.0), padding="circular"),
-            Blur(filter=gaussian_blur(sigma=3.0), padding="circular"),
+            Blur(
+                filter=gaussian_blur(sigma=1.0), padding="circular", device=str(ctx.device)
+            ),
+            Blur(
+                filter=gaussian_blur(sigma=2.0), padding="circular", device=str(ctx.device)
+            ),
+            Blur(
+                filter=gaussian_blur(sigma=3.0), padding="circular", device=str(ctx.device)
+            ),
         ]
         stacked_physics = stack(*physics_list)
-        
-        # Step 3: Distribute physics - that's it!
+
+        # Step 3: Distribute physics
         distributed_physics = distribute(stacked_physics, ctx)
-        
+
         # Use it like regular physics
+        x = ground_truth = load_example(
+            "CBSD_0010.png", grayscale=False, device=str(ctx.device)
+        )
         y = distributed_physics(x)  # Forward operation (parallel across operators)
         x_adj = distributed_physics.A_adjoint(y)  # Adjoint (parallel)
-        
+
         # Step 4: Distribute a denoiser for large images
         denoiser = DRUNet()
         distributed_denoiser = distribute(
             denoiser,
-            ctx, 
-            patch_size=256,           # Split image into patches
+            ctx,
+            patch_size=256,  # Split image into patches
             receptive_field_size=64,  # Overlap for smooth blending
         )
-        
+
         # Use it like regular denoiser
-        denoised = distributed_denoiser(noisy_image)
+        denoised = distributed_denoiser(x_adj, sigma=0.1)
+
+        # Step 5: Distribute a data fidelity term
+        data_fidelity = L2()
+        distributed_data_fidelity = distribute(data_fidelity, ctx)
+
+        # Use it like regular data fidelity
+        loss = distributed_data_fidelity.fn(denoised, y, distributed_physics)
+
+        # Step 6: debug and print on rank 0 only
+        if ctx.rank == 0:
+            print("Distributed physics output shape:", y.shape)
+            print("Distributed physics adjoint output shape:", x_adj.shape)
+            print("Distributed denoiser output shape:", denoised.shape)
+            print(f"Distributed data fidelity loss: {loss.item():.6f}")
+
+.. testoutput::
+
+    Distributed physics output shape: [torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321])]
+    Distributed physics adjoint output shape: torch.Size([1, 3, 481, 321])
+    Distributed denoiser output shape: torch.Size([1, 3, 481, 321])
+    Distributed data fidelity loss: 713549.437500
 
 **That's the entire API!** The :func:`deepinv.distributed.distribute()` function handles all the complexity of distributed computing.
 
@@ -129,10 +161,10 @@ The context:
     # Distribute physics operators
     distributed_physics = distribute(physics, ctx)
     
-    # Distribute denoisers/priors
-    distributed_denoiser = distribute(denoiser, ctx, patch_size=256)
+    # Distribute denoisers with tiling parameters
+    distributed_denoiser = distribute(denoiser, ctx, patch_size=256, receptive_field_size=64)
 
-    # Disitribute data fidelity (if needed)
+    # Distribute data fidelity
     distributed_data_fidelity = distribute(data_fidelity, ctx)
 
 The :func:`deepinv.distributed.distribute()` function:
@@ -161,6 +193,7 @@ Key Classes
    * - :class:`deepinv.distributed.DistributedDataFidelity`
      - Distributes data fidelity `fn` and `grad`` (if needed, auto-created by ``distribute()``)
 
+**You typically won't need to instantiate these classes directly.** Use the :func:`deepinv.distributed.distribute()` function instead.
 
 Distributed Physics
 -------------------
@@ -202,6 +235,8 @@ The ``distribute()`` function accepts multiple formats:
 
 .. code-block:: python
 
+    physics_list = [operator1, operator2, operator3, ...]
+
     # From StackedPhysics
     stacked = stack(*physics_list)
     dist_physics = distribute(stacked, ctx)
@@ -211,9 +246,19 @@ The ``distribute()`` function accepts multiple formats:
     
     # From factory function
     def physics_factory(idx, device, shared):
+        # idx is the index of the operator to create
+        # device is the assigned device for this process
+        # shared is a dict for sharing parameters across operators (optional)
         return create_physics(idx, device)
     
     dist_physics = distribute(physics_factory, ctx, num_operators=10)
+
+    # With shared parameters
+    shared_params = {"common_param": value}
+
+    dist_physics = distribute(
+        physics_factory, ctx, num_operators=10, shared=shared_params
+    )
 
 Gather Strategies
 ~~~~~~~~~~~~~~~~~
@@ -232,10 +277,10 @@ You can control how results are gathered from different processes:
     dist_physics = distribute(physics, ctx, gather_strategy="broadcast")
 
 
-Distributed Denoisers & Priors
--------------------------------
+Distributed Denoisers
+---------------------
 
-Denoisers and priors can be distributed using **spatial tiling** to handle large images.
+Denoisers can be distributed using **spatial tiling** to handle large images.
 
 Basic Usage
 ~~~~~~~~~~~
@@ -247,7 +292,7 @@ Basic Usage
     
     with DistributedContext() as ctx:
         # Load your denoiser
-        denoiser = DRUNet(pretrained="download").to(ctx.device)
+        denoiser = DRUNet()
         
         # Distribute with tiling parameters
         dist_denoiser = distribute(
@@ -267,7 +312,7 @@ How It Works
 1. **Patch Extraction**: Image is split into overlapping patches
 2. **Distributed Processing**: Patches are distributed across processes
 3. **Parallel Denoising**: Each process denoises its local patches
-4. **Reconstruction**: Patches are blended back into full image with smooth transitions
+4. **Reconstruction**: Patches are blended back into full image, each rank has access to the full output
 
 Tiling Parameters
 ~~~~~~~~~~~~~~~~~
@@ -304,77 +349,85 @@ Complete PnP Example
 
 Here's a complete example of distributed PnP reconstruction:
 
-.. code-block:: python
+.. testcode::
 
     import torch
-    import torch.nn.functional as F
     from deepinv.physics import Blur, GaussianNoise, stack
     from deepinv.physics.blur import gaussian_blur
     from deepinv.models import DRUNet
     from deepinv.optim.data_fidelity import L2
     from deepinv.distributed import DistributedContext, distribute
-    
+    from deepinv.utils.demo import load_example
+    from deepinv.utils.plotting import plot
+
+
     with DistributedContext(seed=42) as ctx:
-        
+
         # ===== Setup =====
-        
+        ground_truth = load_example(
+            "CBSD_0010.png", grayscale=False, device=str(ctx.device)
+        )
+
         # Create multiple physics operators
         kernels = [
-            gaussian_blur(sigma=1.0, device=str(ctx.device)),
-            gaussian_blur(sigma=2.0, device=str(ctx.device)),
-            gaussian_blur(sigma=(1.5, 3.0), angle=30, device=str(ctx.device)),
+            gaussian_blur(sigma=1.0),
+            gaussian_blur(sigma=2.0),
+            gaussian_blur(sigma=(1.5, 3.0)),
         ]
-        
+
         physics_list = []
         for kernel in kernels:
             blur = Blur(filter=kernel, padding="circular", device=str(ctx.device))
             blur.noise_model = GaussianNoise(sigma=0.03)
             physics_list.append(blur)
-        
+
         stacked_physics = stack(*physics_list)
-        
+
         # Generate measurements
-        clean_image = load_image()  # Your image loading function
-        measurements = stacked_physics(clean_image)
-        
+        measurements = stacked_physics(ground_truth)
+
         # ===== Distribute Components =====
-        
+
         # Distribute physics
         dist_physics = distribute(stacked_physics, ctx)
-        
+
         # Distribute denoiser
-        denoiser = DRUNet(pretrained="download").to(ctx.device)
+        denoiser = DRUNet()
         dist_denoiser = distribute(
-            denoiser, ctx,
+            denoiser,
+            ctx,
             patch_size=256,
             receptive_field_size=64,
         )
-        
-        # Create data fidelity (not distributed, works with distributed physics)
+
+        # Create data fidelity
         data_fidelity = L2()
-        
+        dist_data_fidelity = distribute(data_fidelity, ctx)
+
         # ===== PnP Iterations =====
-        
-        x = torch.zeros_like(clean_image)
+
+        x = torch.zeros_like(ground_truth)
         step_size = 0.5
         denoiser_sigma = 0.05
-        
-        for iteration in range(20):
-            # Data fidelity gradient (uses distributed physics)
-            grad = data_fidelity.grad(x, measurements, dist_physics)
-            
-            # Gradient step
-            x = x - step_size * grad
-            
-            # Denoising step (distributed)
-            x = dist_denoiser(x, sigma=denoiser_sigma)
-            
-            if ctx.rank == 0:
-                print(f"Iteration {iteration+1}/20")
-        
-        # Final result
+
+        with torch.no_grad():
+
+            for iteration in range(20):
+                # Data fidelity gradient (uses distributed physics)
+                grad = data_fidelity.grad(x, measurements, dist_physics)
+
+                # Gradient step
+                x = x - step_size * grad
+
+                # Denoising step (distributed)
+                x = dist_denoiser(x, sigma=denoiser_sigma)
+
         if ctx.rank == 0:
-            save_result(x)
+            plot(
+                img_list=[ground_truth.cpu(), measurements[0].cpu(), x.cpu()],
+                titles=["Ground Truth", "Measurements 0", "Reconstruction"],
+                save_fn="distributed_pnp_reconstruction.png",
+            )
 
 
 Running Multi-Process
@@ -409,6 +462,9 @@ Use ``torchrun`` to launch multiple processes:
     # On machine 2 (rank 1):
     torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 \
              --master_addr="192.168.1.1" --master_port=29500 my_script.py
+    
+    # As python module
+    python -m torch.distributed.run --nproc_per_node=4 my_script.py
 
 The ``DistributedContext`` automatically detects these settings from environment variables.
 
