@@ -32,8 +32,8 @@ class DistributedContext:
     :param str backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
     :param bool cleanup: whether to clean up the process group on exit. Default is `True`.
     :param int seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.
-    :param bool seed_offset: whether to add rank offset to seed (each rank gets `seed + rank`). Default is `True`. 
-        When `True`: each process uses a unique seed for diverse random sequences. 
+    :param bool seed_offset: whether to add rank offset to seed (each rank gets `seed + rank`). Default is `True`.
+        When `True`: each process uses a unique seed for diverse random sequences.
         When `False`: all processes share the same seed for synchronized randomness.
     :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.
     :param str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
