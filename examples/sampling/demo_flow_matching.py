@@ -302,3 +302,8 @@ except FileNotFoundError:
 #       :srcset: /auto_examples/images/FM_posterior_new_at_bt.png
 #       :class: custom-img
 #       :ignore_missing: true
+
+# %%
+# :References:
+#
+# .. footbibliography::

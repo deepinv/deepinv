@@ -20,7 +20,7 @@ class MMSE(Denoiser):
 
         \mathbb{E}[x | y] = \sum_{k=1}^N x_k w(x_k \vert y)  \quad \text{with} \quad w(x_k \vert y) = \mathrm{softmax}\left( \left(- \frac{1}{\sigma^2}\|y - x_m\|^2 \right)_{m = 1, \cdots, N} \right)_k.
 
-        Here, :math:`w(x_k \vert y)` is the posterior weight of atom :math:`x_k` knowing the measurement :math:`y`.
+    Here, :math:`w(x_k \vert y)` is the posterior weight of atom :math:`x_k` knowing the measurement :math:`y`.
 
     :param torch.utils.data.DataLoader | torch.Tensor dataloader: Pytorch dataloader or tensor containing the dataset to use as prior. If a tensor is provided, it is assumed to contain all the dataset in memory.
     If the dataset is small, using a tensor can significantly speed up computations.
@@ -52,6 +52,7 @@ class MMSE(Denoiser):
         >>> x_noisy = x + sigma * torch.randn_like(x)
         >>> with torch.no_grad():
         ...     x_denoised = denoiser(x_noisy, sigma=sigma)
+
 
     """
 

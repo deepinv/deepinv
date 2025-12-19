@@ -96,6 +96,7 @@ Wrappers
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.models.ScoreModelWrapper
    deepinv.models.DiffusersDenoiserWrapper
    deepinv.models.ComplexDenoiserWrapper
 
