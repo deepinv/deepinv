@@ -1,4 +1,3 @@
-:html_theme.sidebar_secondary.remove:
 .. _contributing:
 
 Contributing to DeepInverse
@@ -9,6 +8,8 @@ We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
 View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`__.
+We acknowledge all contributors!
+Significant contributions will also be taken into account when deciding on the authorship of future publications.
 
 Learn more about our code philosophy in the paper:
 `DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
@@ -39,94 +40,63 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
 How to Contribute
 -----------------
 
-Steps:
-- TODO with links
+Want to solve an issue or contribute something new to DeepInverse? Never contributed to DeepInverse before? Here's a step-by-step with the basics!
 
-1. Open a pull request in GitHub
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Fork DeepInverse and write your code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO follow excellent instructions from https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project
+The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
+to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
 
-Once you have created a draft pull request with your contribution, move to the next step!
+Once, you've opened a (draft) pull request (PR) in GitHub with your contribution, you should be able to see it under `Pull Requests <https://github.com/deepinv/deepinv/pulls>`_.
+You're ready to move on!
 
-Mention you can allow maintainers to edit the PR
+.. note::
+
+  By default, GitHub allows maintainers to edit your PR to help you directly.
 
 2. Write tests
 ~~~~~~~~~~~~~~
 
-TODO install in editable mode etc.
+Tests are crucial for checking your code will always behave as intended, and we encourage you to follow a test-driven development methodology. Tests can consist of:
 
-Don't know how? Ask in Discord or skip this step and we'll help you out.
+- Unit tests (e.g. check each method's return values and shapes);
+- Integration tests (e.g. end-to-end behavior, interface with other classes).
 
-3. Write docs
-~~~~~~~~~~~~~
+How to write and run tests:
 
-Copy instructions from below
-
-Don't know how? Ask in Discord or skip this step and we'll help you out.
-
-4. Formatting and linting
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-5. Interact with reviewers
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You're done! A maintainer will see it and will interact with you.
-They may suggest changes.
-They will also run the workflows.
-
-Explain how to pull the changes maintainers might make to the PR if they've been allowed to
-
-TODO distribute below into the above steps:
-
-To contribute, you must install `deepinv` in editable mode
-so that all your changes are visible when you run workflows.
-Make sure that you download all the required dependencies for testing
-by running in the root directory of the repository:
+1. Install `deepinv` in editable mode so that all your changes are used when you run code:
 
 .. code-block:: bash
 
     pip install -e .[test,dataset,denoisers,doc,lint,training]
 
-    # or using `uv` for faster installation:
+2. Write your tests in ``deepinv/tests``. Check out the existing tests to see examples of where you could insert your tests. We use ``pytest`` and ``unittest.mock``.
 
-    uv pip install -e .[test,dataset,denoisers,doc,lint,training]
+.. hint::
 
+  If you've contributed a new class (e.g. dataset, physics etc.), you should add it to any existing tests, e.g. those that check physics adjointness, dataset return format, etc.
 
-We acknowledge all contributors in the documentation and in the source code. Significant contributions
-will also be taken into account when deciding on the authorship of future publications.
+3. Check your tests pass locally by running ``python -m pytest deepinv/tests`` in the root directory after making the desired changes. Learn more `here <https://realpython.com/pytest-python-testing/>`__.
+4. Push your code to your PR. A maintainer will run the tests on CPU and GPU in the CI, and you will see the results in the `Test PR...` GitHub action.
 
-Please contribute to ``deepinv`` by forking the `main
-repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
-then submit a "Pull Request" (PR). When preparing the PR, please make sure to
-check the following points:
-
-- **Code quality**: your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers. This can be done easily
-  by installing the ``black`` and ``ruff`` libraries and running ``black .`` and ``ruff check`` in the root directory of the repository after
-  making the desired changes.
-- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using ruff.
-- **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,
-  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behavior),
-  following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
-  All existing tests should pass on your local machine. This can be done by installing ``pytest`` and running
-  ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.
-  Learn more `here <https://realpython.com/pytest-python-testing/>`__.
+.. note::
   Your code coverage will automatically be checked using ``codecov``.
-- **Docs**: the documentation and docstrings are updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-  and built with `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_.
-  Please refer to the docstring guidelines below.
-  Your documentation should be added to: a) docstring, b) API reference, c) User Guide, d) Examples (optional).
-  After making the desired changes, check the documentation by installing
-  ``sphinx`` and building the docs by running one of the commands in the table below in the ``docs`` directory.
-  Note that if the build process fails, supplementary additional libraries may need to be manually installed
-  (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. tip::
+  **Run into a problem**? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_ and we'll help you out.
 
-  Once the GitHub tests have been approved by a maintainer (only required for first-time contributors), and the `Build Docs` GitHub action
-  has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
+3. Write docs
+~~~~~~~~~~~~~
 
+Writing good documentation is also crucial for helping other users use your code. This is how:
 
+1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples!
+Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
+2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
+3. Want to share more about your new feature? Consider writing an `example <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ in `examples/`!
+4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
+  
 .. list-table::
    :widths: 40 50
    :header-rows: 1
@@ -144,15 +114,43 @@ check the following points:
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
+.. caution:: 
+  Note that if the build process fails, supplementary additional libraries may need to be manually installed (e.g. ``sphinx-gallery``): please follow instructions in the log.
+
+.. tip::
+  If the `Build Docs` GitHub action has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
+
+.. tip::
+  **Run into a problem**? Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_ and we'll help you out.
+
+4. Code quality
+~~~~~~~~~~~~~~~
+
+Code quality is important to us. We require that your code is compliant with PEP8, the `black <https://black.readthedocs.io>`_ style and `ruff <https://docs.astral.sh/ruff/>`_ checkers:
+
+1. Add `typing <https://fastapi.tiangolo.com/python-types/>`_ to your code and docstrings. Typing rules such as PEP585 are automatically checked using ruff.
+2. Run ``black .`` in the root directory of your repository. This will automatically fix all formatting issues.
+3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
+4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
+
+5. Interact with reviewers
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You're done! A maintainer will see your PR and will interact with you. They may suggest changes. It is your responsibility to make all requested fixes!
+
+.. note::
+
+  A maintainer may directly edit your code if appropriate. Make sure to `git pull` to integrate these changes locally.
+
 Finding Help
-------------
+~~~~~~~~~~~~
 
-If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
-`issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. We will then try to address the issue as soon as possible.
-You can also send an email to any of the `maintainers <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ with your questions or ideas.
+Don't know where to start or got any questions or suggestions?
+Ask in `Discord <https://discord.gg/qBqY5jKw3p>`_, open an `issue <https://github.com/deepinv/deepinv/issues>`_, or
+send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ and we'll help you out.
 
 
+.. _docstring_guidelines:
 Docstring Guidelines
 --------------------
 
