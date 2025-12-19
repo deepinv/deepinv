@@ -115,8 +115,6 @@ dinv.utils.save_videos(
 
 # sphinx_gallery_start_ignore
 # cleanup
-
-
 try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
@@ -125,8 +123,8 @@ try:
     shutil.move("FM_sample.png", final_dir / "FM_sample.png")
 except FileNotFoundError:
     pass
-
 # sphinx_gallery_end_ignore
+
 # %%
 # We obtain the following unconditional sample, which belongs to the MNIST dataset.
 #
@@ -208,6 +206,8 @@ dinv.utils.plot(
     save_fn="FM_posterior.png",
 )
 
+# sphinx_gallery_start_ignore
+# cleanup
 try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
@@ -215,9 +215,8 @@ try:
     shutil.move("FM_sample.png", final_dir / "FM_sample.png")
 except FileNotFoundError:
     pass
-
-
 # sphinx_gallery_end_ignore
+
 # %%
 # We obtain the following conditional sample:
 #
@@ -282,6 +281,8 @@ dinv.utils.plot(
     save_fn="FM_posterior_new_at_bt.png",
 )
 
+# sphinx_gallery_start_ignore
+# cleanup
 try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
@@ -289,9 +290,8 @@ try:
     shutil.move("FM_posterior_new_at_bt.png", final_dir / "FM_posterior_new_at_bt.png")
 except FileNotFoundError:
     pass
-
-
 # sphinx_gallery_end_ignore
+
 # %%
 # We obtain the following conditional sample:
 #
