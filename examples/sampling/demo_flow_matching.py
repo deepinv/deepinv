@@ -80,7 +80,8 @@ denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
 
 
 # %% Define the Flow-Matching ODE and perform unconditional generation
-# ----------------------------------------------------------------
+# ---------------------------------------------------------------------
+#
 # The FlowMatching module :class:`FlowMatching` uses by default the following schedules: :math:`a_t=1-t`, :math:`b_t=t`.
 # The module FlowMatching module takes as input the denoiser and the ODE solver.
 
@@ -144,7 +145,8 @@ except FileNotFoundError:
 
 
 # %% Perform posterior sampling
-# ----------------------------------------------------------------
+# -----------------------------------------------------------------------
+#
 # Now, we can use the Flow-Matching model to perform posterior sampling.
 # In order not to replicate training image data, we now use a pretrained deep denoiser, here the NCSNpp denoiser  :footcite:t:`song2020score`, with pretrained weights from :footcite:t:`karras2022elucidating`.
 # We consider the inpainting problem, where we have a masked image and we want to recover the original image.
@@ -231,6 +233,7 @@ except FileNotFoundError:
 
 # %% Explore different time schedulers for Flow-Matching
 # ----------------------------------------------------------------
+#
 # Finally, we show how to use different choices of time schedulers :math:`a_t` and :math:`b_t`.
 # Here, we use another typical choice of schedulers :math:`a_t = \cos(\frac{\pi}{2} t)` and :math:`b_t = \sin(\frac{\pi}{2} t)` which also satisfy the interpolation condition :math:`a_0 = 1`, :math:`b_0 = 0`, :math:`a_1 = 0`, :math:`b_1 = 1`.
 # Note that, again, due to the division by :math:`a_t` in the velocity field, initialization close to t=1 causes instability.
