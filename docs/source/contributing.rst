@@ -151,6 +151,7 @@ send an email to a `maintainer <https://github.com/deepinv/deepinv/blob/main/MAI
 
 
 .. _docstring_guidelines:
+
 Docstring Guidelines
 --------------------
 
