@@ -5,7 +5,7 @@ Flow-Matching for posterior sampling and unconditional generation
 This demo shows you how to use a pretrained denoiser to perform unconditional image generation and posterior sampling using Flow Matching (FM).
 
 Flow matching consists in learning a continuous transportation between a reference distribution :math:`p_0` which is easy to sample from (e.g., a Gaussian distribution) and the data distribution :math:`p_1`.
-Sampling is done by solving the following ordinary differential equation (ODE) defined by a time-dependent velocity field :math:`v_\theta(x,t)` :
+Sampling is done by solving the following ordinary differential equation (ODE) defined by a time-dependent velocity field :math:`v_\theta(x,t)`:
 
 .. math::
     \frac{dx_t}{dt} = v_\theta(x_t,t), \quad x_0 \sim p_0 \quad t \in [0,1]
@@ -15,7 +15,7 @@ The velocity field :math:`v_\theta(x,t)` has been trained to approximate the con
 .. math::
     v_\theta(x_t,t) \approx \mathbb{E}_{x_0 \sim p_0, x_1 \sim p_1}\Big[ \frac{d}{dt} x_t | x_t = a_t x_0 + b_t x_1 \Big]
 
-where :math:`a_t` and :math:`b_t` are interpolation coefficients such that :math:`x_t` inteprolates between :math:`x_0` and :math:`x_1`.
+where :math:`a_t` and :math:`b_t` are interpolation coefficients such that :math:`x_t` interpolates between :math:`x_0` and :math:`x_1`.
 When the reference distribution :math:`p_0` is the standard Gaussian, the velocity field can be expressed as a function of a Gaussian denoiser :math:`D(x, \sigma)` as follows:
 
 .. math::
@@ -25,7 +25,7 @@ The most common choice of time schedulers is the linear schedule :math:`a_t = 1 
 
 In this demo, we will show how to :
 
-    *  Perform unconditional generation using not a trained denoiser but the closed-form MMSE denoiser
+    *  Perform unconditional generation using, instead of a trained denoiser, the closed-form MMSE denoiser
 
     .. math::
         D(x, \sigma) = \mathbb{E}_{x_0 \sim p_{data}, \epsilon \sim \mathcal{N}(0, I)} \Big[ x_0 | x = x_0 + \sigma \epsilon \Big]
