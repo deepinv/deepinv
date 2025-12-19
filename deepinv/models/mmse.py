@@ -22,8 +22,9 @@ class MMSE(Denoiser):
 
     Here, :math:`w(x_k \vert y)` is the posterior weight of atom :math:`x_k` knowing the measurement :math:`y`.
 
-    :param torch.utils.data.DataLoader | torch.Tensor dataloader: Pytorch dataloader or tensor containing the dataset to use as prior. If a tensor is provided, it is assumed to contain all the dataset in memory.
-    If the dataset is small, using a tensor can significantly speed up computations.
+    :param torch.utils.data.DataLoader | torch.Tensor dataloader: Pytorch dataloader or tensor containing the dataset to use as prior. 
+        If a tensor is provided, it is assumed to contain all the dataset in memory.
+        If the dataset is small, using a tensor can significantly speed up computations.
     :param torch.device, str device: Device to perform computations on. Default to CPU.
     :param torch.dtype dtype: dtype to compute the estimates. Default to `torch.float32`.
         For large datasets, using `torch.float16` or `torch.bfloat16` can significantly speed up computations.

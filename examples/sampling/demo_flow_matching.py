@@ -130,13 +130,13 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#    .. image-sg-ignore:: /auto_examples/images/FM_sample.png
 #       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/FM_sample.png
 #       :class: custom-img
 #       :ignore_missing: true
 #
-#    .. image-sg-ignore:: /auto_examples/images/sde_trajectory.gif
+#    .. image-sg-ignore:: /auto_examples/images/FM_trajectory.gif
 #       :alt: example of unconditional trajectory
 #       :srcset: /auto_examples/images/FM_trajectory.gif
 #       :class: custom-gif
@@ -212,7 +212,7 @@ try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
-    shutil.move("FM_sample.png", final_dir / "FM_sample.png")
+    shutil.move("FM_posterior.png", final_dir / "FM_posterior.png")
 except FileNotFoundError:
     pass
 # sphinx_gallery_end_ignore
@@ -222,7 +222,7 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#    .. image-sg-ignore:: /auto_examples/images/FM_posterior.png
 #       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/FM_posterior.png
 #       :class: custom-img
@@ -297,7 +297,7 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
+#    .. image-sg-ignore:: /auto_examples/images/FM_posterior_new_at_bt.png
 #       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/FM_posterior_new_at_bt.png
 #       :class: custom-img
