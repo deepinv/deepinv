@@ -259,7 +259,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and hasattr(self, key)
                     and isinstance(value, torch.Tensor)
                 ):
-                    self.register_buffer(key, value)
+
+                    # Move `value` to the buffer's device before updating
+                    # regardless of where the `value` tensor is located.
+                    # Also performs type casting if necessary.
+                    setattr(self, key, value.to(getattr(self, key)))
 
     # NOTE: Physics instances can hold instances of torch.Generator as
     # (possibly nested) attributes and they cannot be copied using deepcopy
@@ -420,6 +424,7 @@ class LinearPhysics(Physics):
         tol=1e-4,
         solver="lsqr",
         implicit_backward_solver: bool = True,
+        device: torch.device | str = "cpu",
         **kwargs,
     ):
         super().__init__(
@@ -440,6 +445,37 @@ class LinearPhysics(Physics):
             warnings.warn(
                 "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
             )
+
+        device_holder = torch.tensor(0.0, device=device)
+        self.register_buffer("_device_holder", device_holder, persistent=False)
+        # pushes all parameters/buffers to the specified device, including `noise_model`
+        self.to(device)
+
+    @property
+    def device(self) -> torch.device | str:
+        r"""
+        Returns the device where the physics parameters/buffers are stored.
+
+        :return: device of the physics parameters.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version. To move the module's buffers/parameters to a different device, use the `to()` method."
+        )
+
+        return self._device_holder.device
+
+    @device.setter
+    def device(self, value: torch.device | str):
+        r"""
+        Sets the device where the physics parameters/buffers are stored.
+
+        :param device: device to which the physics parameters will be moved.
+        """
+        warnings.warn(
+            "Following torch.nn.Module's design, the 'device' attribute is deprecated and will be removed in a future version, i.e. doing `physics.device = device` will no longer work and throw an `AttributeError`. Use `physics.to(device)` instead."
+        )
+
+        self.to(value)
 
     def A_adjoint(self, y, **kwargs):
         r"""
