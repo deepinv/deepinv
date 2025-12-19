@@ -60,16 +60,16 @@ class ZeroPrior(Prior):
         Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (:class:`torch.Tensor`) zero tensor.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
         return torch.zeros_like(x)
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""
-        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the proximal operator of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (:class:`torch.Tensor`) proximity operator (identity function) at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return x
 
