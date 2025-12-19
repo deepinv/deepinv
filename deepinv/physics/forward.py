@@ -463,7 +463,7 @@ class LinearPhysics(Physics):
         )
 
         return self._device_holder.device
-    
+
     @device.setter
     def device(self, value: torch.device | str):
         r"""
