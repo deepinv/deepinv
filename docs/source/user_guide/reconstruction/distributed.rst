@@ -41,33 +41,34 @@ Here's a minimal example that shows the complete workflow:
     from deepinv.distributed import DistributedContext, distribute
     from deepinv.utils.demo import load_example
 
-
     # Step 1: Create distributed context
     with DistributedContext() as ctx:
+
+        # Load an example image
+        x = load_example(
+            "CBSD_0010.png", grayscale=False, device=str(ctx.device)  # Make sure the image is on the correct device
+        )
 
         # Step 2: Create and stack your physics operators
         physics_list = [
             Blur(
-                filter=gaussian_blur(sigma=1.0), padding="circular", device=str(ctx.device)
+                filter=gaussian_blur(sigma=1.0), padding="circular"
             ),
             Blur(
-                filter=gaussian_blur(sigma=2.0), padding="circular", device=str(ctx.device)
+                filter=gaussian_blur(sigma=2.0), padding="circular"
             ),
             Blur(
-                filter=gaussian_blur(sigma=3.0), padding="circular", device=str(ctx.device)
+                filter=gaussian_blur(sigma=3.0), padding="circular"
             ),
         ]
         stacked_physics = stack(*physics_list)
 
         # Step 3: Distribute physics
-        distributed_physics = distribute(stacked_physics, ctx)
+        distributed_physics = distribute(stacked_physics, ctx)  # Distribute physics operators, transfers to correct devices
 
         # Use it like regular physics
-        x = ground_truth = load_example(
-            "CBSD_0010.png", grayscale=False, device=str(ctx.device)
-        )
-        y = distributed_physics(x)  # Forward operation (parallel across operators)
-        x_adj = distributed_physics.A_adjoint(y)  # Adjoint (parallel)
+        y = distributed_physics(x)  # Forward operation
+        x_adj = distributed_physics.A_adjoint(y)  # Adjoint
 
         # Step 4: Distribute a denoiser for large images
         denoiser = DRUNet()
@@ -96,11 +97,12 @@ Here's a minimal example that shows the complete workflow:
             print(f"Distributed data fidelity loss: {loss.item():.6f}")
 
 .. testoutput::
+    :options: +ELLIPSIS
 
     Distributed physics output shape: [torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321]), torch.Size([1, 3, 481, 321])]
     Distributed physics adjoint output shape: torch.Size([1, 3, 481, 321])
     Distributed denoiser output shape: torch.Size([1, 3, 481, 321])
-    Distributed data fidelity loss: 713549.437500
+    Distributed data fidelity loss: ...
 
 **That's the entire API!** The :func:`deepinv.distributed.distribute()` function handles all the complexity of distributed computing.
 

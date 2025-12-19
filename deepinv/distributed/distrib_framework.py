@@ -31,7 +31,10 @@ class DistributedContext:
 
     :param str backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
     :param bool cleanup: whether to clean up the process group on exit. Default is `True`.
-    :param int seed: random seed for reproducible results. If provided, each rank gets `seed + rank`. Default is `None`.
+    :param int seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.
+    :param bool seed_offset: whether to add rank offset to seed (each rank gets `seed + rank`). Default is `True`. 
+        When `True`: each process uses a unique seed for diverse random sequences. 
+        When `False`: all processes share the same seed for synchronized randomness.
     :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.
     :param str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
 
@@ -42,6 +45,7 @@ class DistributedContext:
         backend: str | None = None,
         cleanup: bool = True,
         seed: int | None = None,
+        seed_offset: bool = True,
         deterministic: bool = False,
         device_mode: str | None = None,
     ):
@@ -51,6 +55,7 @@ class DistributedContext:
         self.backend = backend
         self.cleanup = cleanup
         self.seed = seed
+        self.seed_offset = seed_offset
         self.deterministic = deterministic
         self.device_mode = device_mode  # "cpu", "gpu", or None (auto)
 
@@ -174,7 +179,7 @@ class DistributedContext:
     def _post_init_setup(self):
         # Seeding (rank offset for reproducible-but-unique RNG per process)
         if self.seed is not None:
-            s = self.seed + (self.rank if self.is_dist else 0)
+            s = self.seed + (self.rank if (self.is_dist and self.seed_offset) else 0)
             torch.manual_seed(s)
             if torch.cuda.is_available():
                 torch.cuda.manual_seed_all(s)
