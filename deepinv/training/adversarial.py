@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from torch.optim import Optimizer
@@ -129,7 +129,9 @@ class AdversarialTrainer(Trainer):
         ...     losses = SupAdversarialGeneratorLoss(),
         ...     losses_d = SupAdversarialDiscriminatorLoss(),
         ...     optimizer = optimizer,
-        ...     verbose = False
+        ...     verbose = False,
+        ...     device = "cpu",
+        ...     optimizer_step_multi_dataset = False
         ... )
         >>>
         >>> generator = trainer.train()
@@ -152,7 +154,7 @@ class AdversarialTrainer(Trainer):
     """
 
     optimizer: AdversarialOptimizer
-    losses_d: Union[Loss, list[Loss]] = None
+    losses_d: Loss | list[Loss] = None
     D: Module = None
     step_ratio_D: int = 1
 
@@ -208,7 +210,7 @@ class AdversarialTrainer(Trainer):
         logs = {}
 
         if train and step:  # remove gradient
-            self.optimizer.G.zero_grad()
+            self.optimizer.G.zero_grad(set_to_none=True)
 
         # Evaluate reconstruction network
         x_net = self.model_inference(y=y, physics=physics)
@@ -217,7 +219,7 @@ class AdversarialTrainer(Trainer):
         y_hat = physics.A(x_net)
 
         ### Train Generator
-        if train or self.display_losses_eval:
+        if train or self.compute_eval_losses:
             loss_total = 0
             for k, l in enumerate(self.losses):
                 loss = l(
@@ -260,9 +262,9 @@ class AdversarialTrainer(Trainer):
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
-            if train or self.display_losses_eval:
+            if train or self.compute_eval_losses:
 
-                self.optimizer.D.zero_grad()
+                self.optimizer.D.zero_grad(set_to_none=True)
 
                 loss_total_d = 0
                 for k, l in enumerate(self.losses_d):

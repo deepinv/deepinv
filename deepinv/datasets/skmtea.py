@@ -1,4 +1,5 @@
-from typing import Sequence, Union, Callable
+from __future__ import annotations
+from typing import Sequence, Callable
 from pathlib import Path
 from tqdm import tqdm
 import h5py
@@ -60,15 +61,15 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         Load data:
 
-        >>> from deepinv.datasets import SKMTEADataset
-        >>> from torch.utils.data import DataLoader
-        >>> dataset = SKMTEADataset(".")
-        >>> len(dataset) # Number of slices * number of volumes
+        >>> from deepinv.datasets import SKMTEASliceDataset  # doctest: +SKIP
+        >>> from torch.utils.data import DataLoader # doctest: +SKIP
+        >>> dataset = SKMTEASliceDataset(".") # doctest: +SKIP
+        >>> len(dataset) # doctest: +SKIP
         512
-        >>> x, y, params = next(iter(DataLoader(dataset)))
-        >>> x.shape # (B, 2, H, W)
+        >>> x, y, params = next(iter(DataLoader(dataset))) # doctest: +SKIP
+        >>> x.shape # (B, 2, H, W) # doctest: +SKIP
         torch.Size([1, 2, 512, 160])
-        >>> y.shape # (B, 2, N, H, W) # N coils
+        >>> y.shape # (B, 2, N, H, W) # doctest: +SKIP
         torch.Size([1, 2, 8, 512, 160])
 
     """
@@ -80,7 +81,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         acc: int = 6,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
-        metadata_cache_file: Union[str, Path] = "skmtea_dataset_cache.pkl",
+        metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
     ):
 

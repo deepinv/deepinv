@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import deepinv as dinv
-from deepinv.utils.demo import get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -147,11 +147,16 @@ if noise_name == "poisson":
 # %%
 # Train the network
 # --------------------------------------------
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
 #
+# .. tip::
 #
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+
 
 verbose = True  # print training information
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -170,13 +175,16 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     device=device,
+    metrics=None,  # no supervised metrics
     train_dataloader=train_dataloader,
-    eval_dataloader=None,
+    eval_dataloader=test_dataloader,
+    early_stop=2,  # early stop using the self-supervised loss on the test set
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,
 )
 
 # Train the network
@@ -186,10 +194,10 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
+# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
 #
-#
-
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=dinv.metric.PSNR())
 
 # %%
 # :References:

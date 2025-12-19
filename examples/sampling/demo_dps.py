@@ -22,7 +22,7 @@ import torch
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -46,10 +46,11 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x_true)
 
-imgs = [y, x_true]
 plot(
-    imgs,
-    titles=["measurement", "groundtruth"],
+    {
+        "Measurement": y,
+        "Ground Truth": x_true,
+    }
 )
 
 
@@ -150,10 +151,12 @@ xt = x0 + sigmat * torch.randn_like(x0)
 x0_t = model(xt, sigmat)
 
 # Visualize
-imgs = [x0, xt, x0_t]
 plot(
-    imgs,
-    titles=["ground-truth", "noisy", "posterior mean"],
+    {
+        "Ground Truth": x0,
+        "Noisy": xt,
+        "Posterior Mean": x0_t,
+    }
 )
 
 # %%
@@ -215,10 +218,13 @@ with torch.enable_grad():
     grad_ll = torch.autograd.grad(outputs=ll, inputs=xt)[0]
 
 # Visualize
-imgs = [x0, xt, x0_t, grad_ll]
 plot(
-    imgs,
-    titles=["groundtruth", "noisy", "posterior mean", "gradient"],
+    {
+        "Ground Truth": x0,
+        "Noisy": xt,
+        "Posterior Mean": x0_t,
+        "Gradient": grad_ll,
+    }
 )
 
 # %%
@@ -320,8 +326,13 @@ recon = xs[-1]
 
 # plot the results
 x = recon / 2 + 0.5
-imgs = [y, x, x_true]
-plot(imgs, titles=["measurement", "model output", "groundtruth"])
+plot(
+    {
+        "Measurement": y,
+        "Model Output": x,
+        "Ground Truth": x_true,
+    }
+)
 
 
 # %%

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, Optional, Callable
+from typing import Callable
 import warnings
 import copy
 import inspect
@@ -10,8 +10,9 @@ from torch import Tensor
 import torch.nn as nn
 from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
-from deepinv.optim.utils import least_squares, lsqr
+from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_backward
 from deepinv.utils.compat import zip_strict
+import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -45,7 +46,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(
         self,
         A: Callable = lambda x, **kwargs: x,
-        noise_model: Optional[NoiseModel] = None,
+        noise_model: NoiseModel | None = None,
         sensor_model: Callable = lambda x: x,
         solver: str = "gradient_descent",
         max_iter: int = 50,
@@ -355,6 +356,7 @@ class LinearPhysics(Physics):
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
     :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param bool implicit_backward_solver: If `True`, uses implicit differentiation for computing gradients through the :meth:`deepinv.physics.LinearPhysics.A_dagger` and :meth:`deepinv.physics.LinearPhysics.prox_l2`, using :func:`deepinv.optim.utils.least_squares_implicit_backward` instead of :func:`deepinv.optim.utils.least_squares`. This can significantly reduce memory consumption, especially when using many iterations. If `False`, uses the standard autograd mechanism, which can be memory-intensive. Default is `True`.
 
     |sep|
 
@@ -417,6 +419,7 @@ class LinearPhysics(Physics):
         max_iter=50,
         tol=1e-4,
         solver="lsqr",
+        implicit_backward_solver: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -430,6 +433,13 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
         self.img_size = img_size
+        self.implicit_backward_solver = implicit_backward_solver
+
+        _lstsq_conv_iter = 20  # heuristic number of iterations for convergence
+        if self.implicit_backward_solver and self.max_iter < _lstsq_conv_iter:
+            warnings.warn(
+                "Using implicit_backward_solver with a low number of iterations may produce inaccurate gradients during the backward pass. If you are not doing backpropagation through `A_dagger` or `prox_l2`, ignore this message. If you are training unfolded models, consider increasing max_iter."
+            )
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -528,38 +538,104 @@ class LinearPhysics(Physics):
         """
         return stack(self, other)
 
-    def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
+    def compute_norm(
+        self,
+        x0: torch.Tensor,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        squared: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
-        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
+        Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator :math:`A`.
 
-        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,
+        .. warning::
 
-        using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+            By default, for backward compatibility, this method computes the **squared** spectral norm of :math:`A`,
+            i.e., :math:`\|A^{\top}A\|_2`. This behavior is deprecated and will change in a future version.
+            Set ``squared=False`` to compute the non-squared spectral norm :math:`\|A\|_2`, or use
+            :meth:`compute_sqnorm` to explicitly compute the squared norm.
 
-        :param torch.Tensor x0: initialisation point of the algorithm
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param bool squared: If ``True`` (default, deprecated), computes :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            Use :meth:`compute_sqnorm` instead.
+            If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
+        :param dict kwargs: optional parameters for the forward operator
 
-        :returns z: (float) spectral norm of :math:`\conj{A} A`, i.e., :math:`\|\conj{A} A\|`.
+        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+            If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
         """
-        x = torch.randn_like(x0)
-        x /= torch.norm(x)
+        if squared is True:
+            warnings.warn(
+                "Using `compute_norm(squared=True)` is deprecated. "
+                "Use `compute_sqnorm()` instead to compute the squared spectral norm (||A^T A||_2). "
+                "In a future version, `compute_norm()` will compute the non-squared spectral norm (||A||_2) by default.",
+                DeprecationWarning,
+                stacklevel=1,
+            )
+        elif squared is not False:
+            raise ValueError(f"squared must be True or False, got {squared}")
+
+        # Compute squared norm using compute_sqnorm
+        sqnorm = self.compute_sqnorm(
+            x0, max_iter=max_iter, tol=tol, verbose=verbose, **kwargs
+        )
+
+        # Return squared or non-squared norm based on parameter
+        if squared:
+            return sqnorm
+        else:
+            return sqnorm.sqrt()
+
+    def compute_sqnorm(
+        self,
+        x0: torch.Tensor,
+        *,
+        max_iter: int = 100,
+        tol: float = 1e-3,
+        verbose: bool = True,
+        rng: torch.Generator | None = None,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Computes the squared spectral :math:`\ell_2` norm of the operator :math:`A`.
+
+        This is equivalent to computing the spectral norm of :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`.
+
+        Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
+
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :param dict kwargs: optional parameters for the forward operator
+
+        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
+        """
+        if rng is None:
+            rng = torch.Generator(x0.device)
+        x = torch.randn(x0.shape, device=x0.device, dtype=x0.dtype, generator=rng)
+        x /= torch.linalg.vector_norm(x)
         zold = torch.zeros_like(x)
         for it in range(max_iter):
-            y = self.A(x, **kwargs)
-            y = self.A_adjoint(y, **kwargs)
-            z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
+            y = self.A_adjoint_A(x, **kwargs)
+            z = torch.vdot(x.flatten(), y.flatten()) / torch.linalg.vector_norm(x) ** 2
 
-            rel_var = torch.norm(z - zold)
+            rel_var = torch.linalg.vector_norm(z - zold)
             if rel_var < tol:
                 if verbose:
                     print(
-                        f"Power iteration converged at iteration {it}, value={z.item():.2f}"
+                        f"Power iteration converged at iteration {it}, ||A^T A||_2={z.real.item():.2f}"
                     )
                 break
             zold = z
-            x = y / torch.norm(y)
+            x = y / torch.linalg.vector_norm(y)
         else:
             warnings.warn("Power iteration: convergence not reached")
 
@@ -569,7 +645,7 @@ class LinearPhysics(Physics):
         r"""
         Numerically check that :math:`A^{\top}` is indeed the adjoint of :math:`A`.
 
-        :param torch.Tensor u: initialisation point of the adjointness test method
+        :param torch.Tensor u: initialization point of the adjointness test method
 
         :return: (float) a quantity that should be theoretically 0. In practice, it should be of the order of the chosen dtype precision (i.e. single or double).
 
@@ -633,6 +709,11 @@ class LinearPhysics(Physics):
         :param torch.Tensor y: measurements tensor
         :param torch.Tensor z: signal tensor
         :param float gamma: hyperparameter of the proximal operator
+        :param str solver: solver to use for the proximal operator, see :func:`deepinv.optim.utils.least_squares` for details
+        :param int max_iter: maximum number of iterations for iterative solvers
+        :param float tol: tolerance for iterative solvers
+        :param bool verbose: whether to print information during the solver execution
+        :param int scale: scale at which to apply the physics operator
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
@@ -643,22 +724,37 @@ class LinearPhysics(Physics):
         if solver is not None:
             self.solver = solver
 
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            solver=solver,
-            gamma=gamma,
-            verbose=verbose,
-            init=z,
-            z=z,
-            parallel_dim=[0],
-            ATA=self.A_adjoint_A,
-            AAT=self.A_A_adjoint,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                init=z,
+                z=z,
+                parallel_dim=[0],
+                ATA=self.A_adjoint_A,
+                AAT=self.A_A_adjoint,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=z,
+                init=z,
+                solver=solver,
+                gamma=gamma,
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                parallel_dim=[0],
+                **kwargs,
+            )
 
     def A_dagger(
         self, y, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
@@ -679,20 +775,34 @@ class LinearPhysics(Physics):
             self.tol = tol
         if solver is not None:
             self.solver = solver
-
-        return least_squares(
-            self.A,
-            self.A_adjoint,
-            y,
-            parallel_dim=[0],
-            AAT=self.A_A_adjoint,
-            verbose=verbose,
-            ATA=self.A_adjoint_A,
-            max_iter=self.max_iter,
-            tol=self.tol,
-            solver=self.solver,
-            **kwargs,
-        )
+        if not self.implicit_backward_solver:
+            return least_squares(
+                self.A,
+                self.A_adjoint,
+                y,
+                parallel_dim=[0],
+                AAT=self.A_A_adjoint,
+                verbose=verbose,
+                ATA=self.A_adjoint_A,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
+        else:
+            return least_squares_implicit_backward(
+                self,
+                y,
+                z=None,
+                init=None,
+                parallel_dim=[0],
+                gamma=1e8,  # Large gamma to approximate A_dagger
+                verbose=verbose,
+                max_iter=self.max_iter,
+                tol=self.tol,
+                solver=self.solver,
+                **kwargs,
+            )
 
 
 class ComposedPhysics(Physics):
@@ -801,7 +911,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         return y
 
 
-def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
+def compose(*physics: Physics | LinearPhysics, **kwargs):
     r"""
     Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
 
@@ -1111,7 +1221,7 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model: Optional[NoiseModel] = None, **kwargs):
+    def __init__(self, noise_model: NoiseModel | None = None, **kwargs):
         if noise_model is None:
             noise_model = GaussianNoise(sigma=0.1)
         super().__init__(noise_model=noise_model, **kwargs)
@@ -1180,7 +1290,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return Adjoint.apply
 
 
-def stack(*physics: Union[Physics, LinearPhysics]):
+def stack(*physics: Physics | LinearPhysics):
     r"""
     Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 

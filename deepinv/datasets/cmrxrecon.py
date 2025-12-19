@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional, Union
+from __future__ import annotations
+from typing import Any, Callable
 from pathlib import Path
 import os
 
@@ -14,7 +15,7 @@ import torch
 import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
-from deepinv.datasets.utils import loadmat
+from deepinv.utils.io import load_mat
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
@@ -98,15 +99,15 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: Union[str, Path],
-        data_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/FullSample",
+        root: str | Path,
+        data_dir: str | Path = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
-        metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
+        metadata_cache_file: str | Path = "dataset_cache.pkl",
         apply_mask: bool = True,
-        mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
-        mask_generator: Optional[BaseMaskGenerator] = None,
-        transform: Optional[Callable] = None,
+        mask_dir: str | Path = "SingleCoil/Cine/TrainingSet/AccFactor04",
+        mask_generator: BaseMaskGenerator | None = None,
+        transform: Callable | None = None,
         pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
@@ -162,15 +163,13 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
             self.samples = samples
 
-    def _loadmat(self, fname: Union[str, Path, os.PathLike]) -> ndarray:
+    def _loadmat(self, fname: str | Path | os.PathLike) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""
         return next(
-            v for k, v in loadmat(fname, mat73=True).items() if not k.startswith("__")
+            v for k, v in load_mat(fname, mat73=True).items() if not k.startswith("__")
         )
 
-    def _retrieve_metadata(
-        self, fname: Union[str, Path, os.PathLike]
-    ) -> dict[str, Any]:
+    def _retrieve_metadata(self, fname: str | Path | os.PathLike) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.

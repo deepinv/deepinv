@@ -3,6 +3,7 @@ Learned iterative custom prior
 ==============================
 
 This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function.
+The custom prior in use is
 The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.
 
 """
@@ -15,8 +16,8 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
-from deepinv.unfolded import unfolded_builder
-from deepinv.utils.demo import get_data_home
+from deepinv.optim import PGD
+from deepinv.utils import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -68,14 +69,12 @@ test_base_dataset = datasets.MNIST(
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Generate the compressed sensing measurement operator with 10x under-sampling factor.
+# Generate the compressed sensing measurement operator.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
+    m=200, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LICP"
-n_images_max = (
-    1000 if torch.cuda.is_available() else 200
-)  # maximal number of images used for training
+n_images_max = 200
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_base_dataset,
@@ -139,41 +138,37 @@ def g(x, *args, **kwargs):
 prior = Prior(g=g)
 
 # %%
-# We use :func:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
+# We use :func:`deepinv.optim.PGD` with `unfold=True` to define the unfolded algorithm
 # and set both the stepsizes of the PGD algorithm :math:`\gamma` (``stepsize``) and the soft
-# thresholding parameters :math:`\lambda` as learnable parameters.
+# regularization parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
-# yielding a distinct ``stepsize`` and ``g_param`` value for each iteration of the algorithm.
-# For single ``stepsize`` and ``g_param`` shared across iterations, initialize with a single float value.
+# yielding a distinct ``stepsize`` and ``lambda`` value for each iteration of the algorithm.
+# For single ``stepsize`` and ``lambda`` shared across iterations, initialize with a single float value.
 
 # Unrolled optimization algorithm parameters
-max_iter = 5  # Number of unrolled iterations
-lamb = [
-    1.0
+max_iter = 10  # Number of unrolled iterations
+lambda_reg = [
+    1
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
-    1.0
+    5
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-}
 trainable_params = [
     "stepsize",
     "lambda",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 # Select the data fidelity term
 data_fidelity = L2()
 
 # Logging parameters
 verbose = True
-wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="PGD",
-    params_algo=params_algo.copy(),
+model = PGD(
+    unfold=True,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -189,18 +184,18 @@ model = unfolded_builder(
 
 
 # Training parameters
-epochs = 20 if torch.cuda.is_available() else 10
-learning_rate = 5e-3  # reduce this parameter when using more epochs
+epochs = 5
+learning_rate = 0.05  # reduce this parameter when using more epochs
 
 # Choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.0)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=torch.nn.L1Loss())]
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 8
-test_batch_size = 64 if torch.cuda.is_available() else 8
+train_batch_size = 32
+test_batch_size = 32
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -227,7 +222,6 @@ trainer = dinv.Trainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
 
@@ -237,9 +231,9 @@ model = trainer.train()
 # Test the network.
 # -----------------
 #
-# We now test the learned unrolled network on the test dataset. In the plotted results, the `Linear` column shows the
-# measurements back-projected in the image domain, the `Recons` column shows the output of our LISTA network,
-# and `GT` shows the ground truth.
+# We now test the learned unrolled network on the test dataset. In the plotted results, the first column shows the
+# measurements back-projected in the image domain, the second column shows the output of our network,
+# and the third shows the ground truth.
 #
 
 trainer.test(test_dataloader)
@@ -259,6 +253,7 @@ dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )
 
 
@@ -267,9 +262,10 @@ dinv.utils.plot(
 # ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
 #
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"stepsize": stepsize, "lambda": lambda_reg},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )

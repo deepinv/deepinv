@@ -11,7 +11,7 @@ import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
 
 
 # %% Load test images
@@ -20,7 +20,7 @@ from deepinv.utils.demo import load_example
 # First, let's load some test images.
 
 dtype = torch.float32
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 img_size = (173, 125)
 
 x_rgb = load_example(
@@ -218,7 +218,7 @@ plot(
 n_zernike = len(
     diffraction_generator.list_param
 )  # number of Zernike coefficients in the decomposition
-filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike))
+filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike, device=device))
 plot(
     [f for f in filters["filter"][:, None] ** 0.3],
     suptitle="Airy pattern",
@@ -263,38 +263,34 @@ for i in range(4):
 # --------------------
 #
 # Space varying blurs are also available using :class:`deepinv.physics.SpaceVaryingBlur`
+#
+# We plot the impulse responses at different spatial locations by convolving a Dirac comb with the operator.
 
 from deepinv.physics.generator import (
-    DiffractionBlurGenerator,
     ProductConvolutionBlurGenerator,
 )
 from deepinv.physics.blur import SpaceVaryingBlur
 
-psf_size = 32
-img_size = (256, 256)
-n_eigenpsf = 10
-spacing = (64, 64)
+img_size = (128, 128)
+n_eigenpsf = 3
+spacing = (32, 32)
 padding = "valid"
 batch_size = 1
 delta = 16
 
-# We first instantiate a psf generator
-psf_generator = DiffractionBlurGenerator(
-    (psf_size, psf_size), device=device, dtype=dtype
-)
 # Now, scattered random psfs are synthesized and interpolated spatially
 pc_generator = ProductConvolutionBlurGenerator(
-    psf_generator=psf_generator,
+    psf_generator=motion_generator,
     img_size=img_size,
     n_eigen_psf=n_eigenpsf,
     spacing=spacing,
     padding=padding,
+    device=device,
 )
 params_pc = pc_generator.step(batch_size)
 
-physics = SpaceVaryingBlur(**params_pc)
+physics = SpaceVaryingBlur(**params_pc, device=device)
 
-dirac_comb = torch.zeros(img_size)[None, None]
-dirac_comb[0, 0, ::delta, ::delta] = 1
+dirac_comb = dinv.utils.dirac_comb((1, 1) + img_size, step=delta, device=device)
 psf_grid = physics(dirac_comb)
-plot(psf_grid, titles="Space varying impulse responses")
+plot(psf_grid, titles="Space varying impulse responses", rescale_mode="clip")

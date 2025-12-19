@@ -1,5 +1,6 @@
+from __future__ import annotations
 import time as time
-from typing import Callable, Union
+from typing import Callable
 from torch import Tensor
 from warnings import warn
 
@@ -89,9 +90,9 @@ class ULA(BaseSampling):
         self,
         y: Tensor,
         physics: Physics,
-        seed: Union[None, int] = None,
-        x_init: Union[None, Tensor] = None,
-        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+        g_statistics: list[Callable] | Callable = lambda d: d["x"],
     ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -102,7 +103,7 @@ class ULA(BaseSampling):
         :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
             The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
             Default: ``lambda d: d["x"]`` (identity function)
-        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        :return: (tuple of torch.Tensor) containing the posterior mean and variance.
         """
         warn(
             "Deprecated ULA.forward returns tuple (mean, var). This will return only mean in a future version in line with BaseSampling.forward. Use deepinv.sampling.sampling_builder instead to build an ULA sampler",
@@ -191,9 +192,9 @@ class SKRock(BaseSampling):
         self,
         y: Tensor,
         physics: Physics,
-        seed: Union[None, int] = None,
-        x_init: Union[None, Tensor] = None,
-        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+        g_statistics: list[Callable] | Callable = lambda d: d["x"],
     ) -> tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -204,7 +205,7 @@ class SKRock(BaseSampling):
         :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
             The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
             Default: ``lambda d: d["x"]`` (identity function)
-        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        :return: (tuple of torch.Tensor) containing the posterior mean and variance.
         """
         warn(
             "Deprecated ULA.forward returns tuple (mean, var). This will return only mean in a future version in line with BaseSampling.forward. Use deepinv.sampling.sampling_builder instead to build an SKRock sampler",

@@ -77,7 +77,6 @@ least squares problem.
     >>> print('Estimated solution: ', x_k.flatten())
     Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])
 
-
 .. _potentials:
 
 Potentials
@@ -107,32 +106,6 @@ The following classes inherit from :class:`deepinv.optim.Potential`
      - :math:`g_{\sigma}(x)`
      - optional denoising level :math:`\sigma`
 
-.. _bregman:
-
-Bregman
-~~~~~~~
-Bregman potentials are defined as :math:`\phi(x)` where :math:`x\in\xset` is a variable and
-where :math:`\phi` is a convex scalar function, and are defined via the base class :class:`deepinv.optim.Bregman`.
-
-In addition to the methods inherited from :class:`deepinv.optim.Potential` (gradient
-:math:`\nabla \phi`, conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`),
-this class provides the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`,
-and is well suited for performing Mirror Descent.
-
-
-.. list-table:: Bregman potentials
-   :header-rows: 1
-
-   * - Class
-     - Bregman potential :math:`\phi(x)`
-   * - :class:`deepinv.optim.bregman.BregmanL2`
-     - :math:`\|x\|_2^2`
-   * - :class:`deepinv.optim.bregman.BurgEntropy`
-     - :math:`- \sum_i \log x_i`
-   * - :class:`deepinv.optim.bregman.NegEntropy`
-     - :math:`\sum_i x_i \log x_i`
-   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
-     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 .. _data-fidelity:
 
@@ -166,6 +139,8 @@ which are used by most optimization algorithms.
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
    * - :class:`deepinv.optim.ZeroFidelity`
      - :math:`\datafid{x}{y} = 0`. 
+   * - :class:`deepinv.optim.ItohFidelity`
+     - :math:`\datafid{x}{y} = \|Dx - w_t(Dy)\|_2^2` where :math:`D` is a finite difference operator and :math:`w_t` the modulo operator.
 
 
 .. _priors:
@@ -178,7 +153,6 @@ where :math:`\regname` is a function.
 The base class is :class:`deepinv.optim.Prior` implemented as a child class from :class:`deepinv.optim.Potential`
 and therefore it comes with methods for computing operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
 priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play methods).
-
 
 .. list-table:: Priors Overview
    :header-rows: 1
@@ -226,89 +200,123 @@ Predefined Algorithms
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all predefined optimization algorithms.
 
-The function :func:`deepinv.optim.optim_builder` returns an instance of :class:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
-or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
-at the beginning of this page, in one line of code:
+Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, such as
+:class:`deepinv.optim.GD`, :class:`deepinv.optim.PGD`, :class:`deepinv.optim.ADMM`, etc.
+
+For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
 
-    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
-    ...                             params_algo={"stepsize": stepsize, "lambda": lambd}, max_iter=max_iter)
+    >>> model = dinv.optim.PGD(prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
     >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
-
-Some predefined optimizers are provided:
+Some predefined optimizers are provided: 
 
 .. list-table::
    :header-rows: 1
 
    * - Algorithm
      - Iteration
-     - Parameters
 
-   * - :class:`Gradient Descent (GD) <deepinv.optim.optim_iterators.GDIteration>`
+   * - :class:`deepinv.optim.GD`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = x_k-\gamma v_{k}`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Proximal Gradient Descent (PGD) <deepinv.optim.optim_iterators.PGDIteration>`
+   * - :class:`deepinv.optim.PGD`
      - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
-
-   * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.optim_iterators.FISTAIteration>`
+   
+   * - :class:`deepinv.optim.FISTA`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
        | :math:`z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.optim_iterators.HQSIteration>`
+   * - :class:`deepinv.optim.HQS`
      - | :math:`u_{k} = \operatorname{prox}_{\gamma f}(x_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda \regname}(u_k)`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``
 
-   * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.optim_iterators.ADMMIteration>`
+   * - :class:`deepinv.optim.ADMM`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k)`
        | :math:`z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.optim_iterators.DRSIteration>`
+   * - :class:`deepinv.optim.DRS`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)`
        | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
-   * - :class:`Chambolle-Pock (CP) <deepinv.optim.optim_iterators.CPIteration>`
+   * - :class:`deepinv.optim.PDCP`
      - | :math:`u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)`
        | :math:`x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})`
        | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
-     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``, ``"stepsize_dual"``
 
-   * - :class:`Mirror Descent (MD) <deepinv.optim.optim_iterators.MDIteration>`
+   * - :class:`deepinv.optim.MD`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, convex potential ``h``
 
-   * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
-     - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
-     - (phase-retrieval only)
+   * - :class:`deepinv.optim.PMD`
+     - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
+       | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
+       | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
+
+
+.. _initialization:
+    
+Initialization
+~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, in these predefined algorithms, the iterates are initialized with the adjoint applied to the measurement :math:`A^{\top}y`, 
+when the adjoint is defined, and with the observation :math:`y` if the adjoint is not defined.
+
+Custom initialization can be defined in two ways:
+
+1. When calling the model via the ``init`` argument in the ``forward`` method of :class:`deepinv.optim.BaseOptim`.
+   In this case, ``init`` can be either a fixed initialization or a Callable function of the form ``init(y, physics)`` that takes as input
+   the measurement :math:`y` and the physics ``physics``. The output of the function or the fixed initialization can be either:
+
+   - a tuple of tensors :math:`(x_0, z_0)` (where :math:`x_0` and :math:`z_0` are the initial primal and dual variables),
+   - a single tensor :math:`x_0` (if no dual variables :math:`z_0` are used), or
+   - a dictionary of the form ``X = {'est': (x_0, z_0)}``.
+
+2. When creating the optim model via the :class:`custom_init <deepinv.optim.BaseOptim>` argument.
+   In this case, it must be set as a callable function ``custom_init(y, physics)`` that takes as input
+   the measurement :math:`y` and the physics :math:`A` and returns the initialization in the same form as in case 1.
+
+
+For example, for initializing the above PGD algorithm with the pseudo-inverse of the measurement operator :math:`A^{\dagger}y`, 
+one can either use the ``init`` argument when calling the standard ``PGD`` model:
+
+.. doctest::
+
+    >>> x_hat = model(y, physics, init=physics.A_dagger(y))
+    >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+
+or one can define a custom initialization function and pass it to the ``custom_init`` argument when creating the optimization model:
+
+.. doctest::
+
+    >>> def pseudo_inverse_init(y, physics):
+    ...     return physics.A_dagger(y)
+    >>> model = dinv.optim.PGD(custom_init=pseudo_inverse_init, prior=prior, data_fidelity=data_fidelity, stepsize=stepsize, lambda_reg=lambd, max_iter=max_iter)
+    >>> x_hat = model(y, physics)
+    >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+
 
 
 .. _optim-params:
 
-Parameters
-~~~~~~~~~~
+Optimization Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
-stepsize, regularization parameter, standard deviation of denoiser prior, etc.
-are stored in a dictionary ``"params_algo"``, whose typical entries are:
+stepsize, regularization parameter, standard deviation of denoiser prior can be passed as arguments to the constructor of the optimization algorithm.
+Alternatively, the parameters can be defined via the dictionary ``params_algo``. This dictionary contains keys that are strings corresponding to the name of the parameters. 
+
 
 .. list-table::
    :header-rows: 1
 
-   * - Key
+   * - Parameters name
      - Meaning
      - Recommended Values
    * - ``"stepsize"``
@@ -317,14 +325,14 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | needs to be small enough for convergence;
        | e.g. for PGD with ``g_first=False``,
        | should be smaller than :math:`1/(\|A\|_2^2)`.
-   * - ``"lambda"``
+   * - ``"lambda_reg"`` (or ``"lambda"`` if passed via the dictionary ``params_algo``)
      - | Regularization parameter :math:`\lambda`
        | multiplying the regularization term.
      - Should be positive.
-   * - ``"g_param"``
-     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
+   * - ``"g_param"`` or ``"sigma_denoiser"``
+     - | Optional prior hyper-parameter which :math:`\regname` depends on. 
        | For priors based on denoisers,
-       | corresponds to the noise level.
+       | corresponds to the noise level :math:`\sigma` .
      - Should be positive.
    * - ``"beta"``
      - | Relaxation parameter used in
@@ -335,38 +343,64 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
        | Primal Dual algorithm (only required by CP).
      - Should be positive.
 
-Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
-a single float (same value for each iteration).
+Each parameter can be given as an iterable (i.e., a list) with a distinct value for each iteration or
+a single float (same parameter value for each iteration).
 
-
-.. _optim-iterators:
-
-Iterators
-~~~~~~~~~
-An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
-by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
+Moreover, backtracking can be used to automaticaly adapt the stepsize at each iteration. Backtracking consists in choosing
+the largest stepsize :math:`\tau` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
+More precisely, Given :math:`\gamma \in (0,1/2)` and :math:`\eta \in (0,1)` and an initial stepsize :math:`\tau > 0`,
+the following update rule is applied at each iteration :math:`k`:
 
 .. math::
-    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...),
+    \text{ while } F(x_k) - F(x_{k+1}) < \frac{\gamma}{\tau} || x_{k-1} - x_k ||^2, \,\, \text{ do } \tau \leftarrow \eta \tau
 
-where :math:`x` is a variable converging to the solution of the minimization problem, and
-:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
+In order to use backtracking, the argument  ``backtracking`` of :class:`deepinv.optim.BaseOptim` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, 
+which defines the parameters for backtracking line-search. The :class:`deepinv.optim.BacktrackingConfig` dataclass has the following attributes and default values:
+
+.. code-block:: python
+
+    @dataclass
+    class BacktrackingConfig:
+        gamma: float = 0.1
+            # Armijo-like parameter controlling sufficient decrease
+        eta: float = 0.9
+            # Step reduction factor
+        max_iter: int = 10
+            # Maximum number of backtracking iterations
+
+By default, backtracking is disabled (i.e., ``backtracking=None``), and as soon as ``backtraking`` is not ``None``, the above ``BacktrackingConfig`` is used by default.
+
+.. note::
+  To use backtracking, the optimized function (i.e., both the the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
+  If the prior is not explicit (e.g. a denoiser) i.e. the argument ``explicit_prior``, of the prior :class:`deepinv.optim.Prior` is ``False`` or if the argument ``has_cost`` of the class :class:`deepinv.optim.BaseOptim` is ``False``, backtracking is automatically disabled.
 
 
-The implementation of the fixed point algorithm in ``deepinv.optim``,
-following standard optimization theory, is split in two steps:
+.. _bregman:
 
-.. math::
-    z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
+Bregman
+~~~~~~~
+Bregman potentials are defined as :math:`\phi(x)` where :math:`x\in\xset` is a variable and
+where :math:`\phi` is a convex scalar function, and are defined via the base class :class:`deepinv.optim.Bregman`.
 
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_{\regname}` are gradient and/or proximal steps
-on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
-relaxation parameters, etc...
+In addition to the methods inherited from :class:`deepinv.optim.Potential` (gradient
+:math:`\nabla \phi`, conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`),
+this class provides the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`,
+and is well suited for performing Mirror Descent.
 
-The :class:`deepinv.optim.optim_iterators.fStep` and :class:`deepinv.optim.optim_iterators.gStep` classes
-precisely implement these steps.
+
+.. list-table:: Bregman potentials
+   :header-rows: 1
+
+   * - Class
+     - Bregman potential :math:`\phi(x)`
+   * - :class:`deepinv.optim.bregman.BregmanL2`
+     - :math:`\|x\|_2^2`
+   * - :class:`deepinv.optim.bregman.BurgEntropy`
+     - :math:`- \sum_i \log x_i`
+   * - :class:`deepinv.optim.bregman.NegEntropy`
+     - :math:`\sum_i x_i \log x_i`
+   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
+     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 
 .. _optim-utils:

@@ -1,7 +1,8 @@
+from __future__ import annotations
 import torch
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Optional
+from typing import Callable
 import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
@@ -11,9 +12,28 @@ from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 from copy import deepcopy
 
 
+class _WrapperDenoiserMinusOneOne(nn.Module):
+    """
+    A wrapper for denoisers trained on [0, 1] images to be used with [-1, 1] images.
+    This is important for diffusion sampling
+    """
+
+    def __init__(self, denoiser: nn.Module):
+        super().__init__()
+        self.denoiser = denoiser
+
+    def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
+        # Scale from [-1, 1] to [0, 1]
+        x = (x + 1) / 2
+        denoised_01 = self.denoiser(x, sigma / 2, *args, **kwargs)
+        # Scale back to [-1, 1]
+        denoised = denoised_01 * 2 - 1
+        return denoised
+
+
 class BaseSDE(nn.Module):
     r"""
-    Base class for Stochastic Differential Equation (SDE):min_num_steps
+    Base class for Stochastic Differential Equation (SDE):
 
     .. math::
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}
@@ -77,7 +97,7 @@ class BaseSDE(nn.Module):
             return solution.sample
 
     def discretize(
-        self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
+        self, x: Tensor, t: Tensor | float, *args, **kwargs
     ) -> tuple[Tensor, Tensor]:
         r"""
         Discretize the SDE at the given time step.
@@ -92,7 +112,7 @@ class BaseSDE(nn.Module):
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
-        self, shape: Union[list, tuple, torch.Size], rng: torch.Generator = None
+        self, shape: list | tuple | torch.Size, rng: torch.Generator = None
     ) -> Tensor:
         r"""
         Sample from the end-time distribution of the forward diffusion.
@@ -121,10 +141,17 @@ class DiffusionSDE(BaseSDE):
     :param Callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising and mapped back afterward.
+        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
+        set `False` only if the denoiser natively expects [-1, 1].
+        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
+        Default: `True`.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
+    :param \*args: additional arguments for the :class:`deepinv.sampling.BaseSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.BaseSDE`.
     """
 
     def __init__(
@@ -134,6 +161,7 @@ class DiffusionSDE(BaseSDE):
         alpha: float = 1.0,
         denoiser: nn.Module = None,
         solver: BaseSDESolver = None,
+        minus_one_one: bool = True,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -160,9 +188,14 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = deepcopy(denoiser)
+        self.denoiser = (
+            deepcopy(denoiser)
+            if not minus_one_one
+            else _WrapperDenoiserMinusOneOne(deepcopy(denoiser))
+        )
+        self.minus_one_one = minus_one_one
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
 
@@ -176,13 +209,13 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def _handle_time_step(self, t: Union[Tensor, float]) -> Tensor:
+    def _handle_time_step(self, t: Tensor | float) -> Tensor:
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
         return t
 
     def sigma_t(
         self,
-        t: Union[Tensor, float],
+        t: Tensor | float,
     ) -> Tensor:
         r"""
         The :math:`\sigma(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
@@ -194,7 +227,7 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         r"""
         The scale :math:`s(t)` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(s(t)x_0, s(t)^2 \sigma_t^2 \mathrm{Id})`.
 
@@ -235,7 +268,8 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
-
+    :param \*args: additional arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.DiffusionSDE`.
 
     """
 
@@ -303,14 +337,14 @@ class VarianceExplodingDiffusion(DiffusionSDE):
             * self.sigma_max
         )
 
-    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
+    def sigma_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         return torch.ones_like(self._handle_time_step(t))
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         std = self.sigma_t(t)
         denoised = self.denoiser(
             x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
@@ -348,7 +382,8 @@ class VariancePreservingDiffusion(DiffusionSDE):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
-
+    :param \*args: additional arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.DiffusionSDE`.
 
     """
 
@@ -412,19 +447,19 @@ class VariancePreservingDiffusion(DiffusionSDE):
         """
         return torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
 
-    def _beta_t(self, t: Union[Tensor, float]) -> Tensor:
+    def _beta_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return self.beta_min + t * self.beta_d
 
-    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
+    def sigma_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return torch.sqrt(torch.exp(0.5 * t**2 * self.beta_d + t * self.beta_min) - 1.0)
 
-    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Tensor | float) -> Tensor:
         t = self._handle_time_step(t)
         return 1 / torch.sqrt(torch.exp(0.5 * t**2 * self.beta_d + t * self.beta_min))
 
-    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+    def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> Tensor:
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
 
@@ -467,18 +502,25 @@ class PosteriorDiffusion(Reconstructor):
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
-    :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
+    :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to `False`.
+    :param bool minus_one_one: If `True`, wrap the denoiser so that SDE states `x` in [-1, 1] are converted to [0, 1] before denoising  and mapped back afterward.
+        Set `True` for denoisers trained on [0, 1] (all denoisers in :class:`deepinv.models.Denoiser`);
+        set `False` only if the denoiser natively expects [-1, 1].
+        This affects only the denoiser interface and usually improves quality when matched to the denoiser's training range.
+        Default: `True`.
+
     """
 
     def __init__(
         self,
-        data_fidelity: Optional[NoisyDataFidelity] = None,
+        data_fidelity: NoisyDataFidelity | None = None,
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         verbose: bool = False,
+        minus_one_one: bool = True,
         *args,
         **kwargs,
     ):
@@ -487,13 +529,18 @@ class PosteriorDiffusion(Reconstructor):
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
+        self.minus_one_one = minus_one_one
         assert (
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
-        if denoiser is not None:
-            self.sde.denoiser = deepcopy(denoiser)
+        if denoiser is None:
+            denoiser = deepcopy(sde.denoiser)
+        if minus_one_one:
+            denoiser = _WrapperDenoiserMinusOneOne(denoiser)
+
+        self.sde.denoiser = denoiser
         if hasattr(self.data_fidelity, "denoiser"):
-            self.data_fidelity.denoiser = deepcopy(denoiser)
+            self.data_fidelity.denoiser = denoiser
 
         assert (
             solver is not None or sde.solver is not None
@@ -529,7 +576,7 @@ class PosteriorDiffusion(Reconstructor):
         self,
         y: Tensor,
         physics: Physics,
-        x_init: Optional[Tensor] = None,
+        x_init: Tensor | None = None,
         seed: int = None,
         timesteps: Tensor = None,
         get_trajectory: bool = False,
@@ -562,11 +609,11 @@ class PosteriorDiffusion(Reconstructor):
                 x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
-
+        if self.minus_one_one and y is not None:
+            y = (y - 0.5) * 2  # Scale y to [-1, 1]
         solution = self.solver.sample(
             self.posterior,
             x_init,
-            seed,
             y=y,
             physics=physics,
             timesteps=timesteps,
@@ -575,17 +622,23 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+
+        # Scale the output back to [0, 1]
+        sample = solution.sample
+        if self.minus_one_one:
+            sample = (sample.clamp_(-1, 1) + 1) / 2
+
         if get_trajectory:
-            return solution.sample, solution.trajectory
+            return sample, solution.trajectory
         else:
-            return solution.sample
+            return sample
 
     def score(
         self,
         y: Tensor,
         physics: Physics,
         x: Tensor,
-        t: Union[Tensor, float],
+        t: Tensor | float,
         *args,
         **kwargs,
     ) -> Tensor:

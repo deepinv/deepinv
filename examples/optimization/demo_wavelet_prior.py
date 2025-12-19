@@ -8,14 +8,15 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
 from torchvision import transforms
 
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_dataset
+from deepinv.optim import DRS
+from deepinv.utils import load_dataset
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -96,7 +97,7 @@ cost_wv = prior(y)
 print(f"Cost wavelet: g(y) = {cost_wv.item():.2f}")
 
 # Apply the proximal operator of the wavelet prior
-x_wv = prior.prox(y, gamma=0.1)
+x_wv = prior.prox(y, ths=0.1)
 cost_wv_prox = prior(x_wv)
 
 # %%
@@ -107,13 +108,16 @@ cost_wv_prox = prior(x_wv)
 #
 
 # Plot the input and the output of the wavelet proximal operator
-imgs = [y, x_wv]
 plot(
-    imgs,
-    titles=[
-        f"Input \nWavelet cost: {cost_wv.item():.2f}",
-        f"Output \nWavelet cost: {cost_wv_prox.item():.2f}",
+    {
+        "Input": y,
+        "Output": x_wv,
+    },
+    subtitles=[
+        f"Wavelet cost:\n{int(cost_wv.item())}",
+        f"Wavelet cost:\n{int(cost_wv_prox.item())}",
     ],
+    tight=False,
 )
 
 
@@ -147,23 +151,20 @@ plot_convergence_metrics = (
 )
 
 # Algorithm parameters
-lamb = 0.1  # wavelet regularisation parameter
+lambda_reg = 0.1  # wavelet regularisation parameter
 stepsize = 1.0  # stepsize for the PGD algorithm
-params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
-backtracking = False
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="DRS",
+model = DRS(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
-    backtracking=backtracking,
 )
 
 # %%
@@ -185,16 +186,24 @@ x_model, metrics = model(
 x_model = x_model.clamp(0, 1)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
-
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
 plot(
-    imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    {
+        "GT": x,
+        "Input": y,
+        "Linear": x_lin,
+        "Recons.": x_model,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(x, y).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_lin).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_model).item():.2f} dB",
+    ],
 )
 
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%

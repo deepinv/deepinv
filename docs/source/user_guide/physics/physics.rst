@@ -31,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
@@ -165,6 +166,9 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
    * - :class:`deepinv.physics.PoissonGaussianNoise`
      - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
 
+   * - :class:`deepinv.physics.LaplaceNoise`
+     - :math:`y\sim\text{Laplace}(z, b)`
+
    * - :class:`deepinv.physics.LogPoissonNoise`
      - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
@@ -174,5 +178,11 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
    * - :class:`deepinv.physics.SaltPepperNoise`
      - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
 
-   * - :class:`deepinv.physics.ZeroNoise`
-     - :math:`y = z`
+   * - :class:`deepinv.physics.GammaNoise`
+     - :math:`y = \mathcal{G}(\ell, x/\ell)`
+     
+   * - :class:`deepinv.physics.FisherTippettNoise`
+     - :math:`p(y\vert x) = \frac{\ell^{\ell}}{\Gamma(\ell)}\mathrm{e}^{\ell(y-x)}\mathrm{e}^{-\ell\mathrm{e}^{(y-x)}}`
+
+   * - :class:`deepinv.physics.RicianNoise`
+     - :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`, :math:`\epsilon_1\sim\mathcal{N}(0,I)`, :math:`\epsilon_2\sim\mathcal{N}(0,I)`

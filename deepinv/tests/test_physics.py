@@ -1,12 +1,14 @@
+from __future__ import annotations
 import os
 import shutil
 import copy
 from math import sqrt
-from typing import Optional
 import pytest
 import warnings
+import random
 
 import torch
+
 import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
@@ -76,9 +78,16 @@ OPERATORS = [
     "structured_random",
     "cassi",
     "ptychography_linear",
+    "2DParallelBeamCT",
+    "2DFanBeamCT",
 ]
 
-NONLINEAR_OPERATORS = ["haze", "lidar"]
+NONLINEAR_OPERATORS = [
+    "haze",
+    "lidar",
+    "spatial_unwrapping_round",
+    "spatial_unwrapping_floor",
+]
 
 PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
@@ -95,6 +104,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "FisherTippett",
     "SaltPepper",
 ]
 
@@ -218,12 +228,22 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
-    elif name == "Tomography":
+    elif name == "2DParallelBeamCT":
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
-            img_width=img_size[-1], angles=img_size[-1], device=device
+            img_width=img_size[-1], angles=img_size[-1], fan_beam=False, device=device
         )
-        params = ["theta"]
+
+        params = []
+    elif name == "2DFanBeamCT":
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        p = dinv.physics.Tomography(
+            img_width=img_size[-1],
+            angles=img_size[-1],
+            fan_beam=True,
+            device=device,
+        )
+        params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
@@ -516,6 +536,12 @@ def find_nonlinear_operator(name, device):
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
+    elif name == "spatial_unwrapping_round":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="round", device=device)
+    elif name == "spatial_unwrapping_floor":
+        x = torch.randn(1, 3, 16, 16, device=device)
+        p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
@@ -723,11 +749,11 @@ def test_operator_multiscale_wrapper(name, device, rng):
 
     _, img_size_orig, _, _ = find_operator(
         name,
-        device,
+        device=device,
     )  # get img_size for the operator
     physics, img_size_orig, _, dtype = find_operator(
         name,
-        device,
+        device=device,
         imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
     )  # get physics for the operator with base img size
 
@@ -736,10 +762,14 @@ def test_operator_multiscale_wrapper(name, device, rng):
         base_shape[-2] // (scale**2),
         base_shape[-1] // (scale**2),
     )
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
 
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
-        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
+        physics,
+        (*image_shape[:-2], *base_shape),
+        factors=[2, 4, 8],
+        dtype=dtype,
+        device=device,
     )  # define a multiscale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
@@ -758,7 +788,7 @@ def test_operator_cropper(name, device, rng):
         device,
     )  # get physics for the operator with base img size
 
-    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype, device=device)  # add batch dim
     padding_shape = (2, 5)
     x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
 
@@ -797,10 +827,10 @@ def test_operators_norm(name, verbose, device, rng):
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        physics.compute_norm(x, max_iter=1, tol=1e-9, verbose=verbose)
+        physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
         assert len(w) == 1
 
-    norm = physics.compute_norm(x, max_iter=1000, tol=1e-6, verbose=verbose)
+    norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
@@ -837,7 +867,8 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device, rng):
+@pytest.mark.parametrize("implicit_backward_solver", [True, False])
+def test_pseudo_inverse(name, device, rng, implicit_backward_solver):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -848,6 +879,7 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
+    physics.implicit_backward_solver = implicit_backward_solver
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
@@ -1073,10 +1105,14 @@ def test_phase_retrieval(name, device):
     physics, imsize = find_phase_retrieval_operator(name, device)
     x = torch.randn(imsize, dtype=torch.cfloat, device=device).unsqueeze(0)
 
+    y = physics(x)
     # nonnegativity
-    assert (physics(x) >= 0).all()
+    assert (y >= 0).all()
     # same outputes for x and -x
-    assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(y, physics(-x))
+
+    x_hat = physics.A_dagger(physics(x))
+    assert x_hat.shape == x.shape
 
 
 def test_phase_retrieval_Avjp(device):
@@ -1166,6 +1202,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.GammaNoise(l)
     elif noise_type == "SaltPepper":
         noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
+    elif noise_type == "FisherTippett":
+        noise_model = dinv.physics.FisherTippettNoise(l)
     else:
         raise Exception("Noise model not found")
 
@@ -1215,8 +1253,7 @@ def test_noise_domain(device):
 
 def test_blur(device):
     r"""
-    Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
-    n=0 where Ax=0.
+    Test that :class:`deepinv.physics.Blur` with `padding="circular"` and :class:`deepinv.physics.BlurFFT` compute the same circular blur.
     """
     torch.manual_seed(0)
     x = torch.randn((3, 128, 128), device=device).unsqueeze(0)
@@ -1282,12 +1319,13 @@ def test_reset_noise(device):
     assert physics.noise_model.sigma == 0.2
 
 
-@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("normalize", [True, False, None])
 @pytest.mark.parametrize("parallel_computation", [True, False])
 @pytest.mark.parametrize("fan_beam", [True, False])
 @pytest.mark.parametrize("circle", [True, False])
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+@pytest.mark.parametrize("fbp_pseudo_inverse", [True, False])
 def test_tomography(
     normalize,
     parallel_computation,
@@ -1295,6 +1333,7 @@ def test_tomography(
     circle,
     adjoint_via_backprop,
     fbp_interpolate_boundary,
+    fbp_pseudo_inverse,
     device,
 ):
     r"""
@@ -1315,14 +1354,31 @@ def test_tomography(
         parallel_computation=parallel_computation,
     )
 
-    x = torch.randn(imsize, device=device).unsqueeze(0)
+    x = torch.randn(
+        imsize, device=device, generator=torch.Generator(device).manual_seed(0)
+    ).unsqueeze(0)
+
     if adjoint_via_backprop:
         assert physics.adjointness_test(x).abs() < 1e-3
-    r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
+
+    if normalize:
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+
+    if normalize is None:
+        # when normalize is not set by the user, it should default to True
+        assert physics.normalize is True
+        assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
+
+    r_tol = 0.05 if not fbp_pseudo_inverse else 0.65
+    r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
-    assert error < epsilon
+
+    error = torch.linalg.vector_norm(
+        physics.A_dagger(y, fbp=fbp_pseudo_inverse) - r
+    ) / torch.linalg.vector_norm(r)
+    assert (
+        error < r_tol
+    ), f"error: {error} > {r_tol}, fanbeam={fan_beam}, circle={circle}, fbp_interpolate_boundary={fbp_interpolate_boundary}, normalize={normalize}, adjoint_via_backprop={adjoint_via_backprop}, parallel_computation={parallel_computation}, fbp_pseudo_inverse={fbp_pseudo_inverse}"
 
 
 @pytest.mark.parametrize(
@@ -1457,7 +1513,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1471,7 +1527,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: list[int] | None = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1750,7 +1806,10 @@ def test_physics_state_dict(name, device):
                 continue  # skip attributes that raise exceptions on access
 
             full_name = f"{prefix}.{name}" if prefix else name
-            if isinstance(attr, torch.Tensor):
+            if (
+                isinstance(attr, torch.Tensor)
+                and name not in module._non_persistent_buffers_set
+            ):
                 tensor_attrs[full_name] = attr
             elif isinstance(attr, torch.nn.Module):
                 # Recurse into submodules
@@ -2228,3 +2287,21 @@ def test_downsampling_default_filter_depreciation():
         match="deprecated",
     ):
         _ = dinv.physics.Downsampling()
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_squared_or_non_squared_norms(seed, device):
+    random.seed(seed)
+    name = random.choice(OPERATORS)
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    rng = torch.Generator(device).manual_seed(seed)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    sqnorm1 = physics.compute_sqnorm(x, max_iter=1, tol=1e-9)
+    norm = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=False)
+
+    with pytest.warns(DeprecationWarning, match="compute_sqnorm"):
+        sqnorm2 = physics.compute_norm(x, max_iter=1, tol=1e-9, squared=True)
+
+    assert torch.allclose(sqnorm1, sqnorm2, rtol=1e-5), "squared norms do not match"
+    assert torch.allclose(sqnorm1, norm**2, rtol=1e-5), "norms do not match"

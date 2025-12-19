@@ -5,20 +5,25 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
-from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from sphinx.util import logging
 import doctest
 from importlib.metadata import metadata as importlib_metadata
+from docutils import nodes
+from docutils.parsers.rst import Directive
+from sphinx.util import logging
+from sphinx.addnodes import pending_xref
+from sphinx_gallery import gen_rst
+from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
+from sphinx_gallery.directives import ImageSg
+from deepinv.utils.plotting import set_default_plot_fontsize
+import torch
 
 logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-from deepinv.utils.plotting import set_default_plot_fontsize
 
 set_default_plot_fontsize(12)
 
@@ -38,6 +43,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.extlinks",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
@@ -48,6 +54,10 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
 ]
+
+extlinks = {
+    "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
+}
 
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
@@ -77,16 +87,15 @@ autodoc_inherit_docstrings = False
 bibtex_footbibliography_backrefs = True
 # for sitemap
 html_baseurl = "https://deepinv.github.io/deepinv/"
+html_extra_path = ["robots.txt"]
+# Include reStructuredText sources
+html_copy_source = True
 # the default scheme makes for wrong urls so we specify it properly here
 # For more details, see:
 # https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
 sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
-from docutils import nodes
-from docutils.parsers.rst import Directive
-from sphinx.addnodes import pending_xref
-
 default_role = "code"  # default role for single backticks
 
 
@@ -149,10 +158,20 @@ def process_docstring(app, what, name, obj, options, lines):
             lines.append("")
 
 
+# Prevent indexing of viewcode pages by adding a meta noindex tag
+# See also: https://developers.google.com/search/docs/crawling-indexing/block-indexing
+def _noindex_viewcode(app, pagename, templatename, context, doctree):
+    if pagename.startswith("_modules/"):
+        context["metatags"] = (
+            context.get("metatags", "") + '\n<meta name="robots" content="noindex">\n'
+        )
+
+
 def setup(app):
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
+    app.connect("html-page-context", _noindex_viewcode)
 
 
 # ---------- doctest configuration -----------------------------------------
@@ -217,9 +236,15 @@ add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Only add extra exclusions during doctest runs
+if os.environ.get("SPHINX_DOCTEST") == "1":
+    exclude_patterns.extend(
+        ["user_guide/training/multigpu.rst", "user_guide/training/datasets.rst"]
+    )
+
 add_module_names = True  # include the module path in the function name
 
-from sphinx_gallery import gen_rst
 
 gen_rst.EXAMPLE_HEADER = """
 .. DO NOT EDIT.
@@ -283,12 +308,21 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files that require a GPU to run
+gpu_dependent_files = [".*demo_astra_tomography.py"]
+# Create the ignore pattern based on GPU availability
+ignore_pattern = (
+    rf"__init__\.py|".join(gpu_dependent_files)
+    if not torch.cuda.is_available()
+    else r"__init__\.py"
+)
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
     "run_stale_examples": False,
-    "ignore_pattern": r"__init__\.py",
+    "ignore_pattern": ignore_pattern,
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None
@@ -366,6 +400,7 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
+    "changelog": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
@@ -385,6 +420,11 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "announcement": (
+        "🎉 We are part of the "
+        "<a href='https://landscape.pytorch.org/?item=modeling--computer-vision--deepinverse' target='_blank'> official PyTorch ecosystem!</a><br>"
+        "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates."
+    ),
     "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
@@ -403,6 +443,7 @@ napoleon_custom_sections = [
 ]
 
 nitpick_ignore = [
-    # This one generates a warning for some reason.
+    # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
+    ("py:class", "nib.arrayproxy.ArrayProxy"),
 ]

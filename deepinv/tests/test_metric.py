@@ -2,7 +2,8 @@ import pytest
 import torch
 import deepinv as dinv
 import deepinv.loss.metric as metric
-from deepinv.utils.demo import load_example
+from deepinv.utils import load_example
+import math
 
 METRICS = [
     "MAE",
@@ -11,6 +12,7 @@ METRICS = [
     "MSE2",
     "NMSE",
     "PSNR",
+    "SNR",
     "SSIM",
     "LpNorm",
     "L1L2",
@@ -21,7 +23,7 @@ METRICS = [
     "SAM",
     "HaarPSI",
 ]
-FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
+FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr", "signal_noise_ratio"]
 
 
 def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
@@ -46,6 +48,8 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.MAE(**kwargs)
     elif metric_name == "PSNR":
         return metric.PSNR(**kwargs)
+    elif metric_name == "SNR":
+        return metric.SNR(**kwargs)
     elif metric_name == "SSIM":
         return metric.SSIM(**kwargs)
     elif metric_name == "LpNorm":
@@ -83,17 +87,31 @@ def test_image(device):
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
 @pytest.mark.parametrize("channels", [1, 2, 3])
+@pytest.mark.parametrize("max_pixel", [1, None])
+@pytest.mark.parametrize("min_pixel", [0, None])
 def test_metrics(
-    metric_name, train_loss, norm_inputs, rng, device, channels, test_image
+    metric_name,
+    train_loss,
+    norm_inputs,
+    rng,
+    device,
+    channels,
+    test_image,
+    max_pixel,
+    min_pixel,
 ):
-    m = choose_metric(
-        metric_name,
-        device,
-        complex_abs=channels == 2,
-        train_loss=train_loss,
-        norm_inputs=norm_inputs,
-        reduction="mean",
-    )
+    metric_kwargs = {
+        "complex_abs": channels == 2,
+        "train_loss": train_loss,
+        "norm_inputs": norm_inputs,
+        "reduction": "mean",
+    }
+    if metric_name in ("SSIM", "PSNR"):
+        metric_kwargs |= {"max_pixel": max_pixel, "min_pixel": min_pixel}
+    elif max_pixel is None or min_pixel is None:
+        pytest.skip("max_pixel or min_pixel set to None requires SSIM or PSNR.")
+
+    m = choose_metric(metric_name, device, **metric_kwargs)
 
     x = test_image.clone()
 
@@ -172,6 +190,24 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         torch_psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
         assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
+    elif functional_name == "signal_noise_ratio":
+        pytest.importorskip(
+            "torchmetrics",
+            reason="This test requires torchmetrics. It should be "
+            "installed with `pip install torchmetrics`",
+        )
+        from torchmetrics.functional.audio import (
+            signal_noise_ratio as signal_noise_ratio_ref,
+        )
+
+        # torchmetrics SNR only supports 1D inputs so we flatten the inputs
+        x_net, x = x_net.flatten(1, -1), x.flatten(1, -1)
+
+        assert torch.allclose(
+            metric.signal_noise_ratio(x_net, x),
+            signal_noise_ratio_ref(x_net, x, zero_mean=False),
+        )
+
 
 def test_metric_kwargs():
     # Test reduce
@@ -212,3 +248,111 @@ def test_metric_kwargs():
 
     # Test train loss does nothing as MSE already lower_better=True
     assert torch.all(metric.MSE(train_loss=True)(x_hat, x) == torch.tensor([1.0]))
+
+
+def test_center_crop():
+    # Test center crop with positive int value
+    x = torch.ones(2, 3, 32, 32)
+    x_hat = torch.zeros(2, 3, 32, 32)
+
+    # Test with int crop size (crops all spatial dimensions equally)
+    m = metric.MSE(center_crop=16)
+    result = m(x_hat, x)
+    # After cropping to 16x16, each sample should have MSE of 1.0
+    assert torch.all(result == torch.tensor([1.0, 1.0]))
+
+    # Test with tuple crop size (crops last len(tuple) dimensions)
+    m = metric.MSE(center_crop=(8, 8))
+    result = m(x_hat, x)
+    # After cropping to 8x8, each sample should have MSE of 1.0
+    assert torch.all(result == torch.tensor([1.0, 1.0]))
+
+    # Test with negative crop value (removes pixels from borders)
+    x = torch.ones(2, 3, 32, 32)
+    x_hat = x.clone()
+    # Set borders to 0
+    x_hat[:, :, :4, :] = 0  # top
+    x_hat[:, :, -4:, :] = 0  # bottom
+    x_hat[:, :, :, :4] = 0  # left
+    x_hat[:, :, :, -4:] = 0  # right
+
+    m = metric.MSE(center_crop=-4)  # Remove 4 pixels from each border
+    result = m(x_hat, x)
+    # After removing borders, we should have identical images
+    assert torch.all(result == torch.tensor([0.0, 0.0]))
+
+    # Test with zero crop value (removes 0 pixels from borders, i.e., no crop)
+    m = metric.MSE(center_crop=0)
+    result = m(x_hat, x)
+    # With zero crop, borders are included and MSE should be > 0
+    assert torch.all(result > 0)
+
+    # Test that crop works with different metrics
+    x = torch.ones(1, 1, 64, 64)
+    x_hat = torch.zeros(1, 1, 64, 64)
+
+    m_psnr = metric.PSNR(center_crop=32)
+    result_psnr = m_psnr(x_hat, x)
+    assert result_psnr.shape == torch.Size([1])
+
+    m_mae = metric.MAE(center_crop=32)
+    result_mae = m_mae(x_hat, x)
+    assert torch.all(result_mae == torch.tensor([1.0]))
+
+    # Test that None means no cropping
+    m_none = metric.MSE(center_crop=None)
+    x = torch.ones(1, 1, 32, 32)
+    x_hat = torch.zeros(1, 1, 32, 32)
+    result_none = m_none(x_hat, x)
+    assert torch.all(result_none == torch.tensor([1.0]))
+
+    # Test error handling: crop size larger than dimension
+    m = metric.MSE(center_crop=64)
+    x = torch.ones(1, 1, 32, 32)
+    try:
+        m(x, x)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "larger than dimension size" in str(e)
+
+    # Test error handling: too many border pixels to remove
+    m = metric.MSE(center_crop=-20)
+    x = torch.ones(1, 1, 32, 32)
+    try:
+        m(x, x)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "remove entire dimension" in str(e)
+
+    # Test if tuple has mixed signs
+    try:
+        m = metric.MSE(center_crop=(-8, 8))
+        m(x, x)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert (
+            "If center_crop is a tuple, all values must be either positive or negative."
+            in str(e)
+        )
+
+
+@pytest.mark.parametrize("power_signal", [0.0, 1.0, 10.0])
+@pytest.mark.parametrize("power_noise", [0.0, 1.0, 10.0])
+def test_snr(power_signal, power_noise):
+    x = torch.full((1, 1, 16, 16), math.sqrt(power_signal))
+    y = x + torch.full((1, 1, 16, 16), math.sqrt(power_noise))
+
+    snr = metric.signal_noise_ratio(y, x)
+
+    if power_noise == 0.0 and power_signal == 0.0:
+        assert torch.isnan(snr), f"Expected NaN SNR, got {snr.item()}"
+    elif power_noise == 0.0:
+        assert torch.isposinf(snr), f"Expected infinite SNR, got {snr.item()}"
+    elif power_signal == 0.0:
+        assert torch.isneginf(snr), f"Expected -infinite SNR, got {snr.item()}"
+    else:
+        target_snr = 10 * math.log10(power_signal / power_noise)
+        assert torch.isclose(
+            snr,
+            torch.tensor(target_snr),
+        ), f"Expected SNR {target_snr}, got {snr.item()}"

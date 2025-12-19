@@ -131,7 +131,7 @@ mask = torch.stack([mask] * H, -2)
 # Now define physics using this time-varying mask of shape [B,C,T,H,W]:
 #
 
-physics = dinv.physics.SequentialMRI(mask=mask)
+physics = dinv.physics.SequentialMRI(mask=mask, device=device)
 
 
 # %%
@@ -140,7 +140,7 @@ physics = dinv.physics.SequentialMRI(mask=mask)
 # frame-by-frame no-learning zero-filled reconstruction.
 #
 
-x = next(iter(train_dataloader))
+x = next(iter(train_dataloader)).to(device)
 y = physics(x)
 dinv.utils.plot_videos(
     [physics.repeat(x, mask), y, mask, physics.A_adjoint(y, keep_time_dim=True)],
@@ -173,7 +173,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 # See :class:`deepinv.models.MoDL` for details.
 #
 
-model = MoDL()
+model = MoDL().to(device)
 
 
 # %%
@@ -201,6 +201,13 @@ model = loss.adapt_model(model)
 # train from scratch, simply comment out the model loading code and
 # increase the number of epochs.
 #
+# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
+# such as PSNR or SSIM, which require clean ground truth images.
+#
+# .. tip::
+#
+#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
+#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
@@ -222,12 +229,15 @@ trainer = dinv.Trainer(
     losses=loss,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+    compute_eval_losses=True,  # use self-supervised loss for evaluation
+    early_stop_on_losses=True,  # stop using self-supervised eval loss
+    metrics=None,
+    eval_dataloader=test_dataloader,
+    early_stop=2,  # early stop using the self-supervised loss on the test set
     online_measurements=True,
     device=device,
     save_path=None,
     verbose=True,
-    wandb_vis=False,
     show_progress_bar=False,
 )
 
@@ -238,9 +248,12 @@ model = trainer.train()
 # Test the model
 # ==============
 #
+# We now assume that we have access to a small test set of ground-truth images to evaluate the performance of the trained network.
+# and we compute the PSNR between the denoised images and the clean ground truth images.
+#
 
 trainer.plot_images = True
-trainer.test(test_dataloader)
+trainer.test(test_dataloader, metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()])
 
 # %%
 # :References:

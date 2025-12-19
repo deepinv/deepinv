@@ -1,0 +1,142 @@
+name: GPU Docs
+
+on:
+  schedule:
+    - cron: "30 2 */1 * *"
+  push:
+    branches:
+      - main  
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to test"
+        required: true
+        type: number
+
+jobs:
+  gpu-docs:
+    name: Check examples and docs run on GPU
+    runs-on: gpu
+    env:
+      DEEPINV_MOCK_TESTS: "True"
+      UV_CACHE_DIR: "/local/jtachell/.cache/uv"
+      WORKING_DIR: "/local/jtachell"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha
+                  || (inputs.pr_number && format('refs/pull/{0}/head', inputs.pr_number))
+                  || github.sha }}
+                  
+      # See https://docs.astral.sh/uv/guides/integration/github
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.8.22"
+          python-version: "3.11"
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Set up Python
+        run: |
+          uv python install
+          uv run python --version
+
+      - name: Install the project
+        run: uv sync --extra dataset --extra denoisers --extra test --extra training --extra doc
+
+      - name: Check installed packages
+        run: |
+          uv pip list
+
+      - name: Check import
+        run: |
+          uv run python -c "import deepinv"
+
+      - name: Determine which examples to run
+        id: get_pattern
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+
+            # Check PR body for the keyword "test-examples" (case-insensitive)
+            if printf "%s" "$PR_BODY" | grep -iq "test-examples"; then
+              # FORCE RUN: If keyword is found, set pattern to ".*" and skip dependency analysis.
+              PATTERN=".*"
+              echo "Keyword 'test-examples' found. Forcing full documentation build (Pattern: $PATTERN)."
+            else
+              # Use the remote reference for the base branch and HEAD for the current commit.
+              BASE_REF="origin/${{ github.event.pull_request.base.ref }}"
+              HEAD_REF="HEAD"
+              echo "Analyzing changes between $BASE_REF and $HEAD_REF..."
+              # Execute the Python script to find affected examples
+              PATTERN=$(uv run .github/scripts/diff_sphinx_gallery.py "$BASE_REF" "$HEAD_REF")
+              echo "Conditional PR Pattern: $PATTERN"
+            fi
+          else
+            # push to main
+            # The pattern ".*" matches all files, ensuring a full build is run.
+            PATTERN=".*"
+            echo "Full build triggered by ${{ github.event_name }} event."
+          fi
+
+          # Pass the determined pattern to the next step
+          echo "SG_PATTERN=$PATTERN" >> $GITHUB_OUTPUT
+
+      - name: Build documentation with chosen examples
+        env:
+          SG_PATTERN: ${{ steps.get_pattern.outputs.SG_PATTERN }}
+
+        run: |
+          echo "Running Sphinx with filename_pattern: $SG_PATTERN"
+          uv run sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+
+      - name: Run doctests
+        env:
+          SPHINX_DOCTEST: "1"
+        run: |
+          uv run python -m sphinx.cmd.build -M doctest docs/source docs/build -D plot_gallery=0 -v
+
+      - name: Upload Documentation Artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: _build/
+
+      - name: Deploy to ghpages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          force_orphan: true
+          enable_jekyll: false
+
+      # Comment results back to PR
+      - name: Post result to PR
+        if: always() && inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.inputs.pr_number;
+            const result = "${{ job.status }}";
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
+      
+            const body = result === "success"
+              ? `✅ GPU docs passed
+                 🔗 [View run details](${runUrl})
+                 📦 [Download built docs](${artifactUrl})`
+              : `❌ GPU docs failed\n\n🔗 [View run details](${runUrl})`;
+      
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body,
+            });
+

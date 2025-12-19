@@ -63,12 +63,15 @@ y = physics(x)
 # DeepInverse implements
 # :ref:`many different types of physics <physics>` across various imaging modalities.
 # Physics also possess noise models such as Gaussian or Poisson noise.
+#
+# .. hint::
+#     Do you get a matplotlib LaTeX error when plotting? Disable LaTeX using `dinv.utils.disable_tex()`
 
 physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
 y = physics(x)
 
-dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
+dinv.utils.plot({"GT": x, "Noisy Inpainting \nMeasurement": y})
 
 
 # %%
@@ -128,7 +131,9 @@ y = physics(x)
 
 x_pinv_noise = physics.A_dagger(y)
 
-dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_noise})
+dinv.utils.plot(
+    {"Pseudoinv \nw/o noise": x_pinv, "Pseudoinv \nwith noise": x_pinv_noise}
+)
 
 
 # %%
@@ -166,10 +171,11 @@ psnr_x_hat = metric(x_hat, x).item()
 
 dinv.utils.plot(
     {
-        f"Measurement\n {psnr_y:.2f} dB": y,
-        f"Reconstruction\n {psnr_x_hat:.2f} dB": x_hat,
-        "GT": x,
-    }
+        "Ground Truth": x,
+        "Measurement": y,
+        "Reconstruction": x_hat,
+    },
+    subtitles=["PSNR:", f"{psnr_y:.2f} dB", f"{psnr_x_hat:.2f} dB"],
 )
 
 # %%
@@ -187,7 +193,18 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
 x_hat = model(y, physics)
 
 dinv.utils.plot(
-    {"Measurement": y, "Denoised": x_denoised, "Reconstructed": x_hat, "GT": x}
+    {
+        "Ground Truth": x,
+        "Measurement": y,
+        "Denoised": x_denoised,
+        "Reconstruction": x_hat,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(y, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_denoised, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_hat, x).item():.2f} dB",
+    ],
 )
 
 # %%
@@ -280,6 +297,7 @@ dinv.test(
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
 #    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
 #    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
+# -  Checkout a YouTube tutorial on our `YouTube Channel <https://www.youtube.com/@deepinv>`_.
 # -  Dive deeper into our full library of examples.
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.
@@ -289,3 +307,5 @@ dinv.test(
 #    get in touch with our
 #    `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 #
+
+# %%

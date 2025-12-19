@@ -21,12 +21,11 @@ import matplotlib.pyplot as plt
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP, Zero
-from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_example
+from deepinv.optim import PGD
+from deepinv.utils import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
-    cosine_similarity,
 )
 from deepinv.models.complex import to_complex_denoiser
 
@@ -103,7 +102,7 @@ data_fidelity = L2()
 prior = Zero()
 iterator = dinv.optim.optim_iterators.GDIteration()
 # Parameters for the optimizer, including stepsize and regularization coefficient.
-optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": []}
+optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": None}
 num_iter = 1000
 
 # Initial guess
@@ -220,20 +219,21 @@ denoiser_complex = to_complex_denoiser(denoiser, mode="abs_angle")
 # Algorithm parameters
 data_fidelity = L2()
 prior = PnP(denoiser=denoiser_complex)
-params_algo = {"stepsize": 0.30, "g_param": 0.04}
+stepsize = 0.3  # stepsize for the proximal gradient descent algorithm.
+sigma_denoiser = 0.04  # noise level of the denoiser, used for the regularization parameter in the PnP algorithm.
 max_iter = 100
 early_stop = True
 verbose = True
 
 # Instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="PGD",
+model = PGD(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    sigma_denoiser=sigma_denoiser,
 )
 
 # Run the algorithm
@@ -256,25 +256,25 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
 # In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
-imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
+subtitles = [
+    "PSNR",
+    f"{dinv.metric.PSNR()(x, x_gd_rand).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_spec).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_gd_spec).item():.2f} dB",
+    f"{dinv.metric.PSNR()(x, x_pnp).item():.2f} dB",
+]
 plot(
-    imgs,
-    titles=["Original", "GD random", "Spectral", "GD spectral", "PnP"],
+    {
+        "Original": x,
+        "GD random": x_gd_rand,
+        "Spectral": x_spec,
+        "GD spectral": x_gd_spec,
+        "PnP": x_pnp,
+    },
+    subtitles=subtitles,
     save_dir=RESULTS_DIR / "images",
     show=True,
     rescale_mode="clip",
 )
 
-# Compute metrics
-print(
-    f"GD Random reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase).item():.3f}."
-)
-print(
-    f"Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase).item():.3f}."
-)
-print(
-    f"GD Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase).item():.3f}."
-)
-print(
-    f"PnP reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase).item():.3f}."
-)
+# %%

@@ -1,20 +1,23 @@
+from __future__ import annotations
+
 import warnings
 from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os
 import numpy as np
 from tqdm import tqdm
 import torch
-
 from pathlib import Path
-from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.utils.tensorlist import TensorList
 from deepinv.datasets.base import check_dataset
+from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -32,15 +35,17 @@ class Trainer:
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
 
-    Training details are saved every ``ckp_interval`` epochs in the following format
+    |sep|
 
-    ::
+    .. tip::
 
-        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
+        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
+        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``.
 
-    where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state
-    dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
-    and ``eval_metrics`` the evaluation metrics history.
+    Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
+    **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
+
+    :Basics:
 
     The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets user guide <datasets>` for
     how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
@@ -54,30 +59,6 @@ class Trainer:
 
         If your dataloaders do not return `y` but you do not want online measurements, use :func:`deepinv.datasets.generate_dataset` to generate a dataset
         of offline measurements from a dataset of `x` and a `physics`.
-
-    .. note::
-
-        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
-
-        Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
-        and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
-        where ``x`` is the ground truth, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
-        ``y`` is the measurement vector, ``physics`` is the forward operator
-        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
-        e.g., self-supervised losses will not make use of ``x``.
-
-        Custom metrics can also be used in the exact same way as custom losses.
-
-    .. note::
-
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
-        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
-        a dictionary with the setup for wandb.
-
-    Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
-    **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
-
-    :Basics:
 
     :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         or any other custom reconstruction network.
@@ -98,8 +79,6 @@ class Trainer:
     :param int max_batch_steps: Number of gradient steps per iteration.
         Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``.
-        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`.
@@ -108,20 +87,72 @@ class Trainer:
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
     :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
 
+    .. note::
+
+        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
+
+        Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
+        and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
+        where ``x`` is the ground truth, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
+        ``y`` is the measurement vector, ``physics`` is the forward operator
+        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
+        e.g., self-supervised losses will not make use of ``x``.
+
+        Custom metrics can also be used in the exact same way as custom losses.
+
     |sep|
 
     :Evaluation:
 
+    .. note::
+
+        - **Supervised evaluation**: If ground-truth data is available for validation, use any
+          :ref:`full reference metric <full-reference-metrics>`, e.g. :class:`PSNR <deepinv.loss.metric.PSNR>`.
+
+        - **Self-supervised evaluation**: If no ground-truth data is available for validation, it is
+          still possible to validate using:
+
+          #. :ref:`no reference metrics <no-reference-metrics>`, e.g. :class:`NIQE <deepinv.loss.metric.NIQE>`
+          #. :ref:`self-supervised losses <self-supervised-losses>` with
+             ``compute_eval_losses=True`` and ``metrics=None``.
+
+             Additionally, in this case, we recommend setting ``compute_train_metrics=False`` to avoid computing
+             metrics in ``model.train()`` mode. This is required by many self-supervised losses,
+             such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>` or
+             :class:`R2RLoss <deepinv.loss.R2RLoss>`, which behave differently in
+             ``model.train()`` and ``model.eval()`` modes.
+
+             For early-stopping with self-supervised losses, `early_stop_on_losses` must also be `True`.
+
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
         see :ref:`datasets user guide <datasets>` for how we expect data to be provided.
-    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
+    :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
     :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
         the model on the evaluation set. Default is ``1``.
+    :param bool compute_train_metrics: If `False`, do not compute metrics during training on train set.
+        If `True` (default), during training all metrics are computed on the training dataloader.
+
+        .. warning::
+
+            If `compute_train_metrics=True` the metrics are computed using the model prediction during training (i.e., in `model.train()` mode) to avoid an additional
+            forward pass. This can lead to metrics that are different at test time when the model is in `model.eval()` mode,
+            and/or produce errors if the network does not provide the same output shapes under train and eval modes (e.g., which is the case of :class:`some self-supervised losses <deepinv.loss.ReducedResolutionLoss>`).
+
+    :param bool compute_eval_losses: If ``True``, the losses are computed during evaluation. Default is ``False``. This is useful
+        when using self-supervised losses for evaluation and early-stopping or to make sure that the model is performing
+        similarly on losses on the train and eval sets.
+    :param None, int early_stop: If not ``None``, the training stops when the first evaluation metric is not improving
+        after `early_stop` passes over the eval dataset. Default is ``None`` (no early stopping).
+        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
+    :param bool early_stop_on_losses: Early stop using losses computed on the eval set instead of metrics: useful for stopping when
+        using a self-supervised loss or when ground truth is unavailable. Default is ``False``.
+        If `True`, requires `compute_eval_losses` to be `True`.
     :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
+        This is useful for visualizing train progress inside an epoch, not just over epochs.
         If ``False`` (default), log average over dataset per epoch (standard training).
+
 
     .. tip::
         If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
@@ -161,6 +192,23 @@ class Trainer:
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
 
+    Training details are saved every ``ckp_interval`` epochs in the following format
+
+    ::
+
+        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar
+
+    where ``.pth.tar`` file contains a dictionary with the keys:
+
+    - `epoch`: current epoch number when saved
+    - `state_dict`: model parameters state dictionary
+    - `loss`: loss history on train set
+    - `train_metrics`: metric history on train set
+    - `eval_loss`: loss history on eval set
+    - `eval_metrics`: metric history on eval set
+    - `optimizer`: optimizer state dictionary, or ``None`` if not used
+    - `scheduler`: learning rate scheduler state dictionary, or ``None`` if not used
+
     |sep|
 
     :Comparison with Pseudoinverse Baseline:
@@ -187,8 +235,9 @@ class Trainer:
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param int freq_update_progress_bar: progress bar postfix update frequency (measured in iterations). Defaults to 1.
+        Increasing this may speed up training.
     :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
-    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
 
     |sep|
 
@@ -196,37 +245,51 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+    :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
+
+    |sep|
+
+    :MLflow:
+
+    :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
+    :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
+    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True``.
+        It is advised to enable pinned memory in the dataloader when using this option for best performance.
+
     """
 
     model: torch.nn.Module
-    physics: Union[Physics, list[Physics]]
-    optimizer: Union[torch.optim.Optimizer, None]
-    train_dataloader: torch.utils.data.DataLoader
+    physics: Physics | list[Physics]
+    optimizer: torch.optim.Optimizer | None
+    train_dataloader: torch.utils.data.DataLoader | list[torch.utils.data.DataLoader]
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
-        SupLoss()
-    )
-    eval_dataloader: torch.utils.data.DataLoader = None
-    early_stop: bool = False
+    losses: Loss | BaseLossScheduler | list[Loss] | list[BaseLossScheduler] = SupLoss()
+    eval_dataloader: (
+        torch.utils.data.DataLoader | list[torch.utils.data.Dataloader] | None
+    ) = None
+    early_stop: None | int = None
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
+    physics_generator: PhysicsGenerator | list[PhysicsGenerator] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
-    device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_pretrained: Union[str, None] = None
-    save_path: Union[str, Path] = "."
+    metrics: Metric | list[Metric] | None = field(default_factory=PSNR)
+    compute_train_metrics: bool = True
+    early_stop_on_losses: bool = False
+    device: str | torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+    ckpt_pretrained: str | None = None
+    save_path: str | Path | None = "."
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
+    mlflow_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
+    mlflow_setup: dict = field(default_factory=dict)
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
@@ -235,13 +298,30 @@ class Trainer:
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
     rescale_mode: str = "clip"
-    display_losses_eval: bool = False
+    display_losses_eval: bool = None
+    compute_eval_losses: bool = False
     log_train_batch: bool = False
     verbose: bool = True
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
+    freq_update_progress_bar: int = 1
+    non_blocking_transfers: bool = (
+        True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
+    )
 
-    def setup_train(self, train=True, **kwargs):
+    def __post_init__(self):
+        if self.display_losses_eval is not None:
+            warnings.warn(
+                "Argument 'display_losses_eval' is deprecated and will be removed in a future version. "
+                f"Use 'compute_eval_losses' instead. Setting 'compute_eval_losses' to {self.display_losses_eval}...",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.compute_eval_losses = self.display_losses_eval
+        # Cache flag for whether model.forward accepts 'update_parameters'
+        self._model_accepts_update_parameters = False
+
+    def setup_train(self, train: bool = True, **kwargs):
         r"""
         Set up the training process.
 
@@ -250,17 +330,31 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        if type(self.train_dataloader) is not list:
+        if not isinstance(self.train_dataloader, (list, tuple)):
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
+        if self.eval_dataloader is not None and not isinstance(
+            self.eval_dataloader, (list, tuple)
+        ):
             self.eval_dataloader = [self.eval_dataloader]
 
         for loader in self.train_dataloader + (
             self.eval_dataloader if self.eval_dataloader is not None else []
         ):
-            if loader is not None:
+            if loader is not None and isinstance(loader, torch.utils.data.DataLoader):
                 check_dataset(loader.dataset)
+                # Suggest enabling pinned memory to make non-blocking H2D copies effective on CUDA
+                if (
+                    self.non_blocking_transfers
+                    and torch.cuda.is_available()
+                    and hasattr(loader, "pin_memory")
+                    and not loader.pin_memory
+                ):
+                    warnings.warn(
+                        "non_blocking_transfers=True but DataLoader.pin_memory=False; set pin_memory=True to overlap host-device copies with compute.",
+                        stacklevel=2,
+                    )
+                    # See: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html#conclusion
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -279,6 +373,15 @@ class Trainer:
         ):
             warnings.warn(
                 "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
+            )
+
+        if (
+            self.mlflow_setup != {}
+            and self.mlflow_setup is not None
+            and not self.mlflow_vis
+        ):  # pragma: no cover
+            warnings.warn(
+                "mlflow_vis is False but mlflow_setup is provided. Mlflow deactivated (mlflow_vis=False)."
             )
 
         if self.physics_generator is not None and not self.online_measurements:
@@ -304,14 +407,30 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
+        if self.mlflow_vis:
+            import mlflow
+
+            if mlflow.active_run() is None:
+                mlflow.start_run(**self.mlflow_setup)
+
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
 
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
+        if self.metrics is None:
+            self.metrics = []
+
         if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
+
+        if len(self.metrics) == 0 and not train:
+            self.compute_eval_losses = True
+            warnings.warn(
+                "As no metrics were provided for testing, "
+                "evaluating with provided losses instead of metrics"
+            )
 
         # losses
         self.logs_total_loss_train = AverageMeter("Training loss", ":.2e")
@@ -325,6 +444,12 @@ class Trainer:
             AverageMeter("Validation loss " + l.__class__.__name__, ":.2e")
             for l in self.losses
         ]
+
+        self.loss_history = {}
+        self.eval_loss_history = {}
+        for l in self.losses:
+            self.loss_history[l.__class__.__name__] = []
+            self.eval_loss_history[l.__class__.__name__] = []
 
         # metrics
         self.logs_metrics_train = [
@@ -343,8 +468,10 @@ class Trainer:
             ]
 
         self.eval_metrics_history = {}
+        self.train_metrics_history = {}
         for l in self.metrics:
             self.eval_metrics_history[l.__class__.__name__] = []
+            self.train_metrics_history[l.__class__.__name__] = []
 
         # gradient clipping
         if train and self.check_grad:
@@ -367,23 +494,67 @@ class Trainer:
             print(f"The model has {params} trainable parameters")
 
         # make physics and data_loaders of list type
-        if type(self.physics) is not list:
+        if not isinstance(self.physics, (list, tuple)):
             self.physics = [self.physics]
 
-        if (
-            self.physics_generator is not None
-            and type(self.physics_generator) is not list
+        if self.physics_generator is not None and not isinstance(
+            self.physics_generator, (list, tuple)
         ):
             self.physics_generator = [self.physics_generator]
 
-        if train:
-            self.loss_history = []
         self.save_folder_im = None
 
+        if self.early_stop is not None and self.eval_dataloader is None:
+            warnings.warn(
+                "early_stop is set but no eval_dataloader is provided. early_stop will be ignored."
+            )
+        elif isinstance(self.early_stop, bool):  # for backwards compatibility
+            if self.early_stop:
+                self.early_stop = 3
+                warnings.warn(
+                    "early_stop should be an integer or None. Setting early_stop=3. "
+                    "This behaviour will be deprecated in future versions."
+                )
+            else:
+                self.early_stop = None
+        elif self.early_stop is not None:
+            assert (
+                isinstance(self.early_stop, int) and self.early_stop > 0
+            ), "early_stop should be a positive integer or None."
+
+        if self.early_stop:
+            if self.early_stop_on_losses:
+                assert (
+                    len(self.losses) > 0
+                ), "At least one loss should be provided for early stopping if early_stop_on_losses=False."
+                assert (
+                    self.compute_eval_losses
+                ), "compute_eval_losses should be True when early_stop_on_losses is True."
+            else:
+                assert (
+                    len(self.metrics) > 0
+                ), "At least one metric should be provided for early stopping if early_stop_on_losses=False."
+        if (
+            self.freq_update_progress_bar == 1
+            and self.verbose
+            and self.show_progress_bar
+        ):
+            warnings.warn(
+                "Update progress bar frequency of 1 may slow down training on GPU. Consider setting freq_update_progress_bar > 1."
+            )
+
         _ = self.load_model()
+        # Cache whether model.forward accepts 'update_parameters' to avoid per-call inspect
+        try:
+            sig = inspect.signature(self.model.forward)
+            self._model_accepts_update_parameters = (
+                "update_parameters" in sig.parameters
+            )
+        except (ValueError, TypeError, AttributeError):
+            self._model_accepts_update_parameters = False
 
     def load_model(
-        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
+        self, ckpt_pretrained: str | Path = None, strict: bool = True
     ) -> dict:
         """Load model from checkpoint.
 
@@ -409,15 +580,28 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
+            if "mlflow_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
+                self.mlflow_setup["run_id"] = checkpoint["mlflow_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
-        Log the metrics to wandb.
+        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
+        """
+        warnings.warn(
+            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.log_metrics_mlops(logs=logs, step=step, train=train)
 
-        It logs the metrics to wandb.
+    def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
+        r"""
+        Log the metrics to MLOps tools including wandb and MLflow.
+
+        It logs the metrics to wandb and MLflow.
 
         :param dict logs: Dictionary containing the metrics to log.
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
@@ -434,28 +618,36 @@ class Trainer:
 
             wandb.log(logs, step=step)
 
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.log_metrics(logs, step=step)
+
     def check_clip_grad(self):
         r"""
         Check the gradient norm and perform gradient clipping if necessary.
 
         """
-        out = None
-
+        grad_norm = None
         if self.grad_clip is not None:
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            # Total norm as a single vector over all parameters
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.grad_clip
+            )
 
         if self.check_grad:
-            # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
-            grads = [
-                param.grad.detach().flatten()
-                for param in self.model.parameters()
-                if param.grad is not None
-            ]
-            norm_grads = torch.cat(grads).norm()
-            out = norm_grads.item()
-            self.check_grad_val.update(norm_grads.item())
+            if grad_norm is not None:
+                grad_norm = grad_norm.pow(2).sum().sqrt().item()
+            else:
+                grads = [
+                    param.grad.detach().flatten()
+                    for param in self.model.parameters()
+                    if param.grad is not None
+                ]
+                grad_norm = torch.cat(grads).norm().item()
+            self.check_grad_val.update(grad_norm)
 
-        return out
+        return grad_norm
 
     def get_samples_online(self, iterators, g):
         r"""
@@ -487,7 +679,7 @@ class Trainer:
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
 
-        x = x.to(self.device)
+        x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
@@ -521,7 +713,7 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
+        if not isinstance(data, (tuple, list)) or len(data) < 2:
             raise ValueError(
                 "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
@@ -539,20 +731,29 @@ class Trainer:
                 "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
             )
 
-        if type(x) is list or type(x) is tuple:
-            x = [s.to(self.device) for s in x]
+        batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
+        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
+
+        if batch_size_x != batch_size_y:  # pragma: no cover
+            raise ValueError(
+                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+            )
+
+        if torch.isnan(x).all() and x.ndim <= 1:
+            x = None  # Batch of NaNs -> no ground truth in deepinv convention
         else:
-            x = x.to(self.device)
+            x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
-        if x.numel() == 1 and torch.isnan(x):
-            x = None  # unsupervised case
-
-        y = y.to(self.device)
+        y = y.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if params is not None:
             params = {
-                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                k: (
+                    p.to(self.device, non_blocking=self.non_blocking_transfers)
+                    if isinstance(p, torch.Tensor)
+                    else p
+                )
                 for k, p in params.items()
             }
             physics.update(**params)
@@ -592,26 +793,29 @@ class Trainer:
         :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.
         :returns: The network reconstruction.
         """
-        y = y.to(self.device)
 
-        kwargs = {}
-
-        # check if the forward has 'update_parameters' method, and if so, update the parameters
-        if "update_parameters" in inspect.signature(self.model.forward).parameters:
+        # check if the forward has 'update_parameters' method (cached), and if so, update the parameters
+        if self._model_accepts_update_parameters:
             kwargs["update_parameters"] = True
 
-        if not train:
+        if train:
+            self.model.train()
+            return self.model(y, physics, **kwargs)
+        else:
+            self.model.eval()
             with torch.no_grad():
                 if self.plot_convergence_metrics:
                     x_net, self.conv_metrics = self.model(
-                        y, physics, x_gt=x, compute_metrics=True, **kwargs
+                        y,
+                        physics,
+                        x_gt=x,
+                        compute_metrics=True,
+                        **kwargs,
                     )
                 else:
                     x_net = self.model(y, physics, **kwargs)
-        else:
-            x_net = self.model(y, physics, **kwargs)
 
-        return x_net
+            return x_net
 
     def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
         r"""
@@ -631,12 +835,13 @@ class Trainer:
         logs = {}
 
         if train and step:
-            self.optimizer.zero_grad()
+            # set_to_none=True can slightly reduce overhead vs. zeroing memory
+            self.optimizer.zero_grad(set_to_none=True)
 
-        # Evaluate reconstruction network
-        x_net = self.model_inference(y=y, physics=physics, x=x, train=train)
+        if train or self.compute_eval_losses:
+            # Evaluate reconstruction network
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=True)
 
-        if train or self.display_losses_eval:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
@@ -649,18 +854,19 @@ class Trainer:
                     epoch=epoch,
                 )
                 loss_total += loss.mean()
+                meters = (
+                    self.logs_losses_train[k] if train else self.logs_losses_eval[k]
+                )
+                meters.update(loss.detach().cpu().numpy())
                 if len(self.losses) > 1 and self.verbose_individual_losses:
-                    meters = (
-                        self.logs_losses_train[k] if train else self.logs_losses_eval[k]
-                    )
-                    meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
             meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
             meters.update(loss_total.item())
             logs[f"TotalLoss"] = meters.avg
-        else:  # TODO question: what do we want to do at test time?
+        else:
             loss_total = 0
+            x_net = None
 
         if train:
             loss_total.backward()  # Backward the total loss
@@ -689,8 +895,15 @@ class Trainer:
         :param dict logs: Dictionary containing the logs for printing the training progress.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :returns: The logs with the metrics.
+        :returns: The reconstructed signal during eval (if `x_net=None`) and the logs with the metrics
         """
+
+        if len(self.metrics) > 0 and (
+            not (train and self.compute_train_metrics) or x_net is None
+        ):
+            # re-evaluate the model in eval mode if needed
+            x_net = self.model_inference(y=y, physics=physics, x=x, train=False)
+
         # Compute the metrics over the batch
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
@@ -710,14 +923,17 @@ class Trainer:
 
                 if not train and self.compare_no_learning:
                     x_lin = self.no_learning_inference(y, physics)
-                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    no_learning_model = self._NoLearningModel(trainer=self)
+                    metric = l(
+                        x=x, x_net=x_lin, y=y, physics=physics, model=no_learning_model
+                    )
                     self.logs_metrics_no_learning[k].update(
                         metric.detach().cpu().numpy()
                     )
                     logs[f"{l.__class__.__name__} no learning"] = (
                         self.logs_metrics_no_learning[k].avg
                     )
-        return logs
+        return x_net, logs
 
     def no_learning_inference(self, y, physics):
         r"""
@@ -757,6 +973,21 @@ class Trainer:
 
         return x_nl
 
+    class _NoLearningModel(Reconstructor):
+        def __init__(self, *, trainer: Trainer):
+            super().__init__()
+            self.trainer = trainer
+
+        def forward(self, y, physics, **kwargs):
+            if kwargs:
+                warnings.warn(
+                    f"The learning-free model in Trainer expects no keyword argument, but got {list(kwargs.keys())}. "
+                    "You might be using metrics which pass extra arguments to the trained model but the learning-free model does not use them.",
+                    UserWarning,
+                    stacklevel=1,
+                )
+            return self.trainer.no_learning_inference(y, physics)
+
     def step(
         self,
         epoch,
@@ -764,6 +995,7 @@ class Trainer:
         train_ite=None,
         train=True,
         last_batch=False,
+        update_progress_bar=False,
     ):
         r"""
         Train/Eval a batch.
@@ -778,9 +1010,9 @@ class Trainer:
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.zero_grad()  # Clear stored gradients
+            self.optimizer.zero_grad(set_to_none=True)  # Clear stored gradients
 
-        # random permulation of the dataloaders
+        # random permutation of the dataloaders
         G_perm = np.random.permutation(self.G)
         loss = 0
 
@@ -804,19 +1036,21 @@ class Trainer:
             )
             loss += loss_cur
 
-            # detach the network output for metrics and plotting
-            x_net = x_net.detach()
+            # compute metrics
+            if self.compute_train_metrics or not train:
+                if x_net is not None:
+                    x_net = x_net.detach()
 
-            # Log metrics
-            logs = self.compute_metrics(
-                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
-            )
+                x_net, logs = self.compute_metrics(
+                    x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+                )
 
             # Update the progress bar
-            progress_bar.set_postfix(logs)
+            if update_progress_bar:  # implicit syncing with gpu, slow
+                progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
-            self.log_metrics_wandb(logs, step=train_ite, train=train)
+            self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
@@ -837,25 +1071,30 @@ class Trainer:
                 logs["step"] = train_ite
             elif train:
                 logs["step"] = epoch
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
             elif self.log_train_batch:  # train=False
                 logs["step"] = train_ite
-                self.log_metrics_wandb(logs, step=train_ite, train=train)
+                self.log_metrics_mlops(logs, step=train_ite, train=train)
             else:
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
 
             self.plot(
                 epoch,
                 physics_cur,
                 x,
                 y,
-                x_net,
+                x_net.detach() if x_net is not None else None,
                 train=train,
             )
 
     def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
-        Plot and optinally save the reconstructions.
+        Plot ground truths, measurements and reconstructions and at test time, optionally save them.
+
+        .. note::
+
+            Images can be saved to disk at test time by providing a value for the parameter ``save_folder_im``
+            when calling the method :func:`deepinv.Trainer.test`. Note that in that case, every test sample is saved and not only the first ones.
 
         :param int epoch: Current epoch.
         :param deepinv.physics.Physics physics: Current physics operator.
@@ -900,16 +1139,22 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch, step=epoch)
 
-        if save_images:
-            # save images
-            for k, img in enumerate(imgs):
-                for i in range(img.size(0)):
-                    img_name = f"{self.save_folder_im}/{titles[k]}/"
-                    # make dir
-                    Path(img_name).mkdir(parents=True, exist_ok=True)
-                    save_image(img, img_name + f"{self.img_counter + i}.png")
+            if self.mlflow_vis:
+                import mlflow
 
-                self.img_counter += len(imgs[0])
+                image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_metrics({"step": epoch}, step=epoch)
+                mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
+
+        if save_images:
+            for k, img in enumerate(imgs):  # ground truths, reconstructions, etc.
+                img_name = f"{self.save_folder_im}/{titles[k]}/"
+                Path(img_name).mkdir(parents=True, exist_ok=True)
+                for i in range(img.size(0)):
+                    entry = img[i].unsqueeze(0)
+                    save_image(entry, img_name + f"{self.img_counter + i}.png")
+
+            self.img_counter += imgs[0].size(0)
 
         if self.conv_metrics is not None:
             plot_curves(
@@ -940,14 +1185,21 @@ class Trainer:
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
             "loss": self.loss_history,
+            "train_metrics": self.train_metrics_history,
+            "eval_loss": self.eval_loss_history,
+            "eval_metrics": self.eval_metrics_history,
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
         }
-        state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
             import wandb
 
             state["wandb_id"] = wandb.run.id
+
+        if self.mlflow_vis:
+            import mlflow
+
+            state["mlflow_id"] = mlflow.active_run().info.run_id
 
         torch.save(
             state,
@@ -982,15 +1234,27 @@ class Trainer:
         r"""
         Save the best model using validation metrics.
 
-        By default, uses validation based on first metric. Override this method to provide custom criterion.
+        By default, uses validation based on first metric. If no metric is provided (e.g. in self-supervised learning),
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
+
+        Override this method to provide custom criterion.
 
         :param int epoch: Current epoch.
         :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
             number of batches) + current batch within epoch
         """
         k = 0  # index of the first metric
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
-        lower_better = getattr(self.metrics[k], "lower_better", True)
+        if len(self.metrics) == 0:
+            history = self.eval_loss_history[self.losses[k].__class__.__name__]
+            lower_better = True
+            if len(history) == 0:
+                warnings.warn(
+                    "No metric provided and no eval loss computed yet, can't save best model."
+                )
+                return  # no eval loss computed yet
+        else:
+            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+            lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         curr_metric = history[-1]
@@ -1026,6 +1290,9 @@ class Trainer:
 
         By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
 
+        If `early_stop_on_losses=True` (default is `False`)
+        uses the first loss on the eval dataset instead (requires having `compute_eval_losses=True`).
+
         Override this method to early stop on a custom condition.
 
         :param int epoch: Current epoch.
@@ -1036,20 +1303,25 @@ class Trainer:
         """
         k = 0  # use first metric
 
-        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
-        lower_better = getattr(self.metrics[k], "lower_better", True)
+        if self.early_stop_on_losses:
+            history = self.eval_loss_history[self.losses[k].__class__.__name__]
+            lower_better = True
+        else:
+            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+            lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric) * self.eval_interval
 
-        early_stop = epoch > 2 * self.eval_interval + best_epoch
-        if early_stop and self.verbose:
+        stop = epoch > self.early_stop * self.eval_interval + best_epoch
+        if stop and self.verbose:
             print(
-                "Early stopping triggered as validation metrics have not improved in "
-                "the last 3 validation steps, disable it with early_stop=False"
+                f"Early stopping triggered at epoch {epoch} as validation metrics have not improved in "
+                f"the last {self.early_stop} validation steps. Disable it with early_stop=None, or "
+                f"modify early_stop>0 to wait for more validation steps."
             )
 
-        return early_stop
+        return stop
 
     def train(
         self,
@@ -1063,6 +1335,7 @@ class Trainer:
         :returns: The trained model.
         """
         self.setup_train()
+
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
@@ -1088,7 +1361,7 @@ class Trainer:
             for i in (
                 progress_bar := tqdm(
                     range(batches),
-                    ncols=150,
+                    dynamic_ncols=True,
                     disable=(not self.verbose or not self.show_progress_bar),
                 )
             ):
@@ -1101,7 +1374,15 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
+                    update_progress_bar=(i % self.freq_update_progress_bar == 0),
                 )
+
+                if self.log_train_batch or last_batch:
+                    # store losses history
+                    for idx, l in enumerate(self.losses):
+                        self.loss_history[l.__class__.__name__].append(
+                            self.logs_losses_train[idx].avg
+                        )
 
                 perform_eval = self.eval_dataloader and (
                     (
@@ -1126,14 +1407,13 @@ class Trainer:
                         ]
                     )
 
-                    self.model.eval()
                     # close train progress bar
                     progress_bar.update(1)
                     progress_bar.close()
                     for j in (
                         eval_progress_bar := tqdm(
                             range(eval_batches),
-                            ncols=150,
+                            dynamic_ncols=True,
                             disable=(not self.verbose or not self.show_progress_bar),
                             colour="green",
                         )
@@ -1147,19 +1427,33 @@ class Trainer:
                             train_ite=train_ite,
                             train=False,
                             last_batch=(j == eval_batches - 1),
+                            update_progress_bar=(
+                                i % self.freq_update_progress_bar == 0
+                            ),
                         )
 
-                    for k in range(len(self.metrics)):
-                        metric = self.logs_metrics_eval[k].avg
-                        self.eval_metrics_history[
-                            self.metrics[k].__class__.__name__
-                        ].append(
-                            metric
-                        )  # store metrics history
+                    # store losses history
+                    if self.compute_eval_losses:
+                        for idx, l in enumerate(self.losses):
+                            self.eval_loss_history[l.__class__.__name__].append(
+                                self.logs_losses_eval[idx].avg
+                            )
+
+                    if self.compute_train_metrics:
+                        for midx, m in enumerate(self.metrics):
+                            self.train_metrics_history[m.__class__.__name__].append(
+                                self.logs_metrics_train[midx].avg
+                            )
+
+                    # store metrics history
+                    for midx, m in enumerate(self.metrics):
+                        self.eval_metrics_history[m.__class__.__name__].append(
+                            self.logs_metrics_eval[midx].avg
+                        )
 
                     self.save_best_model(epoch, train_ite)
 
-                    if self.early_stop:
+                    if self.early_stop is not None:
                         stop_flag = self.stop_criterion(epoch, train_ite)
 
                 if train_ite + 1 > self.max_batch_steps:
@@ -1167,8 +1461,6 @@ class Trainer:
                     progress_bar.update(1)
                     progress_bar.close()
                     break
-
-            self.loss_history.append(self.logs_total_loss_train.avg)
 
             if self.scheduler:
                 self.scheduler.step()
@@ -1184,60 +1476,96 @@ class Trainer:
         if self.wandb_vis:
             import wandb
 
-            wandb.save("model.h5")
             wandb.finish()
+
+        if self.mlflow_vis:
+            import mlflow
+
+            mlflow.end_run()
 
         return self.model
 
     def test(
         self,
         test_dataloader,
-        save_path: Union[str, Path] = None,
+        save_path: str | Path = None,
         compare_no_learning: bool = True,
         log_raw_metrics: bool = False,
+        metrics: Metric | list[Metric] | None = None,
     ) -> dict:
         r"""
         Test the model, compute metrics and plot images.
 
+        .. note::
+
+            It is possible to save the reconstructed images along with the ground truths and measurements by specifying a value for the parameter ``save_path``. Note that in this case, every test sample is saved and not only the first ones.
+
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see :ref:`datasets user guide <datasets>`
             for how we expect data to be provided.
-        :param str save_path: Directory in which to save the plotted images.
+        :param str save_path: Path to the directory where to save the plotted images if desired (optional).
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
+        :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
+            ``None``, uses the metrics provided during Trainer initialization.
         :returns: dict of metrics results with means and stds.
         """
+        if metrics is not None:
+            self.metrics = metrics
         self.compare_no_learning = compare_no_learning
+
+        # Disable mlops and visualization during testing
+        former_values = (
+            self.wandb_vis,
+            self.wandb_setup,
+            self.mlflow_vis,
+            self.mlflow_setup,
+            self.log_train_batch,
+        )
+        self.wandb_vis = False
+        self.wandb_setup = {}
+        self.mlflow_vis = False
+        self.mlflow_setup = {}
+        self.log_train_batch = False
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = (self.wandb_vis, self.log_train_batch)
-        self.wandb_vis = False
-        self.log_train_batch = False
 
         self.reset_metrics()
 
-        if not isinstance(test_dataloader, list):
+        if not isinstance(test_dataloader, (list, tuple)):
             test_dataloader = [test_dataloader]
 
         for loader in test_dataloader:
-            check_dataset(loader.dataset)
+            if isinstance(loader, torch.utils.data.DataLoader):  # pragma: no cover
+                check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
-        self.model.eval()
         for i in (
             progress_bar := tqdm(
                 range(batches),
-                ncols=150,
+                dynamic_ncols=True,
                 disable=(not self.verbose or not self.show_progress_bar),
             )
         ):
             progress_bar.set_description(f"Test")
-            self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
+            self.step(
+                0,
+                progress_bar,
+                train=False,
+                last_batch=(i == batches - 1),
+                update_progress_bar=(i % self.freq_update_progress_bar == 0),
+            )
 
-        self.wandb_vis, self.log_train_batch = aux
+        (
+            self.wandb_vis,
+            self.wandb_setup,
+            self.mlflow_vis,
+            self.mlflow_setup,
+            self.log_train_batch,
+        ) = former_values
 
         if self.verbose:
             print("Test results:")
@@ -1272,7 +1600,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, list[Loss], None] = None,
+    losses: Loss | list[Loss] | None = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,

@@ -59,6 +59,7 @@ Operators
    deepinv.physics.Haze
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
@@ -121,10 +122,13 @@ Noise distributions
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
    deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.LaplaceNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
    deepinv.physics.SaltPepperNoise
+   deepinv.physics.FisherTippettNoise
+   deepinv.physics.RicianNoise
    deepinv.physics.generator.SigmaGenerator
    deepinv.physics.generator.GainGenerator
 
@@ -159,7 +163,12 @@ Functional
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
+   deepinv.physics.functional.dct
+   deepinv.physics.functional.idct
+   deepinv.physics.functional.dct_2d
+   deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.random_choice
 
 
 .. autosummary::

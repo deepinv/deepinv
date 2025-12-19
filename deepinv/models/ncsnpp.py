@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 from torch.nn.functional import silu
 import numpy as np
@@ -9,6 +10,7 @@ from .utils import (
 )
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
+from torch import Tensor
 from .utils import get_weights_url
 from typing import Sequence
 
@@ -46,7 +48,7 @@ class NCSNpp(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_train_on_minus_one_one` to `True` after loading the weights.
+        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_was_trained_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
@@ -231,14 +233,16 @@ class NCSNpp(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
-                self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self._was_trained_on_minus_one_one = True  # Pretrained on [-1,1]s
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-                self._train_on_minus_one_one = False
+                self._was_trained_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
+            self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+            self.pixel_std = 0.5
         else:
-            self._train_on_minus_one_one = False
+            self._was_trained_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
@@ -302,7 +306,13 @@ class NCSNpp(Denoiser):
         return aux
 
     def forward(
-        self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs
+        self,
+        x: Tensor,
+        sigma: Tensor | float,
+        class_labels: Tensor | None = None,
+        augment_labels: Tensor | None = None,
+        *args,
+        **kwargs,
     ):
         r"""
         Run the denoiser on noisy image.
@@ -324,7 +334,7 @@ class NCSNpp(Denoiser):
         )
 
         # Rescale [0,1] input to [-1,-1]
-        if getattr(self, "_train_on_minus_one_one", False):
+        if getattr(self, "_was_trained_on_minus_one_one", False):
             x = (x - 0.5) * 2.0
             sigma = sigma * 2.0
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
@@ -343,7 +353,7 @@ class NCSNpp(Denoiser):
 
         D_x = D_x.to(dtype)
         # Rescale [-1,1] output to [0,-1]
-        if getattr(self, "_train_on_minus_one_one", False):
+        if getattr(self, "_was_trained_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x

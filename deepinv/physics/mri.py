@@ -1,4 +1,5 @@
-from typing import Optional, Union
+from __future__ import annotations
+from warnings import warn
 import numpy as np
 import torch
 from torch import Tensor
@@ -78,8 +79,8 @@ class MRI(MRIMixin, DecomposablePhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device="cpu",
         **kwargs,
@@ -224,9 +225,9 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     def __init__(
         self,
-        mask: Optional[Tensor] = None,
-        coil_maps: Optional[Union[Tensor, int]] = None,
-        img_size: Optional[tuple] = (320, 320),
+        mask: Tensor | None = None,
+        coil_maps: Tensor | int | None = None,
+        img_size: tuple | None = (320, 320),
         three_d: bool = False,
         device=torch.device("cpu"),
         **kwargs,
@@ -386,7 +387,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to simulate coil maps. Install it using pip install sigpy"
-            )  # pragma: no cover
+            )
 
         coil_maps = birdcage_maps(
             (n_coils,)
@@ -395,32 +396,70 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         return torch.tensor(coil_maps).type(torch.complex64)
 
     @staticmethod
-    def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
+    def estimate_coil_maps(
+        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+    ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
         This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
+        Optionally use `cupy` to accelerate on GPU, only if `cupy` is installed and a GPU is available.
+
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
+        :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
             from sigpy.mri.app import EspiritCalib
-        except ImportError:
+            import sigpy as sp  # pragma: no cover
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to estimate sens maps. Install it using pip install sigpy"
             )
 
-        return torch.from_numpy(
-            np.stack(
+        if use_cupy:  # pragma: no cover
+            try:
+                import cupy as cp
+
+                use_cupy = cp.cuda.is_available()
+            except ImportError:
+                warn(
+                    "cupy is not installed, using cpu for coil map estimation. Install cupy to speed up computation."
+                )
+                use_cupy = False
+
+        complex_y = MRIMixin.to_torch_complex(y)
+        if use_cupy:  # pragma: no cover
+            if y.device.type == "cuda":
+                cupy_y = cp.from_dlpack(complex_y)
+            else:
+                cupy_y = cp.from_dlpack(complex_y.to("cuda"))
+
+            cupy_maps = cp.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False).run()
-                    for yb in MRIMixin.to_torch_complex(y).numpy()
+                    EspiritCalib(
+                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                    ).run()
+                    for yb in cupy_y
                 ]
             )
-        )
+            torch_maps = torch.from_dlpack(cupy_maps)
+
+        else:
+            device = sp.Device(-1)
+            maps = np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    for yb in complex_y.numpy(force=True)
+                ]
+            )
+
+            torch_maps = torch.from_numpy(maps)
+
+        return torch_maps
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -536,7 +575,7 @@ class DynamicMRI(MRI, TimeMixin):
         """
         return self.noise_model(x, **kwargs) * self.mask
 
-    def to_static(self, mask: Optional[torch.Tensor] = None) -> MRI:
+    def to_static(self, mask: torch.Tensor | None = None) -> MRI:
         """Convert dynamic MRI to static MRI by removing time dimension.
 
         :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.

@@ -14,6 +14,7 @@ DeepInverse provides multiple ways of bringing your own dataset. This example ha
 firstly how to load images/data into a dataset, and secondly how to use this dataset with DeepInverse.
 """
 
+# %%
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
@@ -32,7 +33,7 @@ from torchvision.transforms import ToTensor
 #    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT, etc.)
 #    by passing in a custom `loader` function and `transform`.
 
-DATA_DIR = dinv.utils.demo.get_data_home() / "demo_custom_dataset"
+DATA_DIR = dinv.utils.get_data_home() / "demo_custom_dataset"
 dinv.utils.download_example("butterfly.png", DATA_DIR / "GT")
 
 dataset1 = dinv.datasets.ImageFolder(DATA_DIR / "GT", transform=ToTensor())
@@ -204,3 +205,5 @@ dinv.test(
 # * Check out the :ref:`example on how to fine-tune a foundation model <sphx_glr_auto_examples_models_demo_foundation_model.py>` to your own data.
 # * Check out the :ref:`example on how to train a reconstruction model <sphx_glr_auto_examples_models_demo_training.py>` with your dataset.
 # * Advanced: how to :ref:`stream or download a dataset from HuggingFace <sphx_glr_auto_examples_external-libraries_demo_hf_dataset.py>`.
+
+# %%

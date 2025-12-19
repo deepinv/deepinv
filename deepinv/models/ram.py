@@ -1,16 +1,13 @@
 from collections import OrderedDict
-from warnings import warn
 from pathlib import Path
-
+from warnings import warn
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor, Denoiser
-from typing import Sequence  # noqa: F401
 
 
 class RAM(Reconstructor, Denoiser):
@@ -37,6 +34,19 @@ class RAM(Reconstructor, Denoiser):
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
     :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
+
+    |sep|
+
+      >>> import deepinv as dinv
+      >>> x = dinv.utils.load_example("butterfly.png")
+      >>> physics = dinv.physics.Downsampling(filter="bicubic")
+      >>> y = physics(x)
+      >>> model = dinv.models.RAM() # doctest: +ELLIPSIS
+      ...
+      >>> x_hat = model(y, physics) # run model
+      >>> dinv.metric.PSNR()(x_hat, x) > 31.98
+      tensor([True])
+
     """
 
     def __init__(
@@ -108,7 +118,8 @@ class RAM(Reconstructor, Denoiser):
                 self.load_state_dict(
                     torch.hub.load_state_dict_from_url(
                         "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
-                    )
+                    ),
+                    strict=False,
                 )
 
         if device is not None:
@@ -175,7 +186,9 @@ class RAM(Reconstructor, Denoiser):
         snr = num / (sigma + 1e-4)  # SNR equivariant
         gamma = 1 / (1e-4 + 1 / (snr * f**2))
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
-        model_input = physics.prox_l2(x, y, gamma=gamma * self.fact_realign)
+        gamma = gamma * self.fact_realign
+        gamma = gamma.clamp(min=1e-8)  # clamp to avoid negative or zero gamma
+        model_input = physics.prox_l2(x, y, gamma=gamma)
 
         return model_input
 
@@ -192,6 +205,18 @@ class RAM(Reconstructor, Denoiser):
         img_channels = x0.shape[1]
         physics = LinearPhysicsMultiScaler(physics, x0.shape[-3:], device=x0.device)
 
+        y_list = []
+        for scale in [0, 1, 2, 3]:
+            factor = 2**scale
+            physics.set_scale(scale)
+            y_list.append(
+                krylov_embeddings(
+                    physics.downsample(x0, scale=scale), physics, factor, N=2
+                )
+            )
+
+        physics.set_scale(0)
+
         if self.separate_head and img_channels not in self.in_channels:
             raise ValueError(
                 f"Input image has {img_channels} channels, but the network only has heads for {self.in_channels} channels."
@@ -204,38 +229,59 @@ class RAM(Reconstructor, Denoiser):
 
         x1 = self.m_head(x0)
 
-        x1_ = self.m_down1(x1, physics=physics, y=y, img_channels=img_channels, scale=0)
+        x1_ = self.m_down1(
+            x1, physics=physics, y=y_list[0], img_channels=img_channels, scale=0
+        )
         x2 = self.pool1(x1_)
 
-        x3_ = self.m_down2(x2, physics=physics, y=y, img_channels=img_channels, scale=1)
+        x3_ = self.m_down2(
+            x2, physics=physics, y=y_list[1], img_channels=img_channels, scale=1
+        )
         x3 = self.pool2(x3_)
 
-        x4_ = self.m_down3(x3, physics=physics, y=y, img_channels=img_channels, scale=2)
+        x4_ = self.m_down3(
+            x3, physics=physics, y=y_list[2], img_channels=img_channels, scale=2
+        )
         x4 = self.pool3(x4_)
 
-        x = self.m_body(x4, physics=physics, y=y, img_channels=img_channels, scale=3)
+        x = self.m_body(
+            x4, physics=physics, y=y_list[3], img_channels=img_channels, scale=3
+        )
 
         x = self.up3(x + x4)
-        x = self.m_up3(x, physics=physics, y=y, img_channels=img_channels, scale=2)
+        x = self.m_up3(
+            x, physics=physics, y=y_list[2], img_channels=img_channels, scale=2
+        )
 
         x = self.up2(x + x3)
-        x = self.m_up2(x, physics=physics, y=y, img_channels=img_channels, scale=1)
+        x = self.m_up2(
+            x, physics=physics, y=y_list[1], img_channels=img_channels, scale=1
+        )
 
         x = self.up1(x + x2)
-        x = self.m_up1(x, physics=physics, y=y, img_channels=img_channels, scale=0)
+        x = self.m_up1(
+            x, physics=physics, y=y_list[0], img_channels=img_channels, scale=0
+        )
 
         x = self.m_tail(x + x1, img_channels)
 
         return x
 
-    def forward(self, y, physics=None, sigma=None, gain=None):
+    def forward(self, y, physics=None, sigma=None, gain=None, img_size=None):
         r"""
         Reconstructs a signal estimate from measurements y
 
+        .. note::
+
+            The noise levels `sigma` and `gain` can be kept as `None` if a noise model with :class:`GaussianNoise <deepinv.physics.GaussianNoise>`,
+            :class:`PoissonNoise <deepinv.physics.PoissonNoise>` or :class:`PoissonGaussianNoise <deepinv.physics.PoissonGaussianNoise>`
+            is specified in the physics. If both are provided, the `sigma` and `gain` values provided to the model will be used.
+
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float, torch.Tensor sigma: Gaussian noise level. Ignored if noise_model already specified in physics.
-        :param float, torch.Tensor gain: Poisson noise level. Ignored if noise_model already specified in physics.
+        :param float, torch.Tensor sigma: Gaussian noise level.
+        :param float, torch.Tensor gain: Poisson noise level.
+        :param tuple img_size: (optional) size of the image to reconstruct. If None, will be inferred automatically from the physics.
         :return: torch.Tensor: reconstructed signal estimate
         """
         if physics is None and sigma is None and gain is None:
@@ -243,26 +289,49 @@ class RAM(Reconstructor, Denoiser):
                 "Either physics, sigma or gain must be provided to the RAM model."
             )
 
-        if physics is None:
-            gain = self.gain_threshold if gain is None else gain
-            sigma = self.sigma_threshold if sigma is None else sigma
+        if isinstance(y, TensorList):
+            max_val = y[0].abs().reshape(y[0].size(0), -1).amax(dim=1, keepdim=False)
+        else:
+            max_val = y.abs().reshape(y.size(0), -1).amax(dim=1, keepdim=False)
 
-            physics = dinv.physics.Denoising(
-                noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
-            )
-
-        x_temp = physics.A_adjoint(y)
-
-        max_val = x_temp.abs().max()
-        rescale_val = 1.0 if max_val > 5 * self.sigma_threshold else max_val
-        y = y / rescale_val
-
-        sigma, gain = self.obtain_sigma_gain(
-            physics=physics, y=y, sigma=sigma, gain=gain, rescale_val=rescale_val
+        # rescale elements in the batch where max_val > 5 * sigma_threshold
+        rescale_val = torch.where(
+            max_val > 5 * self.sigma_threshold,
+            torch.tensor(1.0, device=max_val.device, dtype=max_val.dtype),
+            max_val,
         )
 
-        pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
-        physics = PhysicsCropper(physics, pad)
+        if isinstance(y, TensorList):
+            for yi in y:
+                yi /= rescale_val.view([yi.shape[0]] + [1] * (yi.ndim - 1))
+        else:
+            y = y / rescale_val.view([y.shape[0]] + [1] * (y.ndim - 1))
+
+        if physics is None:
+            physics = dinv.physics.Denoising(noise_model=dinv.physics.ZeroNoise())
+
+        if img_size is None:
+            if hasattr(physics, "img_shape") and physics.img_shape is not None:
+                img_size = physics.img_shape
+            elif hasattr(physics, "img_size") and physics.img_size is not None:
+                img_size = physics.img_size
+            else:
+                img_size = physics.A_adjoint(y).shape[1:]
+
+        sigma, gain = self.obtain_sigma_gain(
+            physics=physics,
+            sigma=sigma,
+            gain=gain,
+            rescale_val=rescale_val,
+            device=y.device,
+        )
+
+        pad = (-img_size[-2] % 8, -img_size[-1] % 8)
+
+        use_pad = False
+        if pad[0] != 0 or pad[1] != 0:
+            physics = PhysicsCropper(physics, pad)
+            use_pad = True
 
         x_in = physics.A_adjoint(y)
 
@@ -278,54 +347,62 @@ class RAM(Reconstructor, Denoiser):
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
-        out = physics.remove_pad(out) * rescale_val
+        if use_pad:
+            out = physics.remove_pad(out)
+
+        out = out * rescale_val.view([out.shape[0]] + [1] * (out.ndim - 1))
 
         return out
 
-    def obtain_sigma_gain(
-        self, physics=None, y=None, sigma=None, gain=None, rescale_val=1.0
-    ):
+    def obtain_sigma_gain(self, physics, sigma, gain, rescale_val, device="cpu"):
         r"""
         Defines the sigma and gain values to be used in the model.
 
         If a noise model is specified in the physics, the sigma and gain values will be taken from the noise model.
         Else, the sigma and gain values will be set to the thresholds defined in the model (if not provided).
 
-        :param deepinv.physics.Physics physics: Physics model
-        :param torch.Tensor y: Measurements
+        :param deepinv.physics.LinearPhysics physics: Physics operator
         :param float, torch.Tensor sigma: Gaussian noise level. If None, will be set to the threshold.
         :param float, torch.Tensor gain: Poisson noise level. If None, will be set to the threshold.
-        :param float rescale_val: Rescale value to apply to the sigma and gain values.
+        :param torch.Tensor rescale_val: Rescale value to apply to the sigma and gain values.
+        :param str, torch.device device: Device to which the sigma and gain values should be moved.
         """
-        if hasattr(physics, "noise_model"):
-            if sigma is not None or gain is not None:
-                warn(
-                    "noise_model specified in physics. Parameters passed to sigma or gain will be ignored."
-                )
-
+        if sigma is None:
             sigma = (
                 physics.noise_model.sigma / rescale_val
                 if hasattr(physics.noise_model, "sigma")
                 else self.sigma_threshold
+                * torch.ones(rescale_val.size(0), device=device)
             )
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
+        else:
+            sigma = sigma / rescale_val
+            if hasattr(physics.noise_model, "sigma"):
+                warn(
+                    "Both sigma provided to the model and a noise model in the physics. The sigma provided to the model will be used."
+                )
 
+        if gain is None:
             gain = (
                 physics.noise_model.gain / rescale_val
                 if hasattr(physics.noise_model, "gain")
                 else self.gain_threshold
+                * torch.ones(rescale_val.size(0), device=device)
             )
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
-            gain = self.gain_threshold if gain is None else gain
-            sigma = self.sigma_threshold if sigma is None else sigma
+            gain = gain / rescale_val
+            if hasattr(physics.noise_model, "gain"):
+                warn(
+                    "Both gain provided to the model and a noise model in the physics. The gain provided to the model will be used."
+                )
 
         if not isinstance(sigma, torch.Tensor) and not isinstance(sigma, TensorList):
-            sigma = torch.tensor(sigma, device=y.device)
+            sigma = torch.tensor(sigma, device=device)
         if not isinstance(gain, torch.Tensor) and not isinstance(gain, TensorList):
-            gain = torch.tensor(gain, device=y.device)
+            gain = torch.tensor(gain, device=device)
 
         return sigma, gain
 
@@ -398,16 +475,16 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     """
 
     if x_init is None:
-        x = p.A_adjoint(y)
+        x = y
     else:
-        x = x_init.clone()
+        x = x_init
 
     norm = factor**2  # Precompute normalization factor
-    AtA = lambda u: p.A_adjoint(p.A(u)) * norm  # Define the linear operator
+    AtA = lambda u: p.A_adjoint_A(u) * norm  # Define the linear operator
 
     v = v if v is not None else torch.zeros_like(x)
 
-    out = x.clone()
+    out = x
     # Compute Krylov basis
     x_k = x.clone()
     for i in range(N - 1):
@@ -463,23 +540,17 @@ class MeasCondBlock(nn.Module):
             skip_in=True,
         )
 
-        self.gain = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
-        self.gain_gradx = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_grady = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_pinvx = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-        self.gain_pinvy = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
-
     def forward(self, x, y, physics, img_channels=None, scale=1):
         physics.set_scale(scale)
         dec = self.decoding_conv(x, img_channels)
         factor = 2 ** (scale)
-        meas_y = krylov_embeddings(y, physics, factor, N=self.N)
+        meas_y = y
         meas_dec = krylov_embeddings(
-            y, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
+            None, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
         )
         for c in range(1, self.c_mult):
             meas_cur = krylov_embeddings(
-                y,
+                None,
                 physics,
                 factor,
                 N=self.N,
@@ -599,23 +670,19 @@ class InHead(torch.nn.Module):
 
     :param list[int] in_channels_list: List of input channels for each head.
     :param int out_channels: Number of output channels for the convolution.
-    :param str mode: Mode for the convolution, e.g., "" or "affine".
     :param bool bias: Whether to use bias in the convolution.
     :param bool input_layer: If True, this will be considered as an input layer (necessitating a channel number adjustment), otherwise it will not.
     """
 
-    def __init__(
-        self, in_channels_list, out_channels, mode="", bias=False, input_layer=False
-    ):
+    def __init__(self, in_channels_list, out_channels, bias=False, input_layer=False):
         super(InHead, self).__init__()
         self.in_channels_list = in_channels_list
         self.input_layer = input_layer
         for i, in_channels in enumerate(in_channels_list):
-            conv = AffineConv2d(
+            conv = torch.nn.Conv2d(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 bias=bias,
-                mode=mode,
                 kernel_size=3,
                 stride=1,
                 padding=1,
@@ -641,20 +708,18 @@ class OutTail(torch.nn.Module):
 
     :param int in_channels: Number of input channels.
     :param list[int] out_channels_list: List of output channels for each tail.
-    :param str mode: Mode for the convolution, e.g., "" or "affine".
     :param bool bias: Whether to use bias in the convolution.
     """
 
-    def __init__(self, in_channels, out_channels_list, mode="", bias=False):
+    def __init__(self, in_channels, out_channels_list, bias=False):
         super(OutTail, self).__init__()
         self.in_channels = in_channels
         self.out_channels_list = out_channels_list
         for i, out_channels in enumerate(out_channels_list):
-            conv = AffineConv2d(
+            conv = torch.nn.Conv2d(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 bias=bias,
-                mode=mode,
                 kernel_size=3,
                 stride=1,
                 padding=1,
@@ -898,92 +963,6 @@ class HeadBlock(torch.nn.Module):
             x = aux_0 + aux_1
 
         return x
-
-
-class AffineConv2d(nn.Conv2d):
-    r"""
-    Convolutional layer with optional affine property.
-
-    An affine convolutional layer :math:`c` satisfies the following property:
-
-    .. math::
-        c(\alpha x + \beta) = \alpha c(x) + \beta
-
-    :param int in_channels: Number of input channels.
-    :param int out_channels: Number of output channels.
-    :param int kernel_size: Size of the convolution kernel.
-    :param str mode: Mode of the convolution, e.g., "affine" or "". If mode is "affine", the convolution will be affine, otherwise it will be a standard convolution.
-    :param bool bias: Whether to use bias in the convolution. Note that if `mode` is "affine", `bias` will be set to False.
-    :param int stride: Stride of the convolution.
-    :param int padding: Padding for the convolution.
-    :param int dilation: Dilation for the convolution.
-    :param int groups: Number of groups for the convolution.
-    :param str padding_mode: Padding mode for the convolution, e.g., "circular" or "zeros".
-    :param bool blind: If True, applies the affine transformation to the weight, otherwise keeps the original weight.
-    """
-
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        mode="affine",
-        bias=False,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        padding_mode="circular",
-        blind=True,
-    ):
-        if mode == "affine":
-            bias = False
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            bias=bias,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-            groups=groups,
-            padding_mode=padding_mode,
-        )
-        self.blind = blind
-        self.mode = mode
-
-    def affine(self, w):
-        return (
-            w.view(self.out_channels, -1).roll(1, 1).view(w.size())
-            - w
-            + 1 / w[0, ...].numel()
-        )
-
-    def forward(self, x):
-        if self.mode != "affine":
-            return super().forward(x)
-        else:
-            kernel = (
-                self.affine(self.weight)
-                if self.blind
-                else torch.cat(
-                    (self.affine(self.weight[:, :-1, :, :]), self.weight[:, -1:, :, :]),
-                    dim=1,
-                )
-            )
-            padding = tuple(
-                elt for elt in reversed(self.padding) for _ in range(2)
-            )  # used to translate padding arg used by Conv module to the ones used by F.pad
-            padding_mode = (
-                self.padding_mode if self.padding_mode != "zeros" else "constant"
-            )  # used to translate padding_mode arg used by Conv module to the ones used by F.pad
-            return F.conv2d(
-                F.pad(x, padding, mode=padding_mode),
-                kernel,
-                stride=self.stride,
-                dilation=self.dilation,
-                groups=self.groups,
-            )
 
 
 def sequential(*args):

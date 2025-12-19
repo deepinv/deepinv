@@ -1,17 +1,41 @@
 """Signal processing utilities"""
 
-from typing import Optional
+from __future__ import annotations
+from warnings import warn
+
 import torch
 
 
-def normalize_signal(inp, *, mode):
+def normalize_signal(
+    inp: torch.Tensor,
+    *,
+    mode: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
+) -> torch.Tensor:
     r"""
     Normalize a batch of signals between zero and one.
 
-    :param torch.Tensor inp: the input signal to normalize, it should be of shape (B, *).
-    :param str mode: the normalization, either 'min_max' for min-max normalization or 'clip' for clipping. Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant value to the closest value between zero and one (which is equivalent to clipping).
+    :param torch.Tensor inp: the input signal to normalize, it should be of shape `(B, *)`.
+    :param str mode: the normalization, either `'min_max'` for min-max normalization or `'clip'` for clipping.
+        If ``clip`` is selected, the values of ``vmin`` and ``vmax`` are used as clipping bounds if provided,
+        otherwise the default bounds of 0.0 and 1.0 are used.
+        Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant
+        value to the closest value between zero and one (which is equivalent to clipping).
     :return: the normalized batch of signals.
+
     """
+    if mode != "clip":
+        if vmin is not None or vmax is not None:
+            warn(
+                "The vmin and vmax arguments are used only when using 'clip' rescaling.",
+                UserWarning,
+                stacklevel=2,
+            )
+    if vmin is not None and vmax is not None and vmin >= vmax:
+        raise ValueError(
+            f"vmin should be strictly less than vmax, got vmin={vmin} and vmax={vmax}."
+        )
     if mode == "min_max":
         # Compute the minimum and maximum intensity of the batched signals
         non_batched_dims = list(range(1, inp.ndim))
@@ -40,7 +64,13 @@ def normalize_signal(inp, *, mode):
         inp[indices] = inp[indices].clamp(min=0.0, max=1.0)
     elif mode == "clip":
         # Clamp every batched signal between zero and one
-        inp = inp.clamp(min=0.0, max=1.0)
+        if vmin is None:
+            vmin = 0.0
+        if vmax is None:
+            vmax = 1.0
+        inp = inp.clamp(min=vmin, max=vmax)
+        inp = (inp - vmin) / (vmax - vmin + 1e-12)  # rescale to [0, 1]
+
     else:  # pragma: no cover
         raise ValueError(
             f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."
@@ -49,7 +79,7 @@ def normalize_signal(inp, *, mode):
     return inp
 
 
-def complex_abs(data: Optional[torch.Tensor], dim=1, keepdim=True):
+def complex_abs(data: torch.Tensor | None, dim=1, keepdim=True):
     """
     Compute the absolute value of a complex valued input tensor.
 
@@ -67,4 +97,4 @@ def complex_abs(data: Optional[torch.Tensor], dim=1, keepdim=True):
         return torch.abs(data)
     else:
         assert data.size(dim) == 2
-        return (data**2).sum(dim=dim, keepdim=keepdim).sqrt()
+        return torch.linalg.vector_norm(data, dim=dim, ord=2, keepdim=keepdim)
