@@ -564,12 +564,16 @@ class BlurFFT(DecomposablePhysics):
         self.to(device)
 
     def A(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
-        self.update_parameters(filter=filter, **kwargs)
-        return super().A(x)
+        filter_parameters = self.get_filter_parameters(
+            img_size=self.img_size, filter=filter, device=x.device
+        )
+        return super().A(x, **filter_parameters)
 
     def A_adjoint(self, x: Tensor, filter: Tensor | None = None, **kwargs) -> Tensor:
-        self.update_parameters(filter=filter, **kwargs)
-        return super().A_adjoint(x)
+        filter_parameters = self.get_filter_parameters(
+            img_size=self.img_size, filter=filter, device=x.device
+        )
+        return super().A_adjoint(x, **filter_parameters)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
@@ -625,26 +629,6 @@ class BlurFFT(DecomposablePhysics):
             parameters["mask"] = None
 
         return parameters
-
-    def update_parameters(
-        self, filter: Tensor | None = None, device: torch.device | str = "cpu", **kwargs
-    ):
-        r"""
-        Updates the current filter.
-
-        :param torch.Tensor filter: New filter to be applied to the input image.
-        :param torch.device, str device: If needed, device where the filter tensor will be created.
-        """
-        filter_parameters = self.get_filter_parameters(
-            img_size=self.img_size, filter=filter, device=device
-        )
-
-        # In BlurFFT.A, `update_parameters` is called two times:
-        # 1. first from BlurFFT.A with filter=filter
-        # 2. second from DecomposablePhysics.A with mask=None (which goes in kwargs here and compete with filter_parameters['mask']).
-        # We call update_parameters two times to avoid this issue.
-        super().update_parameters(**filter_parameters)
-        super().update_parameters(**kwargs)
 
 
 class SpaceVaryingBlur(LinearPhysics):
