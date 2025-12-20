@@ -970,6 +970,7 @@ class CosineSimilarity(Metric):
         # store cosine similarity function
         # we compute per-element similarities manually (not using torch metric class)
         self.cos = torch.nn.functional.cosine_similarity
+        self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
         # flatten everything except batch dimension
@@ -983,3 +984,6 @@ class CosineSimilarity(Metric):
 
         # our Metric base class applies reduction afterward
         return sim
+
+    def invert_metric(self, m):
+        return 1.0 - m
