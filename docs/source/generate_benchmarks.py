@@ -3,8 +3,6 @@ import pandas as pd
 from sphinx.application import Sphinx
 import subprocess
 
-
-# Global variable to store benchmark mappings
 benchmark_mapping = {}
 
 
@@ -49,6 +47,17 @@ Benchmark results for {benchmark_name.replace('-', ' ').replace('_', ' ')}.
     lines.append("   :header-rows: 1")
     lines.append("")
 
+    # Add link to 'model' column if exists
+    if "model" in df.columns and "file" in df.columns:
+        for i, row in df.iterrows():
+            model_name = row["model"]
+            file_link = row["file"]
+            link_cell = f"`{model_name} <{file_link}>`_"
+            df.at[i, "model"] = link_cell  # Update the DataFrame directly
+
+        # remove 'file' column from display
+        df = df.drop(columns=["file"])
+
     # Header row
     header_cells = df.columns.tolist()
     lines.append("   * - " + "\n     - ".join(map(str, header_cells)))
@@ -66,10 +75,6 @@ Benchmark results for {benchmark_name.replace('-', ' ').replace('_', ' ')}.
     # Write rst
     with open(rst_path, "w") as f:
         f.write("\n".join(lines))
-
-    # Add mapping for dataset and physics
-    benchmark_mapping[dataset] = benchmark_name
-    benchmark_mapping[physics] = benchmark_name
 
     return benchmark_name, dataset, physics, noise
 
@@ -161,13 +166,56 @@ def on_builder_inited(app):
                 parquet_file, output_dir, benchmark_name
             )
             benchmark_info.append((name, dataset, physics, noise))
+
+            # Add mapping for dataset and physics
+            if dataset not in benchmark_mapping:
+                benchmark_mapping[dataset] = [name]
+            else:
+                benchmark_mapping[dataset].append(name)
+            if physics not in benchmark_mapping:
+                benchmark_mapping[physics] = [name]
+            else:
+                benchmark_mapping[physics].append(name)
+            if noise not in benchmark_mapping:
+                benchmark_mapping[noise] = [name]
+            else:
+                benchmark_mapping[noise].append(name)
+
         except Exception as e:
             print(f"Failed to process {parquet_file}: {str(e)}")
 
     generate_benchmarks_rst(benchmark_info, source_dir)
 
 
+def add_benchmark_section(app, what, name, obj, options, lines):
+    if what != "class":
+        return
+
+    mapping = benchmark_mapping
+    if not mapping:
+        return
+
+    short = name.split(".")[-1]
+
+    if short not in mapping:
+        return
+
+    lines.extend(
+        [
+            "",
+            "|sep|",
+            "",
+            ":Used in benchmarks:",
+            "",
+        ]
+    )
+    for benchmark in mapping[short]:
+        lines.append(f"- :ref:`{benchmark.replace('-', '_').replace(' ', '_')}`")
+
+    lines.append("")
+
+
 def setup(app: Sphinx):
     app.connect("builder-inited", on_builder_inited)
-    app.add_config_value("benchmark_mapping", {}, "env")
+    app.connect("autodoc-process-docstring", add_benchmark_section)
     return {"version": "1.0"}
