@@ -48,7 +48,7 @@ Want to solve an issue or contribute something new to DeepInverse? Never contrib
 The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
 to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
 
-Once, you've opened a (draft) pull request (PR) in GitHub with your contribution, you should be able to see it under `Pull Requests <https://github.com/deepinv/deepinv/pulls>`_.
+Once you've opened a (draft) pull request (PR) in GitHub with your contribution, you should be able to see it under `Pull Requests <https://github.com/deepinv/deepinv/pulls>`_.
 You're ready to move on!
 
 .. note::
@@ -91,8 +91,7 @@ How to write and run tests:
 
 Writing good documentation is also crucial for helping other users use your code. This is how:
 
-1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples!
-Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
+1. Write good quality `docstrings <https://realpython.com/how-to-write-docstrings-in-python/>`_ for each new class, method or function. Have a look at any other class or method in DeepInverse to see examples! Please follow our :ref:`docstring guidelines below <docstring_guidelines>`.
 2. If you wrote a new class or function, add it to the lists in the `API reference <https://deepinv.github.io/deepinv/API.html>`_ and `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 3. Want to share more about your new feature? Consider writing an `example <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ in `examples/`!
 4. Check that your documentation is correct by building the docs locally. First `cd docs`, then we use `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_ to build:
