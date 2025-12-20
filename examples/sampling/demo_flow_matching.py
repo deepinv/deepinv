@@ -82,7 +82,7 @@ denoiser = MMSE(dataloader=tensors.clone(), device=device, dtype=torch.float32)
 # %% Define the Flow-Matching ODE and perform unconditional generation
 # ---------------------------------------------------------------------
 #
-# The FlowMatching module :class:`FlowMatching` uses by default the following schedules: :math:`a_t=1-t`, :math:`b_t=t`.
+# The FlowMatching module :class:`deepinv.sampling.FlowMatching` uses by default the following schedules: :math:`a_t=1-t`, :math:`b_t=t`.
 # The module FlowMatching module takes as input the denoiser and the ODE solver.
 
 num_steps = 20
