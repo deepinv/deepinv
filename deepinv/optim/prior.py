@@ -37,41 +37,39 @@ class Prior(Potential):
         self.explicit_prior = False if self._fn is None else True
 
 
-class Zero(Prior):
+class ZeroPrior(Prior):
     r"""
     Zero prior :math:`\reg{x} = 0`.
     """
 
     def __init__(self):
         super().__init__()
-
-        def forward(x, *args, **kwargs):
-            return torch.tensor(0.0)
-
-        self._g = forward
         self.explicit_prior = True
 
     def fn(self, x, *args, **kwargs):
         r"""
-        Computes the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
-        return torch.zeros_like(x)
+        return torch.zeros(x.shape[0], device=x.device)
 
     def grad(self, x, *args, **kwargs):
         r"""
-        Computes the gradient of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the gradient of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns a tensor of zeros of the same shape as :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
         return torch.zeros_like(x)
 
     def prox(self, x, ths=1.0, gamma=1.0, *args, **kwargs):
         r"""
-        Computes the proximal operator of the zero prior :math:`\reg(x) = 0` at :math:`x`.
+        Computes the proximal operator of the zero prior :math:`\reg{x} = 0` at :math:`x`.
 
-        It returns the identity :math:`x`.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return x
 

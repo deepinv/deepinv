@@ -14,7 +14,7 @@ Changed
 
 Fixed
 ^^^^^
-
+- Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
 
 v0.3.7
 ------
