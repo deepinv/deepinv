@@ -450,25 +450,20 @@ def _test_multiprocess_physics_worker(rank, world_size, args):
         # Test operation
         x = args["x"].to(ctx.device)
 
-        if args.get("test_adjoint"):
-            y = distributed_physics.A(x)
-            result = distributed_physics.A_adjoint(y)
-            assert result.shape == x.shape
-        else:
-            result = distributed_physics.A(x)
+        result = distributed_physics.A(x)
 
-            # Verify structure
-            assert len(result) == args["num_operators"]
-            assert all(yi.device == ctx.device for yi in result)
+        # Verify structure
+        assert len(result) == args["num_operators"]
+        assert all(yi.device == ctx.device for yi in result)
 
-            # Compare with reference
-            reference = StackedLinearPhysics(
-                create_test_physics_list(ctx.device, args["num_operators"])
-            )
-            y_ref = reference.A(x)
+        # Compare with reference
+        reference = StackedLinearPhysics(
+            create_test_physics_list(ctx.device, args["num_operators"])
+        )
+        y_ref = reference.A(x)
 
-            for i in range(args["num_operators"]):
-                assert torch.allclose(result[i], y_ref[i], atol=1e-5)
+        for i in range(args["num_operators"]):
+            assert torch.allclose(result[i], y_ref[i], atol=1e-5)
 
         # Return success indicator
         return "success"
@@ -491,7 +486,6 @@ def test_distribute_physics(device_config, gather_strategy, physics_spec):
         "spec_type": physics_spec,
         "gather_strategy": gather_strategy,
         "device_mode": device_config["device_mode"],
-        "test_adjoint": False,
     }
 
     results = run_distributed_test(
@@ -530,7 +524,7 @@ def _test_multiprocess_processor_worker(rank, world_size, args):
         return {"result_norm": result.norm().item(), "rank": rank}
 
 
-@pytest.mark.parametrize("tiling_strategy", ["basic", "smart_tiling"])
+@pytest.mark.parametrize("tiling_strategy", ["basic", "overlap_tiling"])
 @pytest.mark.parametrize("denoiser_spec", ["simple", "drunet"])
 def test_distribute_processor(device_config, tiling_strategy, denoiser_spec):
     """Test processor distribution in multi-process mode."""
@@ -810,57 +804,66 @@ def _test_adjoint_operations_worker(rank, world_size, args):
     with DistributedContext(device_mode=args["device_mode"], seed=42) as ctx:
         physics_list = create_test_physics_list(ctx.device, 3)
         distributed_physics = distribute(
-            physics_list, ctx=ctx, gather_strategy=args["gather_strategy"]
+            physics_list,
+            ctx=ctx,
+            gather_strategy=args["gather_strategy"],
+            reduction=args["reduction"],
+        )
+        stacked_physics = StackedLinearPhysics(
+            physics_list, reduction=args["reduction"]
         )
 
-        x = torch.randn(1, 1, 16, 16, device=ctx.device)
+        x = args["x"].to(ctx.device)
 
         # Test A and A_adjoint
         y = distributed_physics.A(x)
         x_adj = distributed_physics.A_adjoint(y)
+        x_adj_ref = stacked_physics.A_adjoint(y)
         assert x_adj.shape == x.shape
+        assert torch.allclose(x_adj, x_adj_ref, atol=1e-5)
 
         # Test A_vjp
-        v = y  # Use y as cotangent vector
-        x_vjp = distributed_physics.A_vjp(x, v)
+        # Use y as cotangent vector
+        x_vjp = distributed_physics.A_vjp(x, y)
+        x_vjp_ref = stacked_physics.A_vjp(x, y)
         assert x_vjp.shape == x.shape
         # A_vjp should equal A_adjoint for LinearPhysics
-        assert torch.allclose(x_vjp, x_adj, atol=1e-5)
+        assert torch.allclose(x_vjp, x_vjp_ref, atol=1e-5)
 
         # Test A_adjoint_A
         x_ata = distributed_physics.A_adjoint_A(x)
+        x_ata_ref = stacked_physics.A_adjoint_A(x)
         assert x_ata.shape == x.shape
+        assert torch.allclose(x_ata, x_ata_ref, atol=1e-5)
 
         # Test A_A_adjoint - should return TensorList like StackedLinearPhysics
         y_aat = distributed_physics.A_A_adjoint(y)
+        y_aat_stacked = stacked_physics.A_A_adjoint(y)
         assert isinstance(y_aat, TensorList), "A_A_adjoint should return TensorList"
         assert len(y_aat) == len(
             physics_list
         ), "TensorList should have one entry per operator"
-
-        # Verify it matches StackedLinearPhysics behavior
-        stacked_physics = StackedLinearPhysics(physics_list)
-        y_aat_stacked = stacked_physics.A_A_adjoint(y)
-        assert isinstance(
-            y_aat_stacked, TensorList
-        ), "StackedLinearPhysics should also return TensorList"
         for i in range(len(physics_list)):
             assert torch.allclose(
                 y_aat[i], y_aat_stacked[i], atol=1e-5
             ), f"Mismatch at operator {i}"
-
         return "success"
 
 
-def test_adjoint_operations(device_config, gather_strategy):
+@pytest.mark.parametrize("reduction", ["sum", "mean"])
+def test_adjoint_operations(device_config, gather_strategy, reduction):
     """Test A_adjoint, A_vjp, A_adjoint_A, A_A_adjoint operations."""
     # Skip naive strategy with multi-GPU (NCCL doesn't support all_gather_object)
     if gather_strategy == "naive" and device_config["device_mode"] == "gpu":
         pytest.skip("Naive gather strategy not supported with NCCL backend (gpu_multi)")
 
+    torch.manual_seed(42)
+    x = torch.randn(1, 1, 16, 16)
     test_args = {
         "device_mode": device_config["device_mode"],
         "gather_strategy": gather_strategy,
+        "reduction": reduction,
+        "x": x,
     }
     results = run_distributed_test(
         _test_adjoint_operations_worker, device_config, test_args
@@ -1047,14 +1050,19 @@ def _test_processor_different_patch_sizes_worker(rank, world_size, args):
                 processor,
                 ctx,
                 type_object="denoiser",
-                tiling_strategy="smart_tiling",
+                tiling_strategy="overlap_tiling",
                 patch_size=patch_size,
                 receptive_field_size=2,
             )
 
             x = torch.randn(1, 3, 16, 16, device=ctx.device)
-            result = distributed_processor(x, sigma=0.1)
-            assert result.shape == x.shape
+
+            if patch_size == 16:
+                with pytest.raises(ValueError):
+                    result = distributed_processor(x, sigma=0.1)
+            else:
+                result = distributed_processor(x, sigma=0.1)
+                assert result.shape == x.shape
         return "success"
 
 
@@ -1084,7 +1092,7 @@ def _test_processor_max_batch_size_worker(rank, world_size, args):
                 processor,
                 ctx,
                 type_object="denoiser",
-                tiling_strategy="smart_tiling",
+                tiling_strategy="overlap_tiling",
                 patch_size=8,
                 receptive_field_size=2,
                 max_batch_size=max_batch,
@@ -1119,7 +1127,7 @@ def _test_processor_3d_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="denoiser",
-            tiling_strategy="smart_tiling",
+            tiling_strategy="overlap_tiling",
             patch_size=8,
             receptive_field_size=2,
         )
@@ -1307,7 +1315,7 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
             processor,
             ctx,
             type_object="denoiser",
-            tiling_strategy="smart_tiling",
+            tiling_strategy="overlap_tiling",
             patch_size=8,
             receptive_field_size=2,
         )
@@ -1320,7 +1328,9 @@ def _test_reduce_false_processor_worker(rank, world_size, args):
 
         # Test with reduce=False if supported
         result_local = distributed_processor(x, reduce=False, sigma=0.1)
-        assert isinstance(result_local, list) or torch.is_tensor(result_local)
+        assert torch.is_tensor(
+            result_local
+        )  # Same tensor but a lot of zeros (patches not processed locally)
 
     return "success"
 

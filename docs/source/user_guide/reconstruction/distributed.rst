@@ -287,7 +287,7 @@ Denoisers can be distributed using **spatial tiling** to handle large images.
 Basic Usage
 ~~~~~~~~~~~
 
-.. code-block:: python
+.. testcode::
 
     from deepinv.models import DRUNet
     from deepinv.distributed import DistributedContext, distribute
@@ -303,10 +303,19 @@ Basic Usage
             patch_size=256,           # Size of each patch
             receptive_field_size=64,  # Overlap for smooth boundaries
         )
-        
-        # Process large images
-        large_image = torch.randn(1, 3, 2048, 2048, device=ctx.device)
-        denoised = dist_denoiser(large_image, sigma=0.05)
+
+        # Process image
+        image = torch.randn(1, 3, 512, 512, device=ctx.device)
+
+        with torch.no_grad():
+            denoised = dist_denoiser(image, sigma=0.05)
+
+        if ctx.rank == 0:
+            print("Denoised image shape:", denoised.shape)
+
+.. testoutput::
+
+    Denoised image shape: torch.Size([1, 3, 512, 512])
 
 How It Works
 ~~~~~~~~~~~~
@@ -330,7 +339,7 @@ Tiling Parameters
    * - ``receptive_field_size``
      - Overlap radius for smooth blending (default: 64). Should match denoiser's receptive field
    * - ``tiling_strategy``
-     - Strategy for tiling: ``'smart_tiling'`` (default), or ``'basic'``
+     - Strategy for tiling: ``'overlap_tiling'`` (default), or ``'basic'``
    * - ``max_batch_size``
      - Max patches per batch (default: all). Set to 1 for sequential processing (lowest memory)
 
@@ -340,7 +349,7 @@ Tiling Strategies
 .. code-block:: python
 
     # Tiling with overlap (default)
-    dist_denoiser = distribute(denoiser, ctx, tiling_strategy="smart_tiling")
+    dist_denoiser = distribute(denoiser, ctx, tiling_strategy="overlap_tiling")
     
     # Basic (no overlap blending)
     dist_denoiser = distribute(denoiser, ctx, tiling_strategy="basic")
@@ -379,8 +388,12 @@ Here's a complete example of distributed PnP reconstruction:
 
         physics_list = []
         for kernel in kernels:
-            blur = Blur(filter=kernel, padding="circular", device=str(ctx.device))
-            blur.noise_model = GaussianNoise(sigma=0.03)
+            blur = Blur(
+                filter=kernel,
+                padding="circular",
+                device=str(ctx.device),
+                noise_model=GaussianNoise(sigma=0.03),
+            )
             physics_list.append(blur)
 
         stacked_physics = stack(*physics_list)

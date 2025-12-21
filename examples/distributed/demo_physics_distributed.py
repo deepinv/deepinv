@@ -88,10 +88,10 @@ def create_stacked_physics(device, img_size=1024):
 
     for kernel in kernels:
         # Create blur operator with circular padding
-        blur_op = Blur(filter=kernel, padding="circular", device=str(device))
-        blur_op = blur_op.to(device)
+        physics = Blur(filter=kernel, padding="circular", device=str(device))
+        physics = physics.to(device)
 
-        physics_list.append(blur_op)
+        physics_list.append(physics)
 
     # Stack physics operators into a single operator
     stacked_physics = stack(*physics_list)
@@ -143,7 +143,7 @@ with DistributedContext(seed=42) as ctx:
     distributed_physics = distribute(stacked_physics, ctx)
 
     if ctx.rank == 0:
-        print(f"\n🔧 Distributed physics created")
+        print(f"\n Distributed physics created")
         print(
             f"   Local operators on this rank: {len(distributed_physics.local_indexes)}"
         )
@@ -153,7 +153,7 @@ with DistributedContext(seed=42) as ctx:
     # ============================================================================
 
     if ctx.rank == 0:
-        print(f"\n🔄 Testing forward operation (A)...")
+        print(f"\n Testing forward operation (A)...")
 
     # Apply distributed forward operation
     measurements = distributed_physics(clean_image)
@@ -166,7 +166,7 @@ with DistributedContext(seed=42) as ctx:
         for i, m in enumerate(measurements):
             print(f"   Measurement {i} shape: {m.shape}")
 
-        print(f"\n🔍 Comparing with non-distributed forward operation...")
+        print(f"\n Comparing with non-distributed forward operation...")
         measurements_ref = stacked_physics(clean_image)
 
         max_diff = 0.0

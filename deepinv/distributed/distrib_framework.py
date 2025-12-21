@@ -11,7 +11,7 @@ from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.utils.tensorlist import TensorList
 
-from deepinv.distributed.strategies import DistributedSignalStrategy
+from deepinv.distributed.strategies import DistributedSignalStrategy, create_strategy
 
 Index = tuple[slice | int, ...]
 
@@ -29,14 +29,14 @@ class DistributedContext:
       - Device selection based on `LOCAL_RANK` and visible GPUs
       - Sharding helpers and tiny communication helpers
 
-    :param str backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
+    :param str | None backend: backend to use for distributed communication. If `None` (default), automatically selects NCCL for GPU or Gloo for CPU.
     :param bool cleanup: whether to clean up the process group on exit. Default is `True`.
-    :param int seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.
+    :param int | None seed: random seed for reproducible results. If provided, behavior depends on `seed_offset`. Default is `None`.
     :param bool seed_offset: whether to add rank offset to seed (each rank gets `seed + rank`). Default is `True`.
         When `True`: each process uses a unique seed for diverse random sequences.
         When `False`: all processes share the same seed for synchronized randomness.
     :param bool deterministic: whether to use deterministic cuDNN operations. Default is `False`.
-    :param str device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
+    :param str | None device_mode: device selection mode. Options are `'cpu'`, `'gpu'`, or `None` for automatic. Default is `None`.
 
     """
 
@@ -127,7 +127,7 @@ class DistributedContext:
             self.device = torch.device("cpu")
         elif self.device_mode == "gpu":
             # Force GPU mode (require CUDA)
-            if not torch.cuda.is_available() or visible_gpus == 0:
+            if not cuda_ok:
                 raise RuntimeError(
                     "GPU mode requested but CUDA not available or no visible GPUs"
                 )
@@ -141,7 +141,7 @@ class DistributedContext:
             torch.cuda.set_device(self.device)
         else:
             # Auto mode
-            if torch.cuda.is_available() and visible_gpus > 0:
+            if cuda_ok:
                 # When CUDA_VISIBLE_DEVICES is set externally (e.g., by SLURM/submitit),
                 # each process sees only its assigned GPU(s). In this case, if there's
                 # only 1 visible GPU per process, just use cuda:0 for all processes.
@@ -236,6 +236,7 @@ class DistributedContext:
 
         :param torch.Tensor tensor: tensor to broadcast (modified in-place).
         :param int src: source rank to broadcast from. Default is `0`.
+        :return: the broadcasted tensor.
         """
 
         if self.is_dist:
@@ -349,6 +350,14 @@ class DistributedContext:
                 all_metadata.extend(rank_metadata)
 
         # Determine canonical dtype for all_gather (use first tensor's dtype for consistency)
+
+        # Check that all tensors have the same dtype
+        dtypes = {meta[2] for meta in all_metadata}
+        if len(dtypes) > 1:
+            raise RuntimeError(
+                f"All tensors must have the same dtype for concatenated gather, but found: {dtypes}"
+            )
+
         if all_metadata:
             canonical_dtype = all_metadata[0][2]  # dtype from first tensor
         else:
@@ -551,8 +560,8 @@ class DistributedStackedPhysics(Physics):
     :param DistributedContext ctx: distributed context manager.
     :param int num_operators: total number of physics operators.
     :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, shared) -> Physics`.
-    :param None, dict shared: shared data dictionary passed to factory function.
-    :param None, torch.dtype dtype: data type for operations.
+    :param dict | None shared: shared data dictionary passed to factory function. Default is `None`.
+    :param torch.dtype | None dtype: data type for operations. Default is `None`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
         - `'naive'`: Simple object serialization (best for small tensors)
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
@@ -620,8 +629,9 @@ class DistributedStackedPhysics(Physics):
         :param torch.Tensor | list[torch.Tensor] x: input tensor(s). If a list,
             should match the number of local operators (per-operator inputs).
         :param Callable local_op: operation to apply, e.g., lambda p, x: p.A(x)
-        :param bool reduce: whether to gather results across ranks.
-        :param bool sum_results: if True, sum all gathered results into a single tensor
+        :param bool reduce: whether to gather results across ranks. Default is `True`.
+        :param bool sum_results: if True, sum all gathered results into a single tensor. Default is `False`.
+        :param kwargs: additional keyword arguments passed to local_op.
         :return: TensorList of gathered results, list of local results, or summed tensor
         """
         # Handle per-operator inputs (e.g., for A_adjoint where each operator gets different y_i)
@@ -687,8 +697,8 @@ class DistributedStackedPhysics(Physics):
         results from all ranks using the configured gather strategy.
 
         :param torch.Tensor x: input signal.
-        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements.
-        :param dict kwargs: optional parameters for the forward operator.
+        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
+        :param kwargs: optional parameters for the forward operator.
         :return: complete list of measurements from all operators (or local list if `reduce=False`).
         """
         return self._map_reduce(
@@ -704,8 +714,8 @@ class DistributedStackedPhysics(Physics):
             y = N(A(x))
 
         :param torch.Tensor x: input signal.
-        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements.
-        :param dict kwargs: optional parameters for the forward model.
+        :param bool reduce: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.
+        :param kwargs: optional parameters for the forward model.
         :return: complete list of noisy measurements from all operators.
         """
         return self._map_reduce(
@@ -740,10 +750,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
     :param int num_operators: total number of physics operators to distribute.
     :param Callable factory: factory function that creates linear physics operators.
         Should have signature `factory(index: int, device: torch.device, shared: dict | None) -> LinearPhysics`.
-    :param None, dict shared: shared data dictionary passed to factory function for all operators.
+    :param dict | None shared: shared data dictionary passed to factory function for all operators. Default is `None`.
     :param str reduction: reduction mode for distributed operations. Options are `'sum'` (stack operators)
         or `'mean'` (average operators). Default is `'sum'`.
-    :param None, torch.dtype dtype: data type for operations.
+    :param torch.dtype | None dtype: data type for operations. Default is `None`.
     :param str gather_strategy: strategy for gathering distributed results in forward operations.
         Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.
     """
@@ -790,9 +800,9 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         across all ranks to obtain the complete :math:`A^T y` where :math:`A` is the
         stacked operator :math:`A = [A_1, A_2, \ldots, A_n]` and :math:`A_i` are the individual linear operators.
 
-        :param TensorList y: full list of measurements from all operators.
-        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
-        :param dict kwargs: optional parameters for the adjoint operation.
+        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution. Default is `True`.
+        :param kwargs: optional parameters for the adjoint operation.
         :return: complete adjoint result :math:`A^T y` (or local contribution if reduce=False).
         """
         # Extract local measurements
@@ -837,9 +847,9 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         across all ranks to obtain the complete VJP.
 
         :param torch.Tensor x: input tensor.
-        :param TensorList v: full list of cotangent vectors from all operators.
-        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
-        :param dict kwargs: optional parameters for the VJP operation.
+        :param TensorList | list[torch.Tensor] v: full list of cotangent vectors from all operators.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution. Default is `True`.
+        :param kwargs: optional parameters for the VJP operation.
         :return: complete VJP result (or local contribution if reduce=False).
         """
         if isinstance(v, TensorList):
@@ -877,8 +887,8 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
         combining local contributions from all ranks.
 
         :param torch.Tensor x: input tensor.
-        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
-        :param dict kwargs: optional parameters for the operation.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution. Default is `True`.
+        :param kwargs: optional parameters for the operation.
         :return: complete :math:`A^T A x` result (or local contribution if reduce=False).
         """
         if len(self.local_physics) == 0:
@@ -909,10 +919,10 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             `A_A_adjoint` requires the full adjoint `sum_i A_i^T y_i`. The `reduce` parameter only
             controls whether the final forward operation `A(...)` is gathered across ranks.
 
-        :param TensorList y: full list of measurements from all operators.
+        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.
         :param bool reduce: whether to gather final results across ranks. If `False`, returns only local
-            operators' contributions (but still uses the global adjoint).
-        :param dict kwargs: optional parameters for the operation.
+            operators' contributions (but still uses the global adjoint). Default is `True`.
+        :param kwargs: optional parameters for the operation.
         :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `reduce=False`).
         """
         # First compute A^T y globally (always with reduction to get the full adjoint)
@@ -981,16 +991,16 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.
             This computes the exact pseudoinverse but requires communication at every iteration.
 
-        :param TensorList y: measurements to invert.
+        :param TensorList | list[torch.Tensor] y: measurements to invert.
         :param str solver: least squares solver to use (only for `local_only=False`).
-            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`.
-        :param None, int max_iter: maximum number of iterations for least squares solver.
-        :param None, float tol: relative tolerance for least squares solver.
-        :param bool verbose: print information (only on rank 0).
+            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. Default is `'CG'`.
+        :param int | None max_iter: maximum number of iterations for least squares solver. Default is `None`.
+        :param float | None tol: relative tolerance for least squares solver. Default is `None`.
+        :param bool verbose: print information (only on rank 0). Default is `False`.
         :param bool local_only: If `True` (default), compute local daggers and sum-reduce (efficient).
-            If `False`, compute exact global pseudoinverse with full communication (expensive).
-        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
-        :param dict kwargs: optional parameters for the forward operator.
+            If `False`, compute exact global pseudoinverse with full communication (expensive). Default is `True`.
+        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True). Default is `True`.
+        :param kwargs: optional parameters for the forward operator.
 
         :return: pseudoinverse solution. If `local_only=True`, returns approximation.
             If `local_only=False`, returns exact least squares solution.
@@ -1061,14 +1071,14 @@ class DistributedStackedLinearPhysics(DistributedStackedPhysics, LinearPhysics):
             with communication at every power iteration. This computes the exact norm but is
             communication-intensive.
 
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate
-        :param int max_iter: maximum number of iterations for power method
-        :param float tol: relative variation criterion for convergence
-        :param bool verbose: print information (only on rank 0)
+        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate.
+        :param int max_iter: maximum number of iterations for power method. Default is `50`.
+        :param float tol: relative variation criterion for convergence. Default is `1e-3`.
+        :param bool verbose: print information (only on rank 0). Default is `True`.
         :param bool local_only: If `True` (default), compute local norms and max-reduce (efficient).
-            If `False`, compute exact global norm with full communication (expensive).
-        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True).
-        :param dict kwargs: optional parameters for the forward operator
+            If `False`, compute exact global norm with full communication (expensive). Default is `True`.
+        :param bool reduce: whether to reduce results across ranks (only applies if local_only=True). Default is `True`.
+        :param kwargs: optional parameters for the forward operator.
 
         :return: Squared spectral norm. If `local_only=True`, returns upper bound.
             If `local_only=False`, returns exact value.
@@ -1140,14 +1150,14 @@ class DistributedProcessing:
     :param Callable[[torch.Tensor], torch.Tensor] processor: processing function to apply to signal patches.
         Should accept a batched tensor of shape ``(N, C, ...)`` and return a tensor of the same shape.
         Examples: denoiser, neural network, prior gradient function, etc.
-    :param str | DistributedSignalStrategy strategy: signal processing strategy for patch extraction
-        and reduction. Either a strategy name (``'basic'``, ``'smart_tiling'``) or a custom strategy instance.
-        Default is ``'smart_tiling'`` which handles overlapping patches with smooth blending.
-    :param None, dict strategy_kwargs: additional keyword arguments passed to the strategy constructor
-        when using string strategy names. Examples: ``patch_size``, ``overlap``, ``blend_mode``.
-    :param None, int max_batch_size: maximum number of patches to process in a single batch.
+    :param str | DistributedSignalStrategy | None strategy: signal processing strategy for patch extraction
+        and reduction. Either a strategy name (``'basic'``, ``'overlap_tiling'``) or a custom strategy instance.
+        Default is ``'overlap_tiling'`` which handles overlapping patches with smooth blending.
+    :param dict | None strategy_kwargs: additional keyword arguments passed to the strategy constructor
+        when using string strategy names. Examples: ``patch_size``, ``receptive_field_size``, ``tiling_dims``. Default is `None`.
+    :param int | None max_batch_size: maximum number of patches to process in a single batch.
         If ``None``, all local patches are batched together. Set to ``1`` for sequential processing
-        (useful for memory-constrained scenarios). Higher values increase throughput but require more memory.
+        (useful for memory-constrained scenarios). Higher values increase throughput but require more memory. Default is `None`.
     """
 
     def __init__(
@@ -1166,8 +1176,9 @@ class DistributedProcessing:
         self.ctx = ctx
         self.processor = processor
         self.max_batch_size = max_batch_size
-        self.strategy = strategy if strategy is not None else "smart_tiling"
-        self.strategy_kwargs = strategy_kwargs
+        self.strategy = strategy if strategy is not None else "overlap_tiling"
+        self.strategy_kwargs = strategy_kwargs or {}
+        self.current_shape: torch.Size | None = None
 
         if hasattr(processor, "to"):
             self.processor.to(ctx.device)
@@ -1180,12 +1191,14 @@ class DistributedProcessing:
 
         :param torch.Tensor x: input signal tensor to process, typically of shape ``(B, C, H, W)`` for 2D
             or ``(B, C, D, H, W)`` for 3D signals.
-        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution.
+        :param bool reduce: whether to reduce results across ranks. If False, returns local contribution. Default is `True`.
         :param args: additional positional arguments passed to the processor.
         :param kwargs: additional keyword arguments passed to the processor.
         :return: processed signal with the same shape as input.
         """
-        self._init_shape_and_strategy(x.shape)
+        if self.current_shape != x.shape:
+            self._init_shape_and_strategy(x.shape)
+            self.current_shape = x.shape
         return self._apply_op(x, *args, reduce=reduce, **kwargs)
 
     # ---- internals --------------------------------------------------------
@@ -1201,29 +1214,29 @@ class DistributedProcessing:
         tiling strategy based on the input signal dimensions. It creates the strategy,
         determines the number of patches, and assigns patches to ranks.
 
-        :param Sequence[int] img_size: shape of the input signal tensor (e.g., ``(B, C, H, W)``).
+        :param Sequence[int] img_size: full shape of the input signal tensor (e.g., ``(B, C, H, W)``).
         """
 
         self.img_size = torch.Size(img_size)
+        tiling_dims = self.strategy_kwargs.pop("tiling_dims", None)
 
         # Create or set the strategy
-        if isinstance(self.strategy, str):
-            from .strategies import create_strategy
-
-            strategy_kwargs = self.strategy_kwargs or {}
-            # Assume standard layout (B, C, D1, D2, ...) -> n_dimension = len - 2
-            n_dimension = len(img_size) - 2
-            self._strategy = create_strategy(
-                self.strategy, img_size, n_dimension=n_dimension, **strategy_kwargs
+        self._strategy = (
+            create_strategy(
+                self.strategy, img_size, tiling_dims=tiling_dims, **self.strategy_kwargs
             )
-        else:
-            self._strategy = self.strategy
+            if isinstance(self.strategy, str)
+            else self.strategy
+        )
+
         if self._strategy is None:
-            raise RuntimeError("Strategy is None - failed to create or import strategy")
+            raise RuntimeError(
+                "Distributed strategy is None - failed to create or import strategy"
+            )
 
         self.num_patches = self._strategy.get_num_patches()
         if self.num_patches == 0:
-            raise ValueError("Strategy produced zero patches.")
+            raise ValueError("Distributed strategy produced zero patches.")
 
         # determine local patch indices for this rank
         self.local_indices: list[int] = list(self.ctx.local_indices(self.num_patches))
@@ -1340,8 +1353,8 @@ class DistributedDataFidelity:
         or a factory function that creates DataFidelity instances for each operator.
         The factory should have signature
         ``factory(index: int, device: torch.device, shared: dict | None) -> DataFidelity``.
-    :param None, int num_operators: number of operators (required if data_fidelity is a factory).
-    :param None, dict shared: shared data dictionary passed to factory function for all operators.
+    :param int | None num_operators: number of operators (required if data_fidelity is a factory). Default is `None`.
+    :param dict | None shared: shared data dictionary passed to factory function for all operators. Default is `None`.
     :param str reduction: reduction mode matching the distributed physics. Options are ``'sum'`` or ``'mean'``.
         Default is ``'sum'``.
     """
@@ -1362,8 +1375,9 @@ class DistributedDataFidelity:
 
         :param DistributedContext ctx: distributed context manager.
         :param DataFidelity | Callable data_fidelity: data fidelity term or factory.
-        :param int | None num_operators: number of operators (required if data_fidelity is a factory).
-        :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``.
+        :param int | None num_operators: number of operators (required if data_fidelity is a factory). Default is `None`.
+        :param dict | None shared: shared data dictionary passed to factory function. Default is `None`.
+        :param str reduction: reduction mode for distributed operations. Options are ``'sum'`` and ``'mean'``. Default is ``'sum'``.
         """
         self.ctx = ctx
         self.reduction_mode = reduction
@@ -1426,7 +1440,9 @@ class DistributedDataFidelity:
         :param torch.Tensor x: input signal at which to evaluate the data fidelity.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
         :param DistributedStackedLinearPhysics physics: distributed physics operator.
-        :param dict kwargs: additional arguments passed to the distance function.
+        :param bool reduce: whether to reduce results across ranks. Default is `True`.
+        :param args: additional positional arguments passed to the distance function.
+        :param kwargs: additional keyword arguments passed to the distance function.
         :return: scalar data fidelity value.
         """
         self._check_is_distributed_physics(physics)
@@ -1483,7 +1499,9 @@ class DistributedDataFidelity:
         :param torch.Tensor x: input signal at which to compute the gradient.
         :param list[torch.Tensor] y: measurements (TensorList or list of tensors).
         :param DistributedStackedLinearPhysics physics: distributed physics operator.
-        :param dict kwargs: additional arguments passed to the distance function gradient.
+        :param bool reduce: whether to reduce results across ranks. Default is `True`.
+        :param args: additional positional arguments passed to the distance function gradient.
+        :param kwargs: additional keyword arguments passed to the distance function gradient.
         :return: gradient with same shape as x.
         """
         self._check_is_distributed_physics(physics)

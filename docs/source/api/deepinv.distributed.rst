@@ -15,9 +15,9 @@ Simply pass your DeepInverse object and a :class:`~deepinv.distributed.Distribut
 :func:`~deepinv.distributed.distribute` function. It automatically detects the object type and returns
 the appropriate distributed wrapper:
 
-   - **Stacked Physics or list of Physics** → :class:`~deepinv.distributed.DistributedStackedPhysics` or :class:`~deepinv.distributed.DistributedStackedLinearPhysics`
-   - **Denoisers** → :class:`~deepinv.distributed.DistributedProcessing` (with spatial tiling)
-   - **Data fidelity** → :class:`~deepinv.distributed.DistributedDataFidelity`
+   - **Stacked Physics or list of Physics** are turned to :class:`~deepinv.distributed.DistributedStackedPhysics` or :class:`~deepinv.distributed.DistributedStackedLinearPhysics`
+   - **Denoisers** are turned to :class:`~deepinv.distributed.DistributedProcessing` (with spatial tiling)
+   - **Data fidelity** are turned to :class:`~deepinv.distributed.DistributedDataFidelity`
 
 **Key Benefits:**
 
@@ -83,7 +83,7 @@ Advanced: Custom tiling strategies for spatial distribution of denoisers.
 
    deepinv.distributed.strategies.DistributedSignalStrategy
    deepinv.distributed.strategies.BasicStrategy
-   deepinv.distributed.strategies.SmartTilingStrategy
+   deepinv.distributed.strategies.OverlapTilingStrategy
 
 
 .. autosummary::

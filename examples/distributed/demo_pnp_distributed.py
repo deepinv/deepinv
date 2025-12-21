@@ -43,7 +43,7 @@ from deepinv.utils.demo import load_example
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.loss.metric import PSNR
-from deepinv.utils.plotting import plot
+from deepinv.utils.plotting import plot, plot_curves
 from deepinv.models import DRUNet
 
 # Import the distributed framework
@@ -95,15 +95,16 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     physics_list = []
 
     for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels)):
-        # Create blur operator with circular padding
-        blur_op = Blur(filter=kernel, padding="circular", device=str(device))
-
-        # Set the noise model with reproducible random generator
+        # Create blur operator with circular padding and noise model
         rng = torch.Generator(device=device).manual_seed(seed + i)
-        blur_op.noise_model = GaussianNoise(sigma=noise_level, rng=rng)
-        blur_op = blur_op.to(device)
+        physics = Blur(
+            filter=kernel,
+            padding="circular",
+            device=str(device),
+            noise_model=GaussianNoise(sigma=noise_level, rng=rng),
+        )
 
-        physics_list.append(blur_op)
+        physics_list.append(physics)
 
     # Stack physics operators into a single operator
     stacked_physics = stack(*physics_list)
@@ -188,7 +189,7 @@ with DistributedContext(seed=42) as ctx:
     # ============================================================================
 
     if ctx.rank == 0:
-        print(f"\n🔧 Loading and distributing denoiser...")
+        print(f"\n Loading and distributing denoiser...")
         print(f"   Patch size: {patch_size}x{patch_size}")
         print(f"   Receptive field radius: {receptive_field_size}")
 
@@ -304,19 +305,4 @@ with DistributedContext(seed=42) as ctx:
         )
 
         # Plot convergence curve
-        import matplotlib.pyplot as plt
-
-        plt.figure(figsize=(8, 5))
-        plt.plot(range(1, num_iterations + 1), psnr_history, marker="o", linewidth=2)
-        plt.xlabel("Iteration", fontsize=12)
-        plt.ylabel("PSNR (dB)", fontsize=12)
-        plt.title("PnP Reconstruction Convergence", fontsize=14)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.savefig("distributed_pnp_convergence.png", dpi=150)
-        plt.close()
-
-        print(f"\nResults saved:")
-        print(f"   - distributed_pnp_result.png")
-        print(f"   - distributed_pnp_convergence.png")
-        print("\n" + "=" * 70)
+        plot_curves({"psnr": [psnr_history]}, save_dir=".")

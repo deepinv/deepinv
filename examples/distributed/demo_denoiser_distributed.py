@@ -150,7 +150,7 @@ with DistributedContext(seed=42) as ctx:
         print(f"\nConfiguring distributed denoiser")
         print(f"   Patch size: {patch_size}x{patch_size}")
         print(f"   Receptive field radius: {receptive_field_size}")
-        print(f"   Tiling strategy: smart_tiling")
+        print(f"   Tiling strategy: overlap_tiling")
 
     distributed_denoiser = distribute(
         denoiser,

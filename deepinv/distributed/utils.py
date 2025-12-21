@@ -18,6 +18,7 @@ def tiling_reduce_fn(
 
     This function fills the `out_local` tensor with the processed patches from `local_pairs`,
     using the metadata to determine where each patch should be placed in the output tensor.
+    `out_local` is modified in place.
 
     :param torch.Tensor out_local: the output tensor to fill (should be initialized to zeros).
     :param list[tuple[int, torch.Tensor]] local_pairs: list of (global_index, processed_tensor) pairs from this rank.
@@ -110,6 +111,12 @@ def tiling_splitting_strategy(
 
         D = shape[dim_idx]
         p = p_sizes[i]
+
+        if D <= p:
+            raise ValueError(
+                f"Dimension {dim_idx} size {D} is smaller than or equal to patch size {p}."
+            )
+
         rf = rf_sizes[i]
         s = strides[i]
 

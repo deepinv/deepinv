@@ -38,19 +38,20 @@ def _distribute_physics(
     r"""
     Distribute a Physics object across multiple devices.
 
-    :param Physics physics: Physics object to distribute
-    :param DistributedContext ctx: distributed context manager
-    :param None, int num_operators: number of physics operators when using a factory for physics, otherwise inferred.
-    :param str type_object: type of physics object to distribute. Options are `'physics'` or `'linear_physics'`. Default is `'physics'`.
-    :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
+    :param StackedPhysics | list[Physics] | Callable physics: Physics object to distribute.
+        Can be a StackedPhysics, list of Physics objects, or a factory function.
+    :param DistributedContext ctx: distributed context manager.
+    :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.
+    :param str | None type_object: type of physics object to distribute. Options are `'physics'` or `'linear_physics'`. Default is `'physics'`.
+    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
     :param str gather_strategy: strategy for gathering distributed results. Options are:
         - `'naive'`: Simple object serialization (best for small tensors)
         - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)
         - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)
         Default is `'concatenated'`.
-    :param kwargs: additional keyword arguments for DistributedStackedPhysics
+    :param kwargs: additional keyword arguments for DistributedStackedPhysics.
 
-    :returns: Distributed version of the input Physics object
+    :return: Distributed version of the input Physics object.
     """
     # Physics factory
     if isinstance(physics, (StackedPhysics, StackedLinearPhysics)):
@@ -99,7 +100,7 @@ def _distribute_processor(
     ctx: DistributedContext,
     *,
     dtype: torch.dtype | None = torch.float32,
-    tiling_strategy: torch.dtype | None = None,
+    tiling_strategy: str | DistributedSignalStrategy | None = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
     tiling_dims: int | tuple[int, ...] | None = None,
@@ -110,18 +111,22 @@ def _distribute_processor(
     r"""
     Distribute a DeepInverse prior or denoiser across multiple devices.
 
-    :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute
-    :param DistributedContext ctx: distributed context manager
-    :param None, torch.dtype dtype: data type for distributed object. Default is `torch.float32`.
-    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
-    :param int patch_size: size of patches for tiling strategies. Default is 256.
-    :param int receptive_field_size: receptive field size for overlap in tiling strategies. Default is 64.
-    :param bool overlap: whether patches should overlap. Default is False.
-    :param None, int max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to 1 for sequential processing.
-    :param str gather_strategy: strategy for gathering distributed results (currently unused for processors, kept for API consistency).
-    :param kwargs: additional keyword arguments for DistributedProcessing
+    :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute.
+    :param DistributedContext ctx: distributed context manager.
+    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
+    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are `'basic'`, `'overlap_tiling'`, or a custom strategy instance. Default is `None` (which defaults to `'overlap_tiling'`).
+    :param int patch_size: size of patches for tiling strategies. Default is `256`.
+    :param int receptive_field_size: receptive field size for overlap in tiling strategies. Default is `64`.
+    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over.
+        Can be one of the following:
+            - If ``None`` (default), tiles the last N-2 dimensions of your input tensor, i.e. for a tensor of shape (B, C, H, W), tiles over (H, W).
+            - If an int ``N``, only tiles over the specified dimension.
+            - If a tuple, specifies exact dimensions to tile.
+    :param int | None max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.
+    :param str gather_strategy: strategy for gathering distributed results (currently unused for processors, kept for API consistency). Default is `'concatenated'`.
+    :param kwargs: additional keyword arguments for DistributedProcessing.
 
-    :returns: Distributed version of the input processor
+    :return: Distributed version of the input processor.
     """
 
     return DistributedProcessing(
@@ -152,12 +157,13 @@ def _distribute_data_fidelity(
     r"""
     Distribute a DataFidelity object across multiple devices.
 
-    :param DataFidelity data_fidelity: DataFidelity object to distribute
-    :param DistributedContext ctx: distributed context manager
-    :param None, int num_operators: number of data fidelity operators when using a factory for data_fidelity, otherwise inferred.
-    :param kwargs: additional keyword arguments for DistributedDataFidelity
+    :param DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | Callable data_fidelity: DataFidelity object to distribute.
+        Can be a DataFidelity, StackedPhysicsDataFidelity, list of DataFidelity objects, or a factory function.
+    :param DistributedContext ctx: distributed context manager.
+    :param int | None num_operators: number of data fidelity operators when using a factory for data_fidelity, otherwise inferred. Default is `None`.
+    :param kwargs: additional keyword arguments for DistributedDataFidelity.
 
-    :returns: Distributed version of the input DataFidelity object
+    :return: Distributed version of the input DataFidelity object.
     """
     # DataFidelity factory
 
@@ -215,7 +221,7 @@ def distribute(
     type_object: str | None = "auto",
     dtype: torch.dtype | None = torch.float32,
     gather_strategy: str = "concatenated",
-    tiling_strategy: str | DistributedSignalStrategy | None = None,
+    tiling_strategy: str | DistributedSignalStrategy | None = "overlap_tiling",
     tiling_dims: int | tuple[int, ...] | None = None,
     patch_size: int = 256,
     receptive_field_size: int = 64,
@@ -238,12 +244,12 @@ def distribute(
         - Data fidelity terms: a list of :class:`deepinv.optim.DataFidelity` or :class:`deepinv.optim.StackedPhysicsDataFidelity`.
         - Priors/Denoisers: :class:`deepinv.models.Denoiser` or :class:`deepinv.optim.Prior` objects.
 
-    :param object: DeepInverse object to distribute. The supported types are listed above.
-    :param ctx: distributed context manager
-    :param num_operators: number of physics operators when using a factory for physics, otherwise inferred.
-    :param type_object: type of object to distribute. Options are `'physics'`, `'data_fidelity'`, or `'auto'` for automatic detection. Default is `'auto'`.
-    :param dtype: data type for distributed object. Default is `torch.float32`.
-    :param gather_strategy: strategy for gathering distributed results.
+    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] object: DeepInverse object to distribute. The supported types are listed above.
+    :param DistributedContext ctx: distributed context manager.
+    :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.
+    :param str | None type_object: type of object to distribute. Options are `'physics'`, `'linear_physics'`, `'data_fidelity'`, `'denoiser'`, or `'auto'` for automatic detection. Default is `'auto'`.
+    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.
+    :param str gather_strategy: strategy for gathering distributed results.
 
         Options are:
             - `'naive'`: Simple object serialization (best for small tensors)
@@ -252,27 +258,29 @@ def distribute(
 
         Default is `'concatenated'`.
 
-    :param tiling_strategy: strategy for tiling the signal (for Denoiser/Prior).
-        Options are `'basic'`, `'smart_tiling'`, or a custom strategy instance. Default is `'smart_tiling'`.
-    :param tiling_dims: dimensions to tile over (for Denoiser/Prior).
+    :param str | DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser).
+        Options are `'basic'`, `'overlap_tiling'`, or a custom strategy instance. Default is `'overlap_tiling'`.
+    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser).
 
         Can be one of the following:
-            - If ``None`` (default), tiles the last N-2 dimensions (spatial dimensions).
-            - If an int ``N``, tiles the last ``N`` dimensions.
+            - If ``None`` (default), tiles the last N-2 dimensions of your input tensor.
+            - If an int ``N``, only tiles over the specified dimension.
             - If a tuple, specifies exact dimensions to tile.
 
         Examples:
-            - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles H and W.
-            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=3`` tiles D, H, W.
+            - For ``(B, C, H, W)`` image: ``tiling_dims=(2, 3)`` tiles over H and W.
+            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=(2, 3, 4)`` tiles over D, H, W.
+            - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles only over H dimension.
+            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=None`` tiles over D, H, W dimensions.
 
-    :param patch_size: size of patches for tiling strategies (for Denoiser/Prior).
+    :param int patch_size: size of patches for tiling strategies (for Denoiser).
         Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `256`.
-    :param receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser/Prior).
+    :param int receptive_field_size: receptive field size for overlap in tiling strategies (for Denoiser).
         Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `64`.
-    :param max_batch_size: maximum number of patches to process in a single batch (for Denoiser/Prior). If `None`, all patches are batched together. Set to `1` for sequential processing.
-    :param kwargs: additional keyword arguments for specific distributed classes
+    :param int | None max_batch_size: maximum number of patches to process in a single batch (for Denoiser). If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.
+    :param kwargs: additional keyword arguments for specific distributed classes.
 
-    :returns: Distributed version of the input object
+    :return: Distributed version of the input object.
 
     |sep|
 

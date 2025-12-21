@@ -7,6 +7,10 @@ distributed signal processing, including splitting, batching, and reduction oper
 
 from __future__ import annotations
 
+
+import itertools
+import warnings
+
 from abc import ABC, abstractmethod
 from typing import Sequence
 
@@ -48,7 +52,7 @@ class DistributedSignalStrategy(ABC):
         r"""
         Extract and prepare local patches for processing.
 
-        :param torch.Tensor X: the complete signal tensor.
+        :param torch.Tensor x: the complete signal tensor.
         :param list[int] local_indices: global indices of patches assigned to this rank.
         :return: list of (global_index, prepared_patch) pairs ready for processing.
         """
@@ -187,14 +191,14 @@ class BasicStrategy(DistributedSignalStrategy):
         - Uses simple tensor assignment for reduction
 
     :param Sequence[int] img_size: shape of the complete signal tensor.
-    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If `int`, splits the last `N` dimensions (default: `2` for last two dimensions).
-    :param None, tuple[int, ...] num_splits: number of splits along each dimension. If `None`, automatically computed.
+    :param int | tuple[int, ...] tiling_dims: dimensions along which to split. If `int`, tiles only that dimension.
+    :param tuple[int, ...] | None num_splits: number of splits along each dimension. If `None`, automatically computed. Default is `None`.
     """
 
     def __init__(
         self,
         img_size: Sequence[int],
-        tiling_dims: int | tuple[int, ...] = 2,
+        tiling_dims: int | tuple[int, ...],
         num_splits: tuple[int, ...] | None = None,
         **kwargs,
     ):
@@ -205,9 +209,8 @@ class BasicStrategy(DistributedSignalStrategy):
 
         # Normalize tiling_dims to tuple
         if isinstance(tiling_dims, int):
-            # If tiling_dims is an int, interpret it as "split the last N dimensions"
-            n = tiling_dims
-            self.tiling_dims = tuple(range(-n, 0))
+            # If tiling_dims is an int, tile only that dimension
+            self.tiling_dims = (tiling_dims,)
         elif isinstance(tiling_dims, tuple):
             self.tiling_dims = tiling_dims
         else:
@@ -252,8 +255,6 @@ class BasicStrategy(DistributedSignalStrategy):
             ranges.append(dim_ranges)
 
         # Generate all patch combinations
-        import itertools
-
         for positions in itertools.product(*[range(len(r)) for r in ranges]):
             # Create slice tuple
             slices = [slice(None)] * len(self.img_size)
@@ -286,7 +287,7 @@ class BasicStrategy(DistributedSignalStrategy):
         return len(self._patch_slices)
 
 
-class SmartTilingStrategy(DistributedSignalStrategy):
+class OverlapTilingStrategy(DistributedSignalStrategy):
     r"""
     Smart tiling strategy with padding for N-dimensional data.
 
@@ -295,8 +296,11 @@ class SmartTilingStrategy(DistributedSignalStrategy):
         - Batches patches for efficient processing
         - Uses optimized tensor operations for reduction
 
-    :param Sequence[int] img_size: shape of the complete signal tensor.
+    :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).
     :param int | tuple[int, ...] | None tiling_dims: dimensions to tile.
+        -   If `None`, defaults to last N dimensions where N is `len(patch_size)` if `patch_size` is `tuple`, else `2`.
+        -   If `int`, tiles only that dimension.
+        -   If `tuple`, tiles specified dimensions.
     :param int | tuple[int, ...] patch_size: size of each patch, supports non-cuboid patch size.
     :param int | tuple[int, ...] receptive_field_size: padding radius around each patch, supports non-cuboid receptive field size.
     :param int | tuple[int, ...] | None stride: stride between patches. Default to the same value as `patch_size` for non-overlapping patches.
@@ -324,9 +328,8 @@ class SmartTilingStrategy(DistributedSignalStrategy):
             n = len(patch_size)
             self.tiling_dims = tuple(range(-n, 0))
         elif isinstance(self.tiling_dims, int):
-            # If tiling_dims is an int, interpret it as "tile the last N dimensions"
-            n = self.tiling_dims
-            self.tiling_dims = tuple(range(-n, 0))
+            # If tiling_dims is an int, tile only that dimension
+            self.tiling_dims = (self.tiling_dims,)
         elif not isinstance(self.tiling_dims, tuple):
             raise ValueError("tiling_dims must be an int or a tuple of ints")
 
@@ -378,10 +381,10 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                 new_p_sizes[i] = safe_p
                 modified = True
 
-                if shape[0] == 1:  # Warning
-                    print(
-                        f"Warning: patch_size[{i}] ({p}) > dim {dim_idx} ({D}). Adjusted to {safe_p}, rf {safe_rf}"
-                    )
+                warnings.warn(
+                    f"patch_size[{i}] ({p}) > dim {dim_idx} ({D}). Adjusted to {safe_p}, rf {safe_rf}",
+                    UserWarning,
+                )
 
         if modified:
             self.patch_size = (
@@ -426,6 +429,10 @@ class SmartTilingStrategy(DistributedSignalStrategy):
                 x_pad = torch.nn.functional.pad(x, trimmed_pads, mode=pad_mode)
             except Exception:
                 # Fallback to constant padding if reflect fails
+                warnings.warn(
+                    f"Padding with mode '{pad_mode}' failed. Falling back to 'constant' padding.",
+                    UserWarning,
+                )
                 x_pad = torch.nn.functional.pad(x, pad_specs, mode="constant", value=0)
         else:
             x_pad = x
@@ -449,27 +456,32 @@ class SmartTilingStrategy(DistributedSignalStrategy):
 
 
 def create_strategy(
-    strategy_name: str, img_size: Sequence[int], n_dimension: int, **kwargs
+    strategy_name: str,
+    img_size: Sequence[int],
+    tiling_dims: tuple[int, ...] | None = None,
+    **kwargs,
 ) -> DistributedSignalStrategy:
     r"""
     Create a distributed signal strategy by name.
 
-    :param str strategy_name: name of the strategy (`'basic'`, `'smart_tiling'`).
-    :param Sequence[int] img_size: shape of the signal tensor.
-    :param int n_dimension: number of dimensions of the signal (e.g., `2` for images, `3` for volumes).
+    :param str strategy_name: name of the strategy (`'basic'`, `'overlap_tiling'`).
+    :param Sequence[int] img_size: full shape of the signal tensor, including batch and channel dimensions (e.g., ``(B, C, H, W)``).
+    :param tuple[int, ...] | None tiling_dims: dimensions to tile. If `None`, defaults to last N dimensions.
     :return: the created strategy instance.
     """
     # Handle tiling_dims priority: kwargs > n_dimension
-    if "tiling_dims" in kwargs and kwargs["tiling_dims"] is not None:
-        tiling_dims = kwargs.pop("tiling_dims")
-    else:
-        tiling_dims = n_dimension
-        if "tiling_dims" in kwargs:
-            kwargs.pop("tiling_dims")
+    if tiling_dims is None:
+        n_dimension = len(img_size) - 2  # Assume (B, C, D1, D2, ...)
+        tiling_dims = tuple(range(-n_dimension, 0))
+        warnings.warn(
+            f"No tiling_dims provided. Assuming last {n_dimension} dimensions: {tiling_dims}. "
+            "If your layout is different, please provide tiling_dims explicitly.",
+            UserWarning,
+        )
 
     if strategy_name == "basic":
         return BasicStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
-    elif strategy_name == "smart_tiling":
-        return SmartTilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
+    elif strategy_name == "overlap_tiling":
+        return OverlapTilingStrategy(img_size, tiling_dims=tiling_dims, **kwargs)
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
