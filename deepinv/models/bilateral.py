@@ -12,18 +12,22 @@ class BilateralFilter(Denoiser):
     where each output pixel is a normalized weighted average of neighboring pixels in a spatial window.
     The weights factor into a spatial kernel and a range kernel:
 
+    .. math::
+
         \hat{x}_i = (1 / W_i) * \sum_{j \in \omega(i)} k_d(i - j) k_r(x_i - x_j) x_j
 
-    with Gaussian spatial kernel k_d and Gaussian range kernel k_r.
-    The spatial standard deviation $\sigma_d$ controls how fast the kernel
-    decays with distance, while the range standard deviation $\sigma_r$
+    with Gaussian spatial kernel :math:`k_d` and Gaussian range kernel :math:`k_d`.
+    The spatial standard deviation :math:`\sigma_d` controls how fast the kernel
+    decays with distance, while the range standard deviation :math:`\sigma_r`
     controls how strongly intensity differences are penalized.
 
     |sep|
 
+    :Example:
+
     >>> import deepinv as dinv
     >>> x = dinv.utils.load_example("butterfly.png")
-    >>> physics = dinv.physics.GaussianNoise()
+    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise()
     >>> y = physics(x)
     >>> model = dinv.models.BilateralFilter()
     >>> x_hat = model(y,sigma_d=1.1,sigma_r=0.3,window_size=9)
@@ -34,6 +38,8 @@ class BilateralFilter(Denoiser):
     def forward(
         self,
         x: Tensor,
+        sigma: torch.Tensor | float | None = None,
+        *,
         sigma_d: float | Tensor = 1,
         sigma_r: float | Tensor = 1,
         window_size: int = 5,
