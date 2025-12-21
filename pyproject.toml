@@ -94,7 +94,7 @@ denoisers = [
     "spyrit>=3.0.0; platform_system=='Linux'",
     "diffusers", 
     "transformers",
-    "numba>=0.63.1",
+    "numba==0.60.0",
 ]
 
 # optional dependencies for specific datasets
