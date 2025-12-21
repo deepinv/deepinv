@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add :class:`deepinv.physics.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 
 Changed
 ^^^^^^^

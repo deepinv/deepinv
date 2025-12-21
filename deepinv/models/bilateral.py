@@ -48,14 +48,10 @@ class BilateralFilter(Denoiser):
         r"""
         Apply a bilateral filter to the input x.
 
-        :param torch.Tensor x : Input tensor of shape (B, C, H, W) or (C, H, W).
-        :param float sigma_d : Spatial standard deviation (spatial domain).
-            Larger values yield larger effective receptive fields.
-        :param float sigma_r : Range standard deviation (intensity domain).
-            Larger values yield stronger smoothing across edges.
-        :param int window_size :
-            Size of the (square) spatial window. Must be an odd integer.
-
+        :param torch.Tensor x: Input tensor of shape (B, C, H, W) or (C, H, W).
+        :param float sigma_d: Spatial standard deviation (spatial domain). Larger values yield larger effective receptive fields.
+        :param float sigma_r: Range standard deviation (intensity domain). Larger values yield stronger smoothing across edges.
+        :param int window_size: Size of the (square) spatial window. Must be an odd integer.
         :return: Filtered image.
         """
 
