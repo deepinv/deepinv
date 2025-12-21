@@ -90,6 +90,21 @@ class MMSE(Denoiser):
             x, sigma, self.dataloader, self.device, self.dtype, verbose
         )
 
+    def to(self, device: torch.device | str = None, dtype: torch.dtype = None):
+        r"""
+        Move the model to a specified device and/or dtype.
+
+        :param torch.device | str device: Device to move the model to.
+        :param torch.dtype dtype: Dtype to move the model to.
+        :return: The model on the specified device and/or dtype.
+        :rtype: MMSE
+        """
+        if device is not None:
+            self.device = device
+        if dtype is not None:
+            self.dtype = dtype
+        return self
+
 
 def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
     r"""
@@ -101,6 +116,7 @@ def _select_accumulator_dtype(dtype: torch.dtype) -> torch.dtype:
     return dtype
 
 
+# Analytical implementation of the MMSE denoiser w.r.t the empirical distribution and its gradient
 class MMSEFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, sigma, dataloader, device, dtype, verbose):
