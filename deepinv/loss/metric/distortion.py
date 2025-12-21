@@ -945,9 +945,12 @@ class CosineSimilarity(Metric):
     Cosine similarity metric.
 
     Computes cosine similarity between reconstruction :math:`\hat{x}` and ground truth :math:`x`.
-    A higher value means more similar.
-    - :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
+    A higher value means more similar. The metric is calculated as:
+    
+    :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
+    
     .. note::
+
         By default, no reduction is applied over the batch dimension.
 
     :Example:
