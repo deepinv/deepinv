@@ -74,7 +74,7 @@ class AdversarialLoss(Loss):
     See :ref:`sphx_glr_auto_examples_models_demo_gan_imaging.py` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5.
-    :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
+    :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in :func:`deepinv.loss.AdversarialLoss.forward`, defaults to `None`.
     :param torch.optim.Optimizer optimizer_D: optimizer for training discriminator.
         If `None` (default), do not train discriminator model.
     :param torch.optim.lr_scheduler.LRScheduler scheduler_D: optional learning rate scheduler

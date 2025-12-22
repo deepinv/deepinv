@@ -34,7 +34,7 @@ y = physics(x)
 # which has been trained on natural images for 2 or 4x superresolution problems, using
 # a vanilla GAN loss.
 #
-# We use this to construct a loss consisting of a supervised pixel-wise loss (optionall pass in a perceptual metric if desired),
+# We use this to construct a loss consisting of a supervised pixel-wise loss (optionally pass in a perceptual metric if desired),
 # and a supervised adversarial loss containing the frozen pretrained discriminator.
 #
 

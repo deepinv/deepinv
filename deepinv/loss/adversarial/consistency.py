@@ -244,7 +244,7 @@ class MultiOperatorUnsupAdversarialLoss(UnsupAdversarialLoss, MultiOperatorMixin
 
     :math:`\mathcal{L}_\text{adv}(\tilde{y},\hat y;D)=\mathbb{E}_{\tilde{y}\sim p_{\tilde{y}}}\left[q(D(\tilde{y}))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
-    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels.
+    where :math:`D` is the discriminator model and :math:`q` is the GAN metric between discriminator output and labels,
     :math:`\hat y=A_2\hat x` is the re-measured reconstruction via a random operator :math:`A_2\sim\mathcal{A}`,
     and :math:`\tilde y` is a random measurement drawn from a dataset of measurements.
 
