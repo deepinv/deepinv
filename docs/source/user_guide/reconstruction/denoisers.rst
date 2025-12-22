@@ -196,7 +196,7 @@ creates a time-agnostic wrapper that flattens the time dimension into the batch 
 
 MMSE denoiser
 ^^^^^^^^^^^^^^
-The :class:`deepinv.models.MMSE` class implements the closed-form MMSE denoiser assuming that the prior disctribution is a Dirac-mixture based on a given dataset.
+The :class:`deepinv.models.MMSE` class implements the closed-form MMSE denoiser assuming that the prior distribution is a Dirac-mixture based on a given dataset.
 This closed-form denoiser can be used to obtain a performance upper-bound on deep denoisers trained to approximate the MMSE.
 
 
