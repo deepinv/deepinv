@@ -946,9 +946,9 @@ class CosineSimilarity(Metric):
 
     Computes cosine similarity between reconstruction :math:`\hat{x}` and ground truth :math:`x`.
     A higher value means more similar. The metric is calculated as:
-    
+
     :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
-    
+
     .. note::
 
         By default, no reduction is applied over the batch dimension.
@@ -960,7 +960,7 @@ class CosineSimilarity(Metric):
     >>> m = CosineSimilarity()
     >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
     >>> m(x_net, x)
-    tensor([1., 1., 1.])
+    tensor([1.0000, 1.0000, 1.0000])
 
     :param bool complex_abs: take complex magnitude before computing similarity.
     :param str reduction: reduction over batch ("mean", "sum", "none"/None).
