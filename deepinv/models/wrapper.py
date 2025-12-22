@@ -232,7 +232,7 @@ class ComplexDenoiserWrapper(Denoiser):
         >>> import deepinv as dinv
         >>> import torch
         >>> from deepinv.models import ComplexDenoiserWrapper, DRUNet
-        >>> denoiser = DRUNet() # doctest: +IGNORE_OUTPUT
+        >>> denoiser = DRUNet()
         >>> complex_denoiser = ComplexDenoiserWrapper(denoiser, mode="real_imag")
         >>> y = torch.randn(2, 3, 32, 32, dtype=torch.complex64)  # complex input
         >>> sigma = 0.1
