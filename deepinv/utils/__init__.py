@@ -45,6 +45,7 @@ from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
 from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs
+from ._spectral import liu_jia_pad
 from .mixins import TimeMixin, MRIMixin
 from .compat import zip_strict
 from .io import (
