@@ -35,6 +35,7 @@ class MMSE(Denoiser):
     :Examples:
 
         >>> import deepinv as dinv
+        >>> import torch
         >>> from torchvision import datasets
         >>> import torchvision.transforms.v2 as v2
         >>> device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,8 +43,7 @@ class MMSE(Denoiser):
         ...        root=".",
         ...        train=False,
         ...        download=True,
-        ...        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]),
-            )
+        ...        transform=v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]))
         >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
         >>> # Since the MNIST dataset is small, we can also load it entirely in memory as a tensor
         >>> dataloader = torch.cat([data[0] for data in iter(dataloader)]).to(device)
@@ -72,11 +72,19 @@ class MMSE(Denoiser):
     def forward(
         self,
         x: torch.Tensor,
-        sigma: torch.tensor | float,
+        sigma: torch.Tensor | float,
         *args,
         verbose: bool = False,
         **kwargs,
     ) -> torch.Tensor:
+        r"""
+        Perform MMSE denoising on input tensor `x` with noise standard deviation `sigma`.
+
+        :param x: Noisy input tensor of shape `(B, C, H, W)`.
+        :param sigma: Noise standard deviation. Can be a float or a tensor of shape `(B,)`.
+        :param verbose: If `True`, display a progress bar during computation. Default is `False`.
+        :return: Denoised tensor of the same shape as `x`.
+        """
         if x.device.type != self.device.type:
             raise ValueError(
                 f"Input tensor device {x.device.type} does not match model device {self.device.type}."
