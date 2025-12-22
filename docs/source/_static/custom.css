@@ -80,3 +80,25 @@ img.sphx-glr-single-img {
     height: auto;
     padding: 5px;
 }
+
+/* Ensure the header is clickable and shows pointer */
+table.sortable-table thead th {
+    cursor: pointer !important;
+    position: relative;
+    padding-right: 26px !important; /* Make room for the arrows */
+}
+
+/* Style the sorting arrows so they appear in PyData's dark/light modes */
+table.dataTable thead .sorting:after,
+table.dataTable thead .sorting_asc:after,
+table.dataTable thead .sorting_desc:after {
+    position: absolute;
+    right: 8px;
+    display: block;
+    font-family: "Font Awesome 6 Free"; /* PyData already loads FontAwesome */
+    font-weight: 900;
+}
+
+table.dataTable thead .sorting:after { content: "\f0dc"; opacity: 0.3; }
+table.dataTable thead .sorting_asc:after { content: "\f0de"; }
+table.dataTable thead .sorting_desc:after { content: "\f0dd"; }
