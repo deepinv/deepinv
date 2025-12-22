@@ -27,7 +27,8 @@ class BilateralFilter(Denoiser):
 
     >>> import deepinv as dinv
     >>> x = dinv.utils.load_example("butterfly.png")
-    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise())
+    >>> rng = torch.Generator().manual_seed(0)
+    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(rng=rng))
     >>> y = physics(x)
     >>> model = dinv.models.BilateralFilter()
     >>> x_hat = model(y,sigma_d=1.1,sigma_r=0.3,window_size=9)
