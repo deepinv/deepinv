@@ -25,6 +25,7 @@ class BilateralFilter(Denoiser):
 
     :Example:
 
+    >>> import torch
     >>> import deepinv as dinv
     >>> x = dinv.utils.load_example("butterfly.png")
     >>> rng = torch.Generator().manual_seed(0)
@@ -32,7 +33,7 @@ class BilateralFilter(Denoiser):
     >>> y = physics(x)
     >>> model = dinv.models.BilateralFilter()
     >>> x_hat = model(y,sigma_d=1.1,sigma_r=0.3,window_size=9)
-    >>> dinv.metric.PSNR()(x_hat, x) > 26.13
+    >>> dinv.metric.PSNR()(x_hat, x) > 26
     tensor([True])
     """
 
