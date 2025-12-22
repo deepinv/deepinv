@@ -564,6 +564,9 @@ def get_prior(prior_name, device="cpu"):
             prior = dinv.optim.prior.WaveletPrior(
                 wv=["db1", "db4", "db8"], level=3, device=device
             )
+    elif prior_name == "ZeroPrior":
+        prior = dinv.optim.prior.ZeroPrior()
+
     return prior
 
 
@@ -579,6 +582,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "TVPrior",
         "WaveletPrior",
         "WaveletDictPrior",
+        "ZeroPrior",
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
@@ -604,7 +608,8 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
-
+        if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
+            max_iter = 4000
         if pnp_algo == "PDCP":
             stepsize_dual = 1.0
             x_init = physics.A_adjoint(y)
