@@ -8,14 +8,17 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 
 Changed
 ^^^^^^^
+- - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
 
 Fixed
 ^^^^^
-
+- Implement/extend functional for 2D/3D convolution with spatial and FFT (:func:`deepinv.physics.functional.conv3d` and  :func:`deepinv.physics.functional.conv_transpose3d`), support all padding modes with equivalent outputs (:gh:`825` by `Minh Hai Nguyen`_)
+- Fix ZeroPrior :class:`deepinv.optim.ZeroPrior` (:gh:`1001` by `Victor Sechaud`_)
 
 v0.3.7
 ------
@@ -58,7 +61,11 @@ New Features
 - Add support for complex dtypes in :class:`deepinv.models.WaveletDenoiser`, :class:`deepinv.models.WaveletDictDenoiser` and :class:`deepinv.optim.WaveletPrior` (:gh:`738` by `Chaithya G R`_)
 - dinv.io functions for loading DICOM, NIFTI, COS, GEOTIFF etc. (:gh:`768` by `Andrew Wang`_)
 - Add `Open in Colab` button to examples (:gh:`907` by `Minh Hai Nguyen`_)
+- Better diffraction blur generator with higher Zernike orders, rotation and apodization (:gh:`826` by `Minh Hai Nguyen`_)
+- Rotation transform via shear operations :func:`deepinv.transform.rotate.rotate_via_shear` for reduced interpolation artifacts (:gh:`826` by `Minh Hai Nguyen`_)
+- Zernike polynomials interface :class:`deepinv.physics.generator.Zernike` for any (n, m) order (:gh:`826` by `Minh Hai Nguyen`_)
 - Integration with HuggingFace Diffusers library to use pretrained diffusion models as denoisers and for posterior sampling (:gh:`893` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^
@@ -77,6 +84,7 @@ Fixed
 - Fix unhandled import error in CBSD68 if datasets is not installed (:gh:`868` by `Johannes Hertrich`_)
 - Add support for complex signals in PSNR (:gh:`738` by `Jérémy Scanvic`_)
 - Add a warning in SwinIR when upsampling parameters are inconsistent (:gh:`909` by `Jérémy Scanvic`_)
+- Fix formula error in Zernike polynomials, extend to higher order (:gh:`826` by `Minh Hai Nguyen`_)
 - Fix scaling of measurement and samples in posterior sampling with diffusion SDEs (:gh:`893` by `Minh Hai Nguyen`_)
 
 
@@ -546,4 +554,5 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Benoît Malézieux: https://github.com/bmalezieux
