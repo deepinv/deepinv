@@ -154,7 +154,7 @@ model, D, optimizer, optimizer_D = get_models()
 # easily replaced with a perceptual loss if desired.
 #
 # .. hint::
-#     To change the flavour of the GAN to WGAN, vanilla etc. pass in `metric` to `DiscriminatorMetric`.
+#     To change the flavour of the GAN to WGAN, vanilla etc., pass in `metric` to `DiscriminatorMetric`.
 #
 # .. note::
 #     The discriminator `D` is trained inside the loss by passing in `optimizer_D`. You can load a pretrained
