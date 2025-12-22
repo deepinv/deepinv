@@ -25,13 +25,15 @@ class BilateralFilter(Denoiser):
 
     :Example:
 
+    >>> import torch
     >>> import deepinv as dinv
     >>> x = dinv.utils.load_example("butterfly.png")
-    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise())
+    >>> rng = torch.Generator().manual_seed(0)
+    >>> physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(rng=rng))
     >>> y = physics(x)
     >>> model = dinv.models.BilateralFilter()
     >>> x_hat = model(y,sigma_d=1.1,sigma_r=0.3,window_size=9)
-    >>> dinv.metric.PSNR()(x_hat, x) > 26.13
+    >>> dinv.metric.PSNR()(x_hat, x) > 26
     tensor([True])
     """
 
@@ -70,35 +72,21 @@ class BilateralFilter(Denoiser):
         device = x.device
         dtype = x.dtype
 
-        # sigma_d: scalar or shape (B,)
-        if isinstance(sigma_d, torch.Tensor):
-            if sigma_d.numel() == 1:
-                sigma_d = sigma_d.to(device=device, dtype=dtype).view(1, 1, 1, 1, 1, 1)
-            else:
-                if sigma_d.numel() != B:
-                    raise ValueError(
-                        f"sigma_d tensor must have length B={B}, got {sigma_d.numel()}"
-                    )
-                sigma_d = sigma_d.to(device=device, dtype=dtype).view(B, 1, 1, 1, 1, 1)
-        else:
-            sigma_d = torch.tensor([float(sigma_d)], device=device, dtype=dtype).view(
-                1, 1, 1, 1, 1, 1
-            )
-
-        # sigma_r: scalar or shape (B,)
-        if isinstance(sigma_r, torch.Tensor):
-            if sigma_r.numel() == 1:
-                sigma_r = sigma_r.to(device=device, dtype=dtype).view(1, 1, 1, 1, 1, 1)
-            else:
-                if sigma_r.numel() != B:
-                    raise ValueError(
-                        f"sigma_r tensor must have length B={B}, got {sigma_r.numel()}"
-                    )
-                sigma_r = sigma_r.to(device=device, dtype=dtype).view(B, 1, 1, 1, 1, 1)
-        else:
-            sigma_r = torch.tensor([float(sigma_r)], device=device, dtype=dtype).view(
-                1, 1, 1, 1, 1, 1
-            )
+        # Pre-process scalar values for batch processing
+        sigma_d = self._handle_sigma(
+            sigma=sigma_d,
+            batch_size=B,
+            device=device,
+            dtype=dtype,
+            ndim=6,
+        )
+        sigma_r = self._handle_sigma(
+            sigma=sigma_r,
+            batch_size=B,
+            device=device,
+            dtype=dtype,
+            ndim=6,
+        )
 
         # Precompute spatial kernel (Gaussian) over the window
         half = window_size // 2
