@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING, Union
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 import torch
 from torch import Tensor
@@ -285,13 +285,12 @@ class MRIMixin:
         return ss.sqrt()
 
 
-
 class MultiOperatorMixin:
     """Mixin for multi-operator loss functions."""
 
     def next_physics(
         self,
-        physics: Union[Physics, list[Physics]],
+        physics: Physics | list[Physics],
         physics_generator: PhysicsGenerator = None,
         batch_size=1,
     ) -> Physics:

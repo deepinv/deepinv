@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -89,7 +89,7 @@ class UAIRLoss(MultiOperatorMixin, AdversarialLoss):
         self,
         weight_adv: float = 0.5,
         weight_mc: float = 1,
-        metric: Optional[nn.Module] = None,
+        metric: nn.Module | None = None,
         domain: str = None,
         D: nn.Module = None,
         metric_gan: DiscriminatorMetric = None,

@@ -91,7 +91,9 @@ class GPLoss(SupAdversarialLoss):
     def gradient_penalty(self, real: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
         """Compute the gradient penalty term."""
         batch_size = real.size(0)
-        epsilon = torch.rand(batch_size, 1, 1, 1, device=self.device, requires_grad=True)
+        epsilon = torch.rand(
+            batch_size, 1, 1, 1, device=self.device, requires_grad=True
+        )
         interpolated = epsilon * real + (1 - epsilon) * fake
         interpolated.requires_grad_(True)
 
@@ -111,7 +113,12 @@ class GPLoss(SupAdversarialLoss):
         return gp
 
     def forward(
-        self, x: torch.Tensor, x_net: torch.Tensor, model: nn.Module = None, *args, **kwargs
+        self,
+        x: torch.Tensor,
+        x_net: torch.Tensor,
+        model: nn.Module = None,
+        *args,
+        **kwargs,
     ):
         with self.step_discrim(model) as step:
             for _ in range(self.num_D_steps):

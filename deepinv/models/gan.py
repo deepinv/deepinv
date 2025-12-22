@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional
 from math import prod
 
 import numpy as np
@@ -10,7 +9,6 @@ import torch.nn as nn
 from torch import Tensor
 from torch.optim import Adam
 from torch.nn import functional as F
-from torch import rand
 
 from deepinv.physics.forward import Physics
 from deepinv.loss.mc import MCLoss
@@ -131,7 +129,11 @@ class ESRGANDiscriminator(nn.Module):
 
     @_deprecated_alias(input_shape="img_size")
     def __init__(
-        self, img_size: tuple, batch_norm: bool = True, filters: tuple = (64, 128, 256, 512), dim: str | int = 2
+        self,
+        img_size: tuple,
+        batch_norm: bool = True,
+        filters: tuple = (64, 128, 256, 512),
+        dim: str | int = 2,
     ):
         super().__init__()
 
@@ -499,7 +501,7 @@ class UNetDiscriminatorSN(nn.Module):
         num_in_ch=3,
         num_feat=64,
         skip_connection=True,
-        pretrained_factor: Optional[int] = None,
+        pretrained_factor: int | None = None,
         device="cpu",
     ):
         super(UNetDiscriminatorSN, self).__init__()

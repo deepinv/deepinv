@@ -1,6 +1,6 @@
 from __future__ import annotations
 from contextlib import nullcontext, contextmanager
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 from pathlib import Path
 
 import torch.nn as nn
@@ -211,7 +211,7 @@ class AdversarialLoss(Loss):
             self.optimizer_D.load_state_dict(ckpt["optimizer"])
         return ckpt
 
-    def save_model(self, filename: Union[str, Path]):
+    def save_model(self, filename: str | Path):
         r"""
         Save the discriminator.
 

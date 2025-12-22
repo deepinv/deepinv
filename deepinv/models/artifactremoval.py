@@ -60,7 +60,7 @@ class ArtifactRemoval(Reconstructor):
 
         if device is not None:
             self.backbone_net = self.backbone_net.to(device)
-        
+
         self.to(device)
 
     def backbone_inference(

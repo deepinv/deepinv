@@ -162,6 +162,7 @@ def test_discrim_training(discrim_name, loss_name, imsize, device, rng, tmp_path
 
             assert Dx2 == Dx0
 
+
 def build_unet(imsize, device):
     return dinv.models.UNet(
         in_channels=imsize[0],
@@ -181,7 +182,6 @@ def build_csgm_generator(imsize, device):
     ).to(device)
 
 
-
 def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
     unet = build_unet(imsize, device)
     csgm_generator = build_csgm_generator(imsize, device)
@@ -191,7 +191,7 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, domain):
     physics_generator = BernoulliSplittingMaskGenerator(
         imsize, 0.5, device=device, rng=torch.Generator(device).manual_seed(42)
     )
-    
+
     if combo_name == "DeblurGAN":
         model = unet
         D = dinv.models.PatchGANDiscriminator(
