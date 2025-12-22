@@ -42,7 +42,7 @@ def choose_discriminator(discrim_name, imsize, device):
         )
     elif discrim_name == "ESRGANDiscriminator":
         return dinv.models.gan.ESRGANDiscriminator(
-            imsize, hidden_dims=[64] * 6, batch_norm=False
+            imsize, filters=[64] * 6, batch_norm=False
         )
     elif discrim_name == "DCGANDiscriminator":
         return dinv.models.gan.DCGANDiscriminator(ndf=2, nc=1)
