@@ -11,6 +11,8 @@ New Features
 - Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 - Add distributed computing framework with :class:`deepinv.distributed.DistributedContext`, :class:`deepinv.distributed.DistributedStackedPhysics`, :class:`deepinv.distributed.DistributedProcessing`, :class:`deepinv.distributed.DistributedDataFidelity` and :func:`deepinv.distributed.distribute` factory function. Supports multi-GPU/multi-process execution with physics-based and spatial tiling distribution strategies (:gh:`790`` by `Benoît Malézieux`_)
 
+- Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
+
 Changed
 ^^^^^^^
 - - (Breaking) Make :class:`deepinv.physics.BlurFFT` compute a true convolution (now) instead of cross-correlation (before). It is now equivalent to :class:`deepinv.physics.Blur` with `padding="circular"` (:gh:`825` by `Minh Hai Nguyen`_). For even kernel sizes, the output is now shifted by one pixel to the top-left compared to before.  
@@ -554,5 +556,6 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Benoît Malézieux: https://github.com/bmalezieux

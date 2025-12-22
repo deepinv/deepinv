@@ -938,3 +938,55 @@ class HaarPSI(Metric):
                 image, haar_filter.t()
             )
         return coefficients
+
+
+class CosineSimilarity(Metric):
+    r"""
+    Cosine similarity metric.
+
+    Computes cosine similarity between reconstruction :math:`\hat{x}` and ground truth :math:`x`.
+    A higher value means more similar. The metric is calculated as:
+
+    :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
+
+    .. note::
+
+        By default, no reduction is applied over the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import CosineSimilarity
+    >>> m = CosineSimilarity()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([1.0000, 1.0000, 1.0000])
+
+    :param bool complex_abs: take complex magnitude before computing similarity.
+    :param str reduction: reduction over batch ("mean", "sum", "none"/None).
+    :param str norm_inputs: normalization for inputs ("l2", "min_max", or None).
+    :param int, tuple[int], None center_crop: crop before computing metric.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # store cosine similarity function
+        # we compute per-element similarities manually (not using torch metric class)
+        self.cos = torch.nn.functional.cosine_similarity
+        self.lower_better = False
+
+    def metric(self, x_net, x, *args, **kwargs):
+        # flatten everything except batch dimension
+        # cosine_similarity requires feature dimension last
+        B = x.shape[0]
+        x_net_f = x_net.reshape(B, -1)
+        x_f = x.reshape(B, -1)
+
+        # cosine_similarity returns shape [B]
+        sim = self.cos(x_net_f, x_f, dim=1)
+
+        # our Metric base class applies reduction afterward
+        return sim
+
+    def invert_metric(self, m):
+        return 1.0 - m
