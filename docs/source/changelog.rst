@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 
 Changed
 ^^^^^^^
@@ -552,3 +553,4 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
