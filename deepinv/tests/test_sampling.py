@@ -280,6 +280,7 @@ def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
         VariancePreservingDiffusion,
+        FlowMatching,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
@@ -303,12 +304,16 @@ def test_sde(device):
     num_steps = 20
     rng = torch.Generator(device)
     # Set up solvers
-    timesteps = torch.linspace(1, 0.001, num_steps)
+    timesteps = torch.linspace(0.99, 0.001, num_steps)
     solvers = [
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
-    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+    sde_classes = [
+        FlowMatching,
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+    ]
     for denoiser, kwargs in zip_strict(denoisers, list_kwargs):
         for solver in solvers:
             for sde_class in sde_classes:

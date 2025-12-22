@@ -1,6 +1,6 @@
 r"""
 Building your diffusion posterior sampling method using SDEs
-============================================================
+==============================================================
 
 This demo shows you how to use
 :class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.
@@ -266,7 +266,7 @@ except FileNotFoundError:
 from deepinv.sampling import VariancePreservingDiffusion
 
 del trajectory
-sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.0, device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
@@ -390,7 +390,7 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y=y,
     physics=physics,
-    seed=12,
+    seed=1,
     get_trajectory=True,
 )
 
