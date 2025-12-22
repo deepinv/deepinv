@@ -74,10 +74,18 @@ class BilateralFilter(Denoiser):
 
         # Pre-process scalar values for batch processing
         sigma_d = self._handle_sigma(
-            sigma=sigma_d, batch_size=B, device=device, dtype=dtype, ndim=6,
+            sigma=sigma_d,
+            batch_size=B,
+            device=device,
+            dtype=dtype,
+            ndim=6,
         )
         sigma_r = self._handle_sigma(
-            sigma=sigma_r, batch_size=B, device=device, dtype=dtype, ndim=6,
+            sigma=sigma_r,
+            batch_size=B,
+            device=device,
+            dtype=dtype,
+            ndim=6,
         )
 
         # Precompute spatial kernel (Gaussian) over the window
