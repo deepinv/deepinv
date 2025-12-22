@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.BilateralFilter` model (:gh:`997` by `Thomas Boulanger`_)
 
 - Add Cosine Similarity to the metrics (:gh:`944` by `Avithal Lautman`_)
 
@@ -555,3 +556,4 @@ Changed
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
 .. _Avithal Lautman: https://github.com/avithal
+.. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
